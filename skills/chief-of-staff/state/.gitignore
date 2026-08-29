@@ -1,0 +1,8 @@
+# Runtime state. Real subjects, senders, links, relationship notes and 1:1
+# agendas live here — never commit any of it.
+#
+# Everything, not just *.json: some state is deliberately stored as Markdown so
+# you can read and edit it directly, and a *.json rule silently fails to cover
+# those files.
+*
+!.gitignore

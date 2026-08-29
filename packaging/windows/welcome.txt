@@ -1,0 +1,40 @@
+Margo - an AI chief of staff for Microsoft 365
+
+This installs the Margo agent and her skills into your GitHub Copilot CLI
+directory, so you can ask for things like:
+
+    "Brief me."
+    "Triage my inbox."
+    "Find 30 minutes with Dana this week."
+    "Draft a reply to that."
+
+Margo reads your mail, calendar, Teams and files through WorkIQ, and PROPOSES.
+She never sends, replies, RSVPs or deletes anything without your explicit
+approval of that specific action.
+
+
+WHERE THINGS GO
+
+  Program files    %LOCALAPPDATA%\Margo
+  Agent and skills %USERPROFILE%\.copilot
+
+This is a per-user install, so it does not need administrator rights.
+
+
+UPGRADING IS SAFE
+
+Your personal files are never overwritten or deleted:
+
+  preferences.md    who you are, who matters, how you write
+  commitments.md    what you owe, what you're waiting on
+  config.md         per-skill settings
+  state\            saved state for scheduled runs
+
+Uninstalling backs them up rather than removing them.
+
+
+REQUIREMENTS
+
+  GitHub Copilot CLI
+  A Microsoft 365 work account, reachable through WorkIQ
+  Python 3.9 or later, for the bundled helper scripts

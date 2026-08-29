@@ -1,0 +1,59 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Installer build output
+build/
+dist/
+*.pkg
+*.exe
+
+# ---------------------------------------------------------------------------
+# Personal data — never commit these.
+#
+# The files below are templates in this repo. Once you fill them in they hold
+# real names, addresses, org identifiers and mailbox content. If you fork this
+# repo to run your own Margo, uncomment the lines that apply so your working
+# copy stays out of git.
+# ---------------------------------------------------------------------------
+
+# Runtime state (real subjects, senders, links, relationship notes, 1:1 agendas).
+# The WHOLE subtree, not just *.json — the skills deliberately store some state
+# as Markdown, which a *.json rule silently fails to cover.
+skills/*/state/*
+!skills/*/state/.gitignore
+
+# Personalization templates.
+#
+# These are TRACKED, so listing them here does nothing — .gitignore only affects
+# untracked files. If you install with ./install.sh (the default), your filled-in
+# copies live in ~/.copilot and never touch this repo, so there is nothing to do.
+#
+# Only if you installed with --link, and are therefore editing them in place:
+#
+#   git update-index --skip-worktree \
+#     skills/chief-of-staff/preferences.md \
+#     skills/chief-of-staff/commitments.md \
+#     skills/decision-log/config.md \
+#     skills/partner-updates/config.md
+#
+# Undo with --no-skip-worktree. tools/check-clean.sh still inspects them, so a
+# filled copy is caught before it can be pushed.
+
+# Local scratch
+*.local.md
+tmp/
+
+# Private denylist for tools/check-clean.sh — your own name, initials,
+# employer, customers, codenames. Never published.
+tools/forbidden.local.txt

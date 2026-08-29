@@ -1,0 +1,413 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # The rule CONTRIBUTING.md makes non-negotiable, enforced on every PR.
+  sanitization:
+    name: No real workplace data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No real workplace data in the repo
+        run: ./tools/check-clean.sh
+      - name: The checker still detects known leak classes
+        run: ./tools/check-clean-selftest.sh
+
+  scripts:
+    name: Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.9' }
+
+      - name: Compile bundled scripts
+        run: python -m py_compile skills/chief-of-staff/scripts/*.py
+
+      - name: State ledger works
+        run: python skills/chief-of-staff/scripts/proactive_state.py status
+
+      # The ledger imported fcntl unconditionally and died at import on Windows,
+      # before argparse — so every subcommand failed, not just the locking ones.
+      - name: State ledger runs without a locking primitive
+        run: |
+          d=$(mktemp -d)
+          cp skills/chief-of-staff/scripts/proactive_state.py "$d/ps.py"
+          printf 'raise ImportError("No module named fcntl")\n'  > "$d/fcntl.py"
+          printf 'raise ImportError("No module named msvcrt")\n' > "$d/msvcrt.py"
+          ( cd "$d" && python ps.py status ) || { echo "::error::ledger dies without fcntl"; exit 1; }
+          echo "ledger degrades correctly with no file locking"
+
+      - name: Installer payload must contain only tracked files
+        run: |
+          # The packagers used to walk the working tree, so .venv/, scratch
+          # *.local.md and tools/forbidden.local.txt shipped inside the installer.
+          printf 'SecretName\n' > tools/forbidden.local.txt
+          echo "scratch" > notes.local.md
+          ./packaging/macos/build-pkg.sh 0.0.0-ci >/dev/null
+          if pkgutil --payload-files dist/Margo-0.0.0-ci.pkg | grep -E 'forbidden\.local|\.local\.md'; then
+            echo "::error::installer payload contains gitignored working-tree files"
+            exit 1
+          fi
+          rm -f tools/forbidden.local.txt notes.local.md
+          echo "payload contains only tracked files"
+
+      - name: Queue drain must not acknowledge before rendering
+        run: |
+          d=$(mktemp -d)
+          cp skills/chief-of-staff/scripts/proactive_state.py "$d/ps.py"
+          cd "$d" && mkdir -p state
+          python ps.py queue-add --json '{"id":"mail:crit","title":"VP escalation"}' >/dev/null
+          b=$(python ps.py queue-drain --format json 2>&1 >/dev/null | sed 's/^batch \([a-f0-9]*\).*/\1/')
+          n=$(python ps.py queue-drain --format json | python -c 'import json,sys;print(len(json.load(sys.stdin)))')
+          [ "$n" = "1" ] || { echo "::error::failed brief lost queued items ($n)"; exit 1; }
+          # A bare ack must be refused: it would retire another run's items.
+          if python ps.py queue-ack >/dev/null 2>&1; then
+            echo "::error::bare queue-ack was accepted"; exit 1
+          fi
+          # Acking a stale batch must retire nothing.
+          python ps.py queue-ack --batch "$b" >/dev/null 2>&1 || true
+          n=$(python ps.py queue-drain --format json | python -c 'import json,sys;print(len(json.load(sys.stdin)))')
+          [ "$n" = "1" ] || { echo "::error::stale batch ack retired items it did not drain ($n)"; exit 1; }
+          python ps.py queue-ack --all >/dev/null
+          n=$(python ps.py queue-drain --format json | python -c 'import json,sys;print(len(json.load(sys.stdin)))')
+          [ "$n" = "0" ] || { echo "::error::ack did not retire in-flight items ($n)"; exit 1; }
+          echo "drain/ack ordering and batch scoping correct"
+
+      - name: Shell syntax
+        run: |
+          bash -n install.sh
+          bash -n tools/check-clean.sh
+          bash -n tools/margo-scheduled.sh
+          bash -n packaging/macos/build-pkg.sh
+          bash -n packaging/macos/scripts/postinstall
+
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          severity: warning
+          ignore_paths: build dist
+
+      # The wrapper exists so the write-denials cannot be trimmed by hand. If it
+      # ever stops emitting all four, unattended runs silently regain the ability
+      # to send mail.
+      - name: Scheduled wrapper denies every WorkIQ write tool
+        run: |
+          out=$(./tools/margo-scheduled.sh brief --print)
+          for t in do_action create_entity update_entity delete_entity; do
+            printf '%s' "$out" | grep -q -- "--deny-tool workiq($t)" \
+              || { echo "::error::wrapper does not deny workiq($t)"; exit 1; }
+          done
+          # An explicit allow must not survive: denial takes precedence.
+          out=$(./tools/margo-scheduled.sh brief --print --allow-tool 'workiq(do_action)')
+          printf '%s' "$out" | grep -q -- '--deny-tool workiq(do_action)' \
+            || { echo "::error::pass-through args removed a denial"; exit 1; }
+          echo "wrapper denies all four write tools"
+
+      - name: PowerShell syntax
+        shell: pwsh
+        run: |
+          foreach ($f in @('install.ps1', 'packaging/windows/build-exe.ps1', 'tools/margo-scheduled.ps1')) {
+            $errs = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $f).Path, [ref]$null, [ref]$errs)
+            if ($errs.Count) {
+              $errs | ForEach-Object {
+                Write-Host "::error file=$f,line=$($_.Extent.StartLineNumber)::$($_.Message)"
+              }
+              exit 1
+            }
+            Write-Host "OK $f"
+          }
+
+  docs:
+    name: Documentation links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every internal link and anchor resolves
+        run: |
+          python3 - <<'EOF'
+          import re, pathlib, sys
+
+          def slug(heading):
+              # GitHub's rule: lowercase, drop everything that is not a word
+              # character, whitespace or hyphen, then turn EACH whitespace
+              # character into a hyphen — consecutive spaces are NOT collapsed.
+              s = heading.strip().lower()
+              s = re.sub(r'[^\w\s-]', '', s)
+              return re.sub(r'\s', '-', s)
+
+          bad = []
+          for f in pathlib.Path('.').rglob('*.md'):
+              if any(p in f.parts for p in ('.git', 'build', 'dist')):
+                  continue
+              for m in re.finditer(r'\]\(([^)]+)\)', f.read_text()):
+                  raw = m.group(1).strip()
+                  if raw.startswith(('http', 'mailto:')):
+                      continue
+                  path, _, frag = raw.partition('#')
+                  target = (f.parent / path).resolve() if path else f.resolve()
+                  if not target.exists():
+                      bad.append(f"{f}: missing file -> {raw}")
+                      continue
+                  # Fragments were previously stripped and never checked, so a
+                  # renamed heading left a dead anchor with CI green.
+                  if frag and target.suffix == '.md':
+                      heads = {slug(l.lstrip('#').strip())
+                               for l in target.read_text().splitlines()
+                               if l.startswith('#')}
+                      if frag not in heads:
+                          bad.append(f"{f}: dead anchor -> {raw}")
+          if bad:
+              for b in bad:
+                  print(f"::error::{b}")
+              sys.exit(1)
+          print("all internal links and anchors resolve")
+          EOF
+
+  # Proves the installer works from a clean machine, on both platforms.
+  install:
+    name: Install (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      # Every assertion below checks CONTENT, never just that a filename exists.
+      # A filename-only check passed while the user's data was gone.
+      - name: Install, reinstall, status, uninstall
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="$RUNNER_TEMP/copilot"
+          COS="$DEST/skills/chief-of-staff"
+
+          plant() {
+            echo "MY REAL PREFERENCES"  > "$COS/preferences.md"
+            echo "MY RELATIONSHIP DATA" > "$COS/state/relationships.md"
+            mkdir -p "$COS/state/one-on-ones"
+            echo "MY 1:1 AGENDA"        > "$COS/state/one-on-ones/dana.md"
+            echo '{"marker":"MYSTATEJSON"}' > "$COS/state/surfaced.json"
+          }
+          # $1 = label. Fails unless every planted string is findable under $DEST.
+          assert_all_survive() {
+            for needle in "MY REAL PREFERENCES" "MY RELATIONSHIP DATA" "MY 1:1 AGENDA" "MYSTATEJSON"; do
+              grep -rqF "$needle" "$DEST" \
+                || { echo "::error::$1 lost: $needle"; exit 1; }
+            done
+            echo "  ok: $1 preserved every class of personal data"
+          }
+
+          ./install.sh --all --dest "$DEST" --yes
+          test -f "$DEST/agents/margo.agent.md"
+          test -f "$COS/SKILL.md"
+
+          # 1. Reinstall must not clobber anything the user owns.
+          plant
+          ./install.sh --all --dest "$DEST" --yes
+          assert_all_survive "reinstall"
+
+          # 2. --dry-run must change nothing.
+          before=$(find "$DEST" -type f | sort | md5sum)
+          ./install.sh --all --dest "$DEST" --yes --dry-run >/dev/null
+          after=$(find "$DEST" -type f | sort | md5sum)
+          [ "$before" = "$after" ] || { echo "::error::--dry-run modified the filesystem"; exit 1; }
+          echo "  ok: --dry-run wrote nothing"
+
+          # 3. --link over a populated dir, non-interactive: must NOT destroy data.
+          #    Before the fix this auto-confirmed and rm -rf'd with no backup.
+          ./install.sh --link --dest "$DEST" < /dev/null || true
+          assert_all_survive "--link non-interactive"
+          test ! -L "$COS" || { echo "::error::--link replaced a real dir without consent"; exit 1; }
+
+          # 4. --force must keep the original outside the install root.
+          ./install.sh --all --dest "$DEST" --yes --force
+          grep -rqF "MY REAL PREFERENCES" "$DEST" \
+            || { echo "::error::--force destroyed the original"; exit 1; }
+          echo "  ok: --force archived the original"
+
+          ./install.sh status --dest "$DEST"
+
+          # 5. Uninstall must archive every class, and by CONTENT.
+          ./install.sh uninstall --dest "$DEST" --yes
+          test ! -e "$DEST/agents/margo.agent.md"
+          assert_all_survive "uninstall"
+
+          # 6. A --dest that is (or contains) the checkout must be refused, not
+          #    obeyed: link mode used to rm -rf the source and self-link it.
+          if ./install.sh --link --dest "$PWD" --yes >/dev/null 2>&1; then
+            echo "::error::--dest == source checkout was accepted"; exit 1
+          fi
+          if ./install.sh --dest "$PWD/inside" --yes >/dev/null 2>&1; then
+            echo "::error::--dest inside the source checkout was accepted"; exit 1
+          fi
+          test -f install.sh && test -f skills/chief-of-staff/SKILL.md
+          echo "  ok: overlapping --dest refused, checkout intact"
+
+          # 7. Two archive-producing runs in the same second must not share a
+          #    backup directory; the second used to overwrite the first.
+          D2="$RUNNER_TEMP/collide"; rm -rf "$D2"
+          ./install.sh --dest "$D2" --yes >/dev/null
+          echo "FIRST ORIGINAL"  > "$D2/skills/chief-of-staff/preferences.md"
+          ./install.sh --dest "$D2" --yes --force >/dev/null
+          echo "SECOND ORIGINAL" > "$D2/skills/chief-of-staff/preferences.md"
+          ./install.sh --dest "$D2" --yes --force >/dev/null
+          for n in "FIRST ORIGINAL" "SECOND ORIGINAL"; do
+            grep -rqF "$n" "$D2" || { echo "::error::backup collision lost: $n"; exit 1; }
+          done
+          echo "  ok: same-second archives did not collide"
+
+          # 8. A failure archiving a LATER skill must leave everything in place.
+          D3="$RUNNER_TEMP/partial"; rm -rf "$D3"
+          ./install.sh --all --dest "$D3" --yes >/dev/null
+          chmod 000 "$D3/skills/decision-log/config.md"
+          ./install.sh uninstall --dest "$D3" --yes >/dev/null 2>&1 || true
+          chmod 644 "$D3/skills/decision-log/config.md" 2>/dev/null || true
+          for k in chief-of-staff decision-log partner-updates; do
+            test -d "$D3/skills/$k" \
+              || { echo "::error::partial uninstall removed $k after reporting nothing was removed"; exit 1; }
+          done
+          echo "  ok: failed archive removed nothing"
+
+          # 9. Version tracking and update.
+          D4="$RUNNER_TEMP/upd"; rm -rf "$D4"
+          ./install.sh --all --dest "$D4" --yes >/dev/null
+          grep -q "^version=$(tr -d ' \t\n\r' < VERSION)$" "$D4/.margo-install" \
+            || { echo "::error::install did not record the version"; exit 1; }
+          echo "MY REAL PREFERENCES" > "$D4/skills/chief-of-staff/preferences.md"
+
+          # Pretend we are behind, then check and update.
+          sed -i.bak 's/^version=.*/version=0.0.1/' "$D4/.margo-install" && rm -f "$D4/.margo-install.bak"
+          # Capture rather than pipe: grep -q closes the pipe early, which makes
+          # the script's own printf report a broken pipe.
+          out=$(./install.sh update --check --dest "$D4")
+          printf '%s' "$out" | grep -q 'Update available' \
+            || { echo "::error::update --check did not detect being behind"; exit 1; }
+          # --check must not have changed anything.
+          grep -q '^version=0.0.1$' "$D4/.margo-install" \
+            || { echo "::error::update --check modified the install"; exit 1; }
+
+          ./install.sh update --dest "$D4" >/dev/null
+          grep -q "^version=$(tr -d ' \t\n\r' < VERSION)$" "$D4/.margo-install" \
+            || { echo "::error::update did not record the new version"; exit 1; }
+          grep -rqF "MY REAL PREFERENCES" "$D4" \
+            || { echo "::error::update clobbered personal data"; exit 1; }
+          # It must not have added skills the user never chose.
+          grep -q '^skills=chief-of-staff decision-log partner-updates$' "$D4/.margo-install" \
+            || { echo "::error::update changed the installed skill set"; exit 1; }
+          echo "  ok: version tracking and update correct"
+
+          echo "install / reinstall / dry-run / link / force / uninstall / update all correct"
+
+      - name: Install, reinstall, status, uninstall
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dest = Join-Path $env:RUNNER_TEMP 'copilot'
+          $cos  = Join-Path $dest 'skills/chief-of-staff'
+
+          function Plant {
+            'MY REAL PREFERENCES'  | Set-Content "$cos/preferences.md"
+            'MY RELATIONSHIP DATA' | Set-Content "$cos/state/relationships.md"
+            New-Item -ItemType Directory -Path "$cos/state/one-on-ones" -Force | Out-Null
+            'MY 1:1 AGENDA'        | Set-Content "$cos/state/one-on-ones/dana.md"
+            '{"marker":"MYSTATEJSON"}' | Set-Content "$cos/state/surfaced.json"
+          }
+          # Checks CONTENT, never just that a filename exists.
+          function AssertAllSurvive([string]$label) {
+            foreach ($needle in @('MY REAL PREFERENCES','MY RELATIONSHIP DATA','MY 1:1 AGENDA','MYSTATEJSON')) {
+              $hit = Get-ChildItem $dest -Recurse -File -Force -ErrorAction SilentlyContinue |
+                     Select-String -SimpleMatch -Pattern $needle -List -ErrorAction SilentlyContinue
+              if (-not $hit) { throw "$label lost: $needle" }
+            }
+            Write-Host "  ok: $label preserved every class of personal data"
+          }
+
+          ./install.ps1 install -All -Dest $dest -Yes
+          if (-not (Test-Path "$dest/agents/margo.agent.md")) { throw "agent missing" }
+          if (-not (Test-Path "$cos/SKILL.md")) { throw "skill missing" }
+
+          # 1. Reinstall must not clobber anything the user owns.
+          Plant
+          ./install.ps1 install -All -Dest $dest -Yes
+          AssertAllSurvive 'reinstall'
+
+          # 2. -DryRun must change nothing.
+          $before = (Get-ChildItem $dest -Recurse -File -Force | Sort-Object FullName | ForEach-Object FullName) -join "`n"
+          ./install.ps1 install -All -Dest $dest -Yes -DryRun | Out-Null
+          $after  = (Get-ChildItem $dest -Recurse -File -Force | Sort-Object FullName | ForEach-Object FullName) -join "`n"
+          if ($before -ne $after) { throw "-DryRun modified the filesystem" }
+          Write-Host "  ok: -DryRun wrote nothing"
+
+          # 3. -Link over a populated dir, non-interactive: must NOT destroy data.
+          ./install.ps1 install -Link -Dest $dest 2>$null | Out-Null
+          AssertAllSurvive '-Link non-interactive'
+
+          # 4. -Force must keep the original outside the install root.
+          ./install.ps1 install -All -Dest $dest -Yes -Force
+          $orig = Get-ChildItem $dest -Recurse -File -Force |
+                  Select-String -SimpleMatch -Pattern 'MY REAL PREFERENCES' -List
+          if (-not $orig) { throw "-Force destroyed the original" }
+          Write-Host "  ok: -Force archived the original"
+
+          ./install.ps1 status -Dest $dest
+
+          # 5. Uninstall must archive every class, and by CONTENT.
+          ./install.ps1 uninstall -Dest $dest -Yes
+          if (Test-Path "$dest/agents/margo.agent.md") { throw "agent not removed" }
+          AssertAllSurvive 'uninstall'
+
+          Write-Host "install / reinstall / dry-run / link / force / uninstall all correct"
+
+  # The macOS package builds on every PR, unsigned. Release signs it.
+  package-macos:
+    name: Build .pkg
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./packaging/macos/build-pkg.sh 0.0.0-ci
+      - name: Payload must not contain state or git metadata
+        run: |
+          pkgutil --payload-files dist/Margo-0.0.0-ci.pkg > /tmp/files.txt
+          # Any runtime state, of any file type — the JSON-only guard this
+          # replaces passed a payload containing real 1:1 agendas.
+          leak=$(grep -E '/state/|/\.git/' /tmp/files.txt \
+                 | grep -v '/state/\.gitignore$' \
+                 | grep -v '/state/$' \
+                 | grep -v '/\._' || true)
+          if [ -n "$leak" ]; then
+            echo "::error::package payload contains runtime state or git metadata"
+            printf '%s\n' "$leak"
+            exit 1
+          fi
+          echo "payload clean ($(wc -l < /tmp/files.txt) entries)"
+
+  package-windows:
+    name: Build .exe
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: choco install innosetup --no-progress -y
+      - shell: pwsh
+        run: ./packaging/windows/build-exe.ps1 -Version 0.0.0
+      - name: Silent install must work
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path 'dist/Margo-0.0.0-setup.exe'
+          Start-Process -FilePath $exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+          if (-not (Test-Path (Join-Path $HOME '.copilot/agents/margo.agent.md'))) {
+            throw "silent install did not place the agent"
+          }
+          ./install.ps1 status

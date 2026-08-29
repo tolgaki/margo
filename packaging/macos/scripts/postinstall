@@ -1,0 +1,68 @@
+#!/bin/bash
+#
+# postinstall — runs as root after the payload lands in /usr/local/share/margo.
+#
+# The payload is a staged copy of the repo. The real install is delegated to
+# install.sh so there is exactly one implementation of the merge-and-preserve
+# logic, and it runs as the logged-in user so everything lands in their
+# ~/.copilot with their ownership.
+#
+set -uo pipefail
+
+STAGE="/usr/local/share/margo"
+SKILLS="__SKILLS__"
+
+# Log to a root-owned directory. /tmp is world-writable and sticky, so a local
+# user can pre-place a symlink at a predictable name and have this root script
+# append through it into a file they could not otherwise write.
+LOG_DIR="/var/log"
+LOG="$LOG_DIR/margo-install.log"
+if [ ! -d "$LOG_DIR" ] || [ ! -w "$LOG_DIR" ]; then
+  LOG=$(/usr/bin/mktemp "/tmp/margo-install.XXXXXXXX") || LOG=/dev/null
+fi
+# Never append through a symlink, wherever the log ended up.
+if [ -L "$LOG" ]; then
+  echo "refusing to log through a symlink at $LOG" >&2
+  LOG=/dev/null
+fi
+
+exec > >(tee -a "$LOG") 2>&1
+echo "--- margo postinstall ($SKILLS) $(date) ---"
+
+# The console user, not root. $USER is unreliable inside an installer script.
+CONSOLE_USER=$(/usr/bin/stat -f "%Su" /dev/console 2>/dev/null)
+if [ -z "$CONSOLE_USER" ] || [ "$CONSOLE_USER" = "root" ]; then
+  CONSOLE_USER="${USER:-}"
+fi
+if [ -z "$CONSOLE_USER" ] || [ "$CONSOLE_USER" = "root" ]; then
+  echo "error: could not determine the logged-in user; nothing installed."
+  echo "       run this instead:  $STAGE/install.sh --skills $SKILLS"
+  exit 1
+fi
+
+USER_HOME=$(/usr/bin/dscl . -read "/Users/$CONSOLE_USER" NFSHomeDirectory 2>/dev/null | /usr/bin/awk '{print $2}')
+[ -n "$USER_HOME" ] || USER_HOME="/Users/$CONSOLE_USER"
+[ -d "$USER_HOME" ] || { echo "error: home directory not found: $USER_HOME"; exit 1; }
+
+echo "user: $CONSOLE_USER   home: $USER_HOME"
+
+/bin/chmod +x "$STAGE/install.sh" 2>/dev/null
+
+# Drop privileges. install.sh preserves preferences.md, commitments.md,
+# config.md and state/ on its own, so a reinstall is safe.
+/usr/bin/sudo -u "$CONSOLE_USER" -H /bin/bash "$STAGE/install.sh" \
+  --skills "$SKILLS" \
+  --dest "$USER_HOME/.copilot" \
+  --yes
+rc=$?
+
+if [ $rc -ne 0 ]; then
+  echo "error: install.sh exited $rc"
+  exit $rc
+fi
+
+# Ownership belongs to the user, never root.
+/usr/sbin/chown -R "$CONSOLE_USER" "$USER_HOME/.copilot/agents" "$USER_HOME/.copilot/skills" 2>/dev/null
+
+echo "--- done ---"
+exit 0
