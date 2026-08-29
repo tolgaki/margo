@@ -379,6 +379,22 @@ jobs:
 
           Write-Host "install / reinstall / dry-run / link / force / uninstall all correct"
 
+      # The ledger's locking is platform-conditional: fcntl on POSIX, msvcrt on
+      # Windows. The Linux job proves the no-locking fallback; only this proves
+      # the msvcrt branch, on the one platform where msvcrt actually exists.
+      - name: State ledger works on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python skills/chief-of-staff/scripts/proactive_state.py status
+          python skills/chief-of-staff/scripts/proactive_state.py queue-add `
+            --json '{"id":"mail:win","title":"windows locking check"}'
+          $n = python skills/chief-of-staff/scripts/proactive_state.py queue-drain --format json |
+               python -c "import json,sys;print(len(json.load(sys.stdin)))"
+          if ([int]$n -lt 1) { throw "ledger did not round-trip an item on Windows" }
+          Write-Host "ledger locks and round-trips correctly on Windows"
+
   # The macOS package builds on every PR, unsigned. Release signs it.
   package-macos:
     name: Build .pkg
