@@ -72,21 +72,16 @@ Name: "decisionlog"; \
   Description: "decision-log skill (append-only record of what the team decided, and why)"; \
   Types: full
 
-Name: "partnerupdates"; \
-  Description: "partner-updates skill (per-partner status board kept current from real sources)"; \
-  Types: full
 
 [Files]
 ; Everything except the optional skills.
 Source: "{#PayloadDir}\*"; DestDir: "{app}"; \
-  Excludes: "skills\decision-log,skills\decision-log\*,skills\partner-updates,skills\partner-updates\*"; \
+  Excludes: "skills\decision-log,skills\decision-log\*"; \
   Flags: ignoreversion recursesubdirs createallsubdirs; Components: core
 
 Source: "{#PayloadDir}\skills\decision-log\*"; DestDir: "{app}\skills\decision-log"; \
   Flags: ignoreversion recursesubdirs createallsubdirs; Components: decisionlog
 
-Source: "{#PayloadDir}\skills\partner-updates\*"; DestDir: "{app}\skills\partner-updates"; \
-  Flags: ignoreversion recursesubdirs createallsubdirs; Components: partnerupdates
 
 [Icons]
 Name: "{userprograms}\Margo\Margo documentation"; Filename: "{#MyAppURL}"
@@ -147,8 +142,6 @@ begin
   if WizardIsComponentSelected('decisionlog') then
     Failed := Failed + InstallSkill('decision-log');
 
-  if WizardIsComponentSelected('partnerupdates') then
-    Failed := Failed + InstallSkill('partner-updates');
 
   if Failed <> '' then
     MsgBox('Margo was copied to' + #13#10 + ExpandConstant('{app}') + #13#10 + #13#10 +
@@ -178,8 +171,7 @@ begin
            'Remove these by hand if so:' + #13#10 +
            '  ' + CopilotDir() + '\agents\margo.agent.md' + #13#10 +
            '  ' + CopilotDir() + '\skills\chief-of-staff' + #13#10 +
-           '  ' + CopilotDir() + '\skills\decision-log' + #13#10 +
-           '  ' + CopilotDir() + '\skills\partner-updates',
+           '  ' + CopilotDir() + '\skills\decision-log',
            mbError, MB_OK);
     Exit;
   end;
@@ -201,8 +193,7 @@ begin
            'Your personal files were NOT deleted. Remove the rest by hand:' + #13#10 +
            '  ' + CopilotDir() + '\agents\margo.agent.md' + #13#10 +
            '  ' + CopilotDir() + '\skills\chief-of-staff' + #13#10 +
-           '  ' + CopilotDir() + '\skills\decision-log' + #13#10 +
-           '  ' + CopilotDir() + '\skills\partner-updates',
+           '  ' + CopilotDir() + '\skills\decision-log',
            mbError, MB_OK);
   end;
 end;

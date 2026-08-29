@@ -47,7 +47,7 @@ git clone https://github.com/tolgaki/margo.git
 cd margo
 
 ./install.sh              # agent + chief-of-staff
-./install.sh --all        # also decision-log and partner-updates
+./install.sh --all        # also the decision-log skill
 ```
 
 ```powershell
@@ -93,7 +93,7 @@ Edits in the clone take effect immediately.
 > ```bash
 > git update-index --skip-worktree \
 >   skills/chief-of-staff/preferences.md skills/chief-of-staff/commitments.md \
->   skills/decision-log/config.md skills/partner-updates/config.md
+>   skills/decision-log/config.md
 > ```
 >
 > `./tools/check-clean.sh` inspects them regardless, so a filled copy is caught

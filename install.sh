@@ -3,7 +3,7 @@
 # Margo installer — macOS and Linux
 #
 #   ./install.sh                      install the chief-of-staff skill + agent
-#   ./install.sh --all                include decision-log and partner-updates
+#   ./install.sh --all                include the decision-log skill too
 #   ./install.sh --link               symlink instead of copy (for contributors)
 #   ./install.sh status               show what's installed
 #   ./install.sh uninstall            remove it, keeping your personal files
@@ -20,14 +20,13 @@ BRANCH="${MARGO_BRANCH:-main}"
 # dependency to a script whose whole job is to work before anything is set up.
 MANIFEST_NAME=".margo-install"
 AGENT_FILE="margo.agent.md"
-ALL_SKILLS="chief-of-staff decision-log partner-updates"
+ALL_SKILLS="chief-of-staff decision-log"
 DEFAULT_SKILLS="chief-of-staff"
 
 # Files that hold your data, not ours. Never overwritten, never deleted.
 USER_DATA="chief-of-staff/preferences.md
 chief-of-staff/commitments.md
-decision-log/config.md
-partner-updates/config.md"
+decision-log/config.md"
 
 COMMAND="install"
 CHECK_ONLY=0

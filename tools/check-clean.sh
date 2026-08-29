@@ -134,7 +134,7 @@ fi
 #    it needs its own emptiness test rather than being left unchecked.
 if [ "$ROOT" = "." ]; then
   tmpl_ok=1
-  for f in skills/chief-of-staff/preferences.md skills/decision-log/config.md skills/partner-updates/config.md; do
+  for f in skills/chief-of-staff/preferences.md skills/decision-log/config.md; do
     [ -f "$f" ] || continue
     if ! grep -q '{[a-z_]*}' "$f"; then
       printf '%s✗%s %s has no {placeholder} — filled in with real data?\n' "$R$B" "$N" "$f"

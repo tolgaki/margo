@@ -58,7 +58,6 @@ skills/
     scripts/                State ledger, large-file bridge, community parsers
 
   decision-log/             The append-only record of what the team decided, and why
-  partner-updates/          A per-partner status board kept current from real sources
 
 install.sh / install.ps1    Install, upgrade, status, uninstall — never clobbers your data
 packaging/                  Native macOS .pkg and Windows .exe installers

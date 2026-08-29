@@ -44,8 +44,7 @@ skills/*/state/*
 #   git update-index --skip-worktree \
 #     skills/chief-of-staff/preferences.md \
 #     skills/chief-of-staff/commitments.md \
-#     skills/decision-log/config.md \
-#     skills/partner-updates/config.md
+#     skills/decision-log/config.md
 #
 # Undo with --no-skip-worktree. tools/check-clean.sh still inspects them, so a
 # filled copy is caught before it can be pushed.

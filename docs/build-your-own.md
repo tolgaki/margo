@@ -30,8 +30,8 @@ The two meet at one line in the agent file:
 
 - **You can replace the voice without touching the procedure.** Swap in a different agent file
   and every routine still works, in a different register.
-- **You can share the procedure without sharing the voice.** `decision-log` and `partner-updates`
-  are both in this repo and both voice-free — usable by any agent, including the default one.
+- **You can share the procedure without sharing the voice.** `decision-log` is in this repo and
+  is voice-free — usable by any agent, including the default one.
 - **Both halves stay reviewable.** A persona file that also contains pagination rules is a file
   nobody rereads.
 - **The failure modes are separable.** Wrong tone is an agent-file bug. Wrong data is a skill bug.
@@ -128,8 +128,8 @@ reasoned around the first time it's inconvenient. See [Working with Work IQ](wor
 
 1. **Copy `agents/margo.agent.md`** to `agents/<yours>.agent.md`. Rewrite the persona sections;
    keep the structure — capability disclaimer, one rule, voice, boundary, introduction.
-2. **Copy a skill as a starting shape.** `decision-log` and `partner-updates` are smaller and
-   easier to read than `chief-of-staff`.
+2. **Copy a skill as a starting shape.** `decision-log` is smaller and easier to read than
+   `chief-of-staff`.
 3. **Delete the routines you don't need.** Remove the reference file and its row from the router
    table. Nothing else depends on it.
 4. **Fill in the config template** before the first real run.
@@ -140,7 +140,6 @@ The two smaller skills are also worth reading as examples in their own right:
 | Skill | Pattern it demonstrates |
 |---|---|
 | **`decision-log`** | Append-only durable records; distinguishing a decision from discussion; never presenting a superseded decision as current |
-| **`partner-updates`** | A status board that only changes on a citable trigger; recording *absence* of news instead of restating stale status |
 
 ---
 

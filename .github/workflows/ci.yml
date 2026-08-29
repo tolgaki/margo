@@ -268,7 +268,7 @@ jobs:
           chmod 000 "$D3/skills/decision-log/config.md"
           ./install.sh uninstall --dest "$D3" --yes >/dev/null 2>&1 || true
           chmod 644 "$D3/skills/decision-log/config.md" 2>/dev/null || true
-          for k in chief-of-staff decision-log partner-updates; do
+          for k in chief-of-staff decision-log; do
             test -d "$D3/skills/$k" \
               || { echo "::error::partial uninstall removed $k after reporting nothing was removed"; exit 1; }
           done
@@ -298,7 +298,7 @@ jobs:
           grep -rqF "MY REAL PREFERENCES" "$D4" \
             || { echo "::error::update clobbered personal data"; exit 1; }
           # It must not have added skills the user never chose.
-          grep -q '^skills=chief-of-staff decision-log partner-updates$' "$D4/.margo-install" \
+          grep -q '^skills=chief-of-staff decision-log$' "$D4/.margo-install" \
             || { echo "::error::update changed the installed skill set"; exit 1; }
           echo "  ok: version tracking and update correct"
 

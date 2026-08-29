@@ -13,7 +13,7 @@
 
 .EXAMPLE
   .\install.ps1 -All
-  Include decision-log and partner-updates.
+  Include the decision-log skill too.
 
 .EXAMPLE
   .\install.ps1 status
@@ -49,15 +49,14 @@ $AgentFile    = 'margo.agent.md'
 # you whether you are behind. Plain key=value: parsing JSON would add a runtime
 # dependency to a script whose whole job is to work before anything is set up.
 $ManifestName = '.margo-install'
-$AllSkills    = @('chief-of-staff', 'decision-log', 'partner-updates')
+$AllSkills    = @('chief-of-staff', 'decision-log')
 $DefaultSkill = @('chief-of-staff')
 
 # Files that hold your data, not ours. Never overwritten, never deleted.
 $UserData = @(
     'chief-of-staff/preferences.md',
     'chief-of-staff/commitments.md',
-    'decision-log/config.md',
-    'partner-updates/config.md'
+    'decision-log/config.md'
 )
 
 if (-not $Dest) {

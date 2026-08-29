@@ -27,6 +27,10 @@ VERSION="${1:-$(tr -d ' \t\n\r' < "$HERE_EARLY/../../VERSION" 2>/dev/null || ech
 ID_PREFIX="com.github.tolgaki.margo"
 INSTALL_LOCATION="/usr/local/share/margo"
 
+# Skills the wizard offers as deselectable extras. chief-of-staff is not here:
+# it ships in the core component and cannot be turned off.
+OPTIONAL_SKILLS="decision-log"
+
 HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 REPO=$(cd "$HERE/../.." && pwd)
 BUILD="$REPO/build/macos"
@@ -102,10 +106,9 @@ make_scripts() {
 }
 
 step "Generating component scripts"
-make_scripts core            "chief-of-staff"
-make_scripts decision-log    "decision-log"
-make_scripts partner-updates "partner-updates"
-ok "3 components"
+make_scripts core "chief-of-staff"
+for c in $OPTIONAL_SKILLS; do make_scripts "$c" "$c"; done
+ok "$(( 1 + $(printf '%s\n' $OPTIONAL_SKILLS | wc -w | tr -d ' ') )) components"
 
 # ---------------------------------------------------------- 3. components ---
 
@@ -127,7 +130,7 @@ quiet_pkgbuild \
 [ -f "$BUILD/margo-core.pkg" ] || die "pkgbuild produced no core package"
 ok "margo-core.pkg"
 
-for c in decision-log partner-updates; do
+for c in $OPTIONAL_SKILLS; do
   quiet_pkgbuild \
     --nopayload \
     --scripts "$BUILD/scripts-$c" \

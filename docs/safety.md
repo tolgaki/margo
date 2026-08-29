@@ -70,11 +70,13 @@ Drafts may be prepared and held. They are never delivered, and never even presen
 is present.
 
 **What this rule does and does not cover.** It is scoped to *outbound* actions — anything another
-person can see. A skill may still write to its own local state, and `partner-updates` writes notes
-into the document vault you configure for it. Those writes are deliberate, documented in that
-skill, and constrained (`Fail closed`, `Be idempotent`, uncertain items staged for review rather
-than written) — but they are **not** covered by the sentence above, and the vault has no diff, no
-PR and no undo. If you do not want a scheduled run touching files, do not schedule that skill.
+person can see. A skill may still write to its own **local** state: the proactive ledger under
+`state/` records what has been surfaced so a scheduled run does not repeat itself. Nothing in this
+repo writes to a shared location unattended.
+
+If you add a skill that does, this is the sentence to revisit — and `tools/margo-scheduled.sh` is
+where to enforce it, since the `--deny-tool` rules there stop outbound actions at the CLI rather
+than trusting an instruction.
 
 Unattended *and* acting is how this becomes an incident. See
 **[Proactive & scheduled](proactive.md)**.
@@ -142,7 +144,7 @@ Files that hold real data, and how they're handled:
 | `preferences.md` | Your name, VIPs, addresses, org identifiers | Template only. Gitignore your filled copy |
 | `commitments.md` | Real obligations, sources, links | Template only. Gitignore your filled copy |
 | everything under `state/` | Real subjects, senders, links, relationship notes, 1:1 agendas | **Never** — the whole subtree is gitignored, no exceptions |
-| `config.md` (decision-log, partner-updates) | Repo paths, rosters | Template only |
+| `config.md` (decision-log) | Repo paths, team names | Template only |
 
 The Keychain entry written by `m365_files.py` (service `margo-m365-files`) holds a refresh token.
 Remove it with `m365_files.py logout`.

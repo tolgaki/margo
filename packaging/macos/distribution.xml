@@ -21,7 +21,6 @@
     <choices-outline>
         <line choice="core"/>
         <line choice="decision-log"/>
-        <line choice="partner-updates"/>
     </choices-outline>
 
     <!-- Always installed: the agent plus the chief-of-staff playbook. -->
@@ -40,12 +39,6 @@
         <pkg-ref id="com.github.tolgaki.margo.decision-log"/>
     </choice>
 
-    <choice id="partner-updates"
-            title="partner-updates skill"
-            description="Optional. Maintains a per-partner status board that only changes when there is a citable trigger."
-            selected="false">
-        <pkg-ref id="com.github.tolgaki.margo.partner-updates"/>
-    </choice>
 
     <pkg-ref id="com.github.tolgaki.margo.core"
              version="__VERSION__"
@@ -55,8 +48,5 @@
              version="__VERSION__"
              onConclusion="none">margo-decision-log.pkg</pkg-ref>
 
-    <pkg-ref id="com.github.tolgaki.margo.partner-updates"
-             version="__VERSION__"
-             onConclusion="none">margo-partner-updates.pkg</pkg-ref>
 
 </installer-gui-script>
