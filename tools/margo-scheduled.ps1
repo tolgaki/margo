@@ -56,6 +56,20 @@ $Prompt = switch ($What) {
     default       { $What }
 }
 
+$cmdArgs = @('--agent', $Agent, '-p', $Prompt, '--allow-all-tools')
+foreach ($t in $DenyTools) { $cmdArgs += @('--deny-tool', "workiq($t)") }
+if ($Extra) { $cmdArgs += $Extra }
+
+# -Print before the PATH check: showing the command is a dry run, and is exactly
+# what you want when inspecting it before installing anything, or composing a
+# scheduled task for a different machine.
+if ($Print) {
+    "copilot " + (($cmdArgs | ForEach-Object {
+        if ($_ -match '[\s()]') { "'$_'" } else { $_ }
+    }) -join ' ')
+    exit 0
+}
+
 if (-not (Get-Command copilot -ErrorAction SilentlyContinue)) {
     Write-Host "error: copilot not found on PATH." -ForegroundColor Red
     Write-Host "       Scheduled tasks do not inherit your interactive PATH - use an"
@@ -63,16 +77,6 @@ if (-not (Get-Command copilot -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-$cmdArgs = @('--agent', $Agent, '-p', $Prompt, '--allow-all-tools')
-foreach ($t in $DenyTools) { $cmdArgs += @('--deny-tool', "workiq($t)") }
-if ($Extra) { $cmdArgs += $Extra }
-
-if ($Print) {
-    "copilot " + (($cmdArgs | ForEach-Object {
-        if ($_ -match '[\s()]') { "'$_'" } else { $_ }
-    }) -join ' ')
-    exit 0
-}
 
 Write-Host ("[{0}] margo scheduled: {1}" -f
     ([DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')), $What)

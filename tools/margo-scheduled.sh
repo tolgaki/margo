@@ -70,11 +70,6 @@ for a in "$@"; do
   esac
 done
 
-command -v copilot >/dev/null 2>&1 \
-  || die "copilot not found on PATH.
-       cron and launchd do not inherit your shell's PATH — use an absolute path
-       or set PATH at the top of the crontab."
-
 set -- copilot --agent "$AGENT" -p "$PROMPT" --allow-all-tools
 for t in $DENY_TOOLS; do
   set -- "$@" --deny-tool "workiq($t)"
@@ -82,10 +77,19 @@ done
 # shellcheck disable=SC2086  # deliberate word-splitting of pass-through args
 [ -n "$ARGS" ] && set -- "$@" $ARGS
 
+# --print before the PATH check: showing the command is a dry run, and is exactly
+# what you want when inspecting it before installing anything, or composing a
+# crontab line for a different machine.
 if [ "$PRINT_ONLY" -eq 1 ]; then
   printf '%s\n' "$*"
   exit 0
 fi
+
+command -v copilot >/dev/null 2>&1 \
+  || die "copilot not found on PATH.
+       cron and launchd do not inherit your shell's PATH — use an absolute path
+       or set PATH at the top of the crontab."
+
 
 printf '%s[%s]%s margo scheduled: %s\n' "$B" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$N" "$WHAT"
 
