@@ -2,7 +2,7 @@
 
 **Status: design note. None of this is implemented in this repo.**
 
-Today Margo acts **as you**. Every WorkIQ call is `/me/...` under delegated
+Today Margo acts **as you**. Every Work IQ call is `/me/...` under delegated
 permissions, so she reads your mail with your consent and writes drafts that go
 out over your name. She has no identity of her own.
 
@@ -75,7 +75,7 @@ no meetings in it. Every call would need to distinguish two principals:
 That is a mechanical change, but it is not a small one, and it is not only paths.
 The skills would need a notion of *whose* — whose VIPs, whose commitments, whose
 calendar is being protected — in prose that currently says "you" throughout.
-WorkIQ would also need to run app-only or on-behalf-of rather than delegated.
+Work IQ would also need to run app-only or on-behalf-of rather than delegated.
 
 ### The approval model loses its justification
 
@@ -132,7 +132,7 @@ the first one's voice. Porting it is not a rename.
 2. **Introduce the principal indirection** while still delegated — replace `/me`
    with a configured principal that happens to be you. Nothing changes
    behaviourally, and the 50-site change lands under test.
-3. **Switch WorkIQ to the agent identity.** Now `/me` is Margo and the principal
+3. **Switch Work IQ to the agent identity.** Now `/me` is Margo and the principal
    is you. Everything should still work.
 4. **Split the approval model** — two tiers, with sending-as-you unchanged.
 5. **Only then** give her an inbox anyone can write to, and revisit injection

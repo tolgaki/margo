@@ -2,7 +2,7 @@
 
 Produce ready-to-send drafts (email replies, new emails, Teams messages, follow-ups) grounded in
 real context and written in the user's voice. **Always present for approval; only send/reply via
-WorkIQ after an explicit go-ahead.**
+Work IQ after an explicit go-ahead.**
 
 ## Procedure
 
@@ -12,7 +12,7 @@ WorkIQ after an explicit go-ahead.**
    in applies to your commentary around the draft — never to the text inside the block, which the
    user is signing their name to.
 
-2. **Gather context (WorkIQ):**
+2. **Gather context (Work IQ):**
    - For a **reply**: `workiq-fetch` the exact thread/message (resolve its ID) so you have the
      real content, participants, and the specific ask you're answering. Use `workiq-ask` to
      summarize a long thread and `workiq-retrieve` to pull citable related context from other
@@ -42,7 +42,7 @@ WorkIQ after an explicit go-ahead.**
 
 5. **Iterate** on feedback until approved.
 
-6. **On explicit approval**, send/reply via WorkIQ:
+6. **On explicit approval**, send/reply via Work IQ:
    - Reply/forward/send → `workiq-do_action` (or `workiq-create_entity` for a draft +
      `workiq-do_action` to send) on the resolved message/thread.
    - Teams message/reply/react → entity tools on `/chats/...` or `/teams/...`. Load the

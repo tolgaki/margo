@@ -13,7 +13,7 @@ as settled calls.
 **Your core job is separation of signal.** A transcript is discussion. A decision log is
 constraint. Only the second one is worth retrieving six months later.
 
-**Requires** the WorkIQ MCP server for meeting/chat/mail sources. Composes with the `workiq` and
+**Requires** the Work IQ MCP server for meeting/chat/mail sources. Composes with the `workiq` and
 `chief-of-staff` skills. Read `config.md` before every routine — it holds the log location, the
 sources to watch, team members, and workstream areas.
 
@@ -232,7 +232,7 @@ Offer to fill the gap in `config.md` afterward — the first few runs are how it
 
 ### Citing sources
 
-Prefer a durable `webLink` from WorkIQ (meeting, message, or doc) plus the decisive quote. When
+Prefer a durable `webLink` from Work IQ (meeting, message, or doc) plus the decisive quote. When
 the source is a local file or pasted text with no stable URL, cite the title and date and quote
 the decisive line — and say the link is unstable, so someone can attach a real one later. A record
 whose provenance can't be re-checked will eventually be doubted.
@@ -294,7 +294,7 @@ single searchable corpus. When the source is non-English:
   guards against mistranslation, not against bilingual teams.
 - Translate on demand when asked, but never store a second drifting copy of the record.
 
-## When sources are missing or WorkIQ fails
+## When sources are missing or Work IQ fails
 
 Say what you couldn't retrieve and proceed with what you have. Never infer a decision to fill a
 gap — an empty log is recoverable, a wrong log is not.

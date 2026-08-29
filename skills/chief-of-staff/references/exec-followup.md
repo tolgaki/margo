@@ -12,11 +12,11 @@ senior and the credibility bar is high.
 This file is the **single source of truth** for the exec voice — rubric, self-check, and
 exemplar. User-specific deviations live in `../preferences.md` → Executive comms voice.
 
-**Same non-negotiable applies: present for approval; only send via WorkIQ on an explicit go-ahead.**
+**Same non-negotiable applies: present for approval; only send via Work IQ on an explicit go-ahead.**
 
 ## Procedure
 
-### 1. Gather deep context (WorkIQ) — go wide before drafting
+### 1. Gather deep context (Work IQ) — go wide before drafting
 Don't draft from a single source. For an exec follow-up, pull and read *all* the relevant threads:
 - **The meeting itself** — recording/recap, AI notes, attendee list, and who said what
   (`workiq-ask` for the recap + decisions; `workiq-fetch` the event and attendees to get names and

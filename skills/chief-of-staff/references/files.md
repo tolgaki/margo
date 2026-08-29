@@ -1,6 +1,6 @@
 # Large files — moving bytes in and out of M365
 
-The WorkIQ MCP `fetch_blob` tool caps at **4 MB** because payloads are base64-encoded over
+The Work IQ MCP `fetch_blob` tool caps at **4 MB** because payloads are base64-encoded over
 JSON-RPC. That is a transport limit, not a Graph limit. `scripts/m365_files.py` works around it.
 
 ## Which tool to use
@@ -27,7 +27,7 @@ do not work at all.
 | **B** | local → `Margo_Files` (upload) | ❌ blocked — no write scope |
 | **C** | M365 → local disk (download) | ✅ **working**, verified at 143.8 MB in 13 s |
 
-**A and B are blocked by one single thing:** the public client used by the remote WorkIQ MCP has
+**A and B are blocked by one single thing:** the public client used by the remote Work IQ MCP has
 no write permission. Its consented Graph scopes are read-only. Adding **`Files.ReadWrite.All`** (or `Sites.ReadWrite.All`) and re-running `auth`
 unblocks both at once — no code changes needed; the `copy` and `put` commands are already written
 and waiting.
@@ -41,7 +41,7 @@ python3 scripts/m365_files.py auth      # opens a browser, once
 python3 scripts/m365_files.py status
 ```
 
-Interactive **authorization-code + PKCE** against the public client that the **remote WorkIQ
+Interactive **authorization-code + PKCE** against the public client that the **remote Work IQ
 MCP** (`https://workiq.svc.cloud.microsoft/mcp`) already authenticates with. The client id is
 read at runtime from the MCP's own OAuth config in `~/.copilot/mcp-oauth-config/`, preferring a
 static registration over a dynamic one. Scope requested is
@@ -97,8 +97,8 @@ Preferred whenever the file is already in M365: no bytes touch this machine, siz
 and no label is stripped.
 
 **Do not route this through the MCP.** `workiq-do_action .../copy` returns 403
-`logicalPermissionAccessDenied` — the WorkIQ service principal is enrolled in ODSP logical
-permissions and is not permitted to call it. That is a WorkIQ-side limitation, not a user
+`logicalPermissionAccessDenied` — the Work IQ service principal is enrolled in ODSP logical
+permissions and is not permitted to call it. That is a limitation on the Work IQ side, not a user
 permission problem, and no consent change on the CLI app will fix the MCP path.
 
 ## B — upload (ready, blocked on write scope)

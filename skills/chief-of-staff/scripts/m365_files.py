@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Margo's M365 file bridge — moves bytes that are too big for the MCP surface.
 
-The WorkIQ MCP `fetch_blob` tool caps at 4 MB because payloads are base64'd over
+The Work IQ MCP `fetch_blob` tool caps at 4 MB because payloads are base64'd over
 JSON-RPC. That is a transport limit, not a Graph limit. This script works around it
 for the two directions that actually need it:
 
@@ -9,7 +9,7 @@ for the two directions that actually need it:
   upload     local disk -> an upload session URL, in chunks.
 
 Deliberately NOT here: creating upload sessions, server-side copies, and sharing.
-Those run through the WorkIQ MCP tools where the user approves each one.
+Those run through the Work IQ MCP tools where the user approves each one.
 
 Scopes are Files.Read.All (read anywhere the user can read) plus Files.ReadWrite
 (write to the user's OWN OneDrive only — not to every SharePoint site they can reach).
@@ -21,7 +21,7 @@ PUT returns 401 (verified with curl, independent of this script; the sibling
 anonymously first and falls back to a bearer token, which keeps working either way.
 
 Auth is interactive authorization-code + PKCE against the public client that the **remote
-WorkIQ MCP** (`https://workiq.svc.cloud.microsoft/mcp`) already authenticates with, read at
+Work IQ MCP** (`https://workiq.svc.cloud.microsoft/mcp`) already authenticates with, read at
 runtime from its OAuth config. There is **no dependency on the workiq CLI** — the binary is
 never invoked and need not be installed. Two earlier approaches are dead ends, recorded here
 so nobody retries them:
@@ -59,14 +59,14 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 TENANT = os.environ.get("MARGO_M365_TENANT", "organizations")
 MCP_OAUTH_DIR = os.path.expanduser("~/.copilot/mcp-oauth-config")
 MCP_SERVER_MATCH = "workiq"
-# Optional fallback app registration, used only when the WorkIQ MCP OAuth config
+# Optional fallback app registration, used only when the Work IQ MCP OAuth config
 # cannot be read. Normally the client id is discovered below.
 FALLBACK_CLIENT_ID = os.environ.get("MARGO_M365_CLIENT_ID", "")
 SCOPES = "https://graph.microsoft.com/.default offline_access"
 
 
 def discover_client_id():
-    """Take the client id from the remote WorkIQ MCP's own OAuth config.
+    """Take the client id from the remote Work IQ MCP's own OAuth config.
 
     The identity is whatever the remote MCP connection already authenticates with, so this
     script has no dependency on the workiq CLI being installed. Prefers a static registration
@@ -98,7 +98,7 @@ CLIENT_ID, MCP_SERVER_URL = discover_client_id()
 def require_client_id():
     """Fail loudly rather than attempting OAuth with an empty client id."""
     if not CLIENT_ID:
-        die("could not determine an OAuth client id. Sign in to the WorkIQ MCP server "
+        die("could not determine an OAuth client id. Sign in to the Work IQ MCP server "
             "first so its config exists under ~/.copilot/mcp-oauth-config, or set "
             "MARGO_M365_CLIENT_ID to your own app registration.", EXIT_NEEDS_AUTH)
 
@@ -574,7 +574,7 @@ def cmd_download(args):
                             "  Downloaded bytes would be an unreadable protected container.\n"
                             "  Decryption requires the MIP SDK and a granted EXTRACT usage\n"
                             "  right; the MIP .NET package ships Windows binaries only.\n"
-                            "  Use WorkIQ retrieve/ask for this file instead.\n"
+                            "  Use Work IQ retrieve/ask for this file instead.\n"
                             "  Pass --allow-protected to save the protected bytes anyway.",
                             file=sys.stderr,
                         )

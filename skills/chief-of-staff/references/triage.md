@@ -28,7 +28,7 @@ never archive, mark-read, reply, or delete without explicit approval.**
 
    Load the `workiq` skill (call the `skill` tool with `workiq`) and follow its Teams triage
    reference for the exact shapes — it carries the full attention-queue procedure. **Never claim
-   WorkIQ exposes a native Teams unread/notification feed**; report recency as recency.
+   Work IQ exposes a native Teams unread/notification feed**; report recency as recency.
 
 4. **Classify each item** into one bucket:
    | Bucket | Meaning | Default recommended action |
@@ -58,7 +58,7 @@ never archive, mark-read, reply, or delete without explicit approval.**
    Shall I draft the 🔴 replies, and/or clear the ⚪ archive batch? Nothing changes without your OK.
    ```
 
-7. **On approval only**, execute batched actions via WorkIQ (`workiq-update_entity` to mark read,
+7. **On approval only**, execute batched actions via Work IQ (`workiq-update_entity` to mark read,
    `workiq-do_action` / `workiq-create_entity` to reply/forward). Confirm what was done and what
    remains.
 

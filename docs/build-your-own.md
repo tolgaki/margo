@@ -11,7 +11,7 @@ agents/margo.agent.md          →  WHO. Persona, voice, boundaries. ~100 lines.
 skills/chief-of-staff/         →  HOW. Procedure, tool discipline, formats. ~20 files.
 ```
 
-`margo.agent.md` contains **no procedure**. It never explains how to call WorkIQ, what a brief
+`margo.agent.md` contains **no procedure**. It never explains how to call Work IQ, what a brief
 looks like, or how to page through Teams messages. It says who you are and where to find the
 playbook.
 
@@ -118,9 +118,9 @@ were complete.
 
 ### Write the discipline down, with the reason
 
-The WorkIQ rules in this repo — `$select` always, `$orderby` never dropped, `ask` never in a loop
+The Work IQ rules in this repo — `$select` always, `$orderby` never dropped, `ask` never in a loop
 — are each paired with the failure they prevent. A rule with a reason survives; a bare rule gets
-reasoned around the first time it's inconvenient. See [Working with WorkIQ](work-iq.md).
+reasoned around the first time it's inconvenient. See [Working with Work IQ](work-iq.md).
 
 ---
 

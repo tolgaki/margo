@@ -8,7 +8,7 @@ directory, so you can ask for things like:
     "Find 30 minutes with Dana this week."
     "Draft a reply to that."
 
-Margo reads your mail, calendar, Teams and files through WorkIQ, and PROPOSES.
+Margo reads your mail, calendar, Teams and files through Work IQ, and PROPOSES.
 She never sends, replies, RSVPs or deletes anything without your explicit
 approval of that specific action.
 
@@ -36,5 +36,5 @@ Uninstalling backs them up rather than removing them.
 REQUIREMENTS
 
   GitHub Copilot CLI
-  A Microsoft 365 work account, reachable through WorkIQ
+  A Microsoft 365 work account, reachable through Work IQ
   Python 3.9 or later, for the bundled helper scripts

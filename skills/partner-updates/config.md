@@ -74,8 +74,8 @@ Keeping this list is what stops the board accreting noise. Each row needs a reas
 
 | # | Source | How |
 |---|---|---|
-| 1 | **{Weekly shiproom}** — {day/time}, organizer {name} | Vault note first (`Meetings/{…}/`), then WorkIQ transcript/recap/chat |
-| 2 | **{Advisory board / steering}** — {day/time}, organizer {name}, {cadence} | Vault note first, then WorkIQ |
+| 1 | **{Weekly shiproom}** — {day/time}, organizer {name} | Vault note first (`Meetings/{…}/`), then Work IQ transcript/recap/chat |
+| 2 | **{Advisory board / steering}** — {day/time}, organizer {name}, {cadence} | Vault note first, then Work IQ |
 | 3 | **Partner-specific standing meetings** | `{meeting}`, `{meeting}`, `{meeting}` |
 | 4 | **Teams threads** | `{channel}`, `{channel}`, 1:1s with the people below |
 | 5 | **Email** | Partner status updates, rollout notices |

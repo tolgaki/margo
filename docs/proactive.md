@@ -183,7 +183,7 @@ Put that in `cron`, `launchd` or Task Scheduler at 07:15 on weekdays. Use
 
 **Use the wrapper rather than a hand-written command line.** It runs
 `copilot --agent margo -p …` with `--allow-all-tools` *and* four `--deny-tool`
-rules covering every WorkIQ tool that writes:
+rules covering every Work IQ tool that writes:
 
 ```
 workiq(do_action)  workiq(create_entity)  workiq(update_entity)  workiq(delete_entity)

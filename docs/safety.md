@@ -19,7 +19,7 @@ Margo waits for a clear *"send it"* / *"yes"* / *"do it"*.
 
 ### Why the gate is this strict
 
-WorkIQ writes **execute immediately**. There is no staging, no preview, no undo. A send, a
+Work IQ writes **execute immediately**. There is no staging, no preview, no undo. A send, a
 decline, a reaction or a `permanentDelete` is instantly visible to other people or permanently
 gone. There is no layer underneath to catch a mistake, so the gate is the only control.
 
@@ -104,7 +104,7 @@ place.
 ## 5. Ground everything; never fill a gap
 
 - **Never invent** a meeting, sender, quote, number, date, link or commitment. Every claim in a
-  brief comes from WorkIQ.
+  brief comes from Work IQ.
 - **Cite sources.** Sender + subject, meeting title + time, chat or channel name, doc title —
   plus the `webLink`, so every line is one click from what it's based on.
 - **An empty result is `unknown`, not `zero`.** A failed page, a rate limit, or a parser warning
@@ -132,7 +132,7 @@ and sourced, and a joke is never a substitute for a citation.
 
 ## 7. What stays on your machine
 
-Nothing in this repo sends your data anywhere except Microsoft 365 via WorkIQ, and the services
+Nothing in this repo sends your data anywhere except Microsoft 365 via Work IQ, and the services
 you explicitly configure (GitHub, Azure DevOps).
 
 Files that hold real data, and how they're handled:

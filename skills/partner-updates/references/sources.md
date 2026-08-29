@@ -2,17 +2,17 @@
 
 ## Order of operations
 
-**Read the vault before you call WorkIQ.** A shiproom note already written by the meeting-note
+**Read the vault before you call Work IQ.** A shiproom note already written by the meeting-note
 discipline is better evidence than re-deriving the same meeting from a transcript: it has been
-structured, and it may have been human-corrected. WorkIQ is for what the vault doesn't have yet.
+structured, and it may have been human-corrected. Work IQ is for what the vault doesn't have yet.
 
 1. `Meetings/{Shiproom}/` and `Meetings/{Advisory Board}/` — newest notes first
-2. WorkIQ, for anything after the newest vault note
+2. Work IQ, for anything after the newest vault note
 3. Existing partner notes — to know what you already knew
 
 ## Batch by source, not by partner
 
-⚠️ **The expensive mistake is looping the roster and searching WorkIQ once per partner.** That is
+⚠️ **The expensive mistake is looping the roster and searching Work IQ once per partner.** That is
 21 retrieval passes for a week where one shiproom transcript covers a dozen of them, and it will
 throttle before it finishes.
 
@@ -40,7 +40,7 @@ One shiproom read updates twelve notes. Then chase only the partners that source
 the event and `retrieve` found the recording. **Always cross-check `calendarView` before recording
 a meeting as not-held.** One negative from one tool is a retrieval miss until corroborated.
 
-## Known WorkIQ limits
+## Known Work IQ limits
 
 - `$skip`, `contains()` filters and `/instances` are unsupported.
 - `calendarView` caps at 100 results and throttles on concurrent requests.
@@ -77,7 +77,7 @@ Every Recent updates entry needs a source good enough to re-check:
 - **2026-08-22** — Provider one-pager. {what changed}.
 ```
 
-Prefer a durable `webLink` from WorkIQ plus the decisive quote. When the source has no stable URL,
+Prefer a durable `webLink` from Work IQ plus the decisive quote. When the source has no stable URL,
 cite title + date + the decisive line, and say the link is unstable so someone can attach a real
 one later.
 

@@ -1,8 +1,8 @@
 # Margo
 
-**An AI chief of staff for Microsoft 365, built on [WorkIQ](docs/work-iq.md).**
+**An AI chief of staff for Microsoft 365, built on [Work IQ](docs/work-iq.md).**
 
-Margo reads your mail, calendar, Teams chats, meeting recaps and documents through the WorkIQ
+Margo reads your mail, calendar, Teams chats, meeting recaps and documents through the Work IQ
 MCP server, works out what actually needs you, and puts every send one approval away. She books
 the meeting, moves the four things it displaces, drafts the note to the people affected — and
 then waits for you to say yes.
@@ -25,9 +25,9 @@ Most assistant demos stop at retrieval: they find the email and summarize it. Th
 part starts after that — deciding what matters, holding the thread across days, and closing the
 loop with a real send.
 
-That gap is where **WorkIQ** earns its keep, and where Margo is built to show it:
+That gap is where **Work IQ** earns its keep, and where Margo is built to show it:
 
-| The hard part | What WorkIQ provides | What Margo does with it |
+| The hard part | What Work IQ provides | What Margo does with it |
 |---|---|---|
 | Knowing what happened | `retrieve` and `ask` across mail, Teams, meetings, files | Turns it into a ranked brief with a recommendation per line |
 | Knowing it's *true* | Every hit carries a `webLink` and a sensitivity label | Cites the source on every claim, so nothing has to be taken on trust |
@@ -35,10 +35,10 @@ That gap is where **WorkIQ** earns its keep, and where Margo is built to show it
 | Actually doing it | `do_action`, `create_entity`, `update_entity` | Books, moves, replies, RSVPs — **only after you approve that exact action** |
 | Remembering across days | — | A durable commitments ledger and an on-disk state ledger for scheduled runs |
 
-WorkIQ makes the data reachable and writable. Margo is the layer that makes it *worth reaching* —
+Work IQ makes the data reachable and writable. Margo is the layer that makes it *worth reaching* —
 opinionated, cited, and safe to let near a send button.
 
-**→ [How Margo uses WorkIQ](docs/work-iq.md)** — the tool surface, the retrieval decision, and the
+**→ [How Margo uses Work IQ](docs/work-iq.md)** — the tool surface, the retrieval decision, and the
 payload discipline that keeps briefs fast.
 
 ---
@@ -51,7 +51,7 @@ agents/
 
 skills/
   chief-of-staff/           The playbook. 18 routines, from daily brief to exec follow-up.
-    SKILL.md                Operating rules, the WorkIQ tool table, routine router
+    SKILL.md                Operating rules, the Work IQ tool table, routine router
     preferences.md          ← template: how you work, who matters, your voice
     commitments.md          ← template: what you owe, what you're waiting on
     references/             One file per routine — the actual procedures
@@ -69,8 +69,8 @@ docs/                       Start here ↓
 
 | Doc | What it covers |
 |---|---|
-| **[Getting started](docs/getting-started.md)** | Install, connect WorkIQ, first run |
-| **[How Margo uses WorkIQ](docs/work-iq.md)** | `retrieve` vs `fetch` vs `ask`, payload discipline, failure modes |
+| **[Getting started](docs/getting-started.md)** | Install, connect Work IQ, first run |
+| **[How Margo uses Work IQ](docs/work-iq.md)** | `retrieve` vs `fetch` vs `ask`, payload discipline, failure modes |
 | **[The chief-of-staff playbook](docs/chief-of-staff.md)** | All 18 routines and when each fires |
 | **[Walkthroughs](docs/walkthroughs.md)** | End-to-end: calendar management → sending the email |
 | **[Personalization](docs/personalization.md)** | Teaching Margo your voice, VIPs and rules |
@@ -102,7 +102,7 @@ treated as data rather than instructions.
 
 ## Quick start
 
-**Prerequisites:** [GitHub Copilot CLI](https://github.com/github/copilot-cli), the **WorkIQ MCP
+**Prerequisites:** [GitHub Copilot CLI](https://github.com/github/copilot-cli), the **Work IQ MCP
 server** connected, and Python 3.9+ for the bundled scripts.
 
 **Download an installer** — [macOS `.pkg` or Windows `.exe`](https://github.com/tolgaki/margo/releases).
@@ -150,7 +150,7 @@ Updating is a first-class command, and safe — `preferences.md`, `commitments.m
 `./install.sh status` shows the installed version; `./install.sh uninstall`
 removes it and backs your files up.
 
-Full instructions, including the WorkIQ connection check, are in
+Full instructions, including the Work IQ connection check, are in
 **[Getting started](docs/getting-started.md)**.
 
 ---

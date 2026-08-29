@@ -1,6 +1,6 @@
-# How Margo uses WorkIQ
+# How Margo uses Work IQ
 
-WorkIQ is the Microsoft 365 surface Margo runs on: an MCP server that exposes mail, calendar,
+Work IQ is the Microsoft 365 surface Margo runs on: an MCP server that exposes mail, calendar,
 Teams chats and channels, OneDrive/SharePoint documents, meeting recaps and the people directory
 to an agent — for reading *and* for writing.
 
@@ -119,7 +119,7 @@ Two related rules:
 
 ## Writing: where the care goes
 
-WorkIQ writes **execute immediately**. There is no staging, no preview, no undo. A send, a
+Work IQ writes **execute immediately**. There is no staging, no preview, no undo. A send, a
 decline, a reaction or a `permanentDelete` is instantly visible to other people or unrecoverable.
 
 That single property is why this repo's central rule exists:
@@ -127,12 +127,12 @@ That single property is why this repo's central rule exists:
 > **Propose, never act unilaterally.** Present the exact draft or the exact field change, and wait
 > for explicit approval of *that specific action*.
 
-Two WorkIQ-specific notes that shape how Margo drafts:
+Two notes specific to Work IQ that shape how Margo drafts:
 
 - **"Draft" means a persisted draft.** Inline suggested wording does not satisfy a drafting
   request — the user must be able to open it in Outlook. Margo creates the draft entity, then
   sends it as a separate approved step.
-- **Tasks are M365 data.** "Add a task" / "remind me" routes to Planner or To Do through WorkIQ.
+- **Tasks are M365 data.** "Add a task" / "remind me" routes to Planner or To Do through Work IQ.
   It never gets satisfied with a local file or an in-session list.
 
 See **[Trust & safety](safety.md)** for the full approval model, including which actions can be
@@ -140,7 +140,7 @@ covered by a standing instruction and which never can.
 
 ---
 
-## When WorkIQ says no
+## When Work IQ says no
 
 Failures here are mostly *informative*, and treating them as transient is the mistake.
 
@@ -162,9 +162,9 @@ For deeper troubleshooting, load the `workiq` skill and read its `references/tro
 
 ## Large files
 
-`fetch_blob` caps at **4 MB**, and WorkIQ cannot accept raw byte uploads. For anything larger,
+`fetch_blob` caps at **4 MB**, and Work IQ cannot accept raw byte uploads. For anything larger,
 this repo ships `skills/chief-of-staff/scripts/m365_files.py` — a small bridge that authenticates
-with the same identity your WorkIQ MCP connection already uses (it reads the client ID from the
+with the same identity your Work IQ MCP connection already uses (it reads the client ID from the
 MCP's own OAuth config) and streams files to local disk.
 
 ```bash

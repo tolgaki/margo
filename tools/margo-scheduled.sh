@@ -26,7 +26,7 @@
 #
 set -euo pipefail
 
-# The four WorkIQ tools that change the outside world. Everything else — fetch,
+# The four Work IQ tools that change the outside world. Everything else — fetch,
 # retrieve, ask, call_function, get_schema, search_paths, fetch_blob — is a read
 # and stays available.
 DENY_TOOLS="do_action create_entity update_entity delete_entity"

@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **[GitHub Copilot CLI](https://github.com/github/copilot-cli)** | The host that loads agents and skills |
-| **WorkIQ MCP server** | The Microsoft 365 surface. Hosted — no local package needed for tool calls |
+| **Work IQ MCP server** | The Microsoft 365 surface. Hosted — no local package needed for tool calls |
 | **A Microsoft 365 work account** | With mail, calendar and Teams |
 | **Python 3.9+** | For the bundled scripts (state ledger, large-file bridge, community parsers) |
 
@@ -131,7 +131,7 @@ On macOS the package leaves a copy at `/usr/local/share/margo`, so
 `/usr/local/share/margo/install.sh status` works even without a clone. On Windows,
 uninstall through **Settings → Apps** as usual.
 
-## 2. Check WorkIQ is connected
+## 2. Check Work IQ is connected
 
 In Copilot CLI, confirm the tools are present and prefixed:
 
@@ -242,7 +242,7 @@ python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py auth --account yo
 python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py status
 ```
 
-It reuses the client ID from your WorkIQ MCP OAuth config. If it can't find one, set
+It reuses the client ID from your Work IQ MCP OAuth config. If it can't find one, set
 `MARGO_M365_CLIENT_ID` to your own app registration. Set `MARGO_M365_TENANT` if your tenant
 rejects the default `organizations` authority.
 
@@ -263,5 +263,5 @@ rejects the default `organizations` authority.
 | Windows SmartScreen warning | Unsigned build | **More info → Run anyway**, or use the `irm ... \| iex` one-liner |
 | Reinstall didn't pick up a change | The file is yours, not ours | `preferences.md`, `commitments.md` and `config.md` are never overwritten. Use `--force` to replace them (a backup is kept) |
 
-For WorkIQ-specific failures, load the `workiq` skill and read its
+For failures specific to Work IQ, load the `workiq` skill and read its
 `references/troubleshooting.md`.

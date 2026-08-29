@@ -1,7 +1,7 @@
 # The chief-of-staff playbook
 
 `skills/chief-of-staff/` is the procedural half of Margo: eighteen routines, each with its own
-reference file, plus the operating rules and the WorkIQ tool discipline they all share.
+reference file, plus the operating rules and the Work IQ tool discipline they all share.
 
 It carries **procedure and no personality**. Whatever agent loads it supplies the voice — see
 [Build your own](build-your-own.md).
@@ -10,7 +10,7 @@ It carries **procedure and no personality**. Whatever agent loads it supplies th
 
 ## How a request gets routed
 
-`SKILL.md` is a router. It holds the non-negotiable rules, the WorkIQ tool table, the personalization
+`SKILL.md` is a router. It holds the non-negotiable rules, the Work IQ tool table, the personalization
 contract and a trigger→reference map. The individual procedure is loaded from `references/` only
 when the matching routine fires, which keeps the resident cost low.
 

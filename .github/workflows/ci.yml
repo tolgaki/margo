@@ -97,7 +97,7 @@ jobs:
       # The wrapper exists so the write-denials cannot be trimmed by hand. If it
       # ever stops emitting all four, unattended runs silently regain the ability
       # to send mail.
-      - name: Scheduled wrapper denies every WorkIQ write tool
+      - name: Scheduled wrapper denies every Work IQ write tool
         run: |
           out=$(./tools/margo-scheduled.sh brief --print)
           for t in do_action create_entity update_entity delete_entity; do

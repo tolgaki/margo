@@ -28,9 +28,9 @@ An MCP server can arrive two ways. Directly in `mcp-config.json`:
 { "mcpServers": { "kusto": { "type": "stdio", "command": "…" } } }
 ```
 
-…or as a **plugin**, which is how WorkIQ ships — a directory containing a
+…or as a **plugin**, which is how Work IQ ships — a directory containing a
 `.mcp.json` that declares the server, plus a `skills/` folder the CLI picks up
-alongside it. That is why installing the WorkIQ plugin gives you both the
+alongside it. That is why installing the Work IQ plugin gives you both the
 `workiq-*` tools and its `calendar` / `mail` / `teams` skills at once.
 
 ---
@@ -42,9 +42,9 @@ alongside it. That is why installing the WorkIQ plugin gives you both the
 | | What it authenticates | Headless story |
 |---|---|---|
 | **Copilot CLI** | You, to GitHub | `GH_TOKEN` / `GITHUB_TOKEN` env var works |
-| **WorkIQ MCP** | You, to Microsoft 365 | OAuth authorization-code flow — needs a browser **once** |
+| **Work IQ MCP** | You, to Microsoft 365 | OAuth authorization-code flow — needs a browser **once** |
 
-The WorkIQ flow writes its result to `~/.copilot/mcp-oauth-config/` as
+The Work IQ flow writes its result to `~/.copilot/mcp-oauth-config/` as
 `<hash>.json`, `<hash>.verifier` and `<hash>.tokens.json`.
 
 > ### `*.tokens.json` contains a live refresh token
@@ -161,7 +161,7 @@ docker run --rm \
 **Use the wrapper, not a hand-written `copilot` line.** `--allow-all-tools` alone
 removes the approval prompt, which in an unattended container means nothing stands
 between a mistaken routine and a sent email. The wrapper adds four `--deny-tool`
-rules covering every WorkIQ write tool, and denial takes precedence over every
+rules covering every Work IQ write tool, and denial takes precedence over every
 allow rule — so the read-only contract in [Proactive & scheduled](proactive.md)
 becomes enforced rather than instructed. The deny list is hard-coded and cannot be
 trimmed.
@@ -169,7 +169,7 @@ trimmed.
 That requires copying `tools/` into the image; add it alongside `agents/` and
 `skills/` in the Dockerfile.
 
-Belt and braces: give the container a WorkIQ identity with read-only scopes too,
+Belt and braces: give the container a Work IQ identity with read-only scopes too,
 so the tenant enforces it independently of any flag.
 
 The state volume is what makes scheduled runs coherent — `proactive_state.py`
@@ -200,7 +200,7 @@ state and preferences survive the upgrade exactly as they do on a normal
 - **Drop root.** The Dockerfile above already does; do not undo it.
 - **`--read-only`** with `--tmpfs /tmp` if your skills do not need to write
   outside the mounted state volume.
-- **`--network`** restricted to what WorkIQ and GitHub actually need. An agent
+- **`--network`** restricted to what Work IQ and GitHub actually need. An agent
   that reads your mail is an agent worth constraining.
 - **`--cap-drop ALL`**. Nothing here needs capabilities.
 - **Scope the identity, not just the container.** A read-only Graph scope is a

@@ -31,7 +31,7 @@ assignees: ''
 - [ ] Documentation (`docs/`) — inaccurate or out of date
 - [ ] Not sure
 
-## WorkIQ detail (if relevant)
+## Work IQ detail (if relevant)
 
 - Tool used: <!-- retrieve / fetch / ask / call_function / do_action / … -->
 - Query or path (redacted):

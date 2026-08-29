@@ -124,7 +124,7 @@ Procedure in **`references/teams-feedback.md`**.
 ## People
 
 > **Last verified: {YYYY-MM-DD}.** Org data goes stale — when this date is more than a quarter
-> old, offer to refresh the chains below via WorkIQ (`workiq-fetch` on `/users/{id}/manager` and
+> old, offer to refresh the chains below via Work IQ (`workiq-fetch` on `/users/{id}/manager` and
 > `/users/{id}/directReports`) and update the date.
 
 - **VIPs (always surface, respond fast):**

@@ -74,7 +74,7 @@ actions, what the user is waiting on, unresolved gaps, and drafts ready for appr
    never in the assistant's voice. Include recipient, channel, subject, and the exact text. Ask for
    approval before any write.
 
-   After explicit approval only, use the matching WorkIQ write:
+   After explicit approval only, use the matching Work IQ write:
 
    ```text
    workiq-do_action on /me/sendMail

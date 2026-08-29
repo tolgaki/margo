@@ -60,7 +60,7 @@ Unlike Engage, this **is** properly structured — real replies, real reactions,
    `workiq-fetch` call — it accepts a list, so 30 threads costs 3 calls, not 30.
 
 Direct Microsoft Graph via `az` **does not work** — the CLI token lacks `ChannelMessage.Read.All`
-(403). Do not retry it; WorkIQ MCP holds the scope.
+(403). Do not retry it; Work IQ MCP holds the scope.
 
 ## Parsing
 

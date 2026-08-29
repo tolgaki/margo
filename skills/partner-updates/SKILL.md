@@ -13,7 +13,7 @@ where does it stand, what's needed now, who owns it. Its value is entirely a fun
 *current and true*. A board that is 80% accurate is worse than no board, because people stop
 checking the source and start quoting it.
 
-**Requires** the WorkIQ MCP server. Composes with `chief-of-staff` (shared retrieval discipline)
+**Requires** the Work IQ MCP server. Composes with `chief-of-staff` (shared retrieval discipline)
 and `decision-log` (decisions found during a sweep belong there, not here). Read `config.md`
 before every routine — it holds the vault path, the roster, aliases, and the source list.
 
@@ -293,13 +293,13 @@ The scheduled run has no human in the loop. The contract:
 - **Never send, post, reply or RSVP anything.** This skill touches vault files and nothing else.
 - **Be idempotent.** Two runs in one day must not double-append. Dedupe Recent updates on
   (date, source) before writing.
-- **Fail closed.** WorkIQ 500s, a partial retrieval, or an unreadable note means *stop and report*,
+- **Fail closed.** Work IQ 500s, a partial retrieval, or an unreadable note means *stop and report*,
   not *write what you got*. A half-swept board that claims to be swept is worse than an unswept one.
 - **Silence is a valid outcome.** Never manufacture an update to justify the run.
 
 ## When retrieval fails
 
-WorkIQ has known rough edges — `$skip`, `contains()` and `/instances` unsupported, `calendarView`
+Work IQ has known rough edges — `$skip`, `contains()` and `/instances` unsupported, `calendarView`
 caps at 100 and throttles on concurrency, and the service returns 500s for minutes at a time.
 
 Narrow the window, batch small, retry. **Do not conclude "no update" from a failed call** — that is

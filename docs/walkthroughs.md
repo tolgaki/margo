@@ -1,6 +1,6 @@
 # Walkthroughs
 
-Four end-to-end runs, from the request to the send. Each one shows the WorkIQ calls underneath,
+Four end-to-end runs, from the request to the send. Each one shows the Work IQ calls underneath,
 where the approval gate sits, and what actually gets written down afterwards.
 
 The illustrative names and content are fictional.
@@ -228,7 +228,7 @@ they're logistics sent to people who didn't ask for them, and the line explains 
 Only now does anything leave. `workiq-create_entity` persists the draft, `workiq-do_action` sends
 it — as a separate, approved step.
 
-> "Draft" in WorkIQ means a **persisted draft** you can open in Outlook. Inline suggested wording
+> "Draft" in Work IQ means a **persisted draft** you can open in Outlook. Inline suggested wording
 > does not satisfy a drafting request.
 
 **Then the loop closes.** The message promised parity numbers by Tuesday. That's a commitment, and

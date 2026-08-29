@@ -37,7 +37,7 @@ disclosing publicly.
 
 ## Out of scope
 
-- Vulnerabilities in Microsoft 365, Microsoft Graph, WorkIQ, or the Copilot CLI itself — report
+- Vulnerabilities in Microsoft 365, Microsoft Graph, Work IQ, or the Copilot CLI itself — report
   those to the respective vendor. [MSRC](https://msrc.microsoft.com/report) handles Microsoft
   products.
 - Model behaviour that's merely wrong or unhelpful rather than a security boundary failure. That's
@@ -54,7 +54,7 @@ If you're running Margo against a real account:
   the personalization files are listed there commented-out for you to enable.
 - **Understand how `m365_files.py` authenticates.** It defaults to an interactive browser
   sign-in (authorization code + PKCE); `--device` opts into the device-code flow instead. It
-  discovers a client ID from your WorkIQ MCP OAuth config under `~/.copilot/mcp-oauth-config`,
+  discovers a client ID from your Work IQ MCP OAuth config under `~/.copilot/mcp-oauth-config`,
   falling back to `MARGO_M365_CLIENT_ID` when that is absent, and takes the tenant from
   `MARGO_M365_TENANT`. No client ID or tenant is hardcoded. The refresh token is stored in the
   macOS Keychain via `security add-generic-password`, not in a file — remove it with

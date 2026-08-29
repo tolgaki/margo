@@ -6,7 +6,7 @@ obligations: source them, judge relevance, and recommend read, defer, or declare
 ## Procedure
 
 1. **Confirm document paths before fetching** with `workiq-search_paths`. Search for the exact
-   WorkIQ paths for shared documents, message attachments, and chat messages before using them:
+   Work IQ paths for shared documents, message attachments, and chat messages before using them:
 
    ```text
    workiq-search_paths filter: "sharedWithMe|drive|attachments|chats|messages"
