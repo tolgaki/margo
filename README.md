@@ -7,7 +7,7 @@ MCP server, works out what actually needs you, and puts every send one approval 
 the meeting, moves the four things it displaces, drafts the note to the people affected — and
 then waits for you to say yes.
 
-This repo is the **reference implementation**: one agent persona, three skills, and the
+This repo is the **reference implementation**: one agent persona, two skills, and the
 documentation to build your own.
 
 ```
