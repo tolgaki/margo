@@ -303,8 +303,15 @@ def cmd_queue_drain(args) -> int:
         for item in merged:
             item["batch"] = batch
             item.setdefault("drained_at", stamp)
-        if queue or merged != inflight:
-            save(INFLIGHT, merged)
+
+        # Always persist. `merged` is built from `inflight + queue`, so it holds
+        # the SAME dict objects — stamping the batch above mutates the items
+        # inside `inflight` too, and any "did anything change?" comparison is
+        # therefore always False on a re-drain. Skipping the write left the old
+        # batch id on disk, so a stale ack from the run that failed retired the
+        # items the next run had drained but not yet rendered.
+        save(INFLIGHT, merged)
+        if queue:
             save(QUEUE, [])
     # stderr, so --format json keeps a clean stdout for piping.
     print(f"batch {batch} ({len(merged)} item(s) in flight)", file=sys.stderr)
