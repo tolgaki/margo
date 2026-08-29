@@ -52,20 +52,6 @@ jobs:
             || { echo "::error::ledger dies without a locking primitive"; exit 1; }
           echo "ledger degrades correctly with no file locking"
 
-      - name: Installer payload must contain only tracked files
-        run: |
-          # The packagers used to walk the working tree, so .venv/, scratch
-          # *.local.md and tools/forbidden.local.txt shipped inside the installer.
-          printf 'SecretName\n' > tools/forbidden.local.txt
-          echo "scratch" > notes.local.md
-          ./packaging/macos/build-pkg.sh 0.0.0-ci >/dev/null
-          if pkgutil --payload-files dist/Margo-0.0.0-ci.pkg | grep -E 'forbidden\.local|\.local\.md'; then
-            echo "::error::installer payload contains gitignored working-tree files"
-            exit 1
-          fi
-          rm -f tools/forbidden.local.txt notes.local.md
-          echo "payload contains only tracked files"
-
       - name: Queue drain must not acknowledge before rendering
         run: |
           d=$(mktemp -d)
@@ -401,7 +387,27 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+
+      # Plant gitignored files before building. The packagers used to walk the
+      # working tree, so .venv/, scratch *.local.md and the private denylist
+      # shipped inside the installer. They are driven from git ls-files now.
+      - name: Plant gitignored files the payload must not pick up
+        run: |
+          printf 'SecretName\n' > tools/forbidden.local.txt
+          echo "scratch notes" > notes.local.md
+          mkdir -p .venv && echo x > .venv/pyvenv.cfg
+
       - run: ./packaging/macos/build-pkg.sh 0.0.0-ci
+
+      - name: Payload must contain only tracked files
+        run: |
+          if pkgutil --payload-files dist/Margo-0.0.0-ci.pkg \
+               | grep -E 'forbidden\.local|\.local\.md|/\.venv/'; then
+            echo "::error::installer payload contains gitignored working-tree files"
+            exit 1
+          fi
+          rm -rf tools/forbidden.local.txt notes.local.md .venv
+          echo "payload contains only tracked files"
       - name: Payload must not contain state or git metadata
         run: |
           pkgutil --payload-files dist/Margo-0.0.0-ci.pkg > /tmp/files.txt
