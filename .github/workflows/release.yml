@@ -20,9 +20,20 @@ jobs:
     runs-on: macos-latest
     env:
       CERT: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+    outputs:
+      signed: ${{ steps.signed.outputs.signed }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
+
+      # Recorded so the release notes can tell users the truth about what they
+      # are downloading. An unsigned .pkg is blocked by Gatekeeper on open, and
+      # notes that say "just open it" strand every downloader.
+      - name: Record signing state
+        id: signed
+        run: |
+          if [ -n "$CERT" ]; then echo "signed=true" >> "$GITHUB_OUTPUT"
+          else echo "signed=false" >> "$GITHUB_OUTPUT"; fi
 
       - name: Resolve version
         id: v
@@ -105,9 +116,18 @@ jobs:
     runs-on: windows-latest
     env:
       PFX: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
+    outputs:
+      signed: ${{ steps.signed.outputs.signed }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
+
+      - name: Record signing state
+        id: signed
+        shell: pwsh
+        run: |
+          $v = if ($env:PFX) { 'true' } else { 'false' }
+          "signed=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Resolve version
         id: v
@@ -192,26 +212,63 @@ jobs:
           find artifacts -type f \( -name '*.pkg' -o -name '*.exe' \) -exec cp {} dist/ \;
           cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
 
+      # Built as a file rather than an inline `body:` so the unsigned warning can
+      # be conditional. Signing secrets are optional, so a release can legitimately
+      # ship either way — the notes must describe the artifact that was actually
+      # produced, not the one we hope to produce later.
+      - name: Compose release notes
+        env:
+          MAC_SIGNED: ${{ needs.macos.outputs.signed }}
+          WIN_SIGNED: ${{ needs.windows.outputs.signed }}
+        run: |
+          {
+            echo '## Install'
+            echo
+            echo '**macOS** — download `Margo-*.pkg` and open it.'
+            echo '**Windows** — download `Margo-*-setup.exe` and run it. No admin rights needed.'
+            echo
+
+            if [ "$MAC_SIGNED" != "true" ] || [ "$WIN_SIGNED" != "true" ]; then
+              echo '> [!IMPORTANT]'
+              echo '> **These installers are unsigned.** Your OS will warn you, and the'
+              echo '> warning is not a false alarm — it means the download is not'
+              echo '> cryptographically attributable to anyone. Check `SHA256SUMS.txt`'
+              echo '> against the build log before you bypass it.'
+              echo '>'
+              if [ "$MAC_SIGNED" != "true" ]; then
+                echo '> **macOS** — a double-click is refused. Right-click the `.pkg` →'
+                echo '> **Open** → **Open**, or allow it under **System Settings → Privacy'
+                echo '> & Security**.'
+                echo '>'
+              fi
+              if [ "$WIN_SIGNED" != "true" ]; then
+                echo '> **Windows** — SmartScreen shows "Windows protected your PC". Choose'
+                echo '> **More info** → **Run anyway**.'
+              fi
+              echo '>'
+              echo '> The `curl`/`irm` commands below avoid this entirely: they fetch the'
+              echo '> scripts over TLS from this repository rather than an unsigned binary.'
+              echo
+            fi
+
+            echo 'Or from a terminal:'
+            echo
+            echo '```bash'
+            echo 'curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | bash'
+            echo '```'
+            echo '```powershell'
+            echo 'irm https://raw.githubusercontent.com/${{ github.repository }}/main/install.ps1 | iex'
+            echo '```'
+            echo
+            echo 'Upgrading is safe: `preferences.md`, `commitments.md`, `config.md` and'
+            echo 'saved state are never overwritten.'
+            echo
+            echo 'Verify your download against `SHA256SUMS.txt`.'
+          } > NOTES.md
+          cat NOTES.md
+
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/*
           generate_release_notes: true
-          body: |
-            ## Install
-
-            **macOS** — download `Margo-*.pkg` and open it.
-            **Windows** — download `Margo-*-setup.exe` and run it. No admin rights needed.
-
-            Or from a terminal:
-
-            ```bash
-            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | bash
-            ```
-            ```powershell
-            irm https://raw.githubusercontent.com/${{ github.repository }}/main/install.ps1 | iex
-            ```
-
-            Upgrading is safe: `preferences.md`, `commitments.md`, `config.md` and
-            saved state are never overwritten.
-
-            Verify your download against `SHA256SUMS.txt`.
+          body_path: NOTES.md
