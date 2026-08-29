@@ -39,9 +39,17 @@ jobs:
         run: |
           d=$(mktemp -d)
           cp skills/chief-of-staff/scripts/proactive_state.py "$d/ps.py"
-          printf 'raise ImportError("No module named fcntl")\n'  > "$d/fcntl.py"
-          printf 'raise ImportError("No module named msvcrt")\n' > "$d/msvcrt.py"
-          ( cd "$d" && python ps.py status ) || { echo "::error::ledger dies without fcntl"; exit 1; }
+          # Block ONLY fcntl. msvcrt is genuinely absent on Linux and macOS, so
+          # this reaches the final no-locking fallback on its own.
+          #
+          # It must raise ModuleNotFoundError, not a bare ImportError: the stdlib
+          # catches the former. A bare ImportError escapes unrelated defensive
+          # handlers — shadowing msvcrt this way broke subprocess, which uuid
+          # imports transitively, and the ledger died for a reason that had
+          # nothing to do with locking.
+          printf 'raise ModuleNotFoundError("No module named fcntl")\n' > "$d/fcntl.py"
+          ( cd "$d" && python ps.py status ) \
+            || { echo "::error::ledger dies without a locking primitive"; exit 1; }
           echo "ledger degrades correctly with no file locking"
 
       - name: Installer payload must contain only tracked files
