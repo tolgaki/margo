@@ -9,6 +9,10 @@ out over your name. She has no identity of her own.
 This page is about the other model — Margo with her own mailbox, her own Teams
 presence, her own OneDrive — what that requires, and the two things it breaks.
 
+It is the *last* step of putting her in front of a team, not the first.
+**[Deploying for a team](team-deployment.md)** is the plan it sits at the end of, and
+**[Memory](memory.md)** is the part that has to work before any of it.
+
 ---
 
 ## 1. It is Agent ID, but Agent ID alone is not enough
@@ -75,7 +79,9 @@ no meetings in it. Every call would need to distinguish two principals:
 That is a mechanical change, but it is not a small one, and it is not only paths.
 The skills would need a notion of *whose* — whose VIPs, whose commitments, whose
 calendar is being protected — in prose that currently says "you" throughout.
-Work IQ would also need to run app-only or on-behalf-of rather than delegated.
+Work IQ would also need to run on-behalf-of rather than delegated as you — and
+*not* app-only, which would dissolve the access control that per-person memory
+depends on. See [Memory](memory.md) § 5.
 
 ### The approval model loses its justification
 

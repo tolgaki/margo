@@ -77,6 +77,8 @@ docs/                       Start here ↓
 | **[Trust & safety](docs/safety.md)** | The approval model, prompt-injection defence, privacy |
 | **[Build your own](docs/build-your-own.md)** | The agent/skill split, and how to fork this |
 | **[Running in a container](docs/container.md)** | Reproducible unattended runs, and the two-sign-in problem |
+| **[Deploying for a team](docs/team-deployment.md)** | Design note: what breaks when the second person arrives, and the order that fixes it |
+| **[Memory](docs/memory.md)** | Design note: per-person and per-room memory, and why disclosure is a set rather than a level |
 | **[Margo as a digital worker](docs/digital-worker.md)** | Design note: her own mailbox via Entra Agent ID — and what it breaks |
 
 ---

@@ -149,6 +149,10 @@ Files that hold real data, and how they're handled:
 The Keychain entry written by `m365_files.py` (service `margo-m365-files`) holds a refresh token.
 Remove it with `m365_files.py logout`.
 
+Everything in that table is content Margo *read*. A memory system would add the first class of
+file she *writes* — derived from privileged sources, carrying none of their access control. That
+is a different problem, and it is designed in **[Memory](memory.md)**.
+
 ---
 
 ## 8. Reporting a vulnerability
