@@ -120,6 +120,29 @@ jobs:
             Write-Host "OK $f"
           }
 
+      # The .ps1 was previously only syntax-parsed, so the Windows wrapper could
+      # have lost a denial with CI staying green — the same guarantee as the
+      # shell wrapper above, unenforced on the other half of the userbase.
+      # Matched quote-insensitively: -Print quotes args containing parens, and
+      # that is formatting rather than part of the contract being asserted.
+      - name: Scheduled wrapper (PowerShell) denies every Work IQ write tool
+        shell: pwsh
+        run: |
+          $out = (& ./tools/margo-scheduled.ps1 brief -Print) -join "`n"
+          foreach ($t in @('do_action', 'create_entity', 'update_entity', 'delete_entity')) {
+            if ($out -notmatch "--deny-tool '?workiq\($t\)'?") {
+              Write-Host "::error::wrapper does not deny workiq($t)"
+              exit 1
+            }
+          }
+          # An explicit allow must not survive: denial takes precedence.
+          $out = (& ./tools/margo-scheduled.ps1 brief -Print --allow-tool 'workiq(do_action)') -join "`n"
+          if ($out -notmatch "--deny-tool '?workiq\(do_action\)'?") {
+            Write-Host "::error::pass-through args removed a denial"
+            exit 1
+          }
+          Write-Host "wrapper denies all four write tools"
+
   docs:
     name: Documentation links
     runs-on: ubuntu-latest

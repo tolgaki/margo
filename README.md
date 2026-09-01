@@ -10,6 +10,19 @@ then waits for you to say yes.
 This repo is the **reference implementation**: one agent persona, two skills, and the
 documentation to build your own.
 
+**Read this as a Work IQ reference, not as a product.** It is configuration for GitHub Copilot
+CLI — an agent persona, two skills and their supporting docs — aimed at people building this kind
+of assistant rather than at people who want one off the shelf. Margo is the vehicle: an agent with
+enough opinion to show what the API is actually for, since the interesting parts of Work IQ only
+appear once something has to make a decision with the data. If you are here to build,
+**[Build your own](docs/build-your-own.md)** is the point of the repo and the rest is worked
+example.
+
+The scope is deliberately narrow: everything goes through Work IQ. No local file access, no
+browser, no shell-driven automation of your desktop. That keeps the surface small enough that
+**[Trust & safety](docs/safety.md)** can describe the whole of it in one page — a claim that gets
+much harder to make honestly with every capability added.
+
 ```
 "Brief me."                    → what today costs you, what to skip, what to answer
 "Find 30 minutes with Dana."   → the slot, the cascade it triggers, the cost of each option

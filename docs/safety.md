@@ -88,7 +88,7 @@ that writes — `do_action`, `create_entity`, `update_entity`, `delete_entity`. 
 ahead of every allow rule, so an attempted send fails loudly even when the same run carries
 `--allow-all-tools`, and even against an explicit `--allow-tool` for the tool being denied. The
 list is hard-coded rather than a parameter, so it cannot be trimmed by someone adapting the
-command, and CI asserts that `tools/margo-scheduled.sh` still emits all four.
+command, and CI asserts that both wrappers still emit all four.
 
 **Asked of the model.** That same command line passes `--allow-all-tools`, and Margo keeps full
 default-agent capability — shell, `gh`, `curl`, file access. So during an unattended run the four
