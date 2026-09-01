@@ -288,7 +288,10 @@ jobs:
           } > NOTES.md
           cat NOTES.md
 
-      - uses: softprops/action-gh-release@v2
+      # Pinned to a commit, not a tag: this step runs under the file-level
+      # `contents: write` and publishes the artifacts that SHA256SUMS.txt
+      # describes. A moved tag would replace that code with no change here.
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: dist/*
           generate_release_notes: true

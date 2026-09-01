@@ -1,0 +1,13 @@
+version: 2
+
+# Third-party actions in this repo are pinned to commit SHAs rather than tags,
+# because a tag can be moved and `action-gh-release` runs under `contents: write`.
+# A pin is only an improvement if something keeps it current; that is this file's
+# job. Without it the pins rot and the repo trades a mutable ref for a stale one.
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"
