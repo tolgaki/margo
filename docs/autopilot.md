@@ -1,4 +1,4 @@
-# Margo as a digital worker
+# Margo as an autopilot
 
 **Status: design note. None of this is implemented in this repo.**
 
@@ -6,8 +6,11 @@ Today Margo acts **as you**. Every Work IQ call is `/me/...` under delegated
 permissions, so she reads your mail with your consent and writes drafts that go
 out over your name. She has no identity of her own.
 
-This page is about the other model — Margo with her own mailbox, her own Teams
-presence, her own OneDrive — what that requires, and the two things it breaks.
+This page is about the other model — an **Agent 365 autopilot**: an agent that
+holds its own identity in the tenant, and is therefore governed, licensed and
+addressable in its own right. The mailbox, the Teams presence and the OneDrive
+follow from that identity rather than being the point of it. What that requires,
+and the two things it breaks, are below.
 
 ---
 
@@ -29,7 +32,7 @@ So there are two objects, paired 1:1:
 | Password / MFA | N/A | None — authenticates through its parent Agent ID |
 | Governed by | Agent 365 control plane | Same, via the paired Agent ID |
 
-The **Agent User** is the piece that makes "digital worker" real. To the M365
+The **Agent User** is the piece that makes the autopilot addressable. To the M365
 APIs it looks like a user, so `margo@yourtenant.example` gets an inbox, can be
 added to a channel, and shows up in People — while credentials, lifecycle and
 conditional access stay on the Agent ID side.
@@ -39,17 +42,18 @@ purpose-built OAuth flows for agent identities. There is no shared secret and no
 human in an MFA prompt, which is what makes unattended operation legitimate
 rather than a policy exception.
 
-> **Verify before you build.** This area moved fast and the Agent ID / Agent User
-> split is recent. Check the current Entra Agent ID documentation rather than
-> trusting this table; the licensing model in particular is feature-level, so
-> holding a license is not the same as being entitled to a feature.
+> **Verify before you build.** Accurate as of **September 2026**. This area moved
+> fast and the Agent ID / Agent User split is recent, so check the current Entra
+> Agent ID documentation rather than trusting this table; the licensing model in
+> particular is feature-level, so holding a license is not the same as being
+> entitled to a feature.
 
 ### What it costs
 
 The Agent User consumes a real Microsoft 365 license for mail, Teams and
 OneDrive, exactly as a person does. Agent 365 is licensed separately — standalone
 per-agent, or bundled in the Frontier/E7 suite. Budget for both, and note that a
-fleet of digital workers is a per-seat cost line, not a rounding error.
+fleet of autopilots is a per-seat cost line, not a rounding error.
 
 ---
 
@@ -67,7 +71,7 @@ across 18 files**, `/me/calendarView` alone appearing 18 times, plus
 Give Margo her own Agent User and `/me` resolves to *her* — an empty mailbox with
 no meetings in it. Every call would need to distinguish two principals:
 
-| Concept | Today | As a digital worker |
+| Concept | Today | As an autopilot |
 |---|---|---|
 | The person being served | `/me` | `/users/{principal}` |
 | Margo herself | *(does not exist)* | `/me` |
@@ -92,7 +96,7 @@ consent.
 If Margo sends from `margo@`, that reasoning no longer applies to her own
 correspondence. The right model becomes two-tier rather than one:
 
-| Action | Today | As a digital worker |
+| Action | Today | As an autopilot |
 |---|---|---|
 | Send as **you** | Explicit approval, every time | **Unchanged — still absolute** |
 | Send as **Margo** | Impossible | Could be autonomous within policy |
@@ -114,7 +118,7 @@ The plumbing is the easy half. The product question is not:
 Drafts for your signature. No licence, no directory object, no new attack
 surface. The safety model is coherent because she is always acting as you.
 
-**Margo as colleague** *(what a digital worker is)*
+**Margo as colleague** *(what an autopilot is)*
 People email *her*. She has her own queue, her own follow-ups, her own
 relationships. She escalates to you rather than drafting for you. `preferences.md`
 stops being "how I work" and becomes "how I want my chief of staff to work",

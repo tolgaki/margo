@@ -90,7 +90,7 @@ docs/                       Start here ↓
 | **[Trust & safety](docs/safety.md)** | The approval model, prompt-injection defence, privacy |
 | **[Build your own](docs/build-your-own.md)** | The agent/skill split, and how to fork this |
 | **[Running in a container](docs/container.md)** | Reproducible unattended runs, and the two-sign-in problem |
-| **[Margo as a digital worker](docs/digital-worker.md)** | Design note: her own mailbox via Entra Agent ID — and what it breaks |
+| **[Margo as an autopilot](docs/autopilot.md)** | Design note: her own identity via Entra Agent ID — and what it breaks |
 
 ---
 

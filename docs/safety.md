@@ -128,6 +128,14 @@ things sent by people who would like to reach the assistant rather than the pers
 approval gate in §1 is the backstop, but the intent is that nothing reaches the gate in the first
 place.
 
+**It gets harder, not easier, if you give Margo her own identity.** Today an attacker has to get
+their text in front of *you* — into your inbox, a thread you're in, a document you open. An agent
+with her own mailbox can be emailed directly by anyone in the tenant, by people who never had a
+reason to reach you at all. This rule stops being a secondary defence and becomes the primary one,
+at exactly the moment the approval gate in §1 loses its footing, because "she sends under her own
+name" is what that gate was built to prevent. If you are considering it, read
+**[Margo as an autopilot](autopilot.md)** before you provision anything.
+
 ---
 
 ## 5. Ground everything; never fill a gap
