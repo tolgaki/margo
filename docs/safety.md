@@ -78,6 +78,33 @@ If you add a skill that does, this is the sentence to revisit — and `tools/mar
 where to enforce it, since the `--deny-tool` rules there stop outbound actions at the CLI rather
 than trusting an instruction.
 
+### What is enforced, and what is asked
+
+Half of the rule above is a property of the CLI and half of it is an instruction to the model.
+Which half is which is worth knowing before you put this on a cron with your mailbox connected.
+
+**Enforced at the CLI.** Both wrappers pass four `--deny-tool` rules covering every Work IQ tool
+that writes — `do_action`, `create_entity`, `update_entity`, `delete_entity`. Denial resolves
+ahead of every allow rule, so an attempted send fails loudly even when the same run carries
+`--allow-all-tools`, and even against an explicit `--allow-tool` for the tool being denied. The
+list is hard-coded rather than a parameter, so it cannot be trimmed by someone adapting the
+command, and CI asserts that `tools/margo-scheduled.sh` still emits all four.
+
+**Asked of the model.** That same command line passes `--allow-all-tools`, and Margo keeps full
+default-agent capability — shell, `gh`, `curl`, file access. So during an unattended run the four
+Work IQ write tools are genuinely unreachable, while a general-purpose outbound path is not. What
+keeps a scheduled run from sending mail by some other route is §1 and this section, not the CLI.
+
+This is a deliberate trade rather than an oversight. Denying the write tools closes the path Margo
+would actually take, and closes it against the realistic failure — someone copying four flags into
+a crontab and trimming one. It does not try to sandbox a generally capable agent, because a
+scheduled run that goes looking for `curl` to send mail is not a gap in this section; it is a
+compromised agent, and that is §4's problem.
+
+If you want the stronger property — outbound actions unreachable rather than merely unused — give
+the run a smaller blast radius than your laptop. See
+**[Running Margo in a container](container.md)**.
+
 Unattended *and* acting is how this becomes an incident. See
 **[Proactive & scheduled](proactive.md)**.
 

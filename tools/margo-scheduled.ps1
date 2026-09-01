@@ -16,6 +16,13 @@
   rule, including --allow-all-tools, so even an explicit
   --allow-tool 'workiq(do_action)' loses to the entries below.
 
+  What this does not do: -AllowAllTools is still passed, so shell, gh and curl
+  remain available. The four Work IQ write tools are unreachable; a determined
+  outbound action is not. That is the intended trade — this closes the path
+  Margo would actually take, against the realistic failure of someone trimming
+  a scheduled task. It is not a sandbox. If you want one, see docs/container.md.
+  See docs/safety.md §3 for the full statement.
+
 .EXAMPLE
   .\margo-scheduled.ps1 brief
 
@@ -41,6 +48,11 @@ $ErrorActionPreference = 'Stop'
 # The four Work IQ tools that change the outside world. Everything else — fetch,
 # retrieve, ask, call_function, get_schema, search_paths, fetch_blob — is a read
 # and stays available.
+#
+# call_function looks like it belongs here and does not. OData functions are
+# side-effect-free by definition, and it is how reminderView and
+# calendarView/delta are reached — denying it would break the brief's own reads
+# to prevent nothing.
 $DenyTools = @('do_action', 'create_entity', 'update_entity', 'delete_entity')
 
 $Agent = if ($env:MARGO_AGENT) { $env:MARGO_AGENT } else { 'margo' }

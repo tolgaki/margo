@@ -41,9 +41,14 @@ at the bundled wrapper rather than writing out a command line:
 
 It runs `copilot --agent margo -p …` with `--allow-all-tools` plus `--deny-tool`
 rules for `workiq(do_action)`, `workiq(create_entity)`, `workiq(update_entity)`
-and `workiq(delete_entity)`. Denial beats every allow rule, so writes are not
-callable at all — and the deny list is hard-coded, so it cannot be trimmed by
-someone adapting the command.
+and `workiq(delete_entity)`. Denial beats every allow rule, so those four write
+tools are not callable at all — and the deny list is hard-coded, so it cannot be
+trimmed by someone adapting the command.
+
+Be precise about the scope if the user asks: the four Work IQ write tools are
+blocked at the CLI, but `--allow-all-tools` leaves shell, `gh` and `curl`
+available. Everything beyond those four is an instruction you follow, not a
+wall you cannot cross. Never describe an unattended run as incapable of acting.
 
 Under those flags an attempted send fails loudly instead of sending. That is the
 correct failure: an unattended run that wanted to write is a bug in the run, not

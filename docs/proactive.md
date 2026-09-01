@@ -189,11 +189,18 @@ rules covering every Work IQ tool that writes:
 workiq(do_action)  workiq(create_entity)  workiq(update_entity)  workiq(delete_entity)
 ```
 
-Denial takes precedence over every allow rule, so those four make sending
-**impossible** rather than merely discouraged — the read-only contract above
-stops being an instruction and becomes something the CLI enforces. They are not
-parameters and cannot be switched off; extra arguments are passed through but
-cannot re-enable writes.
+Denial takes precedence over every allow rule, so those four tools are not
+callable — sending through Work IQ is **impossible** rather than merely
+discouraged, and that much of the read-only contract stops being an instruction
+and becomes something the CLI enforces. They are not parameters and cannot be
+switched off; extra arguments are passed through but cannot re-enable writes.
+
+The wrapper also passes `--allow-all-tools`, so shell, `gh` and `curl` stay
+available: the guarantee is precise about Work IQ writes and remains an
+instruction everywhere else. That is the intended trade — see
+[**what is enforced, and what is asked**](safety.md#what-is-enforced-and-what-is-asked)
+— and if you want outbound actions unreachable rather than unused,
+[run the schedule in a container](container.md).
 
 That matters because the failure mode here is not malice, it is someone copying
 four lines into a crontab and trimming one. Without them you are trusting an

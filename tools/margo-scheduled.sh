@@ -24,11 +24,23 @@
 # rule, including --allow-all-tools, so even an explicit
 # `--allow-tool 'workiq(do_action)'` loses to the entries below.
 #
+# What this does not do: --allow-all-tools is still passed, so shell, gh and
+# curl remain available. The four Work IQ write tools are unreachable; a
+# determined outbound action is not. That is the intended trade — this closes
+# the path Margo would actually take, against the realistic failure of someone
+# trimming a crontab. It is not a sandbox. If you want one, see
+# docs/container.md. See docs/safety.md §3 for the full statement.
+#
 set -euo pipefail
 
 # The four Work IQ tools that change the outside world. Everything else — fetch,
 # retrieve, ask, call_function, get_schema, search_paths, fetch_blob — is a read
 # and stays available.
+#
+# call_function looks like it belongs here and does not. OData functions are
+# side-effect-free by definition, and it is how reminderView and
+# calendarView/delta are reached — denying it would break the brief's own reads
+# to prevent nothing.
 DENY_TOOLS="do_action create_entity update_entity delete_entity"
 
 AGENT="${MARGO_AGENT:-margo}"
