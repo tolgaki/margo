@@ -37,9 +37,22 @@ jobs:
 
       - name: Resolve version
         id: v
+        env:
+          # Passed as data, never spliced into the script. `${{ }}` is substituted
+          # into `run:` before the shell parses it, so a dispatch input written
+          # inline would be executed rather than read — with the file-level
+          # `contents: write` token in hand.
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            v="${{ github.event.inputs.version }}"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            # Shape-check at the point of entry, so the value is already
+            # constrained before it reaches the interpolated `run:` lines below
+            # that build the .pkg name.
+            if ! printf '%s' "$INPUT_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "::error::version input must look like 1.2.3 (got: $INPUT_VERSION)"
+              exit 1
+            fi
+            v="$INPUT_VERSION"
           else
             v="${GITHUB_REF_NAME#v}"
           fi
@@ -132,11 +145,19 @@ jobs:
       - name: Resolve version
         id: v
         shell: pwsh
+        env:
+          # Same reasoning as the macOS job: the input crosses into the script as
+          # an environment variable, not as text substituted into `run:`.
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
-          $v = if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
-            '${{ github.event.inputs.version }}'
+          $v = if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
+            if ($env:INPUT_VERSION -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') {
+              Write-Host "::error::version input must look like 1.2.3 (got: $($env:INPUT_VERSION))"
+              exit 1
+            }
+            $env:INPUT_VERSION
           } else {
-            '${{ github.ref_name }}' -replace '^v', ''
+            $env:GITHUB_REF_NAME -replace '^v', ''
           }
           "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
