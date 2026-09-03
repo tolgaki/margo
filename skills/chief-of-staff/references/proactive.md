@@ -36,7 +36,9 @@ Everything above is a rule you are expected to follow. Copilot CLI can make it a
 at the bundled wrapper rather than writing out a command line:
 
 ```bash
-./tools/margo-scheduled.sh brief      # or: eod · week · commitments · sweep
+./tools/margo-scheduled.sh list       # what is defined
+./tools/margo-scheduled.sh brief      # or: eod · week · commitments · sweep · ambient
+./tools/margo-scheduled.sh crontab    # crontab lines for every automation
 ```
 
 It runs `copilot --agent margo -p …` with `--allow-all-tools` plus `--deny-tool`
@@ -54,6 +56,43 @@ Under those flags an attempted send fails loudly instead of sending. That is the
 correct failure: an unattended run that wanted to write is a bug in the run, not
 an inconvenience to route around. **Never suggest a hand-written `copilot` command
 for a scheduled run** — that is how the deny flags get dropped.
+
+### The automations live in files
+
+Prompts and schedules come from `automations/` — one Markdown file per automation, flat
+`key: value` front matter (`name`, `verb`, `tier`, `routine`, `cron`, `mode`) and the prompt as
+the body. Installed alongside the skill, normally at `~/.copilot/automations/`.
+
+That directory is the **source of truth for both schedule paths**. When the user wants a prompt,
+time or tier changed, edit the file — never the app's copy and never the wrapper, or the two
+paths drift and only one of them is reviewable.
+
+After editing front matter, regenerate the docs table:
+
+```bash
+./tools/gen-automations-docs.sh --write
+```
+
+### Syncing them to the app ("sync my automations")
+
+The user may prefer the Copilot app's scheduled workflows to `cron`. To register them:
+
+1. Read every `automations/*.md`, skipping `README.md`. Parse the front matter and body.
+2. Call `list_workflows` and match existing workflows **by `name`**.
+3. For each automation, call `save_workflow` with `name`, `prompt` (the body verbatim),
+   `cron_expression` (the `cron` field), `mode`, and `interval: "manual"` — a custom CRON
+   expression is the schedule source, so the interval must not also be set.
+   - **Updating:** pass `workflow_id` from the match, so it updates rather than duplicating.
+     Omitting `host_id` on an update preserves the saved environment; leave it out.
+   - **Creating:** `host_id` is **required** and a create without it is rejected. Take it from
+     an existing workflow's `hostId` in the `list_workflows` output, and fall back to `"local"`
+     only if there are none. Do not guess an environment id.
+4. Report what was created, what was updated and what was left alone. Never delete a workflow
+   that is not in `automations/` — the user may run others; say it is unmanaged and leave it.
+
+**Say this once, plainly, whenever you sync:** workflows registered with the app do **not** carry
+the wrapper's `--deny-tool` rules. On that path read-only is the contract in the prompt, not
+something the CLI enforces. Do not sync a prompt whose unattended contract has been stripped.
 
 When the user invokes the routine **directly**, drop the queue-only rule: report what you find
 in the moment, then still record it as surfaced so the anchor doesn't repeat it.
@@ -124,12 +163,16 @@ re-deriving it. Use exactly these four values so the drain can group without gue
 
 Scheduled, always produce output, and the only tier allowed to spend `workiq-ask`.
 
-| Anchor | When | Routine |
-|---|---|---|
-| Morning brief | 07:15, weekdays | `daily-brief.md` (full) |
-| EOD wrap-up | 17:45, weekdays | `daily-brief.md` § Catch-up / EOD |
-| Week ahead | Sunday 17:00 | `daily-brief.md` § Week ahead |
-| Commitment ageing | Friday 16:00 | `follow-through.md` |
+| Anchor | Routine |
+|---|---|
+| Morning brief | `daily-brief.md` (full) |
+| EOD wrap-up | `daily-brief.md` § Catch-up / EOD |
+| Week ahead | `daily-brief.md` § Week ahead |
+| Commitment ageing | `follow-through.md` |
+
+**Times are not listed here on purpose.** They live in `automations/*.md` and nowhere else — a
+second copy is how this table came to claim 07:15 while the schedule ran at 06:00. If the user
+asks when something runs, read the `cron` field rather than answering from memory.
 
 ### Procedure
 

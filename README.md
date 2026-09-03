@@ -72,8 +72,12 @@ skills/
 
   decision-log/             The append-only record of what the team decided, and why
 
+automations/                The schedule as files — one per scheduled run, prompt included
+                            Source of truth for both cron and the app's workflows
+
 install.sh / install.ps1    Install, upgrade, status, uninstall — never clobbers your data
 packaging/                  Native macOS .pkg and Windows .exe installers
+tools/margo-scheduled.sh    Runs a scheduled brief with Work IQ writes denied at the CLI
 tools/check-clean.sh        Fails if real workplace data creeps into the repo
 
 docs/                       Start here ↓

@@ -89,10 +89,11 @@ RUN useradd --create-home --shell /bin/bash margo
 USER margo
 WORKDIR /home/margo
 
-# Agent + skills only. No tokens, no preferences, no state.
-COPY --chown=margo:margo agents/  /home/margo/.copilot/agents/
-COPY --chown=margo:margo skills/  /home/margo/.copilot/skills/
-COPY --chown=margo:margo tools/   /home/margo/.copilot/tools/
+# Agent, skills, and the schedule. No tokens, no preferences, no state.
+COPY --chown=margo:margo agents/      /home/margo/.copilot/agents/
+COPY --chown=margo:margo skills/      /home/margo/.copilot/skills/
+COPY --chown=margo:margo tools/       /home/margo/.copilot/tools/
+COPY --chown=margo:margo automations/ /home/margo/.copilot/automations/
 
 ENTRYPOINT ["copilot"]
 ```
@@ -108,6 +109,7 @@ docker build -f Dockerfile -t margo:1.0.0 .
 | | Baked into the image | Mounted at runtime |
 |---|---|---|
 | `agents/`, `skills/` | ✅ versioned with the image | |
+| `automations/`, `tools/` | ✅ the schedule is code | |
 | `mcp-config.json`, plugins | | ✅ environment-specific |
 | `mcp-oauth-config/` | **never** | ✅ credential |
 | `preferences.md`, `commitments.md` | **never** | ✅ your data |
@@ -166,8 +168,9 @@ allow rule — so the read-only contract in [Proactive & scheduled](proactive.md
 becomes enforced rather than instructed. The deny list is hard-coded and cannot be
 trimmed.
 
-That requires copying `tools/` into the image; add it alongside `agents/` and
-`skills/` in the Dockerfile.
+That requires `tools/` **and** `automations/` in the image — the wrapper reads its
+prompt from the latter and exits with an error if it is missing. Both are in the
+Dockerfile above.
 
 Belt and braces: give the container a Work IQ identity with read-only scopes too,
 so the tenant enforces it independently of any flag.

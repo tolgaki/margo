@@ -79,6 +79,7 @@ jobs:
           bash -n install.sh
           bash -n tools/check-clean.sh
           bash -n tools/margo-scheduled.sh
+          bash -n tools/gen-automations-docs.sh
           bash -n packaging/macos/build-pkg.sh
           bash -n packaging/macos/scripts/postinstall
 
@@ -103,6 +104,124 @@ jobs:
           printf '%s' "$out" | grep -q -- '--deny-tool workiq(do_action)' \
             || { echo "::error::pass-through args removed a denial"; exit 1; }
           echo "wrapper denies all four write tools"
+
+      # The deny list covers Work IQ writes. The one rule the CLI cannot enforce
+      # — never ask a question nobody is there to answer — lives in the prompt,
+      # and the wrapper used to send "Run my morning brief." instead: a run that
+      # could legally end in ask_user and hang until timeout, at 06:00.
+      - name: Every scheduled prompt carries the unattended contract
+        run: |
+          set -euo pipefail
+          verbs=$(./tools/margo-scheduled.sh list 2>/dev/null | awk 'NR>1 && NF {print $1}')
+          # An exact count, not just "non-empty". The old guard could not tell
+          # five automations from six, so a dropped one looked like success.
+          n=$(printf '%s\n' "$verbs" | grep -c .)
+          expected=$(find automations -maxdepth 1 -name '*.md' ! -name 'README.md' | wc -l | tr -d ' ')
+          [ "$n" = "$expected" ] \
+            || { echo "::error::list reported $n verbs, but $expected automations exist"; exit 1; }
+          for v in $verbs; do
+            p=$(./tools/margo-scheduled.sh "$v" --show-prompt)
+            printf '%s' "$p" | grep -qi 'unattended' \
+              || { echo "::error::$v prompt never says it is unattended"; exit 1; }
+            printf '%s' "$p" | grep -qi 'ask_user' \
+              || { echo "::error::$v prompt does not ban ask_user"; exit 1; }
+            echo "  ok: $v"
+          done
+          # A free-form prompt is unattended too — it goes through the same cron.
+          ./tools/margo-scheduled.sh "what did I miss" --show-prompt \
+            | grep -qi 'unattended' \
+            || { echo "::error::free-form prompt loses the contract"; exit 1; }
+          echo "every prompt states the contract"
+
+      - name: The automations table in the docs is current
+        run: ./tools/gen-automations-docs.sh --check
+
+      # Every one of these fixtures shipped a silently-wrong prompt before the
+      # wrapper learned to fail closed. "Unknown verb" and "this verb's manifest
+      # did not resolve" used to be the same state, so a broken automation ran
+      # with its own name as the entire prompt at 06:00.
+      - name: A broken automation fails loudly, never as a bare-word prompt
+        run: |
+          set -euo pipefail
+          base="$RUNNER_TEMP/fx"; rm -rf "$base"
+
+          # $1 = fixture name. Fails unless the wrapper exits non-zero AND never
+          # emits the bare verb as the prompt.
+          must_fail() {
+            d="$base/$1"
+            if out=$(MARGO_AUTOMATIONS="$d" ./tools/margo-scheduled.sh brief --show-prompt 2>&1); then
+              echo "::error::$1: wrapper succeeded on a broken manifest"
+              printf '%s\n' "$out" | head -3; exit 1
+            fi
+            if [ "$(printf '%s' "$out" | tail -1)" = "brief" ]; then
+              echo "::error::$1: prompt degraded to the bare verb"; exit 1
+            fi
+            echo "  ok: $1 failed closed"
+          }
+          fresh() { rm -rf "$base/$1"; mkdir -p "$base/$1"; cp automations/*.md "$base/$1"/; }
+
+          # README-only: the discovery guard used to certify this directory.
+          mkdir -p "$base/readme-only" && cp automations/README.md "$base/readme-only/"
+          must_fail readme-only
+
+          fresh no-verb   && sed -i'' -e 's/^verb: .*//' "$base/no-verb/morning-brief.md"   && must_fail no-verb
+          fresh dup-verb  && sed -i'' -e 's/^verb: .*/verb: brief/' "$base/dup-verb/eod-wrap-up.md" && must_fail dup-verb
+          fresh reserved  && sed -i'' -e 's/^verb: brief/verb: crontab/' "$base/reserved/morning-brief.md" && must_fail reserved
+
+          # An unknown bare word must error rather than become the prompt.
+          if out=$(./tools/margo-scheduled.sh brie --show-prompt 2>&1); then
+            echo "::error::unknown bare verb was accepted as a prompt"; exit 1
+          fi
+          echo "  ok: unknown bare verb rejected"
+
+          # ...but an explicit free-form phrase, and --prompt, still work.
+          ./tools/margo-scheduled.sh "what did I miss" --show-prompt | grep -qi unattended
+          ./tools/margo-scheduled.sh brie --prompt --show-prompt | grep -qi unattended
+          echo "  ok: free-form phrases and --prompt still work"
+
+      # A BOM or a trailing space used to break the awk parsers while PowerShell
+      # trimmed them away, so the same file ran two different prompts on two
+      # machines. An inline comment — which the published template used — broke
+      # the verb match in both.
+      - name: BOM, delimiter whitespace and inline comments parse correctly
+        run: |
+          set -euo pipefail
+          base="$RUNNER_TEMP/fm"; rm -rf "$base"
+          want=$(./tools/margo-scheduled.sh brief --show-prompt)
+
+          fresh() { rm -rf "$base/$1"; mkdir -p "$base/$1"; cp automations/*.md "$base/$1"/; }
+          same() {
+            got=$(MARGO_AUTOMATIONS="$base/$1" ./tools/margo-scheduled.sh brief --show-prompt)
+            [ "$got" = "$want" ] || { echo "::error::$1 changed the prompt"; exit 1; }
+            echo "  ok: $1"
+          }
+
+          fresh bom && printf '\xef\xbb\xbf' | cat - "$base/bom/morning-brief.md" > "$base/bom/tmp" \
+            && mv "$base/bom/tmp" "$base/bom/morning-brief.md" && same bom
+          fresh delim-ws && perl -0pi -e 's/\A---\n/--- \n/' "$base/delim-ws/morning-brief.md" && same delim-ws
+          fresh comment && sed -i'' -e 's|^verb: brief|verb: brief   # the wrapper verb|' "$base/comment/morning-brief.md" && same comment
+          echo "line endings, BOMs and comments do not change what gets sent"
+
+      # A Windows clone without .gitattributes produced CRLF automations, and
+      # the awk parsers compared against a bare "---". The shell wrapper then
+      # failed to recognise 'brief' as a verb and sent the word "brief" as a
+      # free-form prompt, while PowerShell ran the real automation — two
+      # machines on the same schedule doing different things, silently.
+      - name: CRLF automations parse identically
+        run: |
+          set -euo pipefail
+          crlf="$RUNNER_TEMP/crlf-automations"
+          rm -rf "$crlf"; mkdir -p "$crlf"
+          for f in automations/*.md; do
+            sed 's/$/\r/' "$f" > "$crlf/$(basename "$f")"
+          done
+          for v in $(MARGO_AUTOMATIONS="$crlf" ./tools/margo-scheduled.sh list 2>/dev/null | awk 'NR>1 && NF {print $1}'); do
+            a=$(./tools/margo-scheduled.sh "$v" --show-prompt)
+            b=$(MARGO_AUTOMATIONS="$crlf" ./tools/margo-scheduled.sh "$v" --show-prompt)
+            [ "$a" = "$b" ] || { echo "::error::CRLF changed the prompt for $v"; exit 1; }
+            echo "  ok: $v"
+          done
+          echo "line endings do not change what gets sent"
 
       - name: PowerShell syntax
         shell: pwsh
@@ -142,6 +261,50 @@ jobs:
             exit 1
           }
           Write-Host "wrapper denies all four write tools"
+
+      # Two wrappers reading one manifest is the whole point of automations/.
+      # If they ever disagree about what a verb means, half the userbase is
+      # running a prompt nobody reviewed — which is the drift this replaced.
+      #
+      # Compared WITHOUT .Trim(). Trimming both sides hid the very divergence
+      # this step exists to catch: the shell parser kept a prompt's leading and
+      # trailing spaces and PowerShell stripped them, and the guard said they
+      # matched. A whitespace-boundary fixture is included for that reason.
+      - name: Both wrappers send byte-identical prompts
+        shell: pwsh
+        run: |
+          $verbs = (& ./tools/margo-scheduled.sh list 2>$null) |
+                   Select-Object -Skip 1 |
+                   ForEach-Object { ($_ -split '\s+')[0] } |
+                   Where-Object { $_ }
+          if (-not $verbs) { Write-Host "::error::no automations found"; exit 1 }
+
+          function Compare-Verb($dir, $v) {
+            if ($dir) { $env:MARGO_AUTOMATIONS = $dir } else { Remove-Item Env:MARGO_AUTOMATIONS -ErrorAction SilentlyContinue }
+            $sh  = (& ./tools/margo-scheduled.sh $v --show-prompt) -join "`n"
+            $ps1 = (& ./tools/margo-scheduled.ps1 $v -ShowPrompt) -join "`n"
+            if ($sh -cne $ps1) {
+              Write-Host "::error::wrappers disagree on '$v'$(if($dir){" in $dir"})"
+              Write-Host "sh : $([System.Text.Encoding]::UTF8.GetBytes($sh)  -join ',')"
+              Write-Host "ps1: $([System.Text.Encoding]::UTF8.GetBytes($ps1) -join ',')"
+              exit 1
+            }
+            Write-Host "  ok: $v"
+          }
+
+          foreach ($v in $verbs) { Compare-Verb $null $v }
+
+          # A prompt whose body starts indented and ends with trailing spaces.
+          $fx = Join-Path $env:RUNNER_TEMP 'ws'
+          Remove-Item -Recurse -Force $fx -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $fx | Out-Null
+          $src = Get-Content -Raw automations/morning-brief.md
+          $fm  = ($src -split '---\r?\n')[1]
+          Set-Content -NoNewline -Path (Join-Path $fx 'morning-brief.md') `
+            -Value "---`n$fm---`n`n`n   Indented first line.`nMiddle.`nTrailing spaces.   `n`n`n"
+          Compare-Verb $fx 'brief'
+          Remove-Item Env:MARGO_AUTOMATIONS -ErrorAction SilentlyContinue
+          Write-Host "both wrappers agree on every prompt, byte for byte"
 
   docs:
     name: Documentation links
@@ -216,10 +379,18 @@ jobs:
             mkdir -p "$COS/state/one-on-ones"
             echo "MY 1:1 AGENDA"        > "$COS/state/one-on-ones/dana.md"
             echo '{"marker":"MYSTATEJSON"}' > "$COS/state/surfaced.json"
+            # The classes the automations change added. Each of these was
+            # destroyed by some path while CI stayed green.
+            mkdir -p "$DEST/automations/nested"
+            echo "MY OWN AUTOMATION"    > "$DEST/automations/mine.md"
+            echo "MY NESTED FILE"       > "$DEST/automations/nested/deep.txt"
+            echo "MY OWN TOOL"          > "$DEST/tools/mytool.sh"
+            printf '# MY PATCHED WRAPPER\n' >> "$DEST/tools/margo-scheduled.sh"
           }
           # $1 = label. Fails unless every planted string is findable under $DEST.
           assert_all_survive() {
-            for needle in "MY REAL PREFERENCES" "MY RELATIONSHIP DATA" "MY 1:1 AGENDA" "MYSTATEJSON"; do
+            for needle in "MY REAL PREFERENCES" "MY RELATIONSHIP DATA" "MY 1:1 AGENDA" "MYSTATEJSON" \
+                          "MY OWN AUTOMATION" "MY NESTED FILE" "MY OWN TOOL" "MY PATCHED WRAPPER"; do
               grep -rqF "$needle" "$DEST" \
                 || { echo "::error::$1 lost: $needle"; exit 1; }
             done
@@ -230,17 +401,58 @@ jobs:
           test -f "$DEST/agents/margo.agent.md"
           test -f "$COS/SKILL.md"
 
+          # 0. The schedule must actually ship. docs/proactive.md told a fresh
+          #    install to run ./tools/margo-scheduled.sh while the installer
+          #    shipped no tools/ at all, so the documented setup was impossible.
+          test -x "$DEST/tools/margo-scheduled.sh" \
+            || { echo "::error::install did not ship an executable tools/margo-scheduled.sh"; exit 1; }
+          test -f "$DEST/tools/margo-scheduled.ps1"
+          test -f "$DEST/automations/morning-brief.md"
+          n=$(find "$DEST/automations" -name '*.md' ! -name 'README.md' | wc -l | tr -d ' ')
+          [ "$n" -ge 6 ] || { echo "::error::expected >=6 automations installed, found $n"; exit 1; }
+          # And it must work from where it landed, not just from the checkout.
+          ( cd "$RUNNER_TEMP" && "$DEST/tools/margo-scheduled.sh" brief --show-prompt ) \
+            | grep -qi 'unattended' \
+            || { echo "::error::installed wrapper cannot resolve its automations"; exit 1; }
+          echo "  ok: automations and wrapper installed and self-sufficient"
+
+          # 0b. A LINKED install must resolve automations too. It did not: the
+          #     automations symlink was passed to find un-dereferenced, so every
+          #     verb degraded to the free-form fallback and the 06:00 brief ran
+          #     with the literal word "brief" as its entire prompt.
+          LDEST="$RUNNER_TEMP/copilot-link"
+          rm -rf "$LDEST"
+          ./install.sh --all --dest "$LDEST" --link --yes
+          rows=$("$LDEST/tools/margo-scheduled.sh" list 2>/dev/null | tail -n +2 | grep -c . || true)
+          [ "$rows" -ge 6 ] \
+            || { echo "::error::linked install lists $rows automations, expected >= 6"; exit 1; }
+          "$LDEST/tools/margo-scheduled.sh" brief --show-prompt | grep -q 'chief-of-staff' \
+            || { echo "::error::linked install sends the fallback, not the real prompt"; exit 1; }
+          # A linked install must also be re-runnable.
+          ./install.sh --all --dest "$LDEST" --link --yes \
+            || { echo "::error::second linked install failed"; exit 1; }
+          rm -rf "$LDEST"
+          echo "  ok: linked install resolves automations and is re-runnable"
+
           # 1. Reinstall must not clobber anything the user owns.
           plant
           ./install.sh --all --dest "$DEST" --yes
           assert_all_survive "reinstall"
 
-          # 2. --dry-run must change nothing.
-          before=$(find "$DEST" -type f | sort | md5sum)
+          # 2. --dry-run must change nothing. Directories included: a dry run
+          #    allocated an empty margo-personal-backup.* and a files-only
+          #    comparison could not see it.
+          before=$(find "$DEST" | sort | md5sum)
           ./install.sh --all --dest "$DEST" --yes --dry-run >/dev/null
-          after=$(find "$DEST" -type f | sort | md5sum)
+          after=$(find "$DEST" | sort | md5sum)
           [ "$before" = "$after" ] || { echo "::error::--dry-run modified the filesystem"; exit 1; }
-          echo "  ok: --dry-run wrote nothing"
+          # The link path is where the stash allocator was reachable from a
+          # message string, so exercise it too.
+          before=$(find "$DEST" | sort | md5sum)
+          ./install.sh --all --dest "$DEST" --link --yes --dry-run >/dev/null 2>&1 || true
+          after=$(find "$DEST" | sort | md5sum)
+          [ "$before" = "$after" ] || { echo "::error::--link --dry-run modified the filesystem"; exit 1; }
+          echo "  ok: --dry-run wrote nothing, including directories"
 
           # 3. --link over a populated dir, non-interactive: must NOT destroy data.
           #    Before the fix this auto-confirmed and rm -rf'd with no backup.
@@ -259,6 +471,10 @@ jobs:
           # 5. Uninstall must archive every class, and by CONTENT.
           ./install.sh uninstall --dest "$DEST" --yes
           test ! -e "$DEST/agents/margo.agent.md"
+          test ! -e "$DEST/automations" \
+            || { echo "::error::uninstall left automations/ behind"; exit 1; }
+          test ! -e "$DEST/tools/margo-scheduled.sh" \
+            || { echo "::error::uninstall left the wrapper behind"; exit 1; }
           assert_all_survive "uninstall"
 
           # 6. A --dest that is (or contains) the checkout must be refused, not
@@ -341,10 +557,18 @@ jobs:
             New-Item -ItemType Directory -Path "$cos/state/one-on-ones" -Force | Out-Null
             'MY 1:1 AGENDA'        | Set-Content "$cos/state/one-on-ones/dana.md"
             '{"marker":"MYSTATEJSON"}' | Set-Content "$cos/state/surfaced.json"
+            # The classes the automations change added. Each of these was
+            # destroyed by some path while CI stayed green.
+            New-Item -ItemType Directory -Path "$dest/automations/nested" -Force | Out-Null
+            'MY OWN AUTOMATION' | Set-Content "$dest/automations/mine.md"
+            'MY NESTED FILE'    | Set-Content "$dest/automations/nested/deep.txt"
+            'MY OWN TOOL'       | Set-Content "$dest/tools/mytool.ps1"
+            Add-Content "$dest/tools/margo-scheduled.ps1" -Value '# MY PATCHED WRAPPER'
           }
           # Checks CONTENT, never just that a filename exists.
           function AssertAllSurvive([string]$label) {
-            foreach ($needle in @('MY REAL PREFERENCES','MY RELATIONSHIP DATA','MY 1:1 AGENDA','MYSTATEJSON')) {
+            foreach ($needle in @('MY REAL PREFERENCES','MY RELATIONSHIP DATA','MY 1:1 AGENDA','MYSTATEJSON',
+                                  'MY OWN AUTOMATION','MY NESTED FILE','MY OWN TOOL','MY PATCHED WRAPPER')) {
               $hit = Get-ChildItem $dest -Recurse -File -Force -ErrorAction SilentlyContinue |
                      Select-String -SimpleMatch -Pattern $needle -List -ErrorAction SilentlyContinue
               if (-not $hit) { throw "$label lost: $needle" }
@@ -356,17 +580,51 @@ jobs:
           if (-not (Test-Path "$dest/agents/margo.agent.md")) { throw "agent missing" }
           if (-not (Test-Path "$cos/SKILL.md")) { throw "skill missing" }
 
+          # 0. The schedule must ship here too. This job asserted nothing about
+          #    automations/ or tools/, so half of "both installers ship them"
+          #    was verified on one installer.
+          if (-not (Test-Path "$dest/tools/margo-scheduled.ps1")) { throw "wrapper not installed" }
+          if (-not (Test-Path "$dest/tools/margo-scheduled.sh"))  { throw "shell wrapper not installed" }
+          if (-not (Test-Path "$dest/automations/morning-brief.md")) { throw "automations not installed" }
+          $n = @(Get-ChildItem "$dest/automations" -Filter *.md -File |
+                 Where-Object { $_.Name -ne 'README.md' }).Count
+          if ($n -lt 6) { throw "expected >= 6 automations installed, found $n" }
+          # README.md must NOT ship: it points at files the installer excludes.
+          if (Test-Path "$dest/automations/README.md") { throw "automations/README.md was installed" }
+          # And the wrapper must resolve them from where it landed.
+          Push-Location $env:RUNNER_TEMP
+          $p = (& "$dest/tools/margo-scheduled.ps1" brief -ShowPrompt) -join "`n"
+          Pop-Location
+          if ($p -notmatch 'chief-of-staff') { throw "installed wrapper cannot resolve its automations" }
+          Write-Host "  ok: automations and wrapper installed and self-sufficient"
+
+          # 0b. A linked install must resolve automations AND be re-runnable.
+          #     The second -Link run used to abort mid-install at exit 1.
+          $ldest = Join-Path $env:RUNNER_TEMP 'copilot-link'
+          Remove-Item -Recurse -Force $ldest -ErrorAction SilentlyContinue
+          ./install.ps1 install -All -Dest $ldest -Link -Yes
+          ./install.ps1 install -All -Dest $ldest -Link -Yes
+          $lp = (& "$ldest/tools/margo-scheduled.ps1" brief -ShowPrompt) -join "`n"
+          if ($lp -notmatch 'chief-of-staff') { throw "linked install sends the fallback, not the real prompt" }
+          Remove-Item -Recurse -Force $ldest -ErrorAction SilentlyContinue
+          Write-Host "  ok: linked install resolves automations and is re-runnable"
+
           # 1. Reinstall must not clobber anything the user owns.
           Plant
           ./install.ps1 install -All -Dest $dest -Yes
           AssertAllSurvive 'reinstall'
 
           # 2. -DryRun must change nothing.
-          $before = (Get-ChildItem $dest -Recurse -File -Force | Sort-Object FullName | ForEach-Object FullName) -join "`n"
+          # Directories included: a dry run allocated an empty
+          # margo-personal-backup.* and a files-only comparison could not see it.
+          $snap = { (Get-ChildItem $dest -Recurse -Force | Sort-Object FullName | ForEach-Object FullName) -join "`n" }
+          $before = & $snap
           ./install.ps1 install -All -Dest $dest -Yes -DryRun | Out-Null
-          $after  = (Get-ChildItem $dest -Recurse -File -Force | Sort-Object FullName | ForEach-Object FullName) -join "`n"
-          if ($before -ne $after) { throw "-DryRun modified the filesystem" }
-          Write-Host "  ok: -DryRun wrote nothing"
+          if ((& $snap) -ne $before) { throw "-DryRun modified the filesystem" }
+          $before = & $snap
+          ./install.ps1 install -All -Dest $dest -Link -Yes -DryRun 2>$null | Out-Null
+          if ((& $snap) -ne $before) { throw "-Link -DryRun modified the filesystem" }
+          Write-Host "  ok: -DryRun wrote nothing, including directories"
 
           # 3. -Link over a populated dir, non-interactive: must NOT destroy data.
           ./install.ps1 install -Link -Dest $dest 2>$null | Out-Null

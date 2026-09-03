@@ -95,6 +95,13 @@ default-agent capability — shell, `gh`, `curl`, file access. So during an unat
 Work IQ write tools are genuinely unreachable, while a general-purpose outbound path is not. What
 keeps a scheduled run from sending mail by some other route is §1 and this section, not the CLI.
 
+**Not enforced at all: workflows registered with the Copilot app.** The same automations can be
+run by the app's scheduled-workflow system instead of `cron`, and that path carries **no deny
+list** — the app supplies its own permissions, and the wrappers are not in the loop. Read-only
+there rests entirely on the unattended contract written into each prompt in `automations/`, which
+is an instruction like any other. It is the more convenient path and the weaker one; pick
+knowingly, and keep the contract in the prompt if you edit it.
+
 This is a deliberate trade rather than an oversight. Denying the write tools closes the path Margo
 would actually take, and closes it against the realistic failure — someone copying four flags into
 a crontab and trimming one. It does not try to sandbox a generally capable agent, because a

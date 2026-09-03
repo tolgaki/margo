@@ -62,7 +62,11 @@ if [ $rc -ne 0 ]; then
 fi
 
 # Ownership belongs to the user, never root.
-/usr/sbin/chown -R "$CONSOLE_USER" "$USER_HOME/.copilot/agents" "$USER_HOME/.copilot/skills" 2>/dev/null
+/usr/sbin/chown -R "$CONSOLE_USER" \
+  "$USER_HOME/.copilot/agents" \
+  "$USER_HOME/.copilot/skills" \
+  "$USER_HOME/.copilot/automations" \
+  "$USER_HOME/.copilot/tools" 2>/dev/null
 
 echo "--- done ---"
 exit 0

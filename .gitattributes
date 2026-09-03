@@ -1,0 +1,9 @@
+# Shell scripts and the automation manifest must stay LF on every platform.
+#
+# A CRLF automation used to parse differently in the two wrappers: the awk
+# parsers compared against a bare "---" and saw "---\r", so the shell wrapper
+# fell through to treating a known verb as a free-form prompt while PowerShell
+# ran the real automation. The parsers now strip CR themselves; this keeps the
+# files from being converted in the first place.
+*.sh              text eol=lf
+automations/*.md  text eol=lf

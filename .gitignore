@@ -33,7 +33,7 @@ dist/
 skills/*/state/*
 !skills/*/state/.gitignore
 
-# Personalization templates.
+# Personalization templates, and the automation prompts.
 #
 # These are TRACKED, so listing them here does nothing — .gitignore only affects
 # untracked files. If you install with ./install.sh (the default), your filled-in
@@ -44,7 +44,14 @@ skills/*/state/*
 #   git update-index --skip-worktree \
 #     skills/chief-of-staff/preferences.md \
 #     skills/chief-of-staff/commitments.md \
-#     skills/decision-log/config.md
+#     skills/decision-log/config.md \
+#     automations/*.md
+#
+# automations/*.md belongs on that list because tuning a prompt is expected —
+# "lead with the escalation, that customer's asks first" puts real names into a
+# tracked file. tools/check-clean.sh scans them, but its automatic classes are
+# addresses, GUIDs and domains; a bare colleague or customer name is caught only
+# by your own tools/forbidden.local.txt.
 #
 # Undo with --no-skip-worktree. tools/check-clean.sh still inspects them, so a
 # filled copy is caught before it can be pushed.

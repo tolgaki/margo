@@ -52,6 +52,10 @@ $ManifestName = '.margo-install'
 $AllSkills    = @('chief-of-staff', 'decision-log')
 $DefaultSkill = @('chief-of-staff')
 
+# The two wrapper scripts. gen-automations-docs.sh is deliberately not shipped:
+# it edits docs/proactive.md in a checkout and means nothing in ~/.copilot.
+$ToolFiles = @('margo-scheduled.sh', 'margo-scheduled.ps1')
+
 # Files that hold your data, not ours. Never overwritten, never deleted.
 $UserData = @(
     'chief-of-staff/preferences.md',
@@ -355,6 +359,25 @@ function Save-UserData {
     return $n
 }
 
+# An automation's prompt is editable, so a local change is backed up rather than
+# silently overwritten by an update. Nothing here is in $UserData — automations
+# are ours by default — but losing a hand-tuned brief prompt to `update` would be
+# indistinguishable from a bug.
+function Backup-IfModified {
+    param([string]$Source, [string]$Installed, [string]$Label)
+    if (-not (Test-Path $Installed)) { return }
+    if (Test-Path $Source) {
+        $a = (Get-FileHash -LiteralPath $Source -Algorithm SHA256).Hash
+        $b = (Get-FileHash -LiteralPath $Installed -Algorithm SHA256).Hash
+        if ($a -eq $b) { return }
+    }
+    if ($DryRun) { Write-Warn "$Label differs from the shipped copy - would be backed up"; return }
+    $dst = Join-Rel (Get-StashDir) $Label
+    New-Item -ItemType Directory -Path (Split-Path -Parent $dst) -Force -ErrorAction Stop | Out-Null
+    Copy-Item -Force -LiteralPath $Installed $dst -ErrorAction Stop
+    Write-Warn "$Label was modified - original saved to $(Split-Path -Leaf (Get-StashDir))/$Label"
+}
+
 # Absolute, resolved path for something that may not exist yet: walk up to the
 # nearest existing ancestor, resolve that, then re-append the remainder. The
 # destination is normally created by this script, and a guard that gives up on a
@@ -545,6 +568,220 @@ function Install-Skill {
     }
 }
 
+# Every file under an installed automations/ that we did not ship, or that
+# differs from what we shipped — any depth, any file type. Swept from what is
+# actually present rather than a glob of top-level *.md, which is how a
+# user-authored automation, a nested file or a *.bak.* gets deleted while the
+# run reports success. $Ref may be empty: with no reference to compare against,
+# everything is unmanaged and everything is kept.
+function Get-AutomationsToKeep {
+    param([string]$Dir, [string]$Ref)
+    $out = New-Object System.Collections.Generic.List[string]
+    if (-not (Test-Path $Dir)) { return $out.ToArray() }
+    $prefix = (Resolve-Path $Dir).Path.TrimEnd('\', '/')
+    foreach ($f in Get-ChildItem -Path $Dir -Recurse -File -Force -ErrorAction SilentlyContinue) {
+        $sub = $f.FullName.Substring($prefix.Length + 1) -replace '\\', '/'
+        $shipped = if ($Ref) { Join-Rel $Ref $sub } else { $null }
+        $same = $false
+        if ($shipped -and (Test-Path -LiteralPath $shipped)) {
+            $same = (Get-FileHash -LiteralPath $shipped -Algorithm SHA256).Hash -eq
+                    (Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash
+        }
+        if (-not $same) { $out.Add($sub) }
+    }
+    return $out.ToArray()
+}
+
+# Archive them. Throws if any file cannot be saved; the caller must not delete
+# the directory in that case.
+function Save-Automations {
+    param([string]$Dir, [string]$Ref)
+    $n = 0
+    foreach ($sub in @(Get-AutomationsToKeep -Dir $Dir -Ref $Ref)) {
+        if (-not $DryRun) {
+            $dst = Join-Rel (Get-StashDir) "automations/$sub"
+            New-Item -ItemType Directory -Path (Split-Path -Parent $dst) -Force -ErrorAction Stop | Out-Null
+            if (Test-Path $dst) { throw "archive entry already exists: $dst" }
+            Copy-Item -Force -LiteralPath (Join-Rel $Dir $sub) $dst -ErrorAction Stop
+        }
+        $n++
+        Write-Skip "kept automations/$sub"
+    }
+    return $n
+}
+
+# Anything in an installed tools/ that we would not have put there, or that
+# differs from what we ship. Name-based ownership was the bug: a user file that
+# happened to be called margo-scheduled.sh, or a wrapper the user had hardened
+# with extra --deny-tool rules, was classed as ours and destroyed without a
+# backup on install, on link, and on uninstall.
+function Get-ToolsToKeep {
+    param([string]$Dir, [string]$Ref)
+    $out = New-Object System.Collections.Generic.List[string]
+    if (-not (Test-Path $Dir)) { return $out.ToArray() }
+    $prefix = (Resolve-Path $Dir).Path.TrimEnd('\', '/')
+    foreach ($f in Get-ChildItem -Path $Dir -Recurse -File -Force -ErrorAction SilentlyContinue) {
+        $sub = $f.FullName.Substring($prefix.Length + 1) -replace '\\', '/'
+        $shipped = if ($Ref) { Join-Rel $Ref $sub } else { $null }
+        $same = $false
+        if ($shipped -and (Test-Path -LiteralPath $shipped)) {
+            $same = (Get-FileHash -LiteralPath $shipped -Algorithm SHA256).Hash -eq
+                    (Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash
+        }
+        if (-not $same) { $out.Add($sub) }
+    }
+    return $out.ToArray()
+}
+
+function Save-Tools {
+    param([string]$Dir, [string]$Ref)
+    $n = 0
+    foreach ($sub in @(Get-ToolsToKeep -Dir $Dir -Ref $Ref)) {
+        if (-not $DryRun) {
+            $dst = Join-Rel (Get-StashDir) "tools/$sub"
+            New-Item -ItemType Directory -Path (Split-Path -Parent $dst) -Force -ErrorAction Stop | Out-Null
+            if (Test-Path $dst) { throw "archive entry already exists: $dst" }
+            Copy-Item -Force -LiteralPath (Join-Rel $Dir $sub) $dst -ErrorAction Stop
+        }
+        $n++
+        Write-Skip "kept tools/$sub"
+    }
+    return $n
+}
+
+function Install-Automations {
+    param([string]$Src)
+
+    $source = Join-Path $Src 'automations'
+    $target = Join-Path $Dest 'automations'
+    if (-not (Test-Path $source)) { Fail "automations/ not found in source" }
+
+    if ($Link) {
+        if ((Test-Path $target) -and -not (Test-IsLink $target)) {
+            $n = @(Get-AutomationsToKeep -Dir $target -Ref $source).Count
+            if (-not (Confirm-Action "$target is a real directory holding $n file(s) of your own or modified.`n     Replace it with a link? They will be archived to a backup directory first.")) {
+                Write-Skip "automations (kept existing directory)"
+                return
+            }
+            try {
+                $saved = Save-Automations -Dir $target -Ref $source
+            } catch {
+                Fail ("could not archive automations - nothing was changed.`n" +
+                      "       Check that $Dest is writable, then try again.`n" +
+                      "       ($($_.Exception.Message))")
+            }
+            # $script:StashDir, never Get-StashDir: the allocator CREATES the
+            # directory, so calling it from a message wrote to the destination
+            # during -DryRun — the one thing a dry run promises not to do.
+            if ($saved -gt 0) {
+                if ($DryRun) {
+                    Write-Warn "$saved file(s) would be archived to a backup directory"
+                } else {
+                    Write-Warn "$saved file(s) archived to $(Split-Path -Leaf $script:StashDir)/automations"
+                }
+            }
+            Remove-Entry $target
+        }
+        # Outside the guard, exactly as Install-Skill does it. Inside, a second
+        # -Link run hit New-Link against an existing link, fell through to
+        # Copy-Item, and aborted the whole install mid-way.
+        Remove-Entry $target
+        $kind = New-Link -Target $target -Source $source -IsDirectory $true
+        if ($kind -eq 'copy') { Write-Warn "automations/ copied - could not link" }
+        else { Write-Ok "automations/  ($kind)" }
+        return
+    }
+
+    if (Test-IsLink $target) { Remove-Entry $target }
+    if (-not $DryRun) { New-Item -ItemType Directory -Path $target -Force | Out-Null }
+
+    $n = 0
+    $preserved = 0
+    foreach ($f in Get-ChildItem -Path $source -Filter '*.md' -File) {
+        # README.md documents the format for a checkout: it references
+        # gen-automations-docs.sh and ../docs/, neither of which is installed.
+        # Shipping it recreates exactly the dangling-reference bug this fixes.
+        if ($f.Name -eq 'README.md') { continue }
+
+        $dst = Join-Path $target $f.Name
+        # A tuned prompt is the user's, and reverting it silently changes what
+        # the 06:00 job does. Same policy as preferences.md: preserved in place,
+        # overwritten only under -Force — which still archives first.
+        if (Test-Path $dst) {
+            $same = (Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash -eq
+                    (Get-FileHash -LiteralPath $dst -Algorithm SHA256).Hash
+            if (-not $same) {
+                if ($Force) {
+                    Backup-IfModified -Source $f.FullName -Installed $dst -Label "automations/$($f.Name)"
+                } else {
+                    $preserved++
+                    Write-Skip "automations/$($f.Name) (yours, kept)"
+                    continue
+                }
+            }
+        }
+        if (-not $DryRun) { Copy-Item -Force $f.FullName $dst }
+        $n++
+    }
+    if ($n -eq 0 -and $preserved -eq 0) { Fail "no automations found in $source" }
+    if ($preserved -gt 0) { Write-Ok "automations/  ($n files, $preserved of yours kept)" }
+    else { Write-Ok "automations/  ($n files)" }
+}
+
+function Install-Tools {
+    param([string]$Src)
+
+    $source = Join-Path $Src 'tools'
+    $target = Join-Path $Dest 'tools'
+    if (-not (Test-Path $source)) { Fail "tools/ not found in source" }
+
+    if ($Link) {
+        if ((Test-Path $target) -and -not (Test-IsLink $target)) {
+            # Gated like every other real-directory → link replacement. This was
+            # the only one without a prompt, in a directory shared with Copilot CLI.
+            $n = @(Get-ToolsToKeep -Dir $target -Ref $source).Count
+            if (-not (Confirm-Action "$target is a real directory holding $n file(s) of your own or modified.`n     Replace it with a link? They will be archived to a backup directory first.")) {
+                Write-Skip "tools (kept existing directory)"
+                return
+            }
+            try {
+                $saved = Save-Tools -Dir $target -Ref $source
+            } catch {
+                Fail ("could not archive tools/ - nothing was changed.`n" +
+                      "       Check that $Dest is writable, then try again.`n" +
+                      "       ($($_.Exception.Message))")
+            }
+            if ($saved -gt 0) {
+                if ($DryRun) {
+                    Write-Warn "$saved file(s) would be archived to a backup directory"
+                } else {
+                    Write-Warn "$saved file(s) archived to $(Split-Path -Leaf $script:StashDir)/tools"
+                }
+            }
+            Remove-Entry $target
+        }
+        Remove-Entry $target
+        $kind = New-Link -Target $target -Source $source -IsDirectory $true
+        if ($kind -eq 'copy') { Write-Warn "tools/ copied - could not link" }
+        else { Write-Ok "tools/  ($kind)" }
+        return
+    }
+
+    if (Test-IsLink $target) { Remove-Entry $target }
+    if (-not $DryRun) { New-Item -ItemType Directory -Path $target -Force | Out-Null }
+
+    $n = 0
+    foreach ($f in $ToolFiles) {
+        $sp = Join-Path $source $f
+        if (-not (Test-Path $sp)) { Fail "tools/$f not found in source" }
+        # A same-named file we did not write is the user's until proven otherwise.
+        Backup-IfModified -Source $sp -Installed (Join-Path $target $f) -Label "tools/$f"
+        if (-not $DryRun) { Copy-Item -Force $sp (Join-Path $target $f) }
+        $n++
+    }
+    Write-Ok "tools/  ($n files)"
+}
+
 function Invoke-Install {
     $src      = Get-Source
     Assert-NotOverlapping -Source $src -Destination $Dest
@@ -565,12 +802,16 @@ function Invoke-Install {
     Write-Step "Skills"
     foreach ($s in $selected) { Install-Skill -Src $src -Name $s }
 
+    Write-Step "Automations"
+    Install-Automations -Src $src
+    Install-Tools -Src $src
+
     Write-Step "Checks"
     $py = Get-PythonInfo
     if ($py) { Write-Ok $py } else { Write-Warn "no Python 3.9+ on PATH - the bundled scripts won't run" }
 
     if ($Link) {
-        Write-Warn "linked install: preferences.md and state/ now live in your clone"
+        Write-Warn "linked install: preferences.md, state/ and automations/ now live in your clone"
         Write-Dim "uncomment the personal-data lines in .gitignore before filling them in"
     }
 
@@ -583,6 +824,8 @@ function Invoke-Install {
     Write-Host "  1. notepad $(Join-Rel $Dest 'skills/chief-of-staff/preferences.md')"
     Write-Dim "fill in About me, VIPs, the priority ladder, and your drafting voice"
     Write-Host "  2. In Copilot CLI: Margo, brief me."
+    Write-Host "  3. $(Join-Rel $Dest 'tools/margo-scheduled.ps1') list"
+    Write-Dim "the scheduled runs - start with the morning brief, add the rest later"
     Write-Host ""
     Write-Dim "Docs: https://github.com/$RepoSlug/blob/$Branch/docs/getting-started.md"
 }
@@ -683,6 +926,43 @@ function Invoke-Uninstall {
         if ($n -gt 0) { $stashed = $true }
     }
 
+    # Automations belong in the SAME pass, not after the deletions below.
+    # Archiving them later meant a failure here aborted with the skills already
+    # gone. Compared against the local checkout only: Get-Source would fall back
+    # to downloading the repo, and an uninstall that needs the network fails on
+    # a plane.
+    $autos = Join-Path $Dest 'automations'
+    if ((Test-Path $autos) -and -not (Test-IsLink $autos)) {
+        $found = $true
+        $ref = Join-Path $PSScriptRoot 'automations'
+        if (-not (Test-Path $ref)) { $ref = '' }
+        try {
+            $n = Save-Automations -Dir $autos -Ref $ref
+        } catch {
+            Fail ("could not archive automations - nothing was removed.`n" +
+                  "       Check that $Dest is writable, then run uninstall again.`n" +
+                  "       ($($_.Exception.Message))")
+        }
+        if ($n -gt 0) { $stashed = $true }
+    }
+
+    # Same for tools/. A wrapper the user hardened is theirs, even though it has
+    # one of our filenames — deleting it because of its name was the bug.
+    $toolsDir = Join-Path $Dest 'tools'
+    if ((Test-Path $toolsDir) -and -not (Test-IsLink $toolsDir)) {
+        $found = $true
+        $tref = Join-Path $PSScriptRoot 'tools'
+        if (-not (Test-Path $tref)) { $tref = '' }
+        try {
+            $n = Save-Tools -Dir $toolsDir -Ref $tref
+        } catch {
+            Fail ("could not archive tools/ - nothing was removed.`n" +
+                  "       Check that $Dest is writable, then run uninstall again.`n" +
+                  "       ($($_.Exception.Message))")
+        }
+        if ($n -gt 0) { $stashed = $true }
+    }
+
     # Everything is safely archived; only now delete.
     foreach ($s in $AllSkills) {
         $target = Join-Path $Dest "skills/$s"
@@ -698,6 +978,54 @@ function Invoke-Uninstall {
         $found = $true
         Remove-Entry $agent
         Write-Ok "agents/$AgentFile"
+    }
+
+    # Automations are ours, but a tuned prompt is the user's work — everything
+    # worth keeping was archived in the first pass above.
+    $autos = Join-Path $Dest 'automations'
+    if (Test-Path $autos) {
+        $found = $true
+        if (Test-IsLink $autos) {
+            Remove-Entry $autos
+            Write-Ok "automations/  (link removed, clone untouched)"
+        } else {
+            Remove-Entry $autos
+            Write-Ok "automations/"
+        }
+    }
+
+    $tools = Join-Path $Dest 'tools'
+    if (Test-Path $tools) {
+        $found = $true
+        if (Test-IsLink $tools) {
+            Remove-Entry $tools
+            Write-Ok "tools/  (link removed, clone untouched)"
+        } else {
+            # Only our own files, and only where the installed copy still
+            # matches what we shipped. Anything the user wrote or edited was
+            # archived in the first pass and is left in place here.
+            $tref = Join-Path $PSScriptRoot 'tools'
+            foreach ($f in $ToolFiles) {
+                $installed = Join-Path $tools $f
+                if (-not (Test-Path $installed)) { continue }
+                $shipped = Join-Path $tref $f
+                $same = $false
+                if (Test-Path $shipped) {
+                    $same = (Get-FileHash -LiteralPath $shipped -Algorithm SHA256).Hash -eq
+                            (Get-FileHash -LiteralPath $installed -Algorithm SHA256).Hash
+                }
+                if ($same) {
+                    if (-not $DryRun) { Remove-Item -Force $installed -ErrorAction SilentlyContinue }
+                } else {
+                    Write-Skip "tools/$f (modified - left in place)"
+                }
+            }
+            if (-not $DryRun -and
+                @(Get-ChildItem -LiteralPath $tools -Force -ErrorAction SilentlyContinue).Count -eq 0) {
+                Remove-Item -Force -Recurse $tools -ErrorAction SilentlyContinue
+            }
+            Write-Ok "tools/"
+        }
     }
 
     # Install metadata, not user data: remove it rather than archiving it.
@@ -783,6 +1111,29 @@ function Invoke-Status {
                    Where-Object { $_.Name -ne '.gitignore' }).Count
             if ($n -gt 0) { Write-Host ("     .  " + 'state/'.PadRight(18) + " $n state file(s)") -ForegroundColor DarkGray }
         }
+    }
+
+    $autos = Join-Path $Dest 'automations'
+    $label = 'automations'.PadRight(16)
+    if (Test-Path $autos) {
+        if (Test-IsLink $autos) { Write-Ok ("$label linked -> " + (Get-LinkTarget $autos)) }
+        else {
+            Write-Ok "$label installed"
+            $n = @(Get-ChildItem -Path $autos -Filter '*.md' -File -ErrorAction SilentlyContinue |
+                   Where-Object { $_.Name -ne 'README.md' }).Count
+            Write-Host ("     .  " + 'schedules'.PadRight(18) + " $n defined") -ForegroundColor DarkGray
+        }
+    } else {
+        Write-Skip "$label not installed"
+    }
+
+    $tools = Join-Path $Dest 'tools'
+    $label = 'tools'.PadRight(16)
+    if (Test-Path $tools) {
+        if (Test-IsLink $tools) { Write-Ok ("$label linked -> " + (Get-LinkTarget $tools)) }
+        else { Write-Ok "$label installed" }
+    } else {
+        Write-Skip "$label not installed"
     }
 
     Write-Step "Environment"

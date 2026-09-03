@@ -398,7 +398,207 @@ EOF
   fi
 }
 
-# Refuse to install a checkout onto itself. Without this, `--dest <the clone>`
+# --------------------------------------------------- tools & automations ----
+
+# The two wrapper scripts. gen-automations-docs.sh is deliberately not shipped:
+# it edits docs/proactive.md in a checkout and means nothing in ~/.copilot.
+TOOL_FILES="margo-scheduled.sh margo-scheduled.ps1"
+
+# Same one-file-per-thing copy for both, with one difference that matters: an
+# automation's prompt is editable, so a local change is backed up rather than
+# silently overwritten by an update. Nothing here is in USER_DATA — these are
+# ours by default — but losing a hand-tuned brief prompt to `update` would be
+# indistinguishable from a bug.
+backup_if_modified() {
+  # $1 = source file, $2 = installed file, $3 = label for the stash
+  [ -f "$2" ] || return 0
+  cmp -s "$1" "$2" && return 0
+  [ "$DRY_RUN" -eq 1 ] && { warn "$3 differs from the shipped copy — would be backed up"; return 0; }
+  ensure_stash
+  bak="$STASH_DIR/$3"
+  mkdir -p "$(dirname "$bak")" || die "cannot write backup to $bak"
+  cp -p "$2" "$bak" || die "cannot back up $3 — nothing overwritten"
+  warn "$3 was modified — original saved to ${STASH_DIR##*/}/$3"
+  return 0
+}
+
+# Every file under an installed automations/ that we did not ship, or that
+# differs from what we shipped — any depth, any file type. Swept from what is
+# actually present rather than a glob of top-level *.md, which is how a
+# user-authored automation, a nested file or a *.bak.* gets deleted while the
+# run reports success. $2 may be empty: with no reference to compare against,
+# everything is unmanaged and everything is kept.
+automations_to_keep() {
+  # $1 = installed dir, $2 = reference dir or "". Prints paths relative to $1.
+  atk_d="$1"; atk_ref="$2"
+  [ -d "$atk_d" ] || return 0
+  find "$atk_d" -type f 2>/dev/null | while IFS= read -r f; do
+    sub="${f#"$atk_d"/}"
+    if [ -z "$atk_ref" ] || [ ! -f "$atk_ref/$sub" ] || ! cmp -s "$atk_ref/$sub" "$f"; then
+      printf '%s\n' "$sub"
+    fi
+  done
+}
+
+# Archive them. Returns non-zero if ANY file could not be saved; the caller must
+# not delete the directory in that case. Sets ARCHIVED to the count.
+archive_automations() {
+  # $1 = installed dir, $2 = reference dir or ""
+  ARCHIVED=0
+  while IFS= read -r sub; do
+    [ -n "$sub" ] || continue
+    if [ "$DRY_RUN" -eq 0 ]; then
+      ensure_stash
+      adst="$STASH_DIR/automations/$sub"
+      mkdir -p "$(dirname "$adst")" 2>/dev/null || return 1
+      [ -e "$adst" ] && return 1
+      cp -p "$1/$sub" "$adst" 2>/dev/null || return 1
+    fi
+    ARCHIVED=$((ARCHIVED + 1))
+    printf '  %s·%s kept automations/%s\n' "$DIM" "$N" "$sub"
+  done <<AUTOEOF
+$(automations_to_keep "$1" "$2")
+AUTOEOF
+  return 0
+}
+
+# Anything in an installed tools/ that we would not have put there, or that
+# differs from what we ship. Name-based ownership was the bug: a user file that
+# happened to be called margo-scheduled.sh, or a wrapper the user had hardened
+# with extra --deny-tool rules, was classed as ours and destroyed without a
+# backup on install, on link, and on uninstall.
+tools_to_keep() {
+  # $1 = installed dir, $2 = reference dir or "". Prints paths relative to $1.
+  ttk_d="$1"; ttk_ref="$2"
+  [ -d "$ttk_d" ] || return 0
+  find "$ttk_d" -type f 2>/dev/null | while IFS= read -r f; do
+    sub="${f#"$ttk_d"/}"
+    if [ -z "$ttk_ref" ] || [ ! -f "$ttk_ref/$sub" ] || ! cmp -s "$ttk_ref/$sub" "$f"; then
+      printf '%s\n' "$sub"
+    fi
+  done
+}
+
+archive_tools() {
+  # $1 = installed dir, $2 = reference dir or "". Sets ARCHIVED.
+  ARCHIVED=0
+  while IFS= read -r sub; do
+    [ -n "$sub" ] || continue
+    if [ "$DRY_RUN" -eq 0 ]; then
+      ensure_stash
+      tdst="$STASH_DIR/tools/$sub"
+      mkdir -p "$(dirname "$tdst")" 2>/dev/null || return 1
+      [ -e "$tdst" ] && return 1
+      cp -p "$1/$sub" "$tdst" 2>/dev/null || return 1
+    fi
+    ARCHIVED=$((ARCHIVED + 1))
+    printf '  %s·%s kept tools/%s\n' "$DIM" "$N" "$sub"
+  done <<TOOLSEOF
+$(tools_to_keep "$1" "$2")
+TOOLSEOF
+  return 0
+}
+
+install_tools() {
+  src="$SRC/tools"
+  target="$DEST/tools"
+  [ -d "$src" ] || die "tools/ not found in source"
+
+  if [ "$MODE" = "link" ]; then
+    [ -L "$target" ] && { [ "$DRY_RUN" -eq 1 ] || rm -f "$target"; }
+    if [ -e "$target" ] && [ ! -L "$target" ]; then
+      # Gated like every other real-directory → link replacement. This was the
+      # only one without a prompt, in a directory shared with Copilot CLI.
+      n=$(tools_to_keep "$target" "$src" | grep -c . || true)
+      confirm "  $target is a real directory holding $n file(s) of your own or modified.
+     Replace it with a link? They will be archived to a backup directory first." \
+        || { skip "tools ${DIM}(kept existing directory)${N}"; return; }
+      if ! archive_tools "$target" "$src"; then
+        die "could not archive tools/ — nothing was changed.
+       Check that $DEST is writable, then try again."
+      fi
+      [ "$ARCHIVED" -gt 0 ] && warn "$ARCHIVED file(s) archived to ${STASH_DIR##*/}/tools"
+      [ "$DRY_RUN" -eq 1 ] || rm -rf "$target"
+    fi
+    [ "$DRY_RUN" -eq 1 ] || ln -s "$src" "$target"
+    ok "tools/ ${DIM}→ linked${N}"
+    return
+  fi
+
+  [ -L "$target" ] && { [ "$DRY_RUN" -eq 1 ] || rm -f "$target"; }
+  [ "$DRY_RUN" -eq 1 ] || mkdir -p "$target"
+  n=0
+  for f in $TOOL_FILES; do
+    [ -f "$src/$f" ] || die "tools/$f not found in source"
+    # A same-named file we did not write is the user's until proven otherwise.
+    backup_if_modified "$src/$f" "$target/$f" "tools/$f"
+    [ "$DRY_RUN" -eq 1 ] || cp "$src/$f" "$target/$f"
+    n=$((n + 1))
+  done
+  [ "$DRY_RUN" -eq 1 ] || chmod +x "$target"/*.sh 2>/dev/null || true
+  ok "tools/ ${DIM}($n files)${N}"
+}
+
+install_automations() {
+  src="$SRC/automations"
+  target="$DEST/automations"
+  [ -d "$src" ] || die "automations/ not found in source"
+
+  if [ "$MODE" = "link" ]; then
+    if [ -e "$target" ] && [ ! -L "$target" ]; then
+      n=$(automations_to_keep "$target" "$src" | grep -c . || true)
+      confirm "  $target is a real directory holding $n file(s) of your own or modified.
+     Replace it with a link? They will be archived to a backup directory first." \
+        || { skip "automations ${DIM}(kept existing directory)${N}"; return; }
+      if ! archive_automations "$target" "$src"; then
+        die "could not archive automations — nothing was changed.
+       Check that $DEST is writable, then try again."
+      fi
+      [ "$ARCHIVED" -gt 0 ] && warn "$ARCHIVED file(s) archived to ${STASH_DIR##*/}/automations"
+      [ "$DRY_RUN" -eq 1 ] || rm -rf "$target"
+    fi
+    [ -L "$target" ] && { [ "$DRY_RUN" -eq 1 ] || rm -f "$target"; }
+    [ "$DRY_RUN" -eq 1 ] || ln -s "$src" "$target"
+    ok "automations/ ${DIM}→ linked${N}"
+    return
+  fi
+
+  [ -L "$target" ] && { [ "$DRY_RUN" -eq 1 ] || rm -f "$target"; }
+  [ "$DRY_RUN" -eq 1 ] || mkdir -p "$target"
+  n=0
+  preserved=0
+  for f in "$src"/*.md; do
+    [ -f "$f" ] || continue
+    base="${f##*/}"
+    # README.md documents the format for a checkout: it references
+    # gen-automations-docs.sh and ../docs/, neither of which is installed.
+    # Shipping it recreates exactly the dangling-reference bug this fixes.
+    [ "$base" = "README.md" ] && continue
+
+    # A tuned prompt is the user's, and reverting it silently changes what the
+    # 06:00 job does. Same policy as preferences.md: preserved in place, and
+    # overwritten only under --force — which still archives first.
+    if [ -f "$target/$base" ] && ! cmp -s "$f" "$target/$base"; then
+      if [ "$FORCE" -eq 1 ]; then
+        backup_if_modified "$f" "$target/$base" "automations/$base"
+      else
+        preserved=$((preserved + 1))
+        printf '  %s·%s automations/%s %s(yours, kept)%s\n' "$DIM" "$N" "$base" "$DIM" "$N"
+        continue
+      fi
+    fi
+    [ "$DRY_RUN" -eq 1 ] || cp "$f" "$target/$base"
+    n=$((n + 1))
+  done
+  [ "$n" -gt 0 ] || [ "$preserved" -gt 0 ] || die "no automations found in $src"
+  if [ "$preserved" -gt 0 ]; then
+    ok "automations/ ${DIM}($n files, $preserved of yours kept)${N}"
+  else
+    ok "automations/ ${DIM}($n files)${N}"
+  fi
+}
+
+
 # makes $target and $src the same path: link mode rm -rf's each source skill and
 # then creates a self-referential symlink, and copy mode deletes the agent file
 # it is about to copy. Both report success while destroying the source.
@@ -453,6 +653,10 @@ cmd_install() {
   selected=""
   for s in $SKILLS; do install_skill "$s"; selected="${selected:+$selected }$s"; done
 
+  step "Automations"
+  install_automations
+  install_tools
+
   step "Checks"
   if py=$(python_bin); then
     ok "$py $("$py" -c 'import sys;print(".".join(map(str,sys.version_info[:3])))')"
@@ -461,7 +665,7 @@ cmd_install() {
   fi
 
   if [ "$MODE" = "link" ]; then
-    warn "linked install: preferences.md and state/ now live in your clone"
+    warn "linked install: preferences.md, state/ and automations/ now live in your clone"
     info "     ${DIM}uncomment the personal-data lines in .gitignore before filling them in${N}"
   fi
 
@@ -472,6 +676,8 @@ cmd_install() {
   info "  1. ${B}\$EDITOR $DEST/skills/chief-of-staff/preferences.md${N}"
   info "     ${DIM}fill in About me, VIPs, the priority ladder, and your drafting voice${N}"
   info "  2. In Copilot CLI: ${B}Margo, brief me.${N}"
+  info "  3. ${B}$DEST/tools/margo-scheduled.sh list${N}"
+  info "     ${DIM}the scheduled runs — start with the morning brief, add the rest later${N}"
   info ""
   info "  ${DIM}Docs: https://github.com/$REPO_SLUG/blob/$BRANCH/docs/getting-started.md${N}"
 }
@@ -566,6 +772,39 @@ cmd_uninstall() {
     [ "$ARCHIVED" -gt 0 ] && stashed=1
   done
 
+  # Automations belong in the SAME pass, not after the deletions below. Archiving
+  # them later meant a failure here aborted with the skills already gone.
+  # Compared against the local checkout only: resolve_source would fall back to
+  # downloading the repo, and an uninstall that needs the network is an uninstall
+  # that fails on a plane.
+  autos="$DEST/automations"
+  if { [ -e "$autos" ] || [ -L "$autos" ]; } && [ ! -L "$autos" ]; then
+    found=1
+    auto_ref=""
+    sd=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd)
+    [ -d "$sd/automations" ] && auto_ref="$sd/automations"
+    if ! archive_automations "$autos" "$auto_ref"; then
+      die "could not archive automations — nothing was removed.
+       Check that $DEST is writable, then run uninstall again."
+    fi
+    [ "$ARCHIVED" -gt 0 ] && stashed=1
+  fi
+
+  # Same for tools/. A wrapper the user hardened is theirs, even though it has
+  # one of our filenames — deleting it because of its name was the bug.
+  tools="$DEST/tools"
+  if { [ -e "$tools" ] || [ -L "$tools" ]; } && [ ! -L "$tools" ]; then
+    found=1
+    tool_ref=""
+    sd=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd)
+    [ -d "$sd/tools" ] && tool_ref="$sd/tools"
+    if ! archive_tools "$tools" "$tool_ref"; then
+      die "could not archive tools/ — nothing was removed.
+       Check that $DEST is writable, then run uninstall again."
+    fi
+    [ "$ARCHIVED" -gt 0 ] && stashed=1
+  fi
+
   # Everything is safely archived; only now delete.
   for s in $ALL_SKILLS; do
     target="$DEST/skills/$s"
@@ -585,6 +824,44 @@ cmd_uninstall() {
     found=1
     [ "$DRY_RUN" -eq 1 ] || rm -f "$agent"
     ok "agents/$AGENT_FILE"
+  fi
+
+  # Automations are ours, but a tuned prompt is the user's work — everything
+  # worth keeping was archived in the first pass above.
+  autos="$DEST/automations"
+  if [ -e "$autos" ] || [ -L "$autos" ]; then
+    found=1
+    if [ -L "$autos" ]; then
+      [ "$DRY_RUN" -eq 1 ] || rm -f "$autos"
+      ok "automations/ ${DIM}(symlink removed, clone untouched)${N}"
+    else
+      [ "$DRY_RUN" -eq 1 ] || rm -rf "$autos"
+      ok "automations/"
+    fi
+  fi
+
+  tools="$DEST/tools"
+  if [ -e "$tools" ] || [ -L "$tools" ]; then
+    found=1
+    if [ -L "$tools" ]; then
+      [ "$DRY_RUN" -eq 1 ] || rm -f "$tools"
+      ok "tools/ ${DIM}(symlink removed, clone untouched)${N}"
+    else
+      # Only our own files, and only where the installed copy still matches what
+      # we shipped. Anything the user wrote or edited was archived in the first
+      # pass and is left in place here rather than deleted.
+      sd=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd)
+      for f in $TOOL_FILES; do
+        [ -f "$tools/$f" ] || continue
+        if [ -f "$sd/tools/$f" ] && cmp -s "$sd/tools/$f" "$tools/$f"; then
+          [ "$DRY_RUN" -eq 1 ] || rm -f "$tools/$f"
+        else
+          printf '  %s·%s tools/%s %s(modified — left in place)%s\n' "$DIM" "$N" "$f" "$DIM" "$N"
+        fi
+      done
+      [ "$DRY_RUN" -eq 1 ] || rmdir "$tools" 2>/dev/null || true
+      ok "tools/"
+    fi
   fi
 
   # Install metadata, not user data: remove it rather than archiving it.
@@ -677,6 +954,24 @@ cmd_status() {
       fi
     fi
   done
+
+  autos="$DEST/automations"
+  if [ -e "$autos" ] || [ -L "$autos" ]; then
+    ok "$(printf '%-16s' automations) $(describe "$autos")"
+    if [ -d "$autos" ]; then
+      n=$(find "$autos" -maxdepth 1 -type f -name '*.md' ! -name 'README.md' 2>/dev/null | wc -l | tr -d ' ')
+      printf '     %s· %-18s%s %s defined\n' "$DIM" "schedules" "$N" "$n"
+    fi
+  else
+    skip "$(printf '%-16s' automations) not installed"
+  fi
+
+  tools="$DEST/tools"
+  if [ -e "$tools" ] || [ -L "$tools" ]; then
+    ok "$(printf '%-16s' tools) $(describe "$tools")"
+  else
+    skip "$(printf '%-16s' tools) not installed"
+  fi
 
   step "Environment"
   if py=$(python_bin); then

@@ -56,18 +56,35 @@ criterion, and *auto-deprioritize* is an absolute bar to interrupting.
 
 ---
 
+## The schedule
+
+Defined in [`automations/`](../automations/README.md) — one Markdown file each, front matter for
+the schedule, body for the prompt. **This table is generated from those files**; edit the front
+matter and run `./tools/gen-automations-docs.sh --write`.
+
+<!-- BEGIN GENERATED: automations -->
+
+| Automation | Tier | When | Routine | Wrapper |
+|---|---|---|---|---|
+| Commitments and ambient digest | anchor | Friday 16:00 | `follow-through.md + ambient digest` | `commitments` |
+| EOD wrap-up | anchor | Weekdays 17:45 | `daily-brief.md § Catch-up` | `eod` |
+| Morning brief | anchor | Weekdays 06:00 | `daily-brief.md (full)` | `brief` |
+| Week ahead | anchor | Sunday 17:00 | `daily-brief.md § Week ahead` | `week` |
+| Hourly sweep | sweep | Weekdays hourly 09:00–17:00 | `proactive.md § Tier 2` | `sweep` |
+| Ambient scan | ambient | Weekdays 05:15 | `proactive.md § Tier 3` | `ambient` |
+
+<!-- END GENERATED: automations -->
+
+The same files drive both ways of running a schedule, so a prompt cannot mean one thing in cron
+and another in the app.
+
+---
+
 ## Three tiers
 
 ### Tier 1 — Anchors
 
 Scheduled, always produce output, and **the only tier allowed to spend `workiq-ask`**.
-
-| Anchor | When | Routine |
-|---|---|---|
-| Morning brief | 07:15, weekdays | `daily-brief.md` (full) |
-| EOD wrap-up | 17:45, weekdays | `daily-brief.md` § Catch-up |
-| Week ahead | Sunday 17:00 | `daily-brief.md` § Week ahead |
-| Commitment ageing | Friday 16:00 | `follow-through.md` |
 
 An anchor **drains the queue first**, then runs the underlying routine and folds each queued item
 into the section it belongs in — *Needs your response*, *FYI*, *Waiting on*. Not a separate
@@ -168,18 +185,32 @@ queued    : 0
 cursors   : (none)
 ```
 
-Then schedule it with the bundled wrapper:
+Then pick how you want the schedule to run. **Both paths read the same
+`automations/` files** — the difference is what's enforced.
+
+### Via cron, launchd or Task Scheduler
 
 ```bash
-./tools/margo-scheduled.sh brief        # or: eod · week · commitments · sweep
+./tools/margo-scheduled.sh list       # what is defined
+./tools/margo-scheduled.sh brief      # run one now
+./tools/margo-scheduled.sh crontab    # ready-to-install crontab lines
 ```
+
+A broken or missing manifest is an **error**, not a fallback. An unknown verb stops the run
+rather than being sent as the prompt — the failure that matters here is a 06:00 job whose
+entire prompt turned out to be the word `brief`.
 
 ```powershell
+.\tools\margo-scheduled.ps1 list
 .\tools\margo-scheduled.ps1 brief
+.\tools\margo-scheduled.ps1 schtasks  # register-task commands
 ```
 
-Put that in `cron`, `launchd` or Task Scheduler at 07:15 on weekdays. Use
-`--print` (`-Print`) to see the exact command without running it.
+`crontab` and `schtasks` emit one entry per automation at the times in the front matter, calling
+the wrapper by absolute path with `PATH` set — the two things that otherwise make a
+correct-looking schedule silently do nothing. Review the output before installing it. Use
+`--print` (`-Print`) to see the exact command, or `--show-prompt` (`-ShowPrompt`) for just the
+prompt.
 
 **Use the wrapper rather than a hand-written command line.** It runs
 `copilot --agent margo -p …` with `--allow-all-tools` *and* four `--deny-tool`
@@ -204,7 +235,19 @@ instruction everywhere else. That is the intended trade — see
 
 That matters because the failure mode here is not malice, it is someone copying
 four lines into a crontab and trimming one. Without them you are trusting an
-instruction not to send mail at 07:15 while you are asleep.
+instruction not to send mail at 06:00 while you are asleep.
+
+### Via the Copilot app's scheduled workflows
+
+Ask Margo to **"sync my automations"** and she registers each file as a workflow, matching on
+`name` so a re-sync updates rather than duplicates.
+
+> ⚠️ **The deny list does not apply here.** App workflows run under the app's own permissions,
+> so on this path read-only is an instruction the model follows, not a wall it cannot cross. The
+> unattended contract in each prompt is doing the work. If that distinction matters to you, use
+> the wrapper — or [a container](container.md).
+
+### Either way
 
 Start with **one anchor** — the morning brief — and run it for a week before adding sweeps.
 The interrupt bar needs tuning against your actual inbox, and it's much easier to loosen a quiet

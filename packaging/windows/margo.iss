@@ -171,7 +171,9 @@ begin
            'Remove these by hand if so:' + #13#10 +
            '  ' + CopilotDir() + '\agents\margo.agent.md' + #13#10 +
            '  ' + CopilotDir() + '\skills\chief-of-staff' + #13#10 +
-           '  ' + CopilotDir() + '\skills\decision-log',
+           '  ' + CopilotDir() + '\skills\decision-log' + #13#10 +
+           '  ' + CopilotDir() + '\automations' + #13#10 +
+           '  ' + CopilotDir() + '\tools',
            mbError, MB_OK);
     Exit;
   end;
@@ -193,7 +195,9 @@ begin
            'Your personal files were NOT deleted. Remove the rest by hand:' + #13#10 +
            '  ' + CopilotDir() + '\agents\margo.agent.md' + #13#10 +
            '  ' + CopilotDir() + '\skills\chief-of-staff' + #13#10 +
-           '  ' + CopilotDir() + '\skills\decision-log',
+           '  ' + CopilotDir() + '\skills\decision-log' + #13#10 +
+           '  ' + CopilotDir() + '\automations' + #13#10 +
+           '  ' + CopilotDir() + '\tools',
            mbError, MB_OK);
   end;
 end;
