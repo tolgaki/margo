@@ -128,9 +128,9 @@ resolve_automations() {
 fm_get() {
   # $1 = file, $2 = key
   awk -v key="$2" '
-    NR == 1 && substr($0, 1, 3) == "\357\273\277" { $0 = substr($0, 4) }
+    function is_delim(s,   p) { gsub(/^[ \t]+|[ \t]+$/, "", s); p = index(s, "---"); return (p > 0 && p <= 4 && substr(s, p) == "---") }
     { sub(/\r$/, "") }
-    NR == 1 { t = $0; gsub(/^[ \t]+|[ \t]+$/, "", t); if (t != "---") exit; next }
+    NR == 1 { if (!is_delim($0)) exit; next }
     { t = $0; gsub(/^[ \t]+|[ \t]+$/, "", t); if (t == "---") exit }
     {
       eq = index($0, ":")
@@ -158,9 +158,9 @@ fm_get() {
 # wrappers send different bytes for a prompt with leading or trailing spaces.
 fm_body() {
   awk '
-    NR == 1 && substr($0, 1, 3) == "\357\273\277" { $0 = substr($0, 4) }
+    function is_delim(s,   p) { gsub(/^[ \t]+|[ \t]+$/, "", s); p = index(s, "---"); return (p > 0 && p <= 4 && substr(s, p) == "---") }
     { sub(/\r$/, "") }
-    NR == 1 { t = $0; gsub(/^[ \t]+|[ \t]+$/, "", t); if (t != "---") body = 1; next }
+    NR == 1 { if (!is_delim($0)) { body = 1; print }; next }
     !body { t = $0; gsub(/^[ \t]+|[ \t]+$/, "", t); if (t == "---") { body = 1; next } }
     body { print }
   ' "$1" | awk '

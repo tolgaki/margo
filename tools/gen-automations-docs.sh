@@ -24,9 +24,9 @@ die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 # deliberately does not depend on a YAML parser.
 fm_get() {
   awk -v key="$2" '
-    NR == 1 && substr($0, 1, 3) == "\357\273\277" { $0 = substr($0, 4) }
+    function is_delim(s,   p) { gsub(/^[ \t]+|[ \t]+$/, "", s); p = index(s, "---"); return (p > 0 && p <= 4 && substr(s, p) == "---") }
     { sub(/\r$/, "") }
-    NR == 1 { t = $0; gsub(/^[ \t]+|[ \t]+$/, "", t); if (t != "---") exit; next }
+    NR == 1 { if (!is_delim($0)) exit; next }
     { t = $0; gsub(/^[ \t]+|[ \t]+$/, "", t); if (t == "---") exit }
     {
       eq = index($0, ":")

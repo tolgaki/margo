@@ -503,7 +503,17 @@ function Install-Skill {
                       "       Check that $Dest is writable, then try again.`n" +
                       "       ($($_.Exception.Message))")
             }
-            if ($saved -gt 0) { Write-Warn "$saved file(s) archived to $(Split-Path -Leaf $script:StashDir)/$Name" }
+            # Under -DryRun nothing was archived, so $script:StashDir is still
+            # null and Split-Path -Leaf $null throws — aborting the whole run
+            # partway. Pre-existing; reachable since -Link -DryRun over a real
+            # skills directory is now asserted in CI.
+            if ($saved -gt 0) {
+                if ($DryRun) {
+                    Write-Warn "$saved file(s) would be archived to a backup directory"
+                } else {
+                    Write-Warn "$saved file(s) archived to $(Split-Path -Leaf $script:StashDir)/$Name"
+                }
+            }
         }
         Remove-Entry $target
         $kind = New-Link -Target $target -Source $source -IsDirectory $true
