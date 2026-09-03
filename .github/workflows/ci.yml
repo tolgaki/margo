@@ -12,7 +12,7 @@ jobs:
     name: No real workplace data
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: No real workplace data in the repo
         run: ./tools/check-clean.sh
       - name: The checker still detects known leak classes
@@ -22,9 +22,9 @@ jobs:
     name: Scripts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with: { python-version: '3.9' }
 
       - name: Compile bundled scripts
@@ -310,7 +310,7 @@ jobs:
     name: Documentation links
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Every internal link and anchor resolves
         run: |
           python3 - <<'EOF'
@@ -361,7 +361,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Every assertion below checks CONTENT, never just that a filename exists.
       # A filename-only check passed while the user's data was gone.
@@ -667,7 +667,7 @@ jobs:
     name: Build .pkg
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Plant gitignored files before building. The packagers used to walk the
       # working tree, so .venv/, scratch *.local.md and the private denylist
@@ -709,7 +709,7 @@ jobs:
     name: Build .exe
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: choco install innosetup --no-progress -y
       - shell: pwsh
         run: ./packaging/windows/build-exe.ps1 -Version 0.0.0
