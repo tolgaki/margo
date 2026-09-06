@@ -259,6 +259,72 @@ def state_health(account=None, state_root=None):
         connection.close()
 
 
+def memory_health(account=None, state_root=None):
+    principal, path = state_path(account, state_root)
+    if not path.exists():
+        return {"status": "not-initialized"}
+    connection = connect(principal, state_root, read_only=True)
+    try:
+        tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "memory_records" not in tables:
+            return {"status": "not-initialized"}
+        marker = connection.execute(
+            "SELECT value FROM margo_meta WHERE key='memory_schema_version'").fetchone()
+        if marker is not None and marker[0] == "1":
+            return {"status": "migration-required",
+                    "action": "Pause memory writers, back up private state and deletion journals, then run memory_state.py migrate."}
+        counts = [dict(row) for row in connection.execute(
+            "SELECT domain,status,count(*) AS count FROM memory_records GROUP BY domain,status")]
+        index_count = (connection.execute("SELECT count(*) FROM semantic_vectors").fetchone()[0]
+                       if "semantic_vectors" in tables else None)
+    finally:
+        connection.close()
+    from memory_store import MemoryStore
+    memory = MemoryStore(principal, state_root, read_only=True)
+    try:
+        health = memory.health()
+        capture_policy = memory.policy()
+    finally:
+        memory.close()
+    from memory_encoder import EmbeddingError, status_local
+    try:
+        encoder = status_local()
+    except EmbeddingError as exc:
+        encoder = {"status": "unavailable", "error": str(exc)}
+    optional_absent = (encoder["status"] in {"missing_runtime", "missing_model"}
+                       and not encoder.get("configured", False))
+    status = ("attention-needed" if health["stale_sources"] or health["review_due"] or health["conflict_links"]
+              or health["blocked_job_count"] else "available" if encoder["status"] == "available"
+              else "semantic-unavailable" if optional_absent else "attention-needed")
+    return {"status": status,
+            "counts": counts, "indexed_vectors": index_count, "embedding_runtime": encoder,
+            "health": health, "policy": capture_policy,
+            "action": (health["recovery_actions"][0] if health["recovery_actions"] else
+                       "Use explicit --mode lexical, or install the optional semantic runtime if wanted."
+                       if optional_absent else "Inspect memory health and repair the configured runtime or source gaps."
+                       if status == "attention-needed" else None),
+            "note": "Memory relevance does not establish source truth, permissions or action approval."}
+
+
+def task_health(account=None, state_root=None):
+    principal, path = state_path(account, state_root)
+    if not path.exists():
+        return {"status": "not-initialized"}
+    connection = connect(principal, state_root, read_only=True)
+    try:
+        marker = connection.execute("SELECT value FROM margo_meta WHERE key='task_schema_version'").fetchone()
+        if marker is None:
+            return {"status": "not-initialized"}
+    finally:
+        connection.close()
+    from task_runs import TaskStore
+    tasks = TaskStore(principal, state_root, read_only=True)
+    try:
+        return tasks.health()
+    finally:
+        tasks.close()
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     add_state_arguments(parser)
@@ -282,13 +348,20 @@ def main(argv=None):
                                     args.snapshot_max_age_seconds, installation["status"])
         try:
             state = state_health(args.account, args.state_dir)
+            memory = memory_health(args.account, args.state_dir)
+            tasks = task_health(args.account, args.state_dir)
         except SetupRequired as exc:
             state = {"status": "setup-needed", "account_configured": False, "all_clear": False, "action": str(exc)}
+            memory = {"status": "setup-needed"}
+            tasks = {"status": "setup-needed"}
         healthy = (state.get("all_clear", False) and snapshot["status"] == "healthy"
+                   and memory["status"] in ("available", "not-initialized", "semantic-unavailable")
+                   and tasks["status"] in ("available", "not-initialized")
                    and all(group["status"] == "complete" for group in config.values()))
         status = "healthy" if healthy else "setup-needed" if not state["account_configured"] else "attention-needed"
         report = {"status": status, "checked_at": utc_now(), "configuration": config,
-                  "state": state, "host_snapshot": snapshot, "managed_installation": installation,
+                  "state": state, "memory": memory, "tasks": tasks,
+                  "host_snapshot": snapshot, "managed_installation": installation,
                   "limitations": ["No host API/database inspected.",
                                   "Host completed does not establish source coverage or human review.",
                                   "Configured priority labels do not establish outcome definitions, deadlines or capacity feasibility.",

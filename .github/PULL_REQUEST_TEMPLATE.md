@@ -13,6 +13,14 @@ For behavioural changes, show sanitized output from before and after. This is th
 thing in the PR.
 -->
 
+## User workflow and documentation
+
+<!-- Feature IDs, guide links, availability, prerequisites and recovery behavior. -->
+
+## Scope and compatibility
+
+<!-- Owned surfaces, dependencies, non-goals, schema/install effects and integration owner. -->
+
 ---
 
 ## Checklist
@@ -30,20 +38,22 @@ thing in the PR.
 - [ ] Skill changes carry **no persona or tone** — voice stays in `agents/`.
 - [ ] Any new rule is paired with the failure it prevents.
 - [ ] Docs in `docs/` still match the behaviour, and the router table in `SKILL.md` is current.
+- [ ] Feature catalog and mapped user scenarios include the change and identify their evidence scope.
 - [ ] Internal links resolve.
 
 **Safety**
 
 - [ ] Doesn't widen what can happen without explicit approval of that specific action.
 - [ ] Doesn't introduce **outbound** actions (send, reply, post, react, RSVP, delete, work-item
-      change) into unattended scheduled runs. Local or vault file writes are allowed where a
-      skill documents them — see `docs/safety.md` §3.
+      change) into unattended scheduled runs. Only documented private local preparation is
+      allowed; this repository does not grant unattended shared-vault writes.
 
 **Checks**
 
 - [ ] `python3 -m py_compile skills/chief-of-staff/scripts/*.py` passes (if scripts changed).
-- [ ] Ran the affected routine against a real account and confirmed the output is grounded and
-      cited (if behaviour changed).
+- [ ] Ran the affected synthetic scenarios and relevant existing integration checks.
+- [ ] Distinguished procedure contracts from actual model-behavior evidence; missing traces are not passes.
+- [ ] Any live read-only exercise was separately authorized, bounded and sanitized. No live write was used as a test.
 
 ## Related issues
 

@@ -45,6 +45,16 @@ renderer source. The native skill checkboxes do not automatically enable the ren
 staged installer with `--action-desk`/`-ActionDesk` to opt in, then reload extensions.
 Copying automation files does not synchronise the app's saved workflow prompts.
 
+The current source also includes private memory and task-run helpers. The generic skill payload
+copies these modules and their references; no separate background service is installed. The
+task-progress renderer is part of the same optional extension. Its views do not initialize
+account state, and copying the code does not enable task collection, memory capture or schedules.
+
+Before a release, the feature catalog, generated guide navigation and synthetic journey contracts
+must agree, and installed-copy scenarios must preserve existing memory and customized preferences.
+Native packages are built from tracked source: local untracked development files are not a
+published payload until deliberately committed and released.
+
 ---
 
 ## Versioning

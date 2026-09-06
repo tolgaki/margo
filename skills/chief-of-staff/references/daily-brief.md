@@ -1,5 +1,8 @@
 # Daily Brief, Catch-up & Week Ahead
 
+For substantive multi-source work, follow `task-runs.md`: retain bounded progress, exact source
+coverage and output references so interruption does not become an all-clear or a duplicate send.
+
 Produce a decision-ready snapshot of the user's day. Goal: in 60 seconds of reading they know
 what matters, what's coming, and what needs them.
 

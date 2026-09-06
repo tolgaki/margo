@@ -23,6 +23,17 @@ external state and records the actual result. A timeout is an unknown outcome, n
 retry. These checks protect the ledger's execution path; they do not sandbox other tools available
 to a generally capable agent. The optional canvas requests foreground review, not implicit approval.
 
+Durable task runs add progress and resource limits, not authority. A run, step claim or budget
+token cannot approve an outward action. The task core uses the same action revision/hash and
+execution journal; it never calls Microsoft 365 itself. Unattended task plans cannot contain
+external execution steps.
+
+Pausing stops future claims. Cancelling stops future steps and invalidates unused, exactly
+bound approvals, but it cannot undo or erase an already claimed effect. Unknown results require
+reconciliation; only eligible read attempts can be retried automatically. Limits apply to
+tracked grants and reported outcomes, not to every possible host tool or all model credits.
+See [task progress and recovery](how-to/task-progress-and-recovery.md).
+
 ### Why the gate is this strict
 
 Work IQ writes **execute immediately**. There is no staging, no preview, no undo. A send, a

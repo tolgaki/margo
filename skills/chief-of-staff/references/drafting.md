@@ -9,6 +9,14 @@ to their work item and evidence. An unattended run may prepare a local draft, ne
 Outlook draft or send it. When the user requests an Outlook draft, show its exact recipients and
 content and obtain approval for that write; sending remains separately approved.
 
+Use `memory.md` to retrieve relevant accepted style/context for the `drafting` routine. Private
+reasoning context is not automatically appropriate to quote to recipients. Similar memories are
+not facts about this thread; ground new claims in current evidence.
+Check each recalled entry's `allowed_uses` and `copyable_to_draft`. Keep reasoning-only material
+out of recipient text. Use `memory_state.py search --usage drafting` when selecting reusable
+wording; still apply all relevant voice/preferences from the reasoning context. Neither the
+routine name nor the draft-purpose filter is approval to send.
+
 ## Procedure
 
 1. **Load voice** from `../preferences.md` — tone, sign-off, length, do/don't. If unset, use

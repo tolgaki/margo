@@ -9,6 +9,7 @@ venv/
 
 # Isolated runtime fixtures, including leftovers from interrupted test runs.
 .work-state-test-*/
+.memory-store-test-*/
 tests/.proactive-test-*/
 .github/extensions/margo-action-desk/.test-state-*/
 

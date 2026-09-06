@@ -20,6 +20,7 @@ config file; repository/shared overrides require the synthetic-testing opt-in.
 """
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -38,6 +39,10 @@ class StateError(ValueError):
 
 class SetupRequired(StateError):
     """No account is configured."""
+
+
+class NotInitialized(StateError):
+    """Explicit initialization is required; a read must not create storage."""
 
 
 def utc_now():
@@ -97,6 +102,28 @@ def read_json(path):
         return parse_json(Path(path).read_text(encoding="utf-8"))
     except (OSError, UnicodeError) as exc:
         raise StateError("cannot read valid JSON from " + str(path)) from exc
+
+
+@contextlib.contextmanager
+def transaction(connection, *, read_only=False):
+    """Keep an outer unit of work intact when existing state APIs are composed."""
+    nested = connection.in_transaction
+    savepoint = "margo_" + uuid.uuid4().hex if nested else None
+    try:
+        connection.execute("SAVEPOINT " + savepoint if nested else
+                           "BEGIN" if read_only else "BEGIN IMMEDIATE")
+        yield
+        if nested:
+            connection.execute("RELEASE SAVEPOINT " + savepoint)
+        else:
+            connection.commit()
+    except Exception:
+        if nested:
+            connection.execute("ROLLBACK TO SAVEPOINT " + savepoint)
+            connection.execute("RELEASE SAVEPOINT " + savepoint)
+        else:
+            connection.rollback()
+        raise
 
 
 def add_state_arguments(parser):
@@ -193,34 +220,44 @@ def _mkdir_private(path):
     _private(path, directory=True)
 
 
-def connect(account=None, state_root=None):
+def connect(account=None, state_root=None, *, read_only=False):
     """Open validated storage; never infer an account or replace damaged state."""
     connection = None
     try:
         principal, database = state_path(account, state_root)
-        _mkdir_private(database.parent.parent)
-        _mkdir_private(database.parent)
+        if read_only:
+            if not database.exists():
+                raise NotInitialized("Private memory state is not initialized; run memory_state.py init explicitly.")
+            _private(database.parent.parent, directory=True)
+            _private(database.parent, directory=True)
+        else:
+            _mkdir_private(database.parent.parent)
+            _mkdir_private(database.parent)
         _no_symlinks(database)
         created = False
-        try:
-            descriptor = os.open(str(database), os.O_CREAT | os.O_EXCL | os.O_WRONLY
-                                 | getattr(os, "O_NOFOLLOW", 0), 0o600)
-            os.close(descriptor)
-            created = True
-        except FileExistsError:
+        if read_only:
             _private(database)
+        else:
+            try:
+                descriptor = os.open(str(database), os.O_CREAT | os.O_EXCL | os.O_WRONLY
+                                     | getattr(os, "O_NOFOLLOW", 0), 0o600)
+                os.close(descriptor)
+                created = True
+            except FileExistsError:
+                _private(database)
         for suffix in ("-journal", "-wal", "-shm"):
             sidecar = Path(str(database) + suffix)
             _no_symlinks(sidecar)
             if sidecar.exists():
                 _private(sidecar)
-        connection = sqlite3.connect(str(database), timeout=5, isolation_level="IMMEDIATE")
+        connection = sqlite3.connect(database.as_uri() + "?mode=ro" if read_only else str(database),
+                                     uri=read_only, timeout=5, isolation_level="IMMEDIATE")
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA busy_timeout=5000")
         connection.execute("PRAGMA foreign_keys=ON")
         connection.execute("PRAGMA temp_store=MEMORY")
         with connection:
-            connection.execute("BEGIN IMMEDIATE")
+            connection.execute("BEGIN" if read_only else "BEGIN IMMEDIATE")
             tables = {row[0] for row in connection.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'")}
             if "margo_meta" not in tables:
@@ -236,7 +273,8 @@ def connect(account=None, state_root=None):
                 raise StateError("database integrity check failed; restore a verified backup")
             if connection.execute("PRAGMA foreign_key_check").fetchone() is not None:
                 raise StateError("database contains broken references; refusing to continue")
-        connection.execute("PRAGMA synchronous=FULL")
+        if not read_only:
+            connection.execute("PRAGMA synchronous=FULL")
         _private(database)
         return connection
     except (OSError, sqlite3.Error, StateError) as exc:

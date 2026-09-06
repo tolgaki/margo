@@ -1,10 +1,17 @@
 # Follow-through — ageing and chasing commitments
 
+Use `task-runs.md` when this becomes a multi-step capture/draft/review workflow. The run tracks
+progress; the work ledger still owns the obligation and exact action approval.
+
 The canonical work ledger records what the user owes and what they're owed; `commitments.md`
 is its compatibility view after migration. Read `work-ledger.md` and `action-desk.md`.
 On its own a tracker is a filing
 cabinet. This file is what makes it chase: age every row, decide which ones have gone quiet long
 enough to act on, and put a drafted nudge in front of the user.
+
+Retrieve the `follow-through` context packet under `memory.md` for relevant people, accepted
+preferences, current outcomes and prior decisions. Keep canonical work IDs and current ledger
+state authoritative. Missing context is a gap, not evidence that an ask remains unanswered.
 
 Chasing is the highest-value thing a chief of staff does and the thing people are worst at. The
 user will not remember that they asked someone for a cost model eleven days ago. The ledger will.

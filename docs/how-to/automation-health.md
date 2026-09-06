@@ -315,3 +315,115 @@ Neither path authorizes unattended sends, calendar changes, or external drafts.
 
 See [schedule setup](../proactive.md), [automation definitions](../../automations/README.md), and
 [full state contracts](../../skills/chief-of-staff/references/state-operations.md).
+
+## Feature reference
+
+The numbered sections above are the full CLI walkthrough. These are the stable per-feature entry
+points the [feature catalog](../feature-catalog.json) links to. The six scheduled routines share
+one contract — [§6 Choose the schedule's safety boundary](#6-choose-the-schedules-safety-boundary)
+— and differ only in the routine and cron in their own `automations/*.md` file, which remains the
+single source of truth for the schedule; nothing here duplicates a cron value.
+
+### Automation morning
+
+Get the full daily brief automatically on weekday mornings, with no chat interaction needed. Try
+it: ask Margo to confirm the schedule is enabled, or check directly with
+`proactive status`. What you'll see: the brief prepared and its output receipt persisted before
+weekday morning, following the [morning brief](../../automations/morning-brief.md) manifest exactly.
+Nothing is sent, posted, or changed — the unattended contract in [§1](#1-ask-the-questions-separately)
+applies fully. Change your mind: pause or edit the schedule the same way as any automation, below.
+Your data: same private output-delivery and source-coverage records described in this file.
+If something goes wrong: a missed run is visible in `proactive status`/doctor, never silently
+assumed successful. Implemented, procedure (the schedule invocation is deterministic; the brief's
+content is model-authored). Since 1.0.0.
+
+### Automation eod
+
+Get an end-of-day/catch-up wrap-up automatically on weekday evenings. Try it: check
+`proactive status` for the last run. What you'll see: the anchor owning one leased batch and
+persisting the output before acknowledging only what it included — see
+[§4 Lease one batch and acknowledge only recorded output](#4-lease-one-batch-and-acknowledge-only-recorded-output).
+Nothing sends; drafts may be prepared and held only. Change your mind: pause/edit the schedule,
+below. Your data: same output-delivery boundary as automation morning, above. If something goes
+wrong: the underlying brief routine must not drain the leased batch again — that's a bug to
+report, not a retry to attempt yourself. Implemented, procedure. Since 1.0.0.
+
+### Automation week ahead
+
+Get next week's shape automatically on Sunday afternoon, before Monday. Try it: check
+`proactive status`. What you'll see: the same week-ahead output described in
+[outcomes and meetings](outcomes-and-meetings.md#week-ahead), persisted as a receipt. Nothing
+sends or changes your calendar. Change your mind: pause/edit the schedule, below. Your data: same
+boundary as the other anchors. If something goes wrong: missing estimates or calendar coverage
+stay explicit gaps in the scheduled output too, never smoothed into a false-looking plan.
+Implemented, procedure. Since 1.0.0.
+
+### Automation commitments
+
+Get a weekly commitments-ageing pass and ambient digest every Friday afternoon. Try it: check
+`proactive status`. What you'll see: silent-resolution checked before ageing anything, then
+versioned nudge proposals held in the action desk (never sent) plus a five-item digest rendered
+from the week's ambient queue. Nothing sends. Change your mind: pause/edit the schedule, below.
+Your data: same boundary as the other anchors, plus the [follow-through](commitments-and-action-desk.md#follow-through)
+ledger. If something goes wrong: coverage is recorded per source, with failed/incomplete
+resolution checks left explicitly unknown. Implemented, procedure. Since 1.0.0.
+
+### Automation hourly
+
+Get cheap, usually-silent hourly checks for anything that clears the interrupt test. Try it:
+check `proactive coverage-status` for recent sweep attempts. What you'll see: silence on most
+runs — that is the intended, successful outcome, not a sign something is broken — and a queued
+(never interrupting) item when something crosses the bar. Nothing sends; `workiq-ask` is never
+called in this tier. Change your mind: pause/edit the schedule, below. Your data: same
+source-coverage boundary as other tiers. If something goes wrong: a recap-pending meeting that
+hits an access denial is reported blocked, not retried through another route. Implemented,
+procedure. Since 1.0.0.
+
+### Automation ambient
+
+Get a quiet daily scan for slow-moving drift — commitment ageing, relationship cadence, stale
+PRs, calendar hygiene, unread documents — queued for the next anchor and never interrupting. Try
+it: check `proactive queue-list` to see what's queued. What you'll see: items promoted only the
+run they first cross a threshold, never re-promoted every day after. Nothing sends or changes
+anything. Change your mind: pause/edit the schedule, below. Your data: same source-coverage and
+output-delivery boundary as the other tiers. If something goes wrong: a partial or failed read
+does not advance that source's successful checkpoint. Implemented, procedure. Since 1.0.0.
+
+### Source coverage
+
+Trust that a brief or sweep actually covered its sources — see
+[§2 Record one bounded source collection](#2-record-one-bounded-source-collection) and
+[§3 Handle failure according to evidence](#3-handle-failure-according-to-evidence). Try it: *"Show
+each source's last reliable coverage, gaps and retry state."* What you'll see: per-source
+attempts, completeness, and retry state — one source succeeding never advances another source's
+checkpoint. What needs your decision: nothing — this is a local diagnostic record with no
+external effect. Change your mind: not applicable; this only reports state. Your data: coverage
+history lives in the private account-scoped database. If something goes wrong: a missing read
+capability is reported as `binding_unavailable`, never mistaken for a tenant-wide outage.
+Implemented, runtime (deterministic coverage/retry state machine with tests). Since 1.1.0.
+
+### Output delivery
+
+Know whether a scheduled output was actually delivered — see
+[§4 Lease one batch and acknowledge only recorded output](#4-lease-one-batch-and-acknowledge-only-recorded-output).
+Try it: *"Show the latest durable brief, and whether the host delivered it or I reviewed it."*
+What you'll see: a drained queue, a workflow exit code, and a delivered/reviewed brief reported as
+three separate facts, never conflated. What needs your decision: `publication-review` records only
+an actual human review — nothing here manufactures that evidence for you. Change your mind: not
+applicable; this only reports and records real delivery state. Your data: publication receipts and
+leases live in the private account-scoped database. If something goes wrong: an expired lease is
+recovered explicitly, never silently stolen from another run. Implemented, runtime (deterministic
+lease/receipt state machine with tests). Since 1.1.0.
+
+### Doctor
+
+Get one honest health report covering configuration, managed-file drift, source coverage,
+task-run health, and delivery backlog — see
+[§5 Inspect doctor with a real workflow snapshot](#5-inspect-doctor-with-a-real-workflow-snapshot).
+Try it: run `margo_doctor.py` with a captured workflow snapshot. What you'll see: a report that
+can exit zero while still flagging attention needed (use `--strict` to fail on that); task
+tracking that was never set up reports `not-initialized`, not a failure. What needs
+your decision: nothing — doctor never repairs anything itself. Change your mind: not applicable.
+Your data: doctor reads existing state; it writes nothing new. If something goes wrong: an
+absent or stale snapshot (default max age 86400 seconds) is reported unknown, never healthy.
+Implemented, runtime (deterministic diagnostic script with tests). Since 1.1.0.

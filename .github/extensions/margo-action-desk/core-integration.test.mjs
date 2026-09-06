@@ -5,6 +5,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { createBackend, executeWithInput } from "./backend.mjs";
+import { createMemoryBackend } from "./memory-backend.mjs";
+import { createTaskBackend } from "./task-backend.mjs";
 import { startServer } from "./server.mjs";
 
 const directory = dirname(fileURLToPath(import.meta.url));
@@ -106,4 +108,135 @@ test("real CLI persists revisions across panels without touching configured user
     const reopened = createBackend({ resolveScript: async () => script, execute, python });
     assert.equal((await reopened.run("show", { id: action.id })).item.state, "dismissed");
     assert.equal((await reopened.run("show", { id: action.id })).item.approvals.length, 0);
+});
+
+test("real memory CLI, graph, review and forgetting share one private account across panels", { skip }, async (t) => {
+    const parent = await realpath(testParent);
+    const fixture = join(parent, `memory-canvas-test-${randomUUID()}`);
+    await mkdir(fixture, { mode: 0o700 });
+    t.after(() => rm(fixture, { recursive: true, force: true }));
+    const memoryScript = join(dirname(script), "memory_state.py");
+    const env = { ...process.env };
+    delete env.MARGO_ALLOW_UNSAFE_STATE_DIR;
+    const scope = ["--account", "memory-canvas-integration-test", "--state-dir", fixture];
+    async function execute(command, args, options = {}) {
+        return executeWithInput(command, [...args.slice(0, 2), ...scope, ...args.slice(2)], {
+            ...options, env, shell: false, encoding: "utf8",
+        });
+    }
+    async function cli(args, input) {
+        const response = await execute(python, ["-B", memoryScript, ...args], {
+            input: input === undefined ? undefined : JSON.stringify(input),
+        });
+        return JSON.parse(response.stdout);
+    }
+    const data = {
+        domain: "user", kind: "profile", authority: "source_observed",
+        title: "Synthetic preparation context", text: "Prepare before the fictional review.",
+        scope: "synthetic", source_refs: [{ kind: "tool_result", ref: "synthetic:memory-canvas" }],
+    };
+    const memory = await cli(["put", "fixture", "--input", "-"], { data, status: "active" });
+    const reviews = [];
+    const options = {
+        backend: { run: async () => ({ items: [] }) },
+        memoryBackend: createMemoryBackend({ resolveScript: async () => script, execute }),
+        sendReview: async request => { reviews.push(request); },
+    };
+    const first = await startServer(options);
+    const second = await startServer(options);
+    t.after(async () => { await first.close(); await second.close(); });
+    async function api(panel, operation, input = {}, expectedStatus = 200) {
+        const base = new URL(panel.url);
+        const response = await fetch(new URL("/api/memory/" + operation, base), {
+            method: "POST",
+            headers: {
+                Origin: base.origin, "Content-Type": "application/json",
+                Authorization: `Bearer ${new URLSearchParams(base.hash.slice(1)).get("token")}`,
+            },
+            body: JSON.stringify(input),
+        });
+        const result = await response.json();
+        assert.equal(response.status, expectedStatus, JSON.stringify(result));
+        return result;
+    }
+    assert.equal((await api(first, "policy")).configured, false);
+    assert.equal((await api(first, "inspect", { id: memory.id })).history.length, 1);
+    const found = await api(first, "search", { query: "preparation", domain: "user", mode: "lexical" });
+    assert.equal(found.results[0].memory.id, memory.id);
+    const graph = await api(first, "graph", { id: memory.id, depth: 1, limit: 2 });
+    assert.equal(graph.nodes[0].id, memory.id);
+    const edited = await cli(["revise", memory.id, "--revision", "1", "--input", "-"], {
+        data: { ...data, text: "Updated fictional preparation context." }, status: "active",
+    });
+    assert.equal((await api(second, "inspect", { id: memory.id })).memory.revision, edited.revision);
+    await api(second, "review", { id: memory.id, revision: 1, intent: "correct" }, 409);
+    assert.equal(reviews.length, 0);
+    assert.equal((await api(second, "review", {
+        id: memory.id, revision: edited.revision, intent: "forget",
+    })).approved, false);
+    assert.equal(reviews.length, 1);
+    assert.equal((await cli(["show", memory.id])).status, "active");
+    await cli(["forget", memory.id, "--revision", String(edited.revision), "--evidence", "-"], {
+        kind: "human_confirmation", actor: "dana@example.com", subject_id: memory.id,
+        revision: edited.revision, decision: "forget", statement: "Forget this synthetic test record.",
+        evidence_ref: "conversation:synthetic-memory-canvas", decided_at: new Date().toISOString(),
+    });
+    const forgotten = await api(first, "inspect", { id: memory.id });
+    assert.equal(forgotten.memory.status, "forgotten");
+    assert.equal(forgotten.memory.text, undefined);
+    assert.ok(forgotten.history.every(revision => Object.keys(revision.data).length === 0));
+});
+
+test("real task canvas reads bounded progress without creating state or executing a review request", { skip }, async (t) => {
+    const fixture = join(await realpath(testParent), `task-canvas-test-${randomUUID()}`);
+    await mkdir(fixture, { mode: 0o700 });
+    t.after(() => rm(fixture, { recursive: true, force: true }));
+    const env = { ...process.env };
+    delete env.MARGO_ALLOW_UNSAFE_STATE_DIR;
+    const account = "task-canvas-integration-test";
+    const scope = ["--account", account, "--state-dir", fixture];
+    const taskScript = join(dirname(script), "task_state.py");
+    const execute = (command, args, options = {}) => executeWithInput(
+        command, [...args.slice(0, 2), ...scope, ...args.slice(2)], { ...options, env, shell: false, encoding: "utf8" });
+    const cli = async (args, value) => JSON.parse((await execute(python, ["-B", taskScript, ...args], {
+        input: value === undefined ? undefined : JSON.stringify(value),
+    })).stdout);
+    const backend = createTaskBackend({ resolveScript: async () => script, execute });
+    await assert.rejects(backend.run("list"), { code: "not_initialized" });
+    await cli(["init"]);
+    const now = Date.now();
+    const costs = { tool_calls: 0, pages: 0, items: 0, model_calls: 0, output_chars: 1000 };
+    const binding = { account, host: "synthetic-host", capabilities: { "local.prepare": "fixture-v1" },
+        observed_at: new Date(now).toISOString() };
+    const run = await cli(["create", "fixture", "--input", "-"], {
+        goal: "Prepare a fictional note", routine: "work-products", request_ref: "conversation:synthetic-task-canvas",
+        mode: "foreground", environment: binding,
+        window: { start: new Date(now - 60000).toISOString(), end: new Date(now).toISOString() },
+        limits: { ...costs, output_chars: 2000, max_steps: 2, max_attempts_per_step: 2, max_parallel: 1,
+            deadline_at: new Date(now + 600000).toISOString(), lease_seconds: 60 },
+        steps: [{ key: "prepare", title: "Prepare note", kind: "local", capability: "local.prepare",
+            depends_on: [], allow_partial: false, cost: costs }],
+    });
+    const claim = await cli(["start", "--input", "-"], {
+        run_id: run.id, step_key: "prepare", revision: 1, plan_hash: run.plan_hash, binding,
+    });
+    const sent = [];
+    const panel = await startServer({ backend: { run: async () => ({ items: [] }) },
+        taskBackend: backend, sendReview: async value => sent.push(value) });
+    t.after(() => panel.close());
+    const base = new URL(panel.url);
+    const detail = await backend.run("show", { id: run.id });
+    assert.equal(detail.status, "running");
+    assert.equal(JSON.stringify(detail).includes(claim.token), false);
+    const response = await fetch(new URL("/api/task/review", base), {
+        method: "POST", headers: { Origin: base.origin, "Content-Type": "application/json",
+            Authorization: `Bearer ${new URLSearchParams(base.hash.slice(1)).get("token")}` },
+        body: JSON.stringify({ id: run.id, revision: detail.revision, plan_hash: detail.plan_hash, intent: "pause" }),
+    });
+    assert.equal(response.status, 200);
+    assert.equal(sent.length, 1);
+    assert.equal((await backend.run("show", { id: run.id })).state, "active");
+    await cli(["pause", run.id, "--reason", "Fixture pause"]);
+    assert.equal((await backend.run("list")).runs[0].status, "paused");
+    assert.ok((await backend.run("history", { id: run.id })).events.some(event => event.event === "paused"));
 });

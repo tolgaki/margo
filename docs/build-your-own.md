@@ -124,6 +124,11 @@ Start with [the feature reference](features.md) and
 and delivery through `proactive_state.py`, and health reads through `margo_doctor.py`.
 Keep evidence-only observations separate from canonical provider IDs and confirmed obligations.
 
+Use `task_state.py` for bounded multi-step progress, not another commitments database. It owns
+task claims and limits but delegates action authority/results to the work ledger and collection
+truth to proactive coverage. Start with the [task guide](how-to/task-progress-and-recovery.md)
+and [state-ownership map](development/architecture.md).
+
 The optional canvas calls the same backend through fixed subprocess arguments. It owns no
 database, credentials, or approval endpoint. Treat an approval record as evidence of a specific
 human decision, not an authentication mechanism for a generally capable agent.
@@ -133,6 +138,17 @@ human decision, not an authentication mechanism for a generally capable agent.
 The Work IQ rules in this repo — `$select` always, `$orderby` never dropped, `ask` never in a loop
 — are each paired with the failure they prevent. A rule with a reason survives; a bare rule gets
 reasoned around the first time it's inconvenient. See [Working with Work IQ](work-iq.md).
+
+### Make the repository usable by coding agents
+
+Keep a short root [AGENTS.md](../AGENTS.md), a single instruction entry point, and explicit
+[task/handoff contracts](development/agent-workflow.md). The
+[feature catalog](feature-catalog.json) maps user goals to procedures, guides and scenario
+evidence. Generated navigation should follow that catalog, not become a second copy of behavior.
+
+Distinguish a deterministic state scenario, a procedure contract and an actual model trace.
+None substitutes for the others. A model-ready repository should make that limitation obvious
+rather than letting an agent claim success from a fixture it wrote to match its own expectations.
 
 ---
 

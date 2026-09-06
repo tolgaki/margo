@@ -188,3 +188,68 @@ it cannot approve actions or edit candidate work records.
 Do not delete the database to make health green. A rollback must retain new history and must not
 restart legacy writers concurrently.
 See [state operations](../../skills/chief-of-staff/references/state-operations.md).
+
+## Feature reference
+
+The numbered sections above are the full walkthrough. These are the stable per-feature entry
+points the [feature catalog](../feature-catalog.json) links to.
+
+### Setup
+
+Get Copilot CLI, Work IQ, and Margo's skills installed and confirmed working — see
+[§1 Choose copy or link](#1-choose-copy-or-link) and
+[Getting started](../getting-started.md) for the first-run walkthrough. Try it: install with the
+one-liner or a clone, then ask `Margo, brief me.` What you'll see: a real brief once Work IQ is
+connected, or a plain "not connected" message if it isn't — never a fabricated one. Nothing here
+sends or changes anything; installation copies files and Work IQ connection is a separate,
+existing Copilot CLI setting. Change your mind by re-running the installer or picking different
+optional skills; nothing is destructive. Your data: install only copies files into your chosen
+Copilot directory; no account or workplace data is touched until you configure one (below).
+If something goes wrong, see [Troubleshooting](../getting-started.md#troubleshooting). Implemented,
+procedure (the installer is deterministic; connecting Work IQ and running the first brief depend
+on your host and account). Since 1.0.0.
+
+### Account storage
+
+Confirm which account Margo's private ledger is scoped to, and where that private database
+lives — see [§2 Select the owner and private root](#2-select-the-owner-and-private-root). Try it:
+`python3 scripts/margo_store.py init --account you@example.com`. What you'll see: `status`:
+`"configured"`, and every later command bound to that one account. Nothing here signs in to
+Work IQ or reads any mail/calendar/Teams content — it only records which account's data is which.
+Change your mind by starting over with a fresh, empty state directory if you configured the wrong
+account; the tool refuses to silently replace an existing owner. Your data: a private,
+account-scoped SQLite database outside any repository or synced folder, permission-checked
+(0700/0600 on POSIX) and never application-encrypted. If something goes wrong, an existing
+configuration for a different owner is refused, not overwritten. Implemented, runtime (deterministic
+storage code with permission and isolation checks). Since 1.0.0.
+
+### Upgrade, migration
+
+Update an existing installation, or migrate legacy JSON/Markdown state into the durable ledger,
+without losing preferences or work — see [§1](#1-choose-copy-or-link),
+[§3 Back up before migration](#3-back-up-before-migration),
+[§4 Import the legacy queue](#4-import-the-legacy-queue) and
+[§5 Review and import commitments](#5-review-and-import-commitments). Try it:
+`./install.sh update --check`, then `./install.sh update`, then the legacy import commands above.
+What you'll see: version comparison, then an atomic, replay-safe import with counts — never a
+partial import on malformed input. Nothing sends or changes external state; this only copies
+files and imports local records after your review. Change your mind by keeping the backup and
+restoring from it; a rollback must retain new history and never run old and new writers at once.
+Your data: personal files (`preferences.md`, `commitments.md`, `config.md`, `state/`) are
+preserved by default; `--force` is the only way to replace them, and it is never invoked
+automatically. If something goes wrong, an empty import result is investigated, not assumed to
+prove you pointed at the right directory. Implemented, runtime (installer and import code are
+deterministic and tested). Since 1.0.0.
+
+### Uninstall
+
+Remove Margo's managed files while keeping personal files recoverable — see
+[§6](#6-check-health-then-sync-schedules-separately) for what stays. Try it: `./install.sh
+uninstall`. What you'll see: managed files removed and personal files backed up, not deleted; the
+private `margo/` runtime directory is retained outright. Nothing here touches Work IQ, sent mail,
+or any external state — it only removes local files. Change your mind by reinstalling normally;
+your backed-up personal files and retained runtime directory are still there. Your data: the
+account-scoped database survives uninstall by design, specifically so you don't lose commitment
+and memory history by mistake; delete it yourself if you truly want it gone. If something goes
+wrong, backed-up personal files are left exactly where the uninstaller reports them. Implemented,
+runtime (installer uninstall path is deterministic and tested). Since 1.0.0.

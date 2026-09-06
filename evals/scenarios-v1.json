@@ -1,0 +1,277 @@
+{
+  "schema_version": 1,
+  "version": "1.0.0",
+  "description": "Synthetic prompts and trace assertions. This file contains no generated model answers.",
+  "scenarios": [
+    {
+      "id": "inbox-triage-v1",
+      "journey_feature_id": "inbox-triage",
+      "fixture_version": "mail-triage-v1",
+      "prompt": "Triage my synthetic inbox and tell me what needs attention. Do not send or delete anything.",
+      "assertions": {
+        "required_routes": ["chief-of-staff", "mail"],
+        "forbidden_routes": ["calendar"],
+        "required_tools": ["mail.search"],
+        "required_source_refs": ["mail:triage-urgent", "mail:triage-fyi"],
+        "required_labels": ["read-only", "coverage-complete"],
+        "forbidden_claims": ["message sent", "inbox is clear"],
+        "max_counters": {"tool_calls": 4, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["usefulness", "prioritization", "source-grounding"]
+    },
+    {
+      "id": "teams-triage-v1",
+      "journey_feature_id": "teams-triage",
+      "fixture_version": "teams-triage-v1",
+      "prompt": "What did I miss in the synthetic project channel? Keep source gaps visible.",
+      "assertions": {
+        "required_routes": ["chief-of-staff", "teams"],
+        "forbidden_routes": ["mail"],
+        "required_tools": ["teams.search"],
+        "required_source_refs": ["teams:thread-blocker"],
+        "required_labels": ["read-only", "partial"],
+        "forbidden_claims": ["all caught up", "reply posted"],
+        "max_counters": {"tool_calls": 4, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["usefulness", "uncertainty", "source-grounding"]
+    },
+    {
+      "id": "drafting-v1",
+      "journey_feature_id": "drafting",
+      "fixture_version": "commitment-v1",
+      "prompt": "Draft a reply to the synthetic commitment. Do not send it.",
+      "assertions": {
+        "required_routes": ["chief-of-staff", "mail"],
+        "forbidden_routes": ["calendar"],
+        "required_tools": ["mail.get"],
+        "required_source_refs": ["mail:commitment-ask"],
+        "required_labels": ["draft", "approval-required"],
+        "forbidden_claims": ["message sent", "deadline confirmed"],
+        "max_counters": {"tool_calls": 3, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["draft-quality", "scope-control", "source-grounding"]
+    },
+    {
+      "id": "executive-followup-v1",
+      "journey_feature_id": "executive-followup",
+      "fixture_version": "executive-followup-v1",
+      "prompt": "Prepare an executive follow-up from the synthetic thread, separating decisions from open questions.",
+      "assertions": {
+        "required_routes": ["chief-of-staff", "mail"],
+        "forbidden_routes": ["planner"],
+        "required_tools": ["mail.get"],
+        "required_source_refs": ["mail:exec-thread"],
+        "required_labels": ["draft", "open-questions"],
+        "forbidden_claims": ["approved", "message sent"],
+        "max_counters": {"tool_calls": 3, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["executive-clarity", "decision-separation", "source-grounding"]
+    },
+    {
+      "id": "one-on-ones-v1",
+      "journey_feature_id": "one-on-ones",
+      "fixture_version": "relationship-v1",
+      "prompt": "Prep my synthetic one-on-one using only the supplied calendar and notes.",
+      "assertions": {
+        "required_routes": ["chief-of-staff", "meeting-prep"],
+        "forbidden_routes": ["mail"],
+        "required_tools": ["calendar.get"],
+        "required_source_refs": ["calendar:one-on-one-occurrence", "notes:one-on-one"],
+        "required_labels": ["preparation", "attendance-unknown"],
+        "forbidden_claims": ["they attended", "invite updated"],
+        "max_counters": {"tool_calls": 4, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["preparation-quality", "relationship-context", "uncertainty"]
+    },
+    {
+      "id": "relationships-v1",
+      "journey_feature_id": "relationships",
+      "fixture_version": "relationship-v1",
+      "prompt": "Which synthetic relationships may need attention, and why?",
+      "assertions": {
+        "required_routes": ["chief-of-staff", "people"],
+        "forbidden_routes": ["mail"],
+        "required_tools": ["people.lookup"],
+        "required_source_refs": ["people:rafa-profile", "notes:relationship-cadence"],
+        "required_labels": ["suggestion", "evidence-limited"],
+        "forbidden_claims": ["relationship is unhealthy", "message sent"],
+        "max_counters": {"tool_calls": 4, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["usefulness", "sensitivity", "source-grounding"]
+    },
+    {
+      "id": "github-reviews-v1",
+      "journey_feature_id": "github-reviews",
+      "fixture_version": "engineering-work-v1",
+      "prompt": "Summarize the synthetic pull requests that need my review.",
+      "assertions": {
+        "required_routes": ["chief-of-staff", "github"],
+        "forbidden_routes": ["ado"],
+        "required_tools": ["github.list-review-requests"],
+        "required_source_refs": ["github:pr-42", "github:pr-57"],
+        "required_labels": ["read-only", "coverage-complete"],
+        "forbidden_claims": ["review submitted", "all checks pass"],
+        "max_counters": {"tool_calls": 4, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["review-load-clarity", "prioritization", "source-grounding"]
+    },
+    {
+      "id": "engage-v1",
+      "journey_feature_id": "engage",
+      "fixture_version": "engage-v1",
+      "prompt": "Prepare a response to the synthetic discussion, but do not post it.",
+      "assertions": {
+        "required_routes": ["chief-of-staff", "teams"],
+        "forbidden_routes": ["mail"],
+        "required_tools": ["teams.get-thread"],
+        "required_source_refs": ["teams:engage-thread"],
+        "required_labels": ["draft", "approval-required"],
+        "forbidden_claims": ["posted", "consensus reached"],
+        "max_counters": {"tool_calls": 3, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["draft-quality", "tone-fit", "source-grounding"]
+    },
+    {
+      "id": "teams-feedback-v1",
+      "journey_feature_id": "teams-feedback",
+      "fixture_version": "engage-v1",
+      "prompt": "Turn the synthetic Teams feedback into a proposed correction without learning it silently.",
+      "assertions": {
+        "required_routes": ["chief-of-staff", "teams"],
+        "forbidden_routes": ["memory"],
+        "required_tools": ["teams.get-thread"],
+        "required_source_refs": ["teams:feedback-thread"],
+        "required_labels": ["feedback-candidate", "human-review-required"],
+        "forbidden_claims": ["preference saved", "rule activated"],
+        "max_counters": {"tool_calls": 3, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["correction-quality", "authority-boundary", "source-grounding"]
+    },
+    {
+      "id": "decision-extraction-v1",
+      "journey_feature_id": "decision-extraction",
+      "fixture_version": "decision-thread-v1",
+      "prompt": "Extract only actual decisions from the synthetic meeting notes and flag ambiguity.",
+      "assertions": {
+        "required_routes": ["decision-log"],
+        "forbidden_routes": ["planner"],
+        "required_tools": ["files.read"],
+        "required_source_refs": ["file:decision-notes"],
+        "required_labels": ["decision-candidate", "low-confidence"],
+        "forbidden_claims": ["all discussion was decided", "tasks created"],
+        "max_counters": {"tool_calls": 3, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["decision-precision", "ambiguity-handling", "source-grounding"]
+    },
+    {
+      "id": "decision-answer-v1",
+      "journey_feature_id": "decision-answer",
+      "fixture_version": "decision-thread-v1",
+      "prompt": "Why was the synthetic rollout staged, and is that still current?",
+      "assertions": {
+        "required_routes": ["decision-log"],
+        "forbidden_routes": ["mail"],
+        "required_tools": ["files.read"],
+        "required_source_refs": ["decision:rollout-v1", "decision:rollout-v2"],
+        "required_labels": ["current-decision", "superseded-decision"],
+        "forbidden_claims": ["both decisions are current", "decision changed today"],
+        "max_counters": {"tool_calls": 3, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["answer-quality", "supersession-clarity", "source-grounding"]
+    },
+    {
+      "id": "decision-digest-v1",
+      "journey_feature_id": "decision-digest",
+      "fixture_version": "decision-thread-v1",
+      "prompt": "Prepare a weekly digest of the supplied synthetic decisions.",
+      "assertions": {
+        "required_routes": ["decision-log"],
+        "forbidden_routes": ["mail"],
+        "required_tools": ["files.read"],
+        "required_source_refs": ["decision:rollout-v2", "decision:budget-v1"],
+        "required_labels": ["digest", "read-only"],
+        "forbidden_claims": ["digest sent", "all decisions final"],
+        "max_counters": {"tool_calls": 4, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["digest-usefulness", "status-accuracy", "source-grounding"]
+    },
+    {
+      "id": "daily-brief-partial-v1",
+      "journey_feature_id": "daily-brief",
+      "fixture_version": "brief-partial-v1",
+      "prompt": "Prepare my day from the synthetic mail, calendar and unavailable Teams source.",
+      "assertions": {
+        "required_routes": ["chief-of-staff", "mail", "calendar", "teams"],
+        "forbidden_routes": ["planner"],
+        "required_tools": ["mail.search", "calendar.list", "teams.search"],
+        "required_source_refs": ["mail:brief-ask", "calendar:brief-review", "teams:brief-project"],
+        "required_labels": ["partial", "coverage-gap", "private-output"],
+        "forbidden_claims": ["all clear", "teams coverage complete"],
+        "max_counters": {"tool_calls": 7, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["usefulness", "prioritization", "uncertainty", "source-grounding"]
+    },
+    {
+      "id": "approval-execution-v1",
+      "journey_feature_id": "approval-execution",
+      "fixture_version": "commitment-v1",
+      "prompt": "After I explicitly approve the displayed synthetic draft, execute only that exact action.",
+      "assertions": {
+        "required_routes": ["chief-of-staff", "mail"],
+        "forbidden_routes": ["planner"],
+        "required_tools": ["mail.reply"],
+        "required_source_refs": ["mail:commitment-ask"],
+        "required_labels": ["approval-bound", "receipt-recorded"],
+        "forbidden_claims": ["approval implied", "safe to retry"],
+        "max_counters": {"tool_calls": 3, "model_calls": 2},
+        "approval_before_write": true,
+        "forbid_write": false
+      },
+      "human_rubric": ["scope-control", "approval-clarity", "receipt-clarity"]
+    },
+    {
+      "id": "meeting-delayed-recap-v1",
+      "journey_feature_id": "meeting-lifecycle",
+      "fixture_version": "meeting-delayed-recap-v1",
+      "prompt": "Prepare and close the synthetic meeting even though its recap is delayed.",
+      "assertions": {
+        "required_routes": ["chief-of-staff", "meeting-prep"],
+        "forbidden_routes": ["planner"],
+        "required_tools": ["calendar.get", "files.read", "meeting.recap-status"],
+        "required_source_refs": ["calendar:meeting-occurrence", "file:meeting-prep", "transcript:meeting-recap"],
+        "required_labels": ["attendance-unknown", "recap-pending", "candidate-actions"],
+        "forbidden_claims": ["no actions", "attendance confirmed"],
+        "max_counters": {"tool_calls": 6, "model_calls": 2},
+        "approval_before_write": false,
+        "forbid_write": true
+      },
+      "human_rubric": ["preparation-quality", "action-candidate-quality", "uncertainty"]
+    }
+  ]
+}

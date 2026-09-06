@@ -1,3 +1,4 @@
+import hashlib
 import importlib
 import json
 import os
@@ -362,11 +363,30 @@ class WorkLedgerTests(unittest.TestCase):
         view = self.path / "view.md"
         self.ledger.export_commitments(view)
         self.ledger.export_commitments(view)
-        self.assertEqual(os.stat(view).st_mode & 0o777, 0o600)
+        if os.name != "nt":
+            self.assertEqual(os.stat(view).st_mode & 0o777, 0o600)
         view.write_text(view.read_text() + "- Hand edit\n")
         with self.assertRaises(work.StateError):
             self.ledger.export_commitments(view)
         self.assertIn("Hand edit", view.read_text())
+
+    def test_export_digest_matches_bytes_with_windows_newline_translation(self):
+        view = self.path / "windows-view.md"
+        original_fdopen = os.fdopen
+
+        def windows_fdopen(fd, mode="r", **kwargs):
+            if "b" not in mode:
+                kwargs["newline"] = "\r\n"
+            return original_fdopen(fd, mode, **kwargs)
+
+        with patch.object(work.os, "fdopen", side_effect=windows_fdopen):
+            first = self.ledger.export_commitments(view)
+            self.assertEqual(first["digest"], hashlib.sha256(view.read_bytes()).hexdigest())
+            self.assertNotIn(b"\r\n", view.read_bytes())
+            self.assertEqual(self.ledger.export_commitments(view), first)
+        view.write_bytes(view.read_bytes() + b"Hand edit\r\n")
+        with self.assertRaisesRegex(work.StateError, "hand edits"):
+            self.ledger.export_commitments(view)
 
     def test_import_is_atomic_and_changes_require_explicit_review(self):
         path = self.path / "bad.json"

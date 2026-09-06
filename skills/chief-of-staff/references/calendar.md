@@ -11,6 +11,10 @@ approved as one exact plan; never extend that approval to additional moves or at
 Recheck external state before each approved step. Record completed and unfinished steps on
 partial failure; a rollback that sends notifications needs its own valid approval.
 
+Retrieve `calendar` context using `memory.md`. Apply relevant confirmed preferences regardless
+of semantic ranking, but fetch live availability and verify current counterpart identities before
+acting. A remembered time zone or availability is not fresh scheduling evidence.
+
 ## Modes
 
 ### A. Find time / schedule ("find 30 min with Dana this week", "set up a follow-up")

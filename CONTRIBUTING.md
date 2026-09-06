@@ -3,6 +3,11 @@
 Thanks for considering a contribution. This repo is a reference implementation — the most useful
 contributions sharpen the procedure or fix something that's wrong, rather than adding surface area.
 
+Coding agents start with [AGENTS.md](AGENTS.md), the
+[state-ownership map](docs/development/architecture.md), and the
+[bounded change workflow](docs/development/agent-workflow.md). Use the agent-task issue form to
+make ownership, acceptance, documentation and stop conditions explicit.
+
 ---
 
 ## The one hard rule
@@ -55,6 +60,8 @@ does not grant unattended shared-vault writes; see `docs/safety.md` §3.
 
 `docs/` is grounded in the actual skill files. If you change a routine's behaviour, update the doc
 page that describes it — and check the router table in `SKILL.md` still matches.
+Add or update its entry in `docs/feature-catalog.json` and its mapped scenario. A
+procedure-contract scenario must not be described as evidence that a model followed it.
 
 ---
 
@@ -77,6 +84,10 @@ node --test .github/extensions/margo-action-desk/*.test.mjs
 
 # The generated schedule table must match the manifests
 ./tools/gen-automations-docs.sh --check
+
+# User guides and scenario mappings must cover the supported feature inventory
+python3 tools/feature_catalog.py --check
+python3 tools/journey_contracts.py --check
 ```
 
 For full canvas integration, create a fresh private non-repository fixture directory beneath
@@ -84,6 +95,14 @@ your home, set `MARGO_CANVAS_TEST_PARENT` to it, and rerun the Node tests. The f
 the production storage guard; do not disable it against real data. The test creates and removes
 its own isolated account underneath that directory. CI runs this real-core path explicitly.
 Python installer tests also exercise PowerShell when `pwsh` is available.
+
+Memory tests cover explicit schema migration, capture and retention policy, temporal context,
+capability/lesson evidence, consolidation and forgetting without a workplace account. The
+real-model checks are opt-in: after the documented explicit local runtime/model setup, run
+`MARGO_RUN_EMBEDDING_INTEGRATION=1 PYTHONPATH=tests python -m unittest
+test_memory_encoder test_semantic_e2e` using that private environment's Python. Both use only
+fictional data. Do not download a model during an unattended routine or seed a real profile
+to make an integration example pass.
 
 `check-clean.sh` looks for email addresses outside `example.com`, GUIDs, corporate mail domains,
 tenant resource identifiers (OneDrive drive ids, SharePoint URLs, Teams links), absolute home

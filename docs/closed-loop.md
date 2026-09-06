@@ -94,7 +94,7 @@ or blindly restoring an old snapshot could lose the intervening history.
 
 ## Memory boundary
 
-This release remembers operational evidence and decisions through the ledger and reads explicit
-personal preferences. It does not yet maintain a general user-context graph or a procedural
-learning library. Scoped feedback rules are supported, but installing a skill does not imply
-proven competence with it. Keep proposed memory architecture separate from implemented features.
+The separate memory records now support user context and agent learning with hybrid local
+retrieval, provenance, lifecycle and forgetting. They link context without replacing work records.
+See [semantic memory](how-to/semantic-memory.md). Installing a skill still does not imply proven
+competence; the capability observer records installation and version, not execution success.

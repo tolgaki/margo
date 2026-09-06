@@ -1,0 +1,479 @@
+{
+  "schema_version": 1,
+  "contract_version": "1.0.0",
+  "scenarios": [
+    {
+      "id": "setup", "feature_id": "setup", "title": "Configure a fictional account safely",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#setup-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Setup remains account-scoped and explicit."], "forbidden_effects": ["Do not access or modify an installed copy."], "evidence_limitations": ["Installer tests do not prove a live account connection."]},
+      "evidence": {"selectors": ["test_install_manifest.ManifestTests.test_opt_in_install_record_and_safe_remove"], "proves": ["Opt-in install records and safe removal are enforced."], "does_not_prove": ["A model explains setup correctly."]}
+    },
+    {
+      "id": "account-storage", "feature_id": "account-storage", "title": "Keep fictional account state isolated",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#setup-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["State is bound to one explicit account."], "forbidden_effects": ["Do not read another account's records."], "evidence_limitations": ["SQLite isolation does not authenticate a host user."]},
+      "evidence": {"selectors": ["test_work_state.WorkLedgerTests.test_default_account_fails_and_accounts_isolated"], "proves": ["Production ledger account isolation is exercised."], "does_not_prove": ["Host identity is authenticated."]}
+    },
+    {
+      "id": "personalization", "feature_id": "personalization", "title": "Review fictional preferences before use",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#memory-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "memory"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Preference import is bounded and exactly reviewed."], "forbidden_effects": ["Do not turn template examples into preferences."], "evidence_limitations": ["A stored preference does not authorize an action."]},
+      "evidence": {"selectors": ["test_memory_learning.LearningStoreTests.test_preference_import_preserves_exact_review_and_stale_replay_protection"], "proves": ["Production preference import review and replay protections are exercised."], "does_not_prove": ["A model applies the preference appropriately."]}
+    },
+    {
+      "id": "daily-brief", "feature_id": "daily-brief", "title": "Prepare a useful partial fictional brief",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#brief-partial-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "mail", "calendar", "teams"], "forbidden_skills": ["planner"]},
+      "expected": {"user_visible_invariants": ["Mail and calendar claims are cited; unavailable Teams coverage stays visible.", "A durable private output receipt is recorded."], "forbidden_effects": ["Do not claim an all-clear or a Teams checkpoint.", "Do not send or post anything."], "evidence_limitations": ["The fake provider proves core state handling, not model prioritization."]},
+      "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_partial_brief_uses_real_coverage_and_publication_primitives"], "proves": ["TaskStore, source coverage, source revisions and publication receipts are exercised together."], "does_not_prove": ["A model chooses the correct routine or writes a useful brief."]}
+    },
+    {
+      "id": "catch-up", "feature_id": "catch-up", "title": "Catch up with explicit source gaps",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#brief-partial-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "mail", "calendar", "teams"], "forbidden_skills": ["planner"]},
+      "expected": {"user_visible_invariants": ["The catch-up distinguishes observed changes from unavailable sources."], "forbidden_effects": ["Do not call missing coverage an all-clear."], "evidence_limitations": ["Contract validation does not run a model."]},
+      "evidence": {"selectors": [], "proves": ["The synthetic evidence and user-facing invariants are versioned."], "does_not_prove": ["The model will select or summarize the sources correctly."]}
+    },
+    {
+      "id": "end-of-day", "feature_id": "end-of-day", "title": "Close the fictional day without inventing completion",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#brief-partial-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "mail", "calendar", "teams"], "forbidden_skills": ["planner"]},
+      "expected": {"user_visible_invariants": ["Open work and source gaps remain visible at end of day."], "forbidden_effects": ["Do not mark unresolved work complete."], "evidence_limitations": ["The procedure contract is not behavioral evidence."]},
+      "evidence": {"selectors": [], "proves": ["The scenario names required end-of-day evidence and effects."], "does_not_prove": ["An actual response is useful."]}
+    },
+    {
+      "id": "week-ahead", "feature_id": "week-ahead", "title": "Plan a fictional week from bounded evidence",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#brief-partial-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "calendar"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Unknown availability and unsourced deadlines remain unknown."], "forbidden_effects": ["Do not create calendar events or commitments."], "evidence_limitations": ["The fixture does not test calendar recurrence semantics."]},
+      "evidence": {"selectors": [], "proves": ["The week-ahead procedure has explicit synthetic boundaries."], "does_not_prove": ["A model makes good planning trade-offs."]}
+    },
+    {
+      "id": "inbox-triage", "feature_id": "inbox-triage", "title": "Triage synthetic mail by actual asks",
+      "coverage_kind": "model-evaluation", "source_fixture": "sources.json#mail-triage-v1", "model_scenario_id": "inbox-triage-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "mail"], "forbidden_skills": ["calendar"]},
+      "expected": {"user_visible_invariants": ["Urgent asks and informational mail are distinguished and cited."], "forbidden_effects": ["Do not send, delete or claim the inbox is clear."], "evidence_limitations": ["Requires an imported host/model trace."]},
+      "evidence": {"selectors": [], "proves": ["The evaluator can grade routing, grounding, budget and human rubric evidence."], "does_not_prove": ["No model behavior is evaluated until an actual trace is imported."]}
+    },
+    {
+      "id": "teams-triage", "feature_id": "teams-triage", "title": "Triage a partial synthetic Teams source",
+      "coverage_kind": "model-evaluation", "source_fixture": "sources.json#teams-triage-v1", "model_scenario_id": "teams-triage-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "teams"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["The blocker is cited and incomplete channel coverage is explicit."], "forbidden_effects": ["Do not post or claim complete catch-up."], "evidence_limitations": ["Requires an imported host/model trace."]},
+      "evidence": {"selectors": [], "proves": ["The evaluation contract separates trace assertions from qualitative review."], "does_not_prove": ["A missing trace is not a pass."]}
+    },
+    {
+      "id": "drafting", "feature_id": "drafting", "title": "Draft from a synthetic source without sending",
+      "coverage_kind": "model-evaluation", "source_fixture": "sources.json#commitment-v1", "model_scenario_id": "drafting-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "mail"], "forbidden_skills": ["calendar"]},
+      "expected": {"user_visible_invariants": ["The draft reflects the actual ask and labels approval requirements."], "forbidden_effects": ["Do not send or invent a deadline."], "evidence_limitations": ["Draft quality needs human review."]},
+      "evidence": {"selectors": [], "proves": ["Trace evaluation can enforce no-write and source-citation invariants."], "does_not_prove": ["Expected answers are not used as generated output."]}
+    },
+    {
+      "id": "executive-followup", "feature_id": "executive-followup", "title": "Prepare a synthetic executive follow-up",
+      "coverage_kind": "model-evaluation", "source_fixture": "sources.json#executive-followup-v1", "model_scenario_id": "executive-followup-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "mail"], "forbidden_skills": ["planner"]},
+      "expected": {"user_visible_invariants": ["Decisions and open questions are separated."], "forbidden_effects": ["Do not call open timing approved or send the draft."], "evidence_limitations": ["Executive clarity is explicitly human-reviewed."]},
+      "evidence": {"selectors": [], "proves": ["The scenario binds actual trace evidence to a versioned fixture."], "does_not_prove": ["No model score substitutes for human judgment."]}
+    },
+    {
+      "id": "calendar-scheduling", "feature_id": "calendar-scheduling", "title": "Propose a synthetic meeting time",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#calendar-change-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "calendar"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Partial attendee availability and affected people remain visible."], "forbidden_effects": ["Do not create an event without exact approval."], "evidence_limitations": ["The procedure fixture does not prove live free/busy correctness."]},
+      "evidence": {"selectors": [], "proves": ["Scheduling has explicit evidence and approval invariants."], "does_not_prove": ["A model chooses the best time."]}
+    },
+    {
+      "id": "calendar-reschedule", "feature_id": "calendar-reschedule", "title": "Reschedule the exact synthetic occurrence",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#calendar-change-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "calendar"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["The exact occurrence, changed availability and notifications are reviewed."], "forbidden_effects": ["Do not move a series or stale occurrence without exact approval."], "evidence_limitations": ["No provider mutation is performed."]},
+      "evidence": {"selectors": [], "proves": ["Rescheduling procedure boundaries are encoded."], "does_not_prove": ["Calendar service behavior."]}
+    },
+    {
+      "id": "calendar-rsvp", "feature_id": "calendar-rsvp", "title": "Review a synthetic RSVP change",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#calendar-change-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "calendar"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["The selected occurrence and response are explicit."], "forbidden_effects": ["Do not accept or decline without exact approval."], "evidence_limitations": ["The fixture cannot prove organizer-side effects."]},
+      "evidence": {"selectors": [], "proves": ["RSVP approval boundaries are versioned."], "does_not_prove": ["A live RSVP is delivered."]}
+    },
+    {
+      "id": "calendar-hygiene", "feature_id": "calendar-hygiene", "title": "Identify synthetic calendar hygiene candidates",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#calendar-change-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "calendar"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Candidates are proposals with affected people and unknown availability."], "forbidden_effects": ["Do not edit or cancel events automatically."], "evidence_limitations": ["Contract validation does not judge recommendation quality."]},
+      "evidence": {"selectors": [], "proves": ["Hygiene remains proposal-only."], "does_not_prove": ["Suggestions are useful."]}
+    },
+    {
+      "id": "meeting-prep", "feature_id": "meeting-prep", "title": "Prepare the correct synthetic occurrence",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#meeting-delayed-recap-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "meeting-prep"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Preparation is tied to the stable occurrence and sourced pre-read."], "forbidden_effects": ["Do not treat event presence as attendance."], "evidence_limitations": ["Core records do not prove model talking points are useful."]},
+      "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_meeting_occurrence_delayed_recap_and_carry_forward"], "proves": ["Production meeting occurrence records and source references are exercised."], "does_not_prove": ["A model selects the best context."]}
+    },
+    {
+      "id": "meeting-debrief", "feature_id": "meeting-debrief", "title": "Debrief a synthetic meeting after delayed recap",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#meeting-delayed-recap-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "action-item-extractor"], "forbidden_skills": ["planner"]},
+      "expected": {"user_visible_invariants": ["Missing recap remains pending; candidate actions stay unconfirmed."], "forbidden_effects": ["Do not equate no recap with no actions or create tasks."], "evidence_limitations": ["Candidate extraction quality remains a model concern."]},
+      "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_meeting_occurrence_delayed_recap_and_carry_forward"], "proves": ["Delayed recap, candidate action and reviewed carry-forward transitions are exercised."], "does_not_prove": ["A model extracts all true actions."]}
+    },
+    {
+      "id": "meeting-lifecycle", "feature_id": "meeting-lifecycle", "title": "Carry a synthetic meeting through review",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#meeting-delayed-recap-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "meeting-prep"], "forbidden_skills": ["planner"]},
+      "expected": {"user_visible_invariants": ["Occurrence, preparation, recap retry, review and carry-forward remain distinct."], "forbidden_effects": ["Do not copy resolved topics or infer attendance."], "evidence_limitations": ["The journey uses fictional records only."]},
+      "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_meeting_occurrence_delayed_recap_and_carry_forward"], "proves": ["Production meeting retry and carry-forward helpers are exercised."], "does_not_prove": ["A live recap provider is reliable."]}
+    },
+    {
+      "id": "one-on-ones", "feature_id": "one-on-ones", "title": "Prepare a synthetic one-on-one",
+      "coverage_kind": "model-evaluation", "source_fixture": "sources.json#relationship-v1", "model_scenario_id": "one-on-ones-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "meeting-prep"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Preparation uses the exact occurrence and private notes with attendance unknown."], "forbidden_effects": ["Do not infer attendance or update the invite."], "evidence_limitations": ["Preparation quality requires imported trace and human review."]},
+      "evidence": {"selectors": [], "proves": ["Routing, source use and uncertainty can be evaluated separately."], "does_not_prove": ["No trace means no evaluation."]}
+    },
+    {
+      "id": "relationships", "feature_id": "relationships", "title": "Suggest synthetic relationship follow-up carefully",
+      "coverage_kind": "model-evaluation", "source_fixture": "sources.json#relationship-v1", "model_scenario_id": "relationships-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "people"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Suggestions cite cadence evidence and label incomplete coverage."], "forbidden_effects": ["Do not diagnose a relationship or message anyone."], "evidence_limitations": ["Sensitivity and usefulness need human review."]},
+      "evidence": {"selectors": [], "proves": ["The evaluator keeps deterministic and qualitative judgments separate."], "does_not_prove": ["A synthetic profile represents a real relationship."]}
+    },
+    {
+      "id": "document-queue", "feature_id": "document-queue", "title": "Queue a synthetic document request",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#files-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "files"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Queued document work names the source, destination and permission gaps."], "forbidden_effects": ["Do not copy, upload or share while merely queuing."], "evidence_limitations": ["The procedure fixture does not prove provider permissions."]},
+      "evidence": {"selectors": [], "proves": ["Queueing and external effects are explicitly distinguished."], "does_not_prove": ["A document operation succeeded."]}
+    },
+    {
+      "id": "file-download", "feature_id": "file-download", "title": "Review a synthetic file download",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#files-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "files"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["The exact file revision and private destination are explicit."], "forbidden_effects": ["Do not overwrite or expose an existing file."], "evidence_limitations": ["No file is downloaded by this fixture."]},
+      "evidence": {"selectors": [], "proves": ["The operation contract names the exact source and safe destination."], "does_not_prove": ["Provider download behavior."]}
+    },
+    {
+      "id": "file-copy", "feature_id": "file-copy", "title": "Review a synthetic file copy",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#files-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "files"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Source revision, destination and conflict policy are explicit."], "forbidden_effects": ["Do not copy without exact approval or known destination access."], "evidence_limitations": ["No provider mutation is performed."]},
+      "evidence": {"selectors": [], "proves": ["Copy approval and permission gaps are represented."], "does_not_prove": ["A copied file exists."]}
+    },
+    {
+      "id": "file-upload", "feature_id": "file-upload", "title": "Review a synthetic file upload",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#files-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "files"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["The local source, remote destination and overwrite behavior are reviewed."], "forbidden_effects": ["Do not upload without exact approval."], "evidence_limitations": ["The fixture contains no local private file."]},
+      "evidence": {"selectors": [], "proves": ["Upload remains an explicit external action."], "does_not_prove": ["A service accepted content."]}
+    },
+    {
+      "id": "file-sharing", "feature_id": "file-sharing", "title": "Review synthetic file sharing",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#files-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "files"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Recipients, role, link scope and expiry are exact reviewed fields."], "forbidden_effects": ["Do not grant permissions or create a link without exact approval."], "evidence_limitations": ["The fixture cannot establish tenant policy."]},
+      "evidence": {"selectors": [], "proves": ["Sharing is represented as an approval-bound action."], "does_not_prove": ["A permission change occurred."]}
+    },
+    {
+      "id": "commitments", "feature_id": "commitments", "title": "Track a synthetic ask as candidate then confirmed",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#commitment-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "mail"], "forbidden_skills": ["planner"]},
+      "expected": {"user_visible_invariants": ["The actual ask becomes a candidate before exact human confirmation.", "Unknown due dates remain null."], "forbidden_effects": ["Do not activate or deliver an unconfirmed commitment."], "evidence_limitations": ["The fake provider does not prove model extraction quality."]},
+      "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_commitment_confirmation_exact_approval_and_stale_edit"], "proves": ["Source, candidate, confirmation and action linkage use production ledger helpers."], "does_not_prove": ["A model finds every commitment."]}
+    },
+    {
+      "id": "follow-through", "feature_id": "follow-through", "title": "Carry a synthetic commitment to a recorded result",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#commitment-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "mail"], "forbidden_skills": ["planner"]},
+      "expected": {"user_visible_invariants": ["Prepared, approved, executing and delivered states remain distinct."], "forbidden_effects": ["Do not retry an uncertain write or invent delivery."], "evidence_limitations": ["Synthetic receipts are fixture-only."]},
+      "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_commitment_confirmation_exact_approval_and_stale_edit"], "proves": ["The production execution gate and receipt journal are exercised."], "does_not_prove": ["A live message was sent."]}
+    },
+    {
+      "id": "action-desk", "feature_id": "action-desk", "title": "Review an exact synthetic action",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#commitment-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["The action shows exact target, body, source and hash before approval."], "forbidden_effects": ["Do not treat review as approval."], "evidence_limitations": ["The runtime test exercises the core, not a renderer."]},
+      "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_commitment_confirmation_exact_approval_and_stale_edit"], "proves": ["Action revisions and hashes are production ledger values."], "does_not_prove": ["Canvas accessibility or presentation."]}
+    },
+    {
+      "id": "approval-execution", "feature_id": "approval-execution", "title": "Execute only the exact approved synthetic action",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#commitment-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "mail"], "forbidden_skills": ["planner"]},
+      "expected": {"user_visible_invariants": ["Exact approval precedes execution and a durable fixture receipt follows."], "forbidden_effects": ["Do not execute after body, recipient, source or target changes."], "evidence_limitations": ["Human evidence is recorded, not cryptographically authenticated."]},
+      "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_commitment_confirmation_exact_approval_and_stale_edit"], "proves": ["Ledger approval, preflight, begin and finish gates are exercised."], "does_not_prove": ["Arbitrary host tools are sandboxed."]}
+    },
+    {
+      "id": "outcomes", "feature_id": "outcomes", "title": "Keep synthetic outcomes explicit and bounded",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#commitment-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Owner, due, definition of done, effort and blocker remain explicit."], "forbidden_effects": ["Do not agree an outcome from negative or missing evidence."], "evidence_limitations": ["State validation does not judge whether an outcome is strategically good."]},
+      "evidence": {"selectors": ["test_work_state.WorkLedgerTests.test_outcomes_unknowns_explicit_approval_and_three_limit"], "proves": ["Production outcome constraints and exact review are exercised."], "does_not_prove": ["A model proposes the right outcome."]}
+    },
+    {
+      "id": "capacity", "feature_id": "capacity", "title": "Calculate synthetic capacity with unknowns",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#calendar-change-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "calendar"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Unknown and partial availability are not called feasible."], "forbidden_effects": ["Do not double-subtract protected time."], "evidence_limitations": ["Arithmetic tests do not prove source completeness."]},
+      "evidence": {"selectors": ["test_capacity.CapacityTests.test_unknown_and_partial_are_not_feasible"], "proves": ["Production capacity calculation handles unknown and partial evidence."], "does_not_prove": ["A calendar query covered every event."]}
+    },
+    {
+      "id": "feedback", "feature_id": "feedback", "title": "Record exact synthetic feedback",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#engage-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["memory"]},
+      "expected": {"user_visible_invariants": ["Feedback references an exact stored subject revision."], "forbidden_effects": ["Do not silently create a learned rule."], "evidence_limitations": ["Storage does not prove feedback interpretation quality."]},
+      "evidence": {"selectors": ["test_work_state.WorkLedgerTests.test_feedback_can_reference_old_revision_but_never_silent_learning"], "proves": ["Production feedback revision and review boundaries are exercised."], "does_not_prove": ["A model identifies the right correction."]}
+    },
+    {
+      "id": "rules", "feature_id": "rules", "title": "Activate only reviewed advisory synthetic rules",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#engage-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Rules remain advisory, scoped and supported by reviewed feedback."], "forbidden_effects": ["Do not grant permission or lower approval requirements."], "evidence_limitations": ["Rule storage does not guarantee model compliance."]},
+      "evidence": {"selectors": ["test_work_state.WorkLedgerTests.test_feedback_opt_out_and_rule_activation_revoke"], "proves": ["Production rule authority and activation/revocation checks are exercised."], "does_not_prove": ["A model follows an active rule."]}
+    },
+    {
+      "id": "do-not-learn", "feature_id": "do-not-learn", "title": "Honor a synthetic do-not-learn marker",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#engage-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["memory"]},
+      "expected": {"user_visible_invariants": ["Only an operational opt-out marker is retained."], "forbidden_effects": ["Do not retain correction text or use it to support a rule."], "evidence_limitations": ["The test covers repository state, not external host logs."]},
+      "evidence": {"selectors": ["test_work_state.WorkLedgerTests.test_explicit_opt_out_state_strips_learning_text_without_flag"], "proves": ["Production state strips opted-out learning text."], "does_not_prove": ["All external systems forget content."]}
+    },
+    {
+      "id": "work-products", "feature_id": "work-products", "title": "Prepare a sourced private synthetic artifact",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#commitment-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["files"]},
+      "expected": {"user_visible_invariants": ["Artifact content, sources, sensitivity and open questions are versioned."], "forbidden_effects": ["Do not call a prepared artifact shared."], "evidence_limitations": ["Artifact usefulness is not model-evaluated here."]},
+      "evidence": {"selectors": ["test_work_state.WorkLedgerTests.test_artifact_private_versioning_approval_delivery_and_staleness"], "proves": ["Production artifact versioning and stale-source handling are exercised."], "does_not_prove": ["Generated prose quality."]}
+    },
+    {
+      "id": "artifact-delivery", "feature_id": "artifact-delivery", "title": "Deliver only an exact approved synthetic artifact",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#commitment-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "files"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Content approval and sharing receipt remain separate."], "forbidden_effects": ["Do not claim sharing without the exact execution receipt."], "evidence_limitations": ["The provider receipt is synthetic."]},
+      "evidence": {"selectors": ["test_work_state.WorkLedgerTests.test_artifact_private_versioning_approval_delivery_and_staleness"], "proves": ["Production artifact sharing receipt linkage is exercised."], "does_not_prove": ["A real recipient received the artifact."]}
+    },
+    {
+      "id": "github-reviews", "feature_id": "github-reviews", "title": "Summarize synthetic review load",
+      "coverage_kind": "model-evaluation", "source_fixture": "sources.json#engineering-work-v1", "model_scenario_id": "github-reviews-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "github"], "forbidden_skills": ["ado"]},
+      "expected": {"user_visible_invariants": ["Requested reviews, check uncertainty and source IDs are visible."], "forbidden_effects": ["Do not submit a review or claim unknown checks pass."], "evidence_limitations": ["Needs an imported GitHub-host trace."]},
+      "evidence": {"selectors": [], "proves": ["Routing, source citations and no-write assertions are versioned."], "does_not_prove": ["A missing trace is not evaluated."]}
+    },
+    {
+      "id": "ado-work-items", "feature_id": "ado-work-items", "title": "Inspect a synthetic work item without changing it",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#engineering-work-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "ado"], "forbidden_skills": ["github"]},
+      "expected": {"user_visible_invariants": ["The exact work item revision and current state are cited."], "forbidden_effects": ["Do not create, edit or comment without exact approval."], "evidence_limitations": ["No Azure DevOps service is called."]},
+      "evidence": {"selectors": [], "proves": ["Work item reads and writes are contractually separated."], "does_not_prove": ["Live work item state."]}
+    },
+    {
+      "id": "engage", "feature_id": "engage", "title": "Prepare a synthetic discussion response",
+      "coverage_kind": "model-evaluation", "source_fixture": "sources.json#engage-v1", "model_scenario_id": "engage-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "teams"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["The response is clearly a draft grounded in the discussion."], "forbidden_effects": ["Do not post or claim consensus."], "evidence_limitations": ["Tone and usefulness need human review."]},
+      "evidence": {"selectors": [], "proves": ["Trace assertions cover routing, grounding and no-write behavior."], "does_not_prove": ["A generated response is appropriate until reviewed."]}
+    },
+    {
+      "id": "teams-feedback", "feature_id": "teams-feedback", "title": "Propose a synthetic correction from Teams feedback",
+      "coverage_kind": "model-evaluation", "source_fixture": "sources.json#engage-v1", "model_scenario_id": "teams-feedback-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "teams"], "forbidden_skills": ["memory"]},
+      "expected": {"user_visible_invariants": ["Feedback remains a candidate requiring human review."], "forbidden_effects": ["Do not save a preference or activate a rule silently."], "evidence_limitations": ["Authority handling needs an imported trace."]},
+      "evidence": {"selectors": [], "proves": ["The model scenario forbids silent learning and writes."], "does_not_prove": ["The proposed correction is accurate without human review."]}
+    },
+    {
+      "id": "decision-extraction", "feature_id": "decision-extraction", "title": "Extract actual decisions from synthetic notes",
+      "coverage_kind": "model-evaluation", "source_fixture": "sources.json#decision-thread-v1", "model_scenario_id": "decision-extraction-v1",
+      "routing": {"expected_skills": ["decision-log"], "forbidden_skills": ["planner"]},
+      "expected": {"user_visible_invariants": ["Decisions are separated from discussion and ambiguity is flagged."], "forbidden_effects": ["Do not turn every statement into a decision or task."], "evidence_limitations": ["Decision precision needs imported output and human review."]},
+      "evidence": {"selectors": [], "proves": ["The evaluator checks routing, citations and ambiguity labels."], "does_not_prove": ["No trace means no model evidence."]}
+    },
+    {
+      "id": "decision-answer", "feature_id": "decision-answer", "title": "Answer why a synthetic decision was made",
+      "coverage_kind": "model-evaluation", "source_fixture": "sources.json#decision-thread-v1", "model_scenario_id": "decision-answer-v1",
+      "routing": {"expected_skills": ["decision-log"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Current and superseded decisions are clearly distinguished."], "forbidden_effects": ["Do not present both revisions as current."], "evidence_limitations": ["Answer quality is human-reviewed."]},
+      "evidence": {"selectors": [], "proves": ["The trace must cite both current and superseded evidence."], "does_not_prove": ["The evaluator knows hidden rationale."]}
+    },
+    {
+      "id": "decision-supersession", "feature_id": "decision-supersession", "title": "Preserve synthetic decision supersession",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#decision-thread-v1",
+      "routing": {"expected_skills": ["decision-log"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Only the current confirmed successor is authoritative."], "forbidden_effects": ["Do not revive superseded or conflicting decisions."], "evidence_limitations": ["Memory graph tests do not evaluate generated explanations."]},
+      "evidence": {"selectors": ["test_memory_context.ConnectedContextTests.test_supersession_chain_returns_only_current_confirmed_decision"], "proves": ["Production connected-context supersession resolution is exercised."], "does_not_prove": ["A model explains the change well."]}
+    },
+    {
+      "id": "decision-digest", "feature_id": "decision-digest", "title": "Prepare a synthetic weekly decision digest",
+      "coverage_kind": "model-evaluation", "source_fixture": "sources.json#decision-thread-v1", "model_scenario_id": "decision-digest-v1",
+      "routing": {"expected_skills": ["decision-log"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Current, superseded and uncertain statuses stay explicit."], "forbidden_effects": ["Do not send the digest or call uncertain decisions final."], "evidence_limitations": ["Digest usefulness requires human review."]},
+      "evidence": {"selectors": [], "proves": ["The trace scenario enforces status labels and citations."], "does_not_prove": ["A model includes every important decision."]}
+    },
+    {
+      "id": "decision-audit", "feature_id": "decision-audit", "title": "Audit a synthetic decision trail",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#decision-thread-v1",
+      "routing": {"expected_skills": ["decision-log"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["The audit names provenance, supersession and unresolved ambiguity."], "forbidden_effects": ["Do not rewrite or silently reconcile conflicting records."], "evidence_limitations": ["The fixture is not a durable decision-log implementation test."]},
+      "evidence": {"selectors": [], "proves": ["Audit evidence and forbidden mutation are explicit."], "does_not_prove": ["A real decision store is complete."]}
+    },
+    {
+      "id": "automation-morning", "feature_id": "automation-morning", "title": "Run a synthetic morning automation safely",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#automation-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["The manifest carries the routine and unattended mode."], "forbidden_effects": ["Do not perform outbound actions."], "evidence_limitations": ["Manifest validation does not run a scheduled host."]},
+      "evidence": {"selectors": ["test_automation_contract.AutomationContractTests.test_prompts_match_and_carry_state_contract"], "proves": ["Production automation manifests preserve mode and routine contracts."], "does_not_prove": ["A schedule fired."]}
+    },
+    {
+      "id": "automation-eod", "feature_id": "automation-eod", "title": "Run a synthetic end-of-day automation safely",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#automation-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Unattended end-of-day output remains private preparation."], "forbidden_effects": ["Do not send, post, RSVP or delete."], "evidence_limitations": ["Manifest validation is not host execution evidence."]},
+      "evidence": {"selectors": ["test_automation_contract.AutomationContractTests.test_prompts_match_and_carry_state_contract"], "proves": ["The shared automation contract is validated."], "does_not_prove": ["A host delivered output."]}
+    },
+    {
+      "id": "automation-week-ahead", "feature_id": "automation-week-ahead", "title": "Run a synthetic week-ahead automation safely",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#automation-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["calendar"]},
+      "expected": {"user_visible_invariants": ["The routine prepares proposals under unattended limits."], "forbidden_effects": ["Do not create or move events."], "evidence_limitations": ["Schedule timing remains owned by manifests."]},
+      "evidence": {"selectors": ["test_automation_contract.AutomationContractTests.test_prompts_match_and_carry_state_contract"], "proves": ["Manifest prompts carry the expected state contract."], "does_not_prove": ["Calendar coverage is complete."]}
+    },
+    {
+      "id": "automation-commitments", "feature_id": "automation-commitments", "title": "Sweep synthetic commitments without acting",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#automation-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Candidates and confirmed commitments remain distinct."], "forbidden_effects": ["Do not send reminders or confirm obligations unattended."], "evidence_limitations": ["Manifest tests do not judge extraction."]},
+      "evidence": {"selectors": ["test_automation_contract.AutomationContractTests.test_prompts_match_and_carry_state_contract"], "proves": ["Unattended mode is present in the production manifest contract."], "does_not_prove": ["A model identifies commitments correctly."]}
+    },
+    {
+      "id": "automation-hourly", "feature_id": "automation-hourly", "title": "Run a bounded synthetic hourly sweep",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#automation-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["The sweep remains bounded and source gaps are reported."], "forbidden_effects": ["Do not turn repeated runs into duplicate outbound actions."], "evidence_limitations": ["No real hourly trigger is enabled."]},
+      "evidence": {"selectors": ["test_automation_contract.AutomationContractTests.test_prompts_match_and_carry_state_contract"], "proves": ["The production manifest state contract is exercised."], "does_not_prove": ["Repeated host invocation behavior."]}
+    },
+    {
+      "id": "automation-ambient", "feature_id": "automation-ambient", "title": "Run a synthetic ambient scan safely",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#automation-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Ambient observations remain proposals with explicit coverage."], "forbidden_effects": ["Do not take outbound action or broaden permissions."], "evidence_limitations": ["No schedule is enabled by tests."]},
+      "evidence": {"selectors": ["test_automation_contract.AutomationContractTests.test_prompts_match_and_carry_state_contract"], "proves": ["Unattended manifest fields fail closed when malformed."], "does_not_prove": ["A live ambient run is useful."]}
+    },
+    {
+      "id": "source-coverage", "feature_id": "source-coverage", "title": "Record exact synthetic source coverage",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#brief-partial-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "mail", "calendar", "teams"], "forbidden_skills": ["planner"]},
+      "expected": {"user_visible_invariants": ["Each source attempt has its own status, observations and checkpoint semantics."], "forbidden_effects": ["Do not advance a checkpoint for unavailable or partial coverage."], "evidence_limitations": ["Coverage proves collection state, not relevance or model use."]},
+      "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_partial_brief_uses_real_coverage_and_publication_primitives"], "proves": ["Production coverage start/page/finish primitives are directly exercised."], "does_not_prove": ["Every possible provider item was returned."]}
+    },
+    {
+      "id": "output-delivery", "feature_id": "output-delivery", "title": "Record a synthetic private output receipt",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#brief-partial-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Prepared and durably available output remain distinct."], "forbidden_effects": ["Do not call local availability host publication or user review."], "evidence_limitations": ["A local receipt does not prove the user saw the output."]},
+      "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_partial_brief_uses_real_coverage_and_publication_primitives"], "proves": ["Production publication receipt primitives are directly exercised."], "does_not_prove": ["Host delivery or review."]}
+    },
+    {
+      "id": "doctor", "feature_id": "doctor", "title": "Report synthetic health gaps truthfully",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#setup-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Missing, corrupt and optional components have distinct states."], "forbidden_effects": ["Do not initialize, repair or authenticate during inspection."], "evidence_limitations": ["Doctor health does not prove service availability."]},
+      "evidence": {"selectors": ["test_proactive_state.StateTests.test_doctor_snapshot_cli_and_corrupt_state", "test_task_cli.TaskCLITests.test_read_setup_and_full_local_workflow_across_processes"], "proves": ["Production doctor snapshots report corrupt state without reset.", "The task health CLI read reports unreconciled attempts without initializing missing state."], "does_not_prove": ["A remote provider is healthy."]},
+      "cli_refs": [{"path": "skills/chief-of-staff/scripts/task_state.py", "commands": ["health"]}],
+      "canvas_refs": [{"id": "margo-task-progress", "actions": ["health"]}]
+    },
+    {
+      "id": "action-desk-canvas", "feature_id": "action-desk-canvas", "title": "Render synthetic action review without a hidden send route",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#commitment-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["The renderer shows exact revisions, errors and approval state from the core."], "forbidden_effects": ["Do not add an independent approve or send path."], "evidence_limitations": ["This mapping is a UI contract, not executable canvas evidence."]},
+      "evidence": {"selectors": [], "proves": ["Core parity and forbidden hidden actions are explicit requirements."], "does_not_prove": ["Canvas accessibility or rendering correctness."]}
+    },
+    {
+      "id": "upgrade-migration", "feature_id": "upgrade-migration", "title": "Preserve synthetic state through upgrade",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#setup-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Existing memory and customizations survive installed task-core changes."], "forbidden_effects": ["Do not reset, downgrade or overwrite private state."], "evidence_limitations": ["The test uses a synthetic installed copy."]},
+      "evidence": {"selectors": ["test_task_cli.TaskCLITests.test_installed_task_core_preserves_existing_memory_and_customizations"], "proves": ["Installed-copy migration preserves synthetic existing state."], "does_not_prove": ["Every historical release upgrade path."]}
+    },
+    {
+      "id": "uninstall", "feature_id": "uninstall", "title": "Remove a synthetic installation safely",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#setup-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Managed files are removed according to provenance."], "forbidden_effects": ["Do not remove private state or unrelated edits."], "evidence_limitations": ["Platform coverage depends on available shells."]},
+      "evidence": {"selectors": ["test_install_cli.InstallCLITests.test_shell_install_reinstall_uninstall"], "proves": ["The supported shell uninstall path is exercised."], "does_not_prove": ["All operating systems are covered."]}
+    },
+    {
+      "id": "containers", "feature_id": "containers", "title": "Keep synthetic container use explicit",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#setup-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Optional container requirements and private-state mounts are explicit."], "forbidden_effects": ["Do not start a container, download a model or mount real account data."], "evidence_limitations": ["No container runtime is invoked."]},
+      "evidence": {"selectors": [], "proves": ["Container behavior is documented as optional and non-executed."], "does_not_prove": ["A container image works."]}
+    },
+    {
+      "id": "memory-capture", "feature_id": "memory-capture", "title": "Capture synthetic memory only within policy",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#memory-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "memory"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Capture is opt-in, scoped and remains unconfirmed unless reviewed."], "forbidden_effects": ["Do not silently confirm a preference or broaden capture."], "evidence_limitations": ["Local capture tests do not inspect host retention."]},
+      "evidence": {"selectors": ["test_memory_governance.GovernanceTests.test_capture_is_opt_in_scoped_and_cannot_confirm_a_preference"], "proves": ["Production memory capture policy and authority boundaries are exercised."], "does_not_prove": ["A model chooses appropriate facts to remember."]}
+    },
+    {
+      "id": "memory-retrieval", "feature_id": "memory-retrieval", "title": "Retrieve only current eligible synthetic memory",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#memory-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "memory"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Mandatory preferences, stale records and lexical fallback remain explicit."], "forbidden_effects": ["Do not retrieve forgotten, stale or ineligible content as authority."], "evidence_limitations": ["Synthetic ranking does not prove relevance on real corpora."]},
+      "evidence": {"selectors": ["test_memory_search.SearchTests.test_lexical_fallback_explicit_and_unindexed_memories_visible"], "proves": ["Production retrieval fallback and visibility rules are exercised."], "does_not_prove": ["Optional semantic quality."]}
+    },
+    {
+      "id": "memory-control", "feature_id": "memory-control", "title": "Correct and forget synthetic memory safely",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#memory-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "memory"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Forgetting removes eligible history and queues index deletion."], "forbidden_effects": ["Do not resurrect forgotten records from backup or stale indexes."], "evidence_limitations": ["Repository deletion cannot erase external logs."]},
+      "evidence": {"selectors": ["test_memory_store.MemoryStoreTests.test_forgetting_erases_history_queues_delete_and_denies_reimport"], "proves": ["Production forgetting, deletion queue and reimport denial are exercised."], "does_not_prove": ["External systems forgot the content."]}
+    },
+    {
+      "id": "memory-learning", "feature_id": "memory-learning", "title": "Learn only from reviewed synthetic evidence",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#memory-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "memory"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Counterexamples, environment pins and exact review remain visible."], "forbidden_effects": ["Do not treat installation or tool exposure as competence."], "evidence_limitations": ["Review state does not guarantee future model compliance."]},
+      "evidence": {"selectors": ["test_memory_learning.LearningStoreTests.test_tool_discovery_exposure_and_retirement_are_not_competence"], "proves": ["Production learning separates tool discovery from validated capability."], "does_not_prove": ["A model improves from the lesson."]}
+    },
+    {
+      "id": "memory-trends", "feature_id": "memory-trends", "title": "Surface synthetic trends from sufficient evidence",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#memory-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "memory"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Trend windows, source coverage and independent events are explicit."], "forbidden_effects": ["Do not infer a trend from duplicates or incomplete coverage."], "evidence_limitations": ["Synthetic event counts do not establish statistical generality."]},
+      "evidence": {"selectors": ["test_memory_learning.LearningTests.test_trends_require_coverage_population_and_distinct_events"], "proves": ["Production trend validation requires coverage and distinct evidence."], "does_not_prove": ["A trend is useful to the user."]}
+    },
+    {
+      "id": "memory-export", "feature_id": "memory-export", "title": "Export an exact reviewed synthetic memory recipe",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#memory-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "memory"], "forbidden_skills": ["files"]},
+      "expected": {"user_visible_invariants": ["The export recipe is sanitized, private and exactly reviewed."], "forbidden_effects": ["Do not overwrite or imply publication."], "evidence_limitations": ["A local export is not a sharing receipt."]},
+      "evidence": {"selectors": ["test_memory_governance.GovernanceTests.test_sanitized_export_is_exact_reviewed_private_and_never_overwrites"], "proves": ["Production export review and overwrite protections are exercised."], "does_not_prove": ["Exported content is safe for every audience."]}
+    },
+    {
+      "id": "memory-canvas", "feature_id": "memory-canvas", "title": "Render synthetic memory as a read-safe optional surface",
+      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#memory-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "memory"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Canvas status reflects core authority, freshness and optional runtime gaps."], "forbidden_effects": ["Do not add hidden capture, confirm or forget semantics."], "evidence_limitations": ["This scenario is a parity contract, not renderer execution evidence."]},
+      "evidence": {"selectors": [], "proves": ["Canvas parity and forbidden hidden mutations are explicit."], "does_not_prove": ["Canvas accessibility or model behavior."]}
+    },
+    {
+      "id": "task-progress", "feature_id": "task-progress", "title": "Show durable synthetic task progress",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#task-recovery-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Pause, completed steps, budgets and safe remaining work stay visible.", "List returns compact summaries while show retains the full plan and steps.", "Record-id resolves a stable task identity without initializing private state."], "forbidden_effects": ["Do not repeat completed work or resume with stale binding.", "Read-only CLI and canvas views must not initialize task state."], "evidence_limitations": ["Task state does not prove model planning quality.", "Canvas declarations prove read-action parity, not renderer behavior."]},
+      "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_task_pause_cancel_expiry_retry_unknown_write_and_resume", "test_task_cli.TaskCLITests.test_read_setup_and_full_local_workflow_across_processes"], "proves": ["Production TaskStore pause, resume and status transitions are exercised.", "CLI record-id/list/show/history/health use pure, compact and full read contracts without exposing claim tokens."], "does_not_prove": ["A model creates an optimal task plan.", "The canvas UI renders every state accessibly."]},
+      "cli_refs": [{"path": "skills/chief-of-staff/scripts/task_state.py", "commands": ["record-id", "list", "show", "history", "health"]}],
+      "canvas_refs": [{"id": "margo-task-progress", "actions": ["list", "show", "history", "health"]}]
+    },
+    {
+      "id": "task-recovery", "feature_id": "task-recovery", "title": "Recover synthetic tasks without repeating uncertain writes",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#task-recovery-v1",
+      "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
+      "expected": {"user_visible_invariants": ["Expired reads retry with backoff; uncertain writes require reconciliation; cancelled tasks stay cancelled."], "forbidden_effects": ["Do not auto-retry a write or call cancellation rollback."], "evidence_limitations": ["Synthetic receipts do not prove remote outcomes."]},
+      "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_task_pause_cancel_expiry_retry_unknown_write_and_resume"], "proves": ["Production TaskStore expiry, retry, outcome-unknown, reconciliation and cancellation are exercised."], "does_not_prove": ["A remote provider result."]}
+    }
+  ]
+}

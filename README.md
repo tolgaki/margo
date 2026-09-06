@@ -92,22 +92,47 @@ obligations, carries versioned actions across sessions, and records approval and
 Source-level coverage and leased delivery prevent a successful mail read or a drained queue from
 being mistaken for a complete brief. See **[Closed-loop productivity](docs/closed-loop.md)**.
 
+**Local semantic memory:** user context and agent learning now have explicit memory records,
+keyword and vector indexes in the same private SQLite database, and bounded context retrieval.
+The optional embedding runtime runs a pinned model on the machine, not through a cloud embedding
+service. See **[Semantic memory setup](docs/how-to/semantic-memory.md)**. Model installation and
+preference seeding are explicit steps, separate from copying code.
+Capture is opt-in. Review scope and retention, inspect why a memory was used, suppress or forget
+it, and export only a separately reviewed generic lesson through
+[Memory controls and learning](docs/how-to/memory-controls-and-learning.md).
+
+### Use Margo
+
+Task-oriented docs for running the assistant day to day. Start with
+**[the full feature index](docs/features.md#full-feature-index)** for every capability, its
+availability, and where its guide lives.
+
 | Doc | What it covers |
 |---|---|
 | **[Getting started](docs/getting-started.md)** | Install, connect Work IQ, first run |
-| **[How-to guides](docs/how-to/README.md)** | Setup, candidate review, action desk, planning, meetings, learning and health |
-| **[Feature reference](docs/features.md)** | What 1.1 implements, where it lives, and its limits |
-| **[Changelog](CHANGELOG.md)** | Release-level feature and deployment changes |
+| **[How-to guides](docs/how-to/README.md)** | Briefs, inbox, calendar, commitments, meetings, files, GitHub/ADO, community, decisions, memory and health — one guide per task |
+| **[Feature reference](docs/features.md)** | Every capability, where it lives, and its limits |
+| **[Personalization](docs/personalization.md)** | Teaching Margo your voice, VIPs and rules |
+| **[Trust & safety](docs/safety.md)** | The approval model, prompt-injection defence, privacy |
+| **[Walkthroughs](docs/walkthroughs.md)** | End-to-end: calendar management → sending the email |
+| **[Proactive & scheduled](docs/proactive.md)** | Unattended briefs, sweeps, and the state ledger |
 | **[Closed-loop productivity](docs/closed-loop.md)** | How the ledger, actions, evidence and connected routines fit together |
+| **[Changelog](CHANGELOG.md)** | Release-level feature and deployment changes |
+
+### Build with Margo
+
+This repo is a **reference implementation**, not a product — these docs are for forking it,
+understanding the Work IQ tool surface, or extending a skill.
+
+| Doc | What it covers |
+|---|---|
+| **[Build your own](docs/build-your-own.md)** | The agent/skill split, and how to fork this |
 | **[How Margo uses Work IQ](docs/work-iq.md)** | `retrieve` vs `fetch` vs `ask`, payload discipline, failure modes |
 | **[The chief-of-staff playbook](docs/chief-of-staff.md)** | The routines and when each fires |
-| **[Walkthroughs](docs/walkthroughs.md)** | End-to-end: calendar management → sending the email |
-| **[Personalization](docs/personalization.md)** | Teaching Margo your voice, VIPs and rules |
-| **[Proactive & scheduled](docs/proactive.md)** | Unattended briefs, sweeps, and the state ledger |
-| **[Trust & safety](docs/safety.md)** | The approval model, prompt-injection defence, privacy |
-| **[Build your own](docs/build-your-own.md)** | The agent/skill split, and how to fork this |
 | **[Running in a container](docs/container.md)** | Reproducible unattended runs, and the two-sign-in problem |
 | **[Margo as an autopilot](docs/autopilot.md)** | Design note: her own identity via Entra Agent ID — and what it breaks |
+| **[The agentic development plan](docs/agentic-development-plan.md)** | The contribution contract, state ownership, and delivery sequencing for coding agents |
+| **[Contributing](CONTRIBUTING.md)** | Ground rules, testing, and the one hard rule about real data |
 
 ---
 
