@@ -6,20 +6,13 @@ what matters, what's coming, and what needs them.
 ## Procedure
 
 1. **Load preferences** (`../preferences.md`) — working hours, VIPs, projects, brief depth —
-   and **`../commitments.md`** — open commitments and waiting-on items to carry into the brief.
+   and the **canonical work ledger** — confirmed obligations, candidates, waiting-on items, and
+   unresolved execution outcomes. Read `work-ledger.md` and `action-desk.md`.
 
-   **Then drain the queue**, before fetching anything:
-
-   ```bash
-   python3 scripts/proactive_state.py queue-drain --format json   # prints 'batch <id>' on stderr
-   # ...render the brief, THEN, with the id it printed:
-   python3 scripts/proactive_state.py queue-ack --batch <id>
-   ```
-
-   These are items the day's sweeps already noticed and deliberately didn't interrupt for. Fold
-   each into the section its `section` field names — they are context for the brief, not a
-   separate block. **A brief that ignores the queue is just an on-demand scrape**, and the whole
-   proactive tiering becomes decorative. See `../references/proactive.md`.
+   **Use the anchor's existing leased batch; do not drain again.** If this is an on-demand brief
+   with no anchor yet, own one batch using `state-operations.md`. Fold items into the sections
+   named by their `section` field. Publish the actual output and receipt before acknowledging
+   only its included IDs. Source coverage and publication are separate state transitions.
 
 2. **Enumerate the skeleton (use `workiq-fetch`, in parallel, always with `$select` + `$top`):**
    - **Calendar:** today's `/me/calendarView` between start/end of day
@@ -48,16 +41,19 @@ what matters, what's coming, and what needs them.
    - "For today's meetings {list titles}, what's the purpose and what do I need to prepare?"
    Use delta endpoints (`workiq-call_function`) for precise "since yesterday" changes.
 
-4. **Prioritize.** Rank by: VIP sender → hard deadline today → blocks others → external/customer
-   → quick win. Cap top priorities at 5. Everything else goes to FYI or read-later.
+4. **Prioritize.** Rank by hard deadline, consequence, what is unblocked, agreed outcome impact,
+   and effort, respecting the user's explicit VIP overrides. Use `outcomes.md` for the capacity
+   trade-off; broad focus areas are not automatically confirmed weekly outcomes. Cap top
+   priorities at 5. Everything else goes to FYI or read-later.
 
 5. **Render** in the Standard Daily Brief format (see SKILL.md). Trim empty sections. Every
    actionable line ends in a recommended action (reply / delegate / decline / schedule / read).
-   Render "Waiting on / open commitments" from `../commitments.md` (plus anything new found
-   today); flag items past their due date or stale enough to nudge.
+   Render confirmed work separately from new candidates; recheck resolution before recommending
+   a nudge. Include material coverage gaps and execution problems, not just the host run status.
 
-6. **Offer next steps:** prep a specific meeting, open Draft Studio for the top replies, or
-   deep-dive an item. Propose — never send.
+6. **Prepare next steps:** persist the useful draft or work product in the action desk, with
+   evidence and the exact proposed action. In a foreground session ask for the one decision that
+   matters; unattended, finish without a question or offer. Never send without explicit approval.
 
 ## Depth control
 - **Quick brief:** top priorities + calendar + needs-response only.
@@ -85,13 +81,18 @@ first" recommendation.
 - Unanswered items that will roll to tomorrow (with recommended handling).
 - Commitments the user made today (so nothing is dropped) and what they're waiting on from others.
 - Tomorrow's first-look: earliest meeting, anything needing prep tonight.
-- **Update `../commitments.md`** (with approval): add commitments made today, mark resolved ones
-  done, refresh waiting-on entries. This is the moment the tracker earns its keep.
+- **Stage work-ledger updates:** add candidates and suspected resolutions with evidence; confirm
+  them only with approval. Regenerate the compatibility view after approved transitions rather
+  than hand-editing it. An unattended run leaves candidates ready for later review.
 
 ## § Week ahead ("prepare me for next week")
 
 Forward-looking, not a rolled-up daily brief. The job is to surface what the user must *decide,
 prepare, or protect* before the week starts — while there is still time to move things.
+
+Follow `outcomes.md` for agreed outcomes and deterministic capacity calculation. Use the work
+ledger instead of writing a second task list. Missing deadlines, estimates, or complete calendar
+coverage remain explicit gaps; do not report a feasible allocation from incomplete inputs.
 
 1. **Load `../preferences.md`** (working hours, focus blocks, VIPs) and **`../commitments.md`**.
 

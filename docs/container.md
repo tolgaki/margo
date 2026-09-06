@@ -11,12 +11,15 @@ is the one to read first.
 
 ## What Copilot CLI actually loads
 
-Everything lives under `~/.copilot`. Four paths matter:
+The host's default configuration root is `~/.copilot`. The important paths are:
 
 ```
 ~/.copilot/
   agents/margo.agent.md              the persona
   skills/<name>/SKILL.md             the playbooks
+  skills/chief-of-staff/scripts/     local state and productivity tools
+  margo/config.json                 explicitly configured ledger owner, not OAuth
+  margo/state/<account-hash>/        private SQLite work and delivery database
   mcp-config.json                    { "mcpServers": { … } }
   installed-plugins/_direct/<name>/  a plugin: .mcp.json + its own skills/
   mcp-oauth-config/                  ← OAuth state. CREDENTIALS. See below.
@@ -98,10 +101,31 @@ COPY --chown=margo:margo automations/ /home/margo/.copilot/automations/
 ENTRYPOINT ["copilot"]
 ```
 
-Build from the repo root:
+**Before using this example**, supply a `.dockerignore` that excludes local runtime material.
+Git ignore rules are not Docker build exclusions. At minimum:
+
+```text
+.git
+.github
+build
+dist
+**/__pycache__
+skills/*/state
+skills/*/preferences.md
+skills/*/commitments.md
+skills/*/config.md
+tools/forbidden.local.txt
+*.local.*
+**/*.sqlite*
+**/mcp-oauth-config
+```
+
+Mount private configuration at runtime rather than removing these exclusions. Inspect the
+build context and use a clean, sanitised checkout. Save the illustrative Dockerfile before
+building; this repository does not ship one.
 
 ```bash
-docker build -f Dockerfile -t margo:1.0.0 .
+docker build -f Dockerfile -t margo:1.1.0 .
 ```
 
 ### What is baked vs mounted, and why
@@ -114,6 +138,7 @@ docker build -f Dockerfile -t margo:1.0.0 .
 | `mcp-oauth-config/` | **never** | ✅ credential |
 | `preferences.md`, `commitments.md` | **never** | ✅ your data |
 | `skills/*/state/` | **never** | ✅ must persist between runs |
+| `margo/config.json`, `margo/state/` | **never** | ✅ explicit owner and the new account-scoped SQLite state |
 
 The rule: **if `check-clean.sh` would flag it, it does not belong in a layer.**
 
@@ -125,15 +150,20 @@ The rule: **if `check-clean.sh` would flag it, it does not belong in a layer.**
 docker run --rm -it \
   -e GH_TOKEN \
   -v margo-oauth:/home/margo/.copilot/mcp-oauth-config \
-  -v margo-state:/home/margo/.copilot/skills/chief-of-staff/state \
+  -v margo-state:/home/margo/.copilot/margo \
+  -v margo-legacy:/home/margo/.copilot/skills/chief-of-staff/state \
   -v "$HOME/.copilot/installed-plugins:/home/margo/.copilot/installed-plugins:ro" \
-  -v "$PWD/preferences.md:/home/margo/.copilot/skills/chief-of-staff/preferences.md:ro" \
-  margo:1.0.0
+  -v "$HOME/.copilot/skills/chief-of-staff/preferences.md:/home/margo/.copilot/skills/chief-of-staff/preferences.md:ro" \
+  margo:1.1.0
 ```
 
 Named volumes for the two things that must survive a run — OAuth tokens and the
 state ledger. Read-only bind mounts for the two things the container should never
-modify — the plugin directory and your personalization.
+modify — the plugin directory and your personalization. The legacy volume is only needed for
+legacy state and rolling agenda files. Provision state volume ownership for the container's
+non-root user and mode 0700; do not weaken the storage guard to make a root-owned mount work.
+Initialise the confirmed account inside the container, and migrate legacy state once, following
+[setup and migration](how-to/setup-and-migration.md). An empty mount is not an imported database.
 
 ### Seeding the OAuth volume, once
 
@@ -154,19 +184,21 @@ beyond refresh.
 docker run --rm \
   -e GH_TOKEN \
   -v margo-oauth:/home/margo/.copilot/mcp-oauth-config \
-  -v margo-state:/home/margo/.copilot/skills/chief-of-staff/state \
+  -v margo-state:/home/margo/.copilot/margo \
+  -v margo-legacy:/home/margo/.copilot/skills/chief-of-staff/state \
   -v "$HOME/.copilot/installed-plugins:/home/margo/.copilot/installed-plugins:ro" \
+  -v "$HOME/.copilot/skills/chief-of-staff/preferences.md:/home/margo/.copilot/skills/chief-of-staff/preferences.md:ro" \
   --entrypoint /home/margo/.copilot/tools/margo-scheduled.sh \
-  margo:1.0.0 brief
+  margo:1.1.0 brief
 ```
 
 **Use the wrapper, not a hand-written `copilot` line.** `--allow-all-tools` alone
 removes the approval prompt, which in an unattended container means nothing stands
 between a mistaken routine and a sent email. The wrapper adds four `--deny-tool`
 rules covering every Work IQ write tool, and denial takes precedence over every
-allow rule — so the read-only contract in [Proactive & scheduled](proactive.md)
-becomes enforced rather than instructed. The deny list is hard-coded and cannot be
-trimmed.
+allow rule. Those four Work IQ paths are blocked, but general-purpose tools remain available;
+this does not enforce read-only behaviour across every possible outbound route. The deny list
+is hard-coded and cannot be trimmed.
 
 That requires `tools/` **and** `automations/` in the image — the wrapper reads its
 prompt from the latter and exits with an error if it is missing. Both are in the
@@ -175,9 +207,10 @@ Dockerfile above.
 Belt and braces: give the container a Work IQ identity with read-only scopes too,
 so the tenant enforces it independently of any flag.
 
-The state volume is what makes scheduled runs coherent — `proactive_state.py`
-keeps the surfaced ledger, the in-flight queue and the delta cursors there. Lose
-it and every run re-reports everything it already told you.
+The state volume is what makes scheduled runs coherent: both local CLIs use the account-scoped
+database for work, source coverage and publication receipts. Losing it loses continuity.
+Back up SQLite consistently with writers stopped or the SQLite backup API; copying a live
+database file alone is not an adequate backup procedure.
 
 ---
 
@@ -188,7 +221,6 @@ The image carries the agent and skills, so **rebuild rather than run
 layer that disappears on exit.
 
 ```bash
-echo 1.1.0 > VERSION            # see packaging/README.md
 docker build -t margo:1.1.0 .
 ```
 

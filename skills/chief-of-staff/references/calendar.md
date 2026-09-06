@@ -5,6 +5,12 @@ create, update, cancel, accept, decline, tentative — happen only after explici
 specific action.** Note that declining or cancelling *sends a message* to the organizer/attendees;
 treat it with the same care as any send.
 
+Persist proposed changes in the action desk (`action-desk.md`) with exact occurrence IDs,
+old/new times, affected people, and source revisions. A named organiser-owned cascade may be
+approved as one exact plan; never extend that approval to additional moves or attendee messages.
+Recheck external state before each approved step. Record completed and unfinished steps on
+partial failure; a rollback that sends notifications needs its own valid approval.
+
 ## Modes
 
 ### A. Find time / schedule ("find 30 min with Dana this week", "set up a follow-up")
@@ -151,4 +157,5 @@ If any answer is bad, rewrite before showing it to the user.
 - Cancellations and declines are outward-facing sends: show exactly what the recipient
   experiences before asking for approval.
 - If the request creates follow-up obligations ("send the agenda before Friday"), offer to log
-  them in `../commitments.md`.
+  them as candidates in the work ledger. Use `outcomes.md` for capacity planning and
+  `meeting-lifecycle.md` to connect the new occurrence to preparation and follow-through.

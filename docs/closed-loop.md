@@ -1,0 +1,100 @@
+# Closed-loop productivity
+
+Margo's portable core now has two linked responsibilities: `proactive_state.py` records what
+sources were covered and what output is available; `work_state.py` records obligations,
+prepared actions, approvals, and results. Both use the same account-scoped SQLite store.
+Neither script makes Microsoft 365 writes. The interactive agent performs explicitly approved
+Work IQ actions and records their actual results.
+
+Start with the [how-to index](how-to/README.md) for step-by-step recipes or the
+[feature reference](features.md) for implemented behaviour and limits.
+
+## Install and upgrade
+
+Python 3.9+ is required. From a reviewed checkout:
+
+```bash
+./install.sh --all --dry-run
+./install.sh --all
+```
+
+For an unversioned installation, use that normal install rather than `update`. Do not use
+`--force` to repair missing metadata: that option also overwrites personal files. Back up existing
+code and state, pause affected schedules, and review managed-file customisations first.
+
+The installer records the version, source revision when available, and managed-file hashes.
+The private runtime directory is not removed on uninstall. Legacy state stays intact until an
+explicit migration; do not run the old and new writers concurrently.
+
+The action-desk canvas is opt-in:
+
+```bash
+./install.sh --all --action-desk
+```
+
+```powershell
+.\install.ps1 -All -ActionDesk
+```
+
+Reload Copilot extensions after installing it. The reference checkout also declares the project
+canvas. It uses the same CLI backend and private records, not a browser database. Customised
+renderer files are preserved rather than overwritten silently.
+
+## Setup and migration
+
+Follow [State operations](../skills/chief-of-staff/references/state-operations.md) for account
+configuration, source coverage, migration, publication receipts, and doctor commands.
+Use an explicitly confirmed account, never one guessed from git or the local OS.
+
+Complete working hours, focus policy, and priorities in the private preferences file. If
+priorities are only broad focus areas, keep weekly outcomes unconfirmed until their definition
+of done, due date, and effort have been agreed.
+
+Read [Work ledger](../skills/chief-of-staff/references/work-ledger.md) for candidate review and
+commitment import/export. Migration preserves original files and does not promote old notification
+history into evidence that an obligation was confirmed or completed. `commitments.md` becomes
+a compatibility view after cutover; edits are detected rather than silently discarded.
+
+## The action desk
+
+Read [Action desk](../skills/chief-of-staff/references/action-desk.md). Each proposal has its
+work item, evidence, why now, exact target/payload, revision, and current state.
+
+Editing recipients or content invalidates approval. The agent re-reads relevant source/target
+state before executing. A timeout can leave an outcome unknown; it is not a safe automatic retry.
+Partial plans retain their completed and unfinished steps.
+
+The canvas is a review surface. Requesting a foreground review does not approve a send, and
+model-invokable canvas actions do not impersonate user approval. Final explicit approval remains
+in the conversation. The ledger enforces its own state transitions but does not sandbox other
+tools available to the agent.
+
+## Connected routines
+
+| Routine | What is connected |
+|---|---|
+| [Outcomes](../skills/chief-of-staff/references/outcomes.md) | Agreed outcomes, dependencies, calendar capacity, and explicit trade-offs |
+| [Meeting lifecycle](../skills/chief-of-staff/references/meeting-lifecycle.md) | Rolling agenda, preparation, delayed recap, debrief, and carry-forward |
+| [Feedback](../skills/chief-of-staff/references/feedback.md) | Specific corrections, proposed scoped rules, activation, and revocation |
+| [Work products](../skills/chief-of-staff/references/work-products.md) | Sourced memos, comparisons, status notes, agendas, and delegation briefs |
+
+Private preparation is not publication. Confirming a commitment is not approval to send its
+follow-up. Approving a work product is not approval to distribute it. Planner tasks and decision
+logs keep their own canonical IDs; the ledger links to them rather than silently creating copies.
+
+## Operational limits
+
+An OAuth failure blocks the live bootstrap until the Work IQ connection is signed in again.
+An unsupported or denied source is not an empty one. Source coverage is recorded separately
+from scheduler success, and a local scheduler cannot report while its machine is asleep.
+
+Use synthetic fixtures before enabling new behaviour, then review-only operation, then one
+specifically approved action. Retain the current database on rollback; restarting a legacy writer
+or blindly restoring an old snapshot could lose the intervening history.
+
+## Memory boundary
+
+This release remembers operational evidence and decisions through the ledger and reads explicit
+personal preferences. It does not yet maintain a general user-context graph or a procedural
+learning library. Scoped feedback rules are supported, but installing a skill does not imply
+proven competence with it. Keep proposed memory architecture separate from implemented features.

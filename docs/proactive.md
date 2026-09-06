@@ -20,8 +20,8 @@ So the output contract changes, and getting this wrong is the main way the featu
 - **Never ask a question.** There is no one to answer. A run that ends in a question is a hung
   run.
 - **No trailing offers.** Don't close with "want me to draft that?" — queue the item instead.
-- **Silence is success.** A run that finds nothing worth interrupting for writes its cursor and
-  exits quietly. *"Nothing needs you"* is a **completed** run, not a failed one.
+- **Healthy silence is success.** A completely covered source with no interrupt-worthy findings
+  needs no message. Missing coverage is recorded as a health problem, not an empty successful sweep.
 - **Read-only, always.** No sends, replies, posts, reactions, RSVPs, deletes or work-item changes
   — regardless of any standing authorization. Drafts may be prepared and held; never delivered.
 - **Surface script failures.** A `WARNING` or non-zero exit from the state script goes into the
@@ -40,7 +40,7 @@ An item may break silence **only** if it clears one of these. Everything else qu
    asking for something.
 2. **It touches a meeting starting within 2 hours** — a cancellation, a room change, a pre-read
    that just landed, an attendee dropping out.
-3. **A commitment due today, still open** — from `commitments.md`.
+3. **A confirmed commitment due today, still open** — from the work ledger, after a resolution check.
 4. **A meeting cancelled or moved** — it either breaks the day or frees an hour. Both are worth
    knowing immediately.
 5. **An explicit deadline today** — stated in the message, not inferred.
@@ -93,8 +93,9 @@ into the section it belongs in — *Needs your response*, *FYI*, *Waiting on*. N
 > The morning brief must read as an **accumulation, not a scrape**. If it looks identical to what
 > "brief me" produces on demand, the queue isn't being drained and the tiering is decorative.
 
-Then it marks everything it rendered, sets cursors for every delta source consumed, and prunes
-weekly.
+The anchor alone leases its batch; the underlying routine never drains again. It persists the
+output and a publication receipt before acknowledging only the included items. Source checkpoints
+advance independently after complete ingestion, not as a blanket step at the end of the brief.
 
 ### Tier 2 — Sweeps
 
@@ -105,11 +106,12 @@ week. Sweeps use `workiq-call_function` (delta) and `workiq-fetch` only.
 
 > A sweep that takes a minute and prints nothing is a bug.
 
-Highest-value delta source is `/me/calendarView/delta` — cancellations and moves are the things
-you most want to know about within the hour.
+Calendar cancellations and moves are high-value signals. Discover supported delta capabilities
+and record unavailable or denied sources honestly; a known path is not proof it works in a tenant.
 
-First run has a trap: if there's no cursor yet, **don't sweep from the epoch**. Use the last hour
-and set the cursor.
+First run has a trap: if there's no successful source checkpoint, **don't sweep from the epoch**.
+Use a bounded window and record its boundary. Never advance the source's successful checkpoint
+because another source succeeded.
 
 ### Tier 3 — Ambient
 
@@ -121,27 +123,24 @@ document queue, stale PRs. Findings are promoted into an anchor rather than inte
 ## State lives on disk
 
 Every scheduled run is **a fresh session with no memory**. Continuity comes from
-`scripts/proactive_state.py`, which is the ledger for what's already been surfaced, what's queued
-for the next anchor, and the delta cursors.
+`scripts/proactive_state.py`, which manages leased delivery batches and per-source coverage in
+the private account-scoped SQLite store shared with `work_state.py`.
 
 ```bash
-python3 scripts/proactive_state.py seen "<id>"      # exit 0 = already told them, 1 = new
-python3 scripts/proactive_state.py mark "<id>" --tier sweep
-python3 scripts/proactive_state.py queue-add --json '{"id":"…","title":"…","action":"…"}'
-python3 scripts/proactive_state.py queue-drain      # prints a batch id, holds items in flight
-python3 scripts/proactive_state.py queue-ack --batch <id>   # retire AFTER the brief rendered
-python3 scripts/proactive_state.py cursor-get mail  # exit 1 = no cursor yet
-python3 scripts/proactive_state.py cursor-set mail "2026-08-22T18:00:00Z"
-python3 scripts/proactive_state.py prune --days 30
+python3 scripts/proactive_state.py --help
 python3 scripts/proactive_state.py status
+python3 scripts/margo_doctor.py --help
+python3 scripts/work_state.py --help
 ```
 
 Two rules:
 
-- **Never hand-edit the JSON**, and never track "did I already mention this?" in reasoning.
+- **Never hand-edit the database or legacy JSON**, and never track "did I already mention this?"
+  in reasoning. Use [State operations](../skills/chief-of-staff/references/state-operations.md)
+  for configuration, migration, coverage, and publication.
 - **IDs must be stable identifiers** — a message ID, event ID, `owner/repo#123`, `engage:<postId>`.
-  **Never a summary string.** The wording changes between runs, dedupe silently fails, and the
-  result looks exactly like an assistant nagging you.
+  Pair identity with revision: a moved event can keep its ID and still need attention.
+  **Never a summary string.** Rewording must not create a new obligation.
 
 Suggested prefixes: `mail:` `evt:` `chat:` `gh:` `ado:` `engage:` `commit:` `person:`.
 
@@ -164,9 +163,10 @@ Queued items are stored **renderable**, so the anchor doesn't have to re-fetch:
 
 ### Privacy note
 
-Everything under `state/` contains **real subjects, senders and links from your mailbox** — plus
-relationship notes and 1:1 agendas, which are Markdown rather than JSON. The whole subtree is
-gitignored with no exceptions, and both installers archive all of it rather than deleting it. Don't move it somewhere synced without thinking about who else has access.
+The user-scoped `margo/state/` directory contains private account data and survives uninstall.
+Legacy skill `state/` files and rolling agendas remain private and are preserved during migration.
+Do not move either into a repository or shared-sync folder. File permissions are not application
+encryption; protect the local account and backups accordingly.
 
 ---
 
@@ -178,12 +178,9 @@ Verify the ledger first:
 python3 ~/.copilot/skills/chief-of-staff/scripts/proactive_state.py status
 ```
 
-```
-state dir : …/skills/chief-of-staff/state
-surfaced  : 0
-queued    : 0
-cursors   : (none)
-```
+An unconfigured account reports setup required. Follow the
+[migration procedure](../skills/chief-of-staff/references/state-operations.md) before enabling
+schedules; an empty new store is not proof that the old queue or commitments were imported.
 
 Then pick how you want the schedule to run. **Both paths read the same
 `automations/` files** — the difference is what's enforced.
@@ -230,8 +227,8 @@ The wrapper also passes `--allow-all-tools`, so shell, `gh` and `curl` stay
 available: the guarantee is precise about Work IQ writes and remains an
 instruction everywhere else. That is the intended trade — see
 [**what is enforced, and what is asked**](safety.md#what-is-enforced-and-what-is-asked)
-— and if you want outbound actions unreachable rather than unused,
-[run the schedule in a container](container.md).
+— a container can help reduce exposure, but only with appropriately restricted credentials,
+network and tools; [the container design](container.md) is not an enforced sandbox by itself.
 
 That matters because the failure mode here is not malice, it is someone copying
 four lines into a crontab and trimming one. Without them you are trusting an
@@ -241,6 +238,8 @@ instruction not to send mail at 06:00 while you are asleep.
 
 Ask Margo to **"sync my automations"** and she registers each file as a workflow, matching on
 `name` so a re-sync updates rather than duplicates.
+The updated workflows explicitly select the Margo agent. Copy deployment alone does not
+change saved app prompts. Review custom prompt differences and leave unrelated workflows alone.
 
 > ⚠️ **The deny list does not apply here.** App workflows run under the app's own permissions,
 > so on this path read-only is an instruction the model follows, not a wall it cannot cross. The
@@ -256,3 +255,7 @@ system than to regain trust in a noisy one.
 When you invoke a proactive routine **directly** (*"run my sweep"*, *"what's changed since
 lunch"*), the queue-only rule drops: Margo reports what she finds in the moment, then still
 records it as surfaced so the next anchor doesn't repeat it.
+
+For the exact coverage, token, lease, standalone-output, and doctor workflows, use
+[the automation-health guide](how-to/automation-health.md). No successful run status should
+be interpreted as proof of source coverage, publication or human review.

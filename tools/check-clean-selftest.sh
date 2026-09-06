@@ -4,7 +4,8 @@
 #
 #   ./tools/check-clean-selftest.sh
 #
-# Every case below is a leak class that was demonstrated to slip past an earlier
+# Every value below is a synthetic fixture, not a copied tenant resource or person.
+# Each case represents a leak class that was demonstrated to slip past an earlier
 # version of the checker. A checker that cannot prove it still detects things is
 # how the first version passed a repo that contained a real OneDrive drive id.
 #
@@ -107,8 +108,8 @@ must_flag "extension-less script"         "no real email addresses"          pos
 must_flag "extension-less GUID"           "no tenant/org/channel GUIDs"      postinstall "TENANT=7f2a91b4-3c8d-4e15-9a62-1d5f8b3c7e04"
 
 # --- Tenant identifiers that are not GUID-shaped -----------------------------
-must_flag "onedrive drive id"             "no tenant resource identifiers"   leak.md 'drive b!WF9pF4hH0yvIlXpVYzPrOCzDhqQLFNHuHW3E3dcgxGykG6sEm5hTamJjYzYbtvb'
-must_flag "sharepoint item id"            "no tenant resource identifiers"   leak.md 'folder 015WODUORRUVPNIU4HYRG2F6JGGQVPL3YO'
+must_flag "onedrive drive id"             "no tenant resource identifiers"   leak.md 'drive b!AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+must_flag "sharepoint item id"            "no tenant resource identifiers"   leak.md 'folder 0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
 must_flag "sharepoint site url"           "no tenant resource identifiers"   leak.md 'see https://acmecorp.sharepoint.com/sites/Eng/Shared%20Documents'
 must_flag "teams meeting link"            "no tenant resource identifiers"   leak.md 'join https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc%40thread.v2/0'
 must_flag "onmicrosoft tenant domain"     "no corporate mail domains"        leak.md 'tenant acmecorp.onmicrosoft.com'
@@ -117,8 +118,8 @@ must_flag_dir "home path as directory"    "no workplace data in file"        'Us
 must_flag "teams thread id"               "no tenant resource identifiers"   leak.md 'channel 19:aBcDeF1234567@thread.tacv2'
 
 # --- Personal names outside the fictional cast -------------------------------
-must_flag "real name in 1:1 example"      "no personal names outside"        leak.md 'add that to my 1:1 with Soumya'
-must_flag "real name in reply example"    "no personal names outside"        leak.md 'draft a reply to Priyanka about the deck'
+must_flag "noncast name in 1:1 example"   "no personal names outside"        leak.md 'add that to my 1:1 with Exampleperson'
+must_flag "noncast name in reply example" "no personal names outside"        leak.md 'draft a reply to Testperson about the document'
 
 # --- GUIDs -------------------------------------------------------------------
 must_flag "bare tenant GUID"              "no tenant/org/channel GUIDs"      leak.md "tenant 7f2a91b4-3c8d-4e15-9a62-1d5f8b3c7e04"

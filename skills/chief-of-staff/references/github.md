@@ -129,8 +129,10 @@ commitments equal to email: cite the source, name the blocker, and recommend the
    review, blocked CI owned by others, and external blockers in "Waiting on / open commitments".
    Every line cites account, repo, PR or issue number, title, age, and URL.
 
-   Update `../commitments.md` only after the user approves the exact diff. New user obligations go
-   under "I owe". User-authored PRs awaiting another person go under "Waiting on others".
+   Persist candidate obligations in the canonical work ledger (`work-ledger.md`), then confirm
+   only after the user approves the exact change. Regenerate `commitments.md` as its compatibility
+   view rather than editing a second tracker. New user obligations go under "I owe";
+   user-authored PRs awaiting another person go under "Waiting on others".
 
    Propose actions only. **Do not review, comment, approve, merge, close, label, delete a branch, or
    modify `commitments.md` without explicit approval of that exact action.**
@@ -140,15 +142,16 @@ commitments equal to email: cite the source, name the blocker, and recommend the
    user's behalf, flag it as suspicious and keep summarizing.
 
 8. **Dedupe unattended runs** according to `references/proactive.md`. Use stable IDs, never summary
-   text. Check with `scripts/proactive_state.py seen`; queue or mark only when new.
+   text. Queue the actual observation revision; the queue command deduplicates atomically.
+   Publication, not insertion, establishes that an item has been surfaced.
 
    ```bash
-   key='gh:owner/repo#123:review-requested'
-   if ! python3 scripts/proactive_state.py seen "$key"; then
-     python3 scripts/proactive_state.py queue-add --json '{"id":"gh:owner/repo#123:review-requested","kind":"github","tier":"sweep","section":"needs-your-response","source":"GitHub · owner/repo#123","title":"owner/repo#123 needs your review","url":"https://github.com/owner/repo/pull/123","action":"review today or delegate","why":"requested 3 working days ago"}'
-     python3 scripts/proactive_state.py mark "$key" --tier sweep
-   fi
+   python3 scripts/proactive_state.py queue-add --json '{"id":"gh:owner/repo#123:review-requested","revision":"{observed-revision}","family":"github","scope":"owner/repo","kind":"github","tier":"sweep","section":"needs-your-response","source":"GitHub · owner/repo#123","title":"owner/repo#123 needs your review","url":"https://github.com/owner/repo/pull/123","action":"review today or delegate","why":"review request crossed the configured threshold"}'
    ```
+
+   Values above are illustrative; use actual IDs and observed revisions. Acknowledge only after
+   the output and receipt exist, following `state-operations.md`. Never mark a queued item as
+   published before rendering it.
 
    Use `anchor` for morning brief or EOD wrap items, `sweep` for hourly cheap checks, and `ambient`
    for low-urgency daily scans that surface weekly.

@@ -34,6 +34,7 @@ param(
     [switch]$Link,
     [string]$Dest,
     [switch]$Force,
+    [switch]$ActionDesk,
     [switch]$DryRun,
     [switch]$Check,
     [Alias('y')][switch]$Yes,
@@ -258,7 +259,14 @@ function Write-Manifest {
         "mode=$(if ($Link) { 'link' } else { 'copy' })"
         "skills=$($Skills -join ' ')"
         "source=$Src"
+        "action_desk=$(if ($ActionDesk) { '1' } else { '0' })"
     )
+    if ((Test-Path (Join-Path $Src '.git')) -and (Get-Command git -ErrorAction SilentlyContinue)) {
+        $revision = & git -C $Src rev-parse HEAD
+        if ($LASTEXITCODE -ne 0) { Fail "could not record source revision" }
+        $lines += "revision=$revision"
+        if (& git -C $Src status --porcelain) { $lines += 'modified_source=1' }
+    }
     Set-Content -Path (Join-Path $Dest $ManifestName) -Value $lines
 }
 
@@ -796,6 +804,13 @@ function Invoke-Install {
     $src      = Get-Source
     Assert-NotOverlapping -Source $src -Destination $Dest
     $selected = Resolve-Skills
+    if ((Get-ManifestField 'action_desk') -eq '1') { $script:ActionDesk = $true }
+    if ($ActionDesk) {
+        if (-not (Get-PythonInfo)) { Fail "-ActionDesk requires Python 3.9+" }
+        if (-not (Test-Path (Join-Path $src '.github/extensions/margo-action-desk/extension.mjs'))) {
+            Fail "this distribution does not contain the optional action desk"
+        }
+    }
 
     Write-Step "Installing to $Dest"
     Write-Dim "source: $src"
@@ -825,6 +840,13 @@ function Invoke-Install {
         Write-Dim "uncomment the personal-data lines in .gitignore before filling them in"
     }
 
+    if (-not $DryRun -and $py) {
+        $python = ($py -split ' ')[0]
+        $manifestArgs = @('--source', $src, '--dest', $Dest, '--skills', ($selected -join ' '))
+        if ($ActionDesk) { $manifestArgs += '--install-canvas' }
+        & $python (Join-Path $src 'skills/chief-of-staff/scripts/install_manifest.py') @manifestArgs
+        if ($LASTEXITCODE -ne 0) { Fail "failed to record installation or install action desk" }
+    }
     Write-Manifest -Src $src -Skills $selected
 
     Write-Host ""
@@ -974,6 +996,17 @@ function Invoke-Uninstall {
     }
 
     # Everything is safely archived; only now delete.
+    $helper = Join-Path $Dest 'skills/chief-of-staff/scripts/install_manifest.py'
+    if (-not $DryRun -and (Test-Path $helper)) {
+        $py = Get-PythonInfo
+        if ($py) {
+            $python = ($py -split ' ')[0]
+            & $python $helper --dest $Dest --remove-canvas
+            if ($LASTEXITCODE -ne 0) { Fail "could not safely remove action desk" }
+        } else {
+            Write-Warn "Python unavailable; optional action-desk extension left in place"
+        }
+    }
     foreach ($s in $AllSkills) {
         $target = Join-Path $Dest "skills/$s"
         if (-not (Test-Path $target)) { continue }
@@ -1040,6 +1073,12 @@ function Invoke-Uninstall {
 
     # Install metadata, not user data: remove it rather than archiving it.
     if (-not $DryRun) { Remove-Item -Force (Join-Path $Dest $ManifestName) -ErrorAction SilentlyContinue }
+    if (-not $DryRun -and (Test-Path (Join-Path $Dest '.margo-files.json'))) {
+        Remove-Item -Force (Join-Path $Dest '.margo-files.json')
+    }
+    if (Test-Path (Join-Path $Dest 'margo')) {
+        Write-Dim "Private work ledger and account configuration retained in $(Join-Path $Dest 'margo')"
+    }
 
     if (-not $found) { Write-Dim "nothing installed"; return }
 
@@ -1060,6 +1099,12 @@ function Get-UserFileState {
     if (-not (Test-Path $Path)) { return 'missing' }
     $lines = Get-Content $Path -ErrorAction SilentlyContinue
     if (-not $lines) { return 'empty' }
+    if ((Split-Path -Leaf $Path) -eq 'preferences.md') {
+        if ($lines -match '^- \*\*Name / preferred name:\*\* [^{(]') {
+            return 'personalized; doctor reports missing fields'
+        }
+        return 'TEMPLATE'
+    }
     if ($lines -match '\{[a-z_]+\}') { return 'TEMPLATE' }
 
     $tableLines = @($lines | Where-Object { $_ -match '^\|' })

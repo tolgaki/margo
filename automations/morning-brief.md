@@ -14,9 +14,14 @@ Unattended mode — apply the Unattended Mode Contract exactly: never call `ask_
 trailing offers, nothing is sent or RSVP'd or changed, drafts may be prepared but never
 delivered.
 
-Drain the queue first with `scripts/proactive_state.py queue-drain --format json` and fold
-those items into the brief sections named by their `section` field. The brief must read as an
-accumulation, not a scrape — if it looks identical to what "brief me" produces on demand, the
-queue is not being drained.
+Read `references/state-operations.md` first. The anchor owns one leased queue batch; the
+underlying brief must not drain again. Fold its items into their named sections. Persist the
+actual output and a publication receipt before acknowledging only the included items.
 
-Mark everything rendered and set delta cursors before exiting.
+Read the work ledger and action desk. Keep candidates separate from confirmed obligations,
+include unresolved execution outcomes, and prepare useful local drafts rather than trailing
+offers. Never confirm commitments or approve external actions unattended.
+
+Record successful coverage independently for each source, only after complete paging and
+durable ingestion. Failed or partial sources keep their last successful checkpoint. Report
+missing coverage; never advance a global cursor as a substitute.

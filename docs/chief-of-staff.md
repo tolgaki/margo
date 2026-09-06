@@ -1,6 +1,6 @@
 # The chief-of-staff playbook
 
-`skills/chief-of-staff/` is the procedural half of Margo: eighteen routines, each with its own
+`skills/chief-of-staff/` is the procedural half of Margo: focused routines, each with its own
 reference file, plus the operating rules and the Work IQ tool discipline they all share.
 
 It carries **procedure and no personality**. Whatever agent loads it supplies the voice — see
@@ -35,9 +35,20 @@ when the matching routine fires, which keeps the resident cost low.
 | **Engage community** | "what's the community saying", "any unanswered questions" | `engage.md` |
 | **Feedback channel** | "what's in the feedback channel", "any bugs raised in Teams" | `teams-feedback.md` |
 | **Proactive / scheduled** | a scheduled run, or "run my sweep" | `proactive.md` |
+| **Work ledger** | "capture my commitments", "review proposed obligations" | `work-ledger.md` |
+| **Action desk** | "show my action desk", "what is ready for approval" | `action-desk.md` |
+| **Outcomes and capacity** | "what fits this week", "what should I stop doing" | `outcomes.md` |
+| **Meeting lifecycle** | "watch for the recap", "carry this into the next meeting" | `meeting-lifecycle.md` |
+| **Explicit learning** | "remember that preference", "do not learn from this" | `feedback.md` |
+| **Prepared work products** | "prepare the decision memo", "write the delegation brief" | `work-products.md` |
+| **Health and setup** | "is Margo working", "set up my ledger" | `state-operations.md` |
 
 Routines combine freely. A daily brief pulls from follow-through, GitHub and the document queue
 without being asked.
+
+The shared [work ledger and action desk](closed-loop.md) connect these routines across sessions,
+alongside outcomes/capacity planning, meeting lifecycle, explicit learning, and prepared work
+products. `SKILL.md` is the complete current trigger table.
 
 ---
 
@@ -69,9 +80,9 @@ Most are self-explanatory from the table. Four are doing something less obvious.
 The problem: you promise something in a Tuesday meeting, it's never written down anywhere, and it
 surfaces three weeks later when someone chases you.
 
-`commitments.md` is the durable answer — a two-table ledger of **what you owe** and **what you're
-waiting on**, read on every brief and updated (with approval) whenever an approved send creates or
-resolves an item.
+The private work ledger is the durable answer: proposed obligations remain candidates until
+confirmed, and later replies are reconciled before a chase. `commitments.md` is a readable
+compatibility view after migration, not a second writable tracker.
 
 Two rules keep it trustworthy:
 
@@ -122,12 +133,15 @@ Worked example in **[Walkthroughs](walkthroughs.md#4-calendar-hygiene)**.
 
 | Script | Job |
 |---|---|
-| `proactive_state.py` | The durable ledger for scheduled runs — what's been surfaced, what's queued, delta cursors. Never hand-edit the JSON |
+| `proactive_state.py` | Transactional delivery batches, source attempts and successful coverage |
+| `work_state.py` | Work items, action revisions, approvals, receipts and productivity records |
+| `margo_doctor.py` | Configuration gaps, installation drift, pending delivery and source health |
+| `capacity.py` | Interval-union calendar capacity without double-counting overlaps |
 | `m365_files.py` | Large-file bridge for anything over the 4 MB `fetch_blob` cap |
 | `engage_parse.py` | Parses Viva Engage `retrieve` hits into threads |
 | `teams_feedback.py` | Walks a Teams channel's delta feed and threads replies |
 
-All four report failure loudly. A `WARNING` line or a non-zero exit goes into the read-out — the
+These scripts report failure loudly. A `WARNING` line or a non-zero exit goes into the read-out — the
 skill treats a silent partial as worse than an obvious error.
 
 ---
@@ -138,4 +152,5 @@ The playbook is modular on purpose. If a routine doesn't apply to you, delete it
 and its row from the `SKILL.md` table. `work-items.md`, `engage.md`, `teams-feedback.md` and
 `github.md` are the usual candidates.
 
-Nothing else depends on them.
+Update callers and automation prompts when removing a routine. The shared ledger, source
+coverage, and approval contracts remain required by the connected routines that use them.

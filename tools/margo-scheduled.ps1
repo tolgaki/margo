@@ -185,10 +185,16 @@ function Assert-Automations {
     $seen = @{}
     foreach ($a in $Automations) {
         $leaf = Split-Path -Leaf $a.Path
-        foreach ($key in @('name', 'verb', 'cron', 'tier')) {
+        foreach ($key in @('name', 'verb', 'cron', 'tier', 'routine', 'mode')) {
             if (-not $a.Meta[$key]) {
-                throw "automation $leaf has no '$key' in its front matter.`n       Every automation needs name, verb, cron and tier. See automations/README.md."
+                throw "automation $leaf has no '$key' in its front matter.`n       Every automation needs name, verb, cron, tier, routine and mode. See automations/README.md."
             }
+        }
+        if (@('anchor', 'sweep', 'ambient') -notcontains $a.Meta['tier']) {
+            throw "automation $leaf has an unsupported tier"
+        }
+        if ($a.Meta['mode'] -ne 'autopilot') {
+            throw "automation $leaf must use autopilot mode for unattended runs"
         }
         $v = $a.Meta['verb']
         if ($ReservedVerbs -contains $v) {

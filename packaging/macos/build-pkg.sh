@@ -73,6 +73,8 @@ grep -vE '^(\.github|packaging)/' "$ALL" \
   | grep -vE '^skills/[^/]+/state/' > "$LIST"
 # ...but keep the tracked state/.gitignore so the directory ships with its rule.
 grep -E '^skills/[^/]+/state/\.gitignore$' "$ALL" >> "$LIST" || true
+# Ship only this optional renderer from .github, not CI or repository settings.
+grep -E '^\.github/extensions/margo-action-desk/' "$ALL" >> "$LIST" || true
 
 rsync -a --files-from="$LIST" "$REPO/" "$BUILD/payload/"
 

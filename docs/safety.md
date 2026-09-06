@@ -17,6 +17,12 @@ one.
 The mechanism is deliberately boring: the exact draft or the exact field change is shown, and
 Margo waits for a clear *"send it"* / *"yes"* / *"do it"*.
 
+The action desk records this decision against the exact action revision, account, target and
+payload. Editing the action invalidates approval. Before execution Margo re-reads relevant
+external state and records the actual result. A timeout is an unknown outcome, not an automatic
+retry. These checks protect the ledger's execution path; they do not sandbox other tools available
+to a generally capable agent. The optional canvas requests foreground review, not implicit approval.
+
 ### Why the gate is this strict
 
 Work IQ writes **execute immediately**. There is no staging, no preview, no undo. A send, a
@@ -66,13 +72,14 @@ already seen in full. A new request needs a new plan and a new yes.
 Scheduled, unattended runs **never** send, post, RSVP, delete or change a work item — regardless
 of any standing authorization you've granted.
 
-Drafts may be prepared and held. They are never delivered, and never even presented, until a human
-is present.
+Private drafts may be prepared and held for later review. They are never delivered to recipients
+or written to Outlook/shared storage unattended. An anchor may make its brief available locally;
+availability is not proof that a human has read it.
 
 **What this rule does and does not cover.** It is scoped to *outbound* actions — anything another
 person can see. A skill may still write to its own **local** state: the proactive ledger under
-`state/` records what has been surfaced so a scheduled run does not repeat itself. Nothing in this
-repo writes to a shared location unattended.
+the account-scoped SQLite store records source coverage, proposals and output receipts so a
+scheduled run does not repeat itself. Nothing in this repo writes to a shared location unattended.
 
 If you add a skill that does, this is the sentence to revisit — and `tools/margo-scheduled.sh` is
 where to enforce it, since the `--deny-tool` rules there stop outbound actions at the CLI rather
@@ -151,10 +158,13 @@ name" is what that gate was built to prevent. If you are considering it, read
   brief comes from Work IQ.
 - **Cite sources.** Sender + subject, meeting title + time, chat or channel name, doc title —
   plus the `webLink`, so every line is one click from what it's based on.
-- **An empty result is `unknown`, not `zero`.** A failed page, a rate limit, or a parser warning
+- **Incomplete evidence is `unknown`, not `zero`.** A failed page, a rate limit, or a parser warning
   means you didn't find out. Reporting it as "nothing found" is a fabrication with extra steps.
 - **Surface partial results as partial.** If a bundled script prints `WARNING` / `PARTIAL` or
   exits non-zero, that goes in the read-out. Never present partial counts as complete.
+- **Successful bounded absence is scoped.** A fully paged, successful enumeration may establish
+  zero matches within its exact query. It does not establish that nothing happened elsewhere,
+  or that another source succeeded.
 - **Say "I don't have that"** rather than guessing, then offer to go and get it.
 
 The persona never touches the data. Wit lives in the framing; the facts underneath stay literal
@@ -176,20 +186,38 @@ and sourced, and a joke is never a substitute for a citation.
 
 ## 7. What stays on your machine
 
-Nothing in this repo sends your data anywhere except Microsoft 365 via Work IQ, and the services
-you explicitly configure (GitHub, Azure DevOps).
+Runtime state is stored locally, but "local state" does not mean every byte stays on the machine.
+The agent reads tool results and files through the configured Copilot/model service, and Work IQ
+processes Microsoft 365 requests. Other integrations such as GitHub or Azure DevOps involve their
+configured services. Review those services' data-handling policies before connecting sensitive data.
+The optional canvas uses loopback HTTP and has no external telemetry or independent M365 client.
 
 Files that hold real data, and how they're handled:
 
 | File | Contains | Committed? |
 |---|---|---|
-| `preferences.md` | Your name, VIPs, addresses, org identifiers | Template only. Gitignore your filled copy |
-| `commitments.md` | Real obligations, sources, links | Template only. Gitignore your filled copy |
+| `preferences.md` | Your name, VIPs, addresses, org identifiers | Template only; keep filled copy outside the checkout |
+| `commitments.md` | Confirmed obligations, sources, links after migration | Empty template only; private generated view stays outside the checkout |
 | everything under `state/` | Real subjects, senders, links, relationship notes, 1:1 agendas | **Never** — the whole subtree is gitignored, no exceptions |
+| private Copilot `margo/` directory | Account configuration, SQLite work/delivery ledger, source checkpoints, approvals and receipts | **Never** — outside the repository and retained on uninstall |
 | `config.md` (decision-log) | Repo paths, team names | Template only |
 
 The Keychain entry written by `m365_files.py` (service `margo-m365-files`) holds a refresh token.
 Remove it with `m365_files.py logout`.
+
+The database is not application-encrypted. Protect the OS account, disk and backups. POSIX
+ownership/mode checks do not establish equivalent Windows ACL isolation; Windows installations
+also depend on the user's private profile permissions.
+
+Approval and history records remain private. Do-not-learn suppresses the stored correction for
+that feedback event; it is not a global deletion command. Retention/erasure beyond the documented
+commands requires explicit, scoped maintenance. Never describe uninstall as deleting the account
+database: it deliberately retains `margo/`.
+
+Before publication, inspect the exact proposed commit tree as well as running the privacy checker.
+The checker is a heuristic, not a proof: it cannot identify every personal name, project codename,
+or sensitive sentence, and build output/session artifacts must not be staged. Repository URLs,
+license attribution, and Git commit authorship are public project metadata, not runtime profiles.
 
 ---
 

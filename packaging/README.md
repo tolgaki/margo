@@ -35,8 +35,15 @@ packaging/
 The staged copy is deliberate: it means `install.sh status`, `uninstall` and the
 docs are available later without a clone.
 
-Neither installer ever overwrites `preferences.md`, `commitments.md`,
-`config.md` or `state/`.
+Both installers preserve `preferences.md`, `commitments.md`, `config.md` and legacy state by
+default. `--force`/`-Force` explicitly replaces personal files after backup; do not use it for
+ordinary upgrades. The private account-scoped `margo/` directory is outside the payload and is
+retained on uninstall.
+
+Version 1.1 includes the SQLite helpers, doctor, capacity calculator and optional action-desk
+renderer source. The native skill checkboxes do not automatically enable the renderer; run the
+staged installer with `--action-desk`/`-ActionDesk` to opt in, then reload extensions.
+Copying automation files does not synchronise the app's saved workflow prompts.
 
 ---
 
@@ -46,6 +53,10 @@ Neither installer ever overwrites `preferences.md`, `commitments.md`,
 to it, and both installers stamp it into `~/.copilot/.margo-install` so
 `install.sh update` can tell whether the machine is behind. Bump that file in the
 same commit as the tag.
+
+The install also records managed-file hashes in `.margo-files.json` and source revision when
+available. These describe the copied files, not a signed attestation. Customised automation
+prompts may intentionally differ from upstream; reconcile them explicitly.
 
 ## Building
 

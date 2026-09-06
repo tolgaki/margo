@@ -111,9 +111,11 @@ Two related rules:
 
 - **Check `sensitivityLabel` before quoting.** `retrieve` returns it. Reproducing labelled
   content into a summary the user might forward is how a label gets laundered off a document.
-- **An empty result is `unknown`, not `zero`.** A failed page, a rate limit, or a parser warning
+- **Incomplete evidence is `unknown`, not `zero`.** A failed page, a rate limit, or a parser warning
   means you didn't find out. Reporting it as "nothing found" is a fabrication with extra steps.
   If a bundled script prints `WARNING`/`PARTIAL` or exits non-zero, that goes in the read-out.
+  A successful, fully paged enumeration with no matches establishes zero only for its stated
+  scope and interval. Record that coverage separately from semantic-search results.
 
 ---
 
@@ -129,9 +131,10 @@ That single property is why this repo's central rule exists:
 
 Two notes specific to Work IQ that shape how Margo drafts:
 
-- **"Draft" means a persisted draft.** Inline suggested wording does not satisfy a drafting
-  request — the user must be able to open it in Outlook. Margo creates the draft entity, then
-  sends it as a separate approved step.
+- **Name the draft's location.** The action desk can hold a versioned local proposal unattended;
+  it is not an Outlook draft. A request for an Outlook draft requires an explicitly approved
+  draft-creation write, and sending remains separately approved. Never call a local proposal
+  an Outlook draft or a prepared artefact a published one.
 - **Tasks are M365 data.** "Add a task" / "remind me" routes to Planner or To Do through Work IQ.
   It never gets satisfied with a local file or an in-session list.
 

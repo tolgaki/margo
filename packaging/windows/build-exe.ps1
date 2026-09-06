@@ -99,7 +99,8 @@ $count = 0
 
 foreach ($rel in $tracked) {
     $parts = $rel -split '[\\/]'
-    if ($parts | Where-Object { $excludeDirs -contains $_ }) { continue }
+    $actionDesk = $rel -match '^\.github[\\/]extensions[\\/]margo-action-desk[\\/]'
+    if (-not $actionDesk -and ($parts | Where-Object { $excludeDirs -contains $_ })) { continue }
     # Runtime state holds real mailbox content; never ship it. The whole
     # subtree, any depth and any file type — but keep the tracked .gitignore.
     if ($rel -match '(^|[\\/])state[\\/]' -and $rel -notmatch '[\\/]state[\\/]\.gitignore$') { continue }

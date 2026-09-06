@@ -1,6 +1,8 @@
 # Follow-through — ageing and chasing commitments
 
-`commitments.md` records what the user owes and what they're owed. On its own that's a filing
+The canonical work ledger records what the user owes and what they're owed; `commitments.md`
+is its compatibility view after migration. Read `work-ledger.md` and `action-desk.md`.
+On its own a tracker is a filing
 cabinet. This file is what makes it chase: age every row, decide which ones have gone quiet long
 enough to act on, and put a drafted nudge in front of the user.
 
@@ -9,7 +11,8 @@ user will not remember that they asked someone for a cost model eleven days ago.
 
 ## Procedure
 
-1. **Read `../commitments.md`** and `../preferences.md` (VIPs, working hours, drafting voice,
+1. **Read confirmed work items and their source revisions** (or the unmigrated
+   `../commitments.md` explicitly as legacy state) and `../preferences.md` (VIPs, working hours, drafting voice,
    any threshold overrides).
 
 2. **Check for silent resolution before ageing anything.** Nothing corrodes trust faster than
@@ -60,7 +63,8 @@ user will not remember that they asked someone for a cost model eleven days ago.
    together", "by end of week". Use `workiq-ask`: *"In my sent mail and meetings since {date},
    what did I commit to doing, for whom, and by when?"*
 
-   Propose each as a new row for approval. **Extraction is inference, not fact** — show the
+   Persist each new candidate separately from confirmed work before proposing it for approval.
+   **Extraction is inference, not fact** — show the
    quote and the source so the user can reject it. A wrongly-added commitment is worse than a
    missed one, because it invents an obligation.
 
@@ -69,8 +73,10 @@ user will not remember that they asked someone for a cost model eleven days ago.
    the sign-off recorded there) — presented for approval, never sent. Per-item approval: "send them all" is not
    consent to four different messages to four different people. Confirm each.
 
-8. **Update `commitments.md` on approval only.** After an approved send, set `Last nudge` to
-   today's date. After a confirmed resolution, move the row to the Log.
+8. **Record the actual execution receipt and approved work transition.** Set `Last nudge` only
+   when the send succeeded, not when a draft was prepared or a request timed out. Confirm resolution
+   before closing a work item. Regenerate the compatibility view through the ledger command; do
+   not hand-edit it. If migration is pending, preserve the legacy file and stage the proposed diff.
 
 ## Render card
 

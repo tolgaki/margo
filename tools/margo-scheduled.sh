@@ -210,10 +210,16 @@ validate_automations() {
   while IFS= read -r f; do
     [ -n "$f" ] || continue
     va_n=$((va_n + 1))
-    for key in name verb cron tier; do
+    for key in name verb cron tier routine mode; do
       [ -n "$(fm_get "$f" "$key")" ] || die "automation ${f##*/} has no '$key' in its front matter.
-       Every automation needs name, verb, cron and tier. See automations/README.md."
+       Every automation needs name, verb, cron, tier, routine and mode. See automations/README.md."
     done
+    case "$(fm_get "$f" tier)" in
+      anchor|sweep|ambient) ;;
+      *) die "automation ${f##*/} has an unsupported tier" ;;
+    esac
+    [ "$(fm_get "$f" mode)" = "autopilot" ] \
+      || die "automation ${f##*/} must use autopilot mode for unattended runs"
     v=$(fm_get "$f" verb)
     case " $RESERVED_VERBS " in
       *" $v "*) die "automation ${f##*/} uses the reserved verb '$v'.

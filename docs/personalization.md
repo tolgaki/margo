@@ -1,18 +1,22 @@
 # Personalization
 
-Margo works unconfigured. She works *well* configured. This is the difference between a generic
-summarizer and something that knows your 09:05 is non-negotiable and that a note to your skip gets
-a different voice than a note to your team.
+Margo can explain routines before setup, but durable state requires an explicitly configured
+account. Personalisation then makes the difference between a generic summary and advice grounded
+in the user's actual working hours, priorities and communication preferences.
 
-Two files do the work, and they sit next to `SKILL.md` in the installed skill:
+The private preferences and compatibility view sit next to `SKILL.md` in the installed skill:
 
 | File | Holds | Written by |
 |---|---|---|
 | **`preferences.md`** | Who you are, who matters, how you work, how you write | You |
-| **`commitments.md`** | What you owe, what you're waiting on | Margo, with your approval |
+| **`commitments.md`** | Confirmed-only readable view after migration | Exported by the ledger after approved work changes |
 
 Both ship as templates. Both will contain real names and addresses once filled in — see
 [what stays on your machine](safety.md#7-what-stays-on-your-machine).
+
+The account owner and SQLite database live separately under the private Copilot `margo/`
+directory. See [setup and migration](how-to/setup-and-migration.md); account configuration is
+not authentication and the Markdown view is not a second writable task database.
 
 ---
 
@@ -114,12 +118,13 @@ stays yours.
 
 ## commitments.md — you don't write this one
 
-It starts empty and fills as you approve sends. Three tables: **I owe**, **waiting on others**,
-and a **log** of recently closed items.
+It starts empty. The guided bootstrap reviews sourced candidates rather than assuming an empty
+file means no outstanding work. After migration, this file is a readable export of the private
+work ledger: **I owe**, **waiting on others**, and a **log** of recently closed items.
 
-Margo reads it on every brief, catch-up and EOD wrap-up, and proposes updates whenever an approved
-send creates or resolves something. The brief's "waiting on" section is rendered from this file —
-never from memory.
+Margo reads confirmed work on every brief and stages new obligations or suspected resolutions for
+review. Confirming a row does not approve a send. Manual edits to the compatibility export are
+detected and reviewed before being imported or replaced.
 
 Two rules keep it worth reading:
 
@@ -130,16 +135,18 @@ Two rules keep it worth reading:
 And one that keeps it honest: **a row is added only when the commitment was really made**, in a
 real message or meeting, or because you said so. Nothing is inferred.
 
-Closed items move to the log rather than being deleted. Prune it around twenty entries, oldest
-first.
+Closed items remain in the ledger history rather than being deleted. A compact export can show
+only recent history without destroying the underlying record.
 
 ---
 
 ## Tuning as you go
 
-Margo will offer to capture preferences as she learns them — a correction you make twice is a
-preference you haven't written down. Durable ones can also go to memory, but `preferences.md` is
-the authoritative copy: it's the thing that survives a reinstall and the thing you can read.
+Margo can propose a scoped rule from explicit corrections, showing the examples and exact wording.
+Nothing activates without approval. A one-off edit stays one-off unless you say otherwise;
+"do not learn from this" prevents a learning record. Rules can be revoked without erasing their
+history. `preferences.md` remains authoritative for base settings and permissions never expand
+through learning.
 
 The fastest way to improve output is to fix the file rather than re-explaining in chat. If a
 brief surfaces something you never care about, that's a missing *auto-deprioritize* row.

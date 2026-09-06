@@ -4,6 +4,8 @@ Four end-to-end runs, from the request to the send. Each one shows the Work IQ c
 where the approval gate sits, and what actually gets written down afterwards.
 
 The illustrative names and content are fictional.
+For copy-and-configure instructions and all new features, use the
+[how-to guides](how-to/README.md). These walkthroughs show the agent's decision flow.
 
 - [1. The morning brief](#1-the-morning-brief)
 - [2. Finding time — and paying for it](#2-finding-time--and-paying-for-it)
@@ -21,7 +23,10 @@ The illustrative names and content are fictional.
 **Read `preferences.md`** — working hours, VIPs, protected focus blocks, what to always surface.
 Everything downstream is filtered through it.
 
-**Pull the skeleton in parallel** — one tool block, four `workiq-fetch` calls, every one bounded:
+**Read the current work ledger and lease the anchor's delivery batch once.** The underlying
+brief receives that batch rather than draining again.
+
+**Pull the skeleton in parallel** — bounded structured reads plus focused synthesis:
 
 ```
 /me/calendarView?startDateTime=…&endDateTime=…
@@ -33,15 +38,18 @@ Everything downstream is filtered through it.
   &$top=50
 ```
 
-…plus Teams mentions and DMs, and anything due. Note `isRead` + `receivedDateTime` — the one mail
+Use supported chat delta or focused synthesis for Teams; there is no guaranteed unread-Teams
+collection to enumerate. Add confirmed work that is due. Note `isRead` + `receivedDateTime` — the mail
 filter+sort pair an index actually backs. Adding `flag/flagStatus` here would return
 `400 InefficientFilter`.
 
 **Synthesize with one to three `workiq-ask` calls** — what's top of mind, what changed since
 yesterday, what needs a response today. Not one giant prompt, and not a serial chain.
 
-**Read `commitments.md`** for the waiting-on section. It's rendered from the file, never from
-memory — that's the whole point of the file existing.
+**Read confirmed work** for the waiting-on section and keep new candidates separate. After
+migration, `commitments.md` is only a compatibility export. Record source coverage independently,
+persist the completed output, and acknowledge only its receipt-covered items. An empty queue
+uses a standalone publication, not a fabricated queue item.
 
 ### What comes back
 
@@ -73,8 +81,8 @@ Every line ends in a verb — *reply, decline, chase, block*. A brief that only 
 doing the deciding, which is the expensive part. Every line is also one click from its source via
 the `webLink` that was `$select`ed on the way in.
 
-And it ends with **one** question, not five. If everything is a question, nothing is a
-recommendation.
+An interactive brief ends with **one** question, not five. Scheduled anchors do not ask questions
+or wait for replies; they prepare local proposals for later review.
 
 ---
 
@@ -225,26 +233,27 @@ they're logistics sent to people who didn't ask for them, and the line explains 
 
 ### On approval
 
-Only now does anything leave. `workiq-create_entity` persists the draft, `workiq-do_action` sends
-it — as a separate, approved step.
+The action desk stores the exact local proposal with source revisions. An edit invalidates its
+approval. Immediately before the approved Work IQ action, re-read target/source state and begin
+the execution record; then retain the actual result receipt. An uncertain timeout is not a retry.
 
-> "Draft" in Work IQ means a **persisted draft** you can open in Outlook. Inline suggested wording
-> does not satisfy a drafting request.
+If an Outlook draft is requested, creating it is an explicitly approved Work IQ write and sending
+is a separately approved step. Never call a local action-desk proposal an Outlook draft.
 
-**Then the loop closes.** The message promised parity numbers by Tuesday. That's a commitment, and
-it goes in `commitments.md` with owner, due date and source link — with your approval, like
-everything else:
+**Then capture the obligation.** The message promised parity numbers by Tuesday. Stage that as a
+candidate with owner, the resolved date and the sent-message evidence. Only confirmation promotes
+it to authoritative work, after which the compatibility view may include:
 
 ```markdown
 ## 🔴 I owe (open commitments)
 
 | What I committed to | To whom | Due | Source | Notes |
 |---|---|---|---|---|
-| Updated parity numbers | Dana | 2026-09-02 | RE: Parity baseline ([link]) | Also owes a call on the eval set |
+| Updated parity numbers | Dana | 2026-09-01 | Fictional sent-message source | Separate decision on the evaluation set |
 ```
 
-Which is what makes tomorrow's brief say *"due tomorrow, still open"* instead of forgetting it
-happened.
+The next brief carries this confirmed obligation forward and checks for resolution before
+recommending a chase. It does not infer current outstanding status from an old record alone.
 
 ---
 

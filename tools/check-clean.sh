@@ -183,8 +183,8 @@ report "no personal names outside the fictional cast" "$person_hits"
 # 10. Optional private denylist. Some leaks are only recognisable to you: your own
 #    initials in a sign-off, a team codename, a customer. Put one string per line
 #    in tools/forbidden.local.txt (gitignored, never published) and they become
-#    hard failures. Matching is case-insensitive and word-bounded, so "Tolga"
-#    matches "Tolga's" but "/ac" does not match "action". Blank lines and
+#    hard failures. Matching is case-insensitive and word-bounded, so "Dana"
+#    matches "Dana's" but "/ac" does not match "action". Blank lines and
 #    #-comments are ignored.
 DENY="tools/forbidden.local.txt"
 if [ -f "$DENY" ]; then

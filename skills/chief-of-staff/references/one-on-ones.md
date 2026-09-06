@@ -3,6 +3,10 @@
 Keep rolling agendas for recurring 1:1s so the meeting is not reconstructed five minutes before it.
 Accumulate non-urgent person-specific items, then render a clean agenda when the meeting is near.
 
+Link agenda topics to canonical work items rather than duplicating obligation state. Follow
+`meeting-lifecycle.md` for series/occurrence identity and recap retries. The agenda file remains a
+human-readable discussion surface, not a second commitments ledger.
+
 ## Procedure
 
 1. **Detect recurring 1:1s** with `workiq-fetch` on `/me/calendarView`. Use a forward window, usually
@@ -70,12 +74,11 @@ Accumulate non-urgent person-specific items, then render a clean agenda when the
    item for the next anchor. It never sends a note or asks a live question unattended:
 
    ```bash
-   key='person:{person-slug}:{source-id}:agenda'
-   if ! python3 scripts/proactive_state.py seen "$key"; then
-     python3 scripts/proactive_state.py queue-add --json '{"id":"person:{person-slug}:{source-id}:agenda","kind":"person","title":"Add to 1:1 with {person}: {topic}","source":"{Email/Teams/Doc} · {sender} · {date}","url":"{webLink}","action":"append to 1:1 agenda","why":"person-specific and below the interrupt bar","section":"ambient"}'
-   fi
+   python3 scripts/proactive_state.py queue-add --json '{"id":"person:{person-slug}:{source-id}:agenda","revision":"{observed-revision}","family":"agenda","scope":"{person-slug}","kind":"person","title":"Add to 1:1 with {person}: {topic}","source":"{Email/Teams/Doc} · {sender} · {date}","url":"{webLink}","action":"append to 1:1 agenda","why":"person-specific and below the interrupt bar","section":"ambient"}'
    ```
 
+   Replace placeholder values with actual evidence. The queue command deduplicates atomically;
+   insertion is not publication. Use `state-operations.md` for receipt-backed acknowledgement.
    **Accumulation is the whole point.** If the agenda is rebuilt only during meeting prep, this file
    has failed.
 
@@ -111,9 +114,11 @@ Accumulate non-urgent person-specific items, then render a clean agenda when the
    **Do not let a rolling agenda become a landfill.** Carry forward what still matters; archive or
    drop the rest.
 
-6. **Cross-reference `../commitments.md`.** Asks made in a 1:1 are commitments. User-owned asks go
+6. **Cross-reference the work ledger** (`work-ledger.md`). Asks made in a 1:1 are candidate
+   commitments until confirmed. User-owned asks go
    under "I owe"; asks of the other person go under "Waiting on others". Present the exact diff and
-   update the tracker only with user approval.
+   update confirmed tracker state only with user approval. Regenerate its Markdown view rather
+   than hand-editing `commitments.md`; preserve and review legacy rows before migration.
 
    ```diff
    + I owe | {person} | {ask} | due {date or unknown} | source {1:1 title + date}

@@ -103,10 +103,19 @@ VIPs, projects, tone/voice for drafts, standing rules, and what to always/never 
 empty or missing detail, proceed with sensible defaults and offer to capture preferences as you
 learn them (and remind the user you can persist durable ones to memory).
 
-**`commitments.md`** (next to `preferences.md`) is the persistent tracker for what the user owes
-others and what they're waiting on. Read it during every brief, catch-up, and EOD wrap-up; update
-it (with the user's approval) whenever an approved send creates or resolves a commitment. The
-brief's "Waiting on / open commitments" section is rendered from it — never from memory alone.
+**The work ledger is the canonical tracker after migration.** Read `references/work-ledger.md`
+and `references/action-desk.md` before capturing obligations or preparing actions. The private,
+account-scoped SQLite store survives CLI sessions and optional app canvases. `commitments.md`
+is then a readable compatibility view, not a second writable tracker. Before migration, preserve
+the existing file and use the explicit import/review procedure; never silently discard its rows.
+
+Extracted obligations start as **candidates**. Confirming a ledger row is not permission to send
+its associated message. Reconcile later replies before chasing, and keep resolution proposals
+separate from confirmed closure. A source failure is not proof that someone has not replied.
+
+The user's priorities may be broad focus areas rather than actionable outcomes. Confirm working
+hours, focus policy, and the definition of done, date, and effort for each weekly outcome rather
+than inventing them. `scripts/margo_doctor.py` reports incomplete setup and coverage separately.
 
 ## Voice
 
@@ -152,6 +161,13 @@ Pick the routine that matches the request; combine as needed. Full procedures ar
 | **Calendar hygiene** | "how's my calendar looking", "what can I cut", "how much time am I losing" | `references/calendar.md` (§ D. Hygiene) |
 | **Unread documents** | "what should I be reading", "what's been shared with me" | `references/doc-queue.md` |
 | **1:1 agendas** | "what's on the agenda with X", "add this to my 1:1 with X" | `references/one-on-ones.md` |
+| **Work ledger** | "capture my commitments", "review proposed obligations", "what is still outstanding" | `references/work-ledger.md` |
+| **Action desk** | "show my action desk", "what is ready for approval", "defer that proposal" | `references/action-desk.md` |
+| **Outcomes and capacity** | "plan around my outcomes", "what fits this week", "what should I stop doing" | `references/outcomes.md` |
+| **Meeting lifecycle** | "carry this into the next meeting", "watch for the recap", "close out that meeting" | `references/meeting-lifecycle.md` |
+| **Learn from corrections** | "remember that preference", "don't learn from this", "undo that rule" | `references/feedback.md` |
+| **Prepare the work** | "prepare the decision memo", "compare these documents", "write the delegation brief" | `references/work-products.md` |
+| **Health and setup** | "is Margo working", "why did the sweep miss this", "set up my ledger" | `references/state-operations.md` |
 
 ## Proactive & scheduled operation
 
@@ -166,10 +182,10 @@ Three things about it matter enough to state here:
   successful run**. Every other routine assumes a human is reading; a scheduled one must not.
 - **Proactive runs never act on the outside world.** They never send, post, RSVP, or change a work item —
   regardless of any standing authorization. Drafts may be prepared and held, never delivered.
-- **State lives on disk**, because each scheduled run is a fresh session with no memory.
-  `scripts/proactive_state.py` is the ledger for what has already been surfaced, what's queued for
-  the next brief, and delta cursors. Never track "did I already mention this?" in your head, and
-  never hand-edit the JSON under `state/`.
+- **State lives outside the source tree**, because each scheduled run is a fresh session with
+  no memory. `scripts/proactive_state.py` owns delivery and per-source coverage; `work_state.py`
+  owns work and action records in the same account-scoped store. Use their APIs, never hand-edit
+  the database or legacy JSON. One source succeeding must never advance another source's checkpoint.
 
 ### Default flow for a "prepare my day" request
 
@@ -178,9 +194,10 @@ Three things about it matter enough to state here:
    unread/flagged mail, unread Teams mentions/DMs, and anything due.
 3. Synthesize priority and context with `workiq-ask` (what's top of mind, what changed since
    yesterday, what needs a response today).
-4. Produce the **Daily Brief** in the standard format below.
-5. Offer to drill into any item, prep a meeting, or open Draft Studio — **proposing** drafts,
-   never sending.
+4. Produce the **Daily Brief** in the standard format below, using the existing anchor batch,
+   confirmed ledger work and explicit coverage gaps. Persist its output receipt.
+5. Prepare useful local work products in the action desk. In an interactive session, ask for
+   the one decision needed; unattended, do not offer follow-up work or wait for a response.
 
 ## Standard Daily Brief format
 
@@ -230,11 +247,11 @@ voice.
 
 ## When data is missing or Work IQ fails
 
-Say what you couldn't retrieve, offer to retry, and continue with what you have — never fabricate
-to fill a gap. **A tool that returns nothing is not evidence that nothing exists** — an empty
-result, a failed page, or a parser warning means *unknown*, and must be reported as unknown
-rather than as zero. If a bundled script prints a `WARNING`/`PARTIAL` line or exits non-zero,
-surface that in the read-out; never present partial counts as complete.
+Say what you couldn't retrieve and continue with what you have — never fabricate to fill a gap.
+Empty semantic search, a failed page, or a parser warning means *unknown*. Successful fully paged
+enumeration can establish zero matches only in its exact scope and interval. If a bundled script
+prints a `WARNING`/`PARTIAL` line or exits non-zero, surface that in the read-out; never present
+partial counts as complete. A policy denial is not an invitation to retry through another route.
 
 For troubleshooting, load the `workiq` skill (call the `skill` tool with `workiq`) and consult its
 `references/troubleshooting.md`.

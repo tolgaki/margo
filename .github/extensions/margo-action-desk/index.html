@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Margo Action Desk</title>
+  <script nonce="__NONCE__">
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("scoutTheme");
+    const theme =
+      param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+  </script>
+  <style nonce="__NONCE__">
+:root {
+  color-scheme: light;
+  --cp-bg: #f7f4ef;
+  --cp-bg-elevated: #fcfbf8;
+  --cp-surface: #ffffff;
+  --cp-surface-soft: #f5f5f5;
+  --cp-border: #dedede;
+  --cp-border-strong: #919191;
+  --cp-text: #242424;
+  --cp-text-muted: #5c5c5c;
+  --cp-text-soft: #6f6f6f;
+  --cp-accent: #b11f4b;
+  --cp-accent-hover: #9a1a41;
+  --cp-accent-soft: rgba(177, 31, 75, 0.08);
+  --cp-accent-fg: #ffffff;
+  --cp-success: #16a34a;
+  --cp-danger: #dc2626;
+  --cp-warning: #f59e0b;
+  --cp-link: #0078d4;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+  --cp-overlay: rgba(255, 255, 255, 0.8);
+  --cp-panel: rgba(255, 255, 255, 0.86);
+  --cp-panel-strong: rgba(255, 255, 255, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.55);
+  --cp-highlight: rgba(177, 31, 75, 0.12);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --cp-bg: #3d3b3a;
+  --cp-bg-elevated: #343231;
+  --cp-surface: #292929;
+  --cp-surface-soft: #2e2e2e;
+  --cp-border: #474747;
+  --cp-border-strong: #5f5f5f;
+  --cp-text: #dedede;
+  --cp-text-muted: #919191;
+  --cp-text-soft: #b0b0b0;
+  --cp-accent: #fd8ea1;
+  --cp-accent-hover: #fb7b91;
+  --cp-accent-soft: rgba(253, 142, 161, 0.14);
+  --cp-accent-fg: #1a1a1a;
+  --cp-success: #4ade80;
+  --cp-danger: #f87171;
+  --cp-warning: #fbbf24;
+  --cp-link: #4da6ff;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --cp-overlay: rgba(41, 41, 41, 0.88);
+  --cp-panel: rgba(41, 41, 41, 0.72);
+  --cp-panel-strong: rgba(41, 41, 41, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.04);
+  --cp-highlight: rgba(253, 142, 161, 0.12);
+}
+/* The app's documented semantic tokens take precedence when they are mirrored. */
+html[data-color-mode] {
+  --cp-bg: var(--background-color-default);
+  --cp-surface: var(--background-color-default);
+  --cp-border: var(--border-color-default);
+  --cp-text: var(--text-color-default);
+  --cp-text-muted: var(--text-color-muted);
+  --cp-focus: var(--color-focus-outline);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--cp-bg); color: var(--cp-text);
+  font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px; line-height: 1.5;
+}
+button, input, textarea { font: inherit; }
+button {
+  border: 1px solid var(--cp-border); border-radius: 0.625rem; padding: 8px 12px;
+  background: var(--cp-surface); color: var(--cp-text); cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.primary { background: var(--cp-accent); border-color: var(--cp-accent); color: var(--cp-accent-fg); }
+button.primary:hover:not(:disabled) { background: var(--cp-accent-hover); }
+button.danger { color: var(--cp-danger); }
+a { color: var(--cp-link); overflow-wrap: anywhere; }
+:focus-visible { outline: 2px solid var(--cp-focus, var(--cp-accent)); outline-offset: 3px; }
+header { padding: 24px; border-bottom: 1px solid var(--cp-border); }
+h1 { font-size: 26px; line-height: 32px; margin: 0 0 4px; font-weight: 600; }
+h2 { font-size: 20px; margin: 0 0 12px; }
+h3 { font-size: 14px; margin: 20px 0 8px; }
+p { margin: 8px 0; }
+.muted, .meta { color: var(--cp-text-muted); }
+.meta { font-size: 12px; overflow-wrap: anywhere; }
+.topline, .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.notice { margin: 16px 24px; padding: 12px 16px; border: 1px solid var(--cp-border); border-radius: 0.625rem; background: var(--cp-surface); }
+.notice.error { border-color: var(--cp-danger); }
+.layout { display: grid; grid-template-columns: minmax(240px, 34%) 1fr; gap: 16px; padding: 0 24px 24px; }
+aside, article { min-width: 0; }
+.card { border: 1px solid var(--cp-border); border-radius: 16px; padding: 20px; background: var(--cp-surface); }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.filters button { font-size: 12px; padding: 6px 8px; }
+.filters button[aria-pressed="true"] { color: var(--cp-accent); border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+.item { display: block; width: 100%; text-align: left; margin-bottom: 8px; padding: 12px; }
+.item[aria-current="true"] { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+.item strong, .item span { display: block; overflow-wrap: anywhere; }
+.badge { display: inline-block; border: 1px solid var(--cp-border); border-radius: 0.625rem; padding: 2px 8px; font-size: 12px; }
+.changed { color: var(--cp-danger); font-weight: 600; }
+pre, code, textarea { font-family: Consolas, "Courier New", Courier, monospace; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; background: var(--cp-surface-soft); border: 1px solid var(--cp-border); border-radius: 0.625rem; padding: 12px; max-height: 320px; overflow-y: auto; }
+label { display: block; margin: 12px 0 4px; font-weight: 600; }
+input, textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--cp-border); border-radius: 0.625rem; background: var(--cp-surface); color: var(--cp-text); }
+textarea { min-height: 200px; resize: vertical; font-size: 12px; }
+input[type="checkbox"] { width: auto; margin-right: 8px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.empty { padding: 32px 16px; text-align: center; color: var(--cp-text-muted); }
+details { border-top: 1px solid var(--cp-border); margin-top: 16px; padding-top: 12px; }
+summary { cursor: pointer; font-weight: 600; }
+[hidden] { display: none !important; }
+@media (max-width: 720px) {
+  header { padding: 16px; }
+  .notice { margin: 12px 16px; }
+  .layout { grid-template-columns: 1fr; padding: 0 16px 16px; }
+  .card { padding: 16px; }
+}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topline"><h1>Margo Action Desk</h1><button id="refresh" type="button">Refresh</button></div>
+    <div id="account" class="meta">Reading the configured account</div>
+    <p class="muted">Persistent proposals, not an outbound queue. Review here; explicitly confirm exact actions in the conversation.</p>
+  </header>
+  <div id="notice" class="notice" role="status" aria-live="polite">Loading work state…</div>
+  <main class="layout">
+    <aside aria-label="Work items">
+      <nav id="filters" class="filters" aria-label="Work item status"></nav>
+      <div id="items"></div>
+    </aside>
+    <article id="detail" class="card" aria-label="Selected work item"><p class="empty">Select a proposal to review its evidence and exact payload.</p></article>
+  </main>
+  <script nonce="__NONCE__" src="/app.js" defer></script>
+</body>
+</html>

@@ -30,49 +30,17 @@ jobs:
       - name: Compile bundled scripts
         run: python -m py_compile skills/chief-of-staff/scripts/*.py
 
-      - name: State ledger works
-        run: python skills/chief-of-staff/scripts/proactive_state.py status
+      - name: Transactional state, action desk, capacity and installation
+        run: python -m unittest discover -s tests -p 'test_*.py'
 
-      # The ledger imported fcntl unconditionally and died at import on Windows,
-      # before argparse — so every subcommand failed, not just the locking ones.
-      - name: State ledger runs without a locking primitive
-        run: |
-          d=$(mktemp -d)
-          cp skills/chief-of-staff/scripts/proactive_state.py "$d/ps.py"
-          # Block ONLY fcntl. msvcrt is genuinely absent on Linux and macOS, so
-          # this reaches the final no-locking fallback on its own.
-          #
-          # It must raise ModuleNotFoundError, not a bare ImportError: the stdlib
-          # catches the former. A bare ImportError escapes unrelated defensive
-          # handlers — shadowing msvcrt this way broke subprocess, which uuid
-          # imports transitively, and the ledger died for a reason that had
-          # nothing to do with locking.
-          printf 'raise ModuleNotFoundError("No module named fcntl")\n' > "$d/fcntl.py"
-          ( cd "$d" && python ps.py status ) \
-            || { echo "::error::ledger dies without a locking primitive"; exit 1; }
-          echo "ledger degrades correctly with no file locking"
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
 
-      - name: Queue drain must not acknowledge before rendering
+      - name: Optional canvas and real CLI integration
         run: |
-          d=$(mktemp -d)
-          cp skills/chief-of-staff/scripts/proactive_state.py "$d/ps.py"
-          cd "$d" && mkdir -p state
-          python ps.py queue-add --json '{"id":"mail:crit","title":"VP escalation"}' >/dev/null
-          b=$(python ps.py queue-drain --format json 2>&1 >/dev/null | sed 's/^batch \([a-f0-9]*\).*/\1/')
-          n=$(python ps.py queue-drain --format json | python -c 'import json,sys;print(len(json.load(sys.stdin)))')
-          [ "$n" = "1" ] || { echo "::error::failed brief lost queued items ($n)"; exit 1; }
-          # A bare ack must be refused: it would retire another run's items.
-          if python ps.py queue-ack >/dev/null 2>&1; then
-            echo "::error::bare queue-ack was accepted"; exit 1
-          fi
-          # Acking a stale batch must retire nothing.
-          python ps.py queue-ack --batch "$b" >/dev/null 2>&1 || true
-          n=$(python ps.py queue-drain --format json | python -c 'import json,sys;print(len(json.load(sys.stdin)))')
-          [ "$n" = "1" ] || { echo "::error::stale batch ack retired items it did not drain ($n)"; exit 1; }
-          python ps.py queue-ack --all >/dev/null
-          n=$(python ps.py queue-drain --format json | python -c 'import json,sys;print(len(json.load(sys.stdin)))')
-          [ "$n" = "0" ] || { echo "::error::ack did not retire in-flight items ($n)"; exit 1; }
-          echo "drain/ack ordering and batch scoping correct"
+          mkdir -m 700 "$HOME/.margo-canvas-ci"
+          MARGO_CANVAS_TEST_PARENT="$HOME/.margo-canvas-ci" node --test .github/extensions/margo-action-desk/*.test.mjs
+          rmdir "$HOME/.margo-canvas-ci"
 
       - name: Shell syntax
         run: |
@@ -646,21 +614,13 @@ jobs:
 
           Write-Host "install / reinstall / dry-run / link / force / uninstall all correct"
 
-      # The ledger's locking is platform-conditional: fcntl on POSIX, msvcrt on
-      # Windows. The Linux job proves the no-locking fallback; only this proves
-      # the msvcrt branch, on the one platform where msvcrt actually exists.
-      - name: State ledger works on Windows
+      - name: State and action desk work on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          python skills/chief-of-staff/scripts/proactive_state.py status
-          python skills/chief-of-staff/scripts/proactive_state.py queue-add `
-            --json '{"id":"mail:win","title":"windows locking check"}'
-          $n = python skills/chief-of-staff/scripts/proactive_state.py queue-drain --format json |
-               python -c "import json,sys;print(len(json.load(sys.stdin)))"
-          if ([int]$n -lt 1) { throw "ledger did not round-trip an item on Windows" }
-          Write-Host "ledger locks and round-trips correctly on Windows"
+          python -m unittest discover -s tests -p 'test_*.py'
+          if ($LASTEXITCODE -ne 0) { throw "state/action desk tests failed" }
 
   # The macOS package builds on every PR, unsigned. Release signs it.
   package-macos:

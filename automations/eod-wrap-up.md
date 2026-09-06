@@ -14,9 +14,14 @@ Unattended mode — apply the Unattended Mode Contract exactly: never call `ask_
 trailing offers, nothing is sent or RSVP'd or changed, drafts may be prepared but never
 delivered.
 
-Drain the queue first with `scripts/proactive_state.py queue-drain --format json`.
+Read `references/state-operations.md` first. The anchor owns one leased queue batch; the
+underlying routine must not drain again. Persist the output and publication receipt before
+acknowledging only the items actually included.
 
-Review `commitments.md` for anything created or resolved today and note proposed updates for
-approval — do not write them unattended.
+Review confirmed work, candidates, and execution receipts in the work ledger. Stage proposed
+additions and resolutions for approval, never confirm them unattended or hand-edit the
+compatibility export. Carry unresolved meeting items forward and retain recap-pending status.
 
-Mark everything rendered and set cursors before exiting.
+Record successful coverage independently per source after complete paging and durable ingestion.
+Failed or partial reads do not advance successful checkpoints. Include health changes without
+repeating unchanged failure notices on every run.

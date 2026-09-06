@@ -173,6 +173,22 @@ See **[Personalization](personalization.md)** for how to fill it in well.
 
 ## 4. First run
 
+Configure the ledger owner after confirming the signed-in Work IQ identity. Replace the
+fictional principal below with that account:
+
+```bash
+python3 ~/.copilot/skills/chief-of-staff/scripts/margo_store.py init --account you@example.com
+python3 ~/.copilot/skills/chief-of-staff/scripts/margo_doctor.py
+```
+
+On Windows, use `python` and the scripts beneath
+`$HOME\.copilot\skills\chief-of-staff\scripts`. A custom installation needs the matching
+`COPILOT_HOME` environment variable. Account configuration does not authenticate Work IQ.
+Without an account, state commands report setup required instead of guessing.
+
+If upgrading from legacy JSON or Markdown state, follow
+[setup and migration](how-to/setup-and-migration.md) before running scheduled routines.
+
 ```
 > Margo, brief me.
 ```
@@ -203,11 +219,23 @@ Nothing in that list sends, posts, RSVPs or deletes anything. See
 
 ## Optional setup
 
+### Durable work and action desk
+
+Start with [Closed-loop productivity](closed-loop.md). Configure an explicit account, migrate
+legacy state with schedules paused, and review candidate commitments before confirming them.
+`scripts/margo_doctor.py` distinguishes missing configuration, incomplete source coverage, and
+failed automation runs. A successful scheduler status alone does not establish data coverage.
+
+The app canvas is optional: `./install.sh --all --action-desk` or
+`.\install.ps1 -All -ActionDesk`, followed by an extension reload. All core operations remain
+available through the CLI. Its local action edits are not sends; final approval stays in the
+foreground conversation. See [commitments and action desk](how-to/commitments-and-action-desk.md).
+
 ### Commitment tracking
 
-`commitments.md` starts empty and fills up as you approve sends that create or resolve
-obligations. Nothing to configure — but it's read on every brief, so it's worth glancing at
-after the first week to check it's picking up what you'd expect.
+An empty `commitments.md` is not evidence of an empty workload. Use the guided bootstrap to
+review a bounded set of sourced candidates. After migration it is a readable export of the
+work ledger, and confirmed state changes require explicit approval independently of sends.
 
 ### Azure DevOps work items
 
@@ -261,7 +289,10 @@ rejects the default `organizations` authority.
 | Scheduled runs repeat themselves | State ledger reset | Run `proactive_state.py status`; check for `WARNING` output |
 | Installer says "unidentified developer" | Unsigned build | Right-click the `.pkg` → **Open**, or `sudo installer -pkg Margo-*.pkg -target /` |
 | Windows SmartScreen warning | Unsigned build | **More info → Run anyway**, or use the `irm ... \| iex` one-liner |
-| Reinstall didn't pick up a change | The file is yours, not ours | `preferences.md`, `commitments.md` and `config.md` are never overwritten. Use `--force` to replace them (a backup is kept) |
+| Reinstall didn't pick up a change | Preserved personal file or customised prompt | Review and reconcile the diff. `--force` also replaces personal files; do not use it merely to update a prompt |
+| State commands say setup required | No explicit account configured | Initialise the confirmed owner with `margo_store.py init`; this is separate from OAuth |
+| App prompts did not change after copying | Workflow store is separate from installed files | Ask to sync the reviewed automation files to existing workflows |
+| Canvas edits fail after a source changed | Revision or fingerprint is stale | Reload, revalidate sources, and prepare a new proposal; do not reuse old approval |
 
 For failures specific to Work IQ, load the `workiq` skill and read its
 `references/troubleshooting.md`.

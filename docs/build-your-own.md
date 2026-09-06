@@ -7,8 +7,9 @@ Margo is one agent. The pattern underneath is reusable, and it's the reason this
 ## The split
 
 ```
-agents/margo.agent.md          →  WHO. Persona, voice, boundaries. ~100 lines.
-skills/chief-of-staff/         →  HOW. Procedure, tool discipline, formats. ~20 files.
+agents/margo.agent.md          →  WHO. Persona, voice, boundaries.
+skills/chief-of-staff/         →  HOW. Procedures, contracts, and local tools.
+.github/extensions/           →  OPTIONAL UI. Thin renderer over the same local APIs.
 ```
 
 `margo.agent.md` contains **no procedure**. It never explains how to call Work IQ, what a brief
@@ -103,18 +104,29 @@ only when that routine fires.
 
 ### Separate config from procedure
 
-`preferences.md`, `config.md` and `commitments.md` are the user's; `SKILL.md` and `references/`
-are the skill's. That boundary is what makes the skill shareable — and it's what lets forkers
-gitignore their own data without diverging from upstream.
+Filled `preferences.md`, `config.md`, runtime state and commitment exports are the user's;
+`SKILL.md`, `references/`, and helper code are the skill's. Copy installations keep private data
+outside the checkout. Do not rely on `.gitignore` to protect modifications to tracked templates.
 
 ### Scripts for things models are bad at
 
-Four in this repo: durable state, large-file transfer, feed parsing, thread reconstruction.
-Deterministic bookkeeping, chunking, and pagination are all cheaper and more reliable in twenty
-lines of Python than in reasoning.
+The Python helpers handle account-scoped storage, revision-bound actions, publication receipts,
+source coverage, capacity, installation provenance, and feed/file handling. Models decide what
+matters; transactions and validated commands preserve what happened.
 
 The rule that makes them safe: **fail loudly**. A silent partial result gets summarized as if it
 were complete.
+
+### Reuse the state contracts
+
+Start with [the feature reference](features.md) and
+[setup guide](how-to/setup-and-migration.md). Route work changes through `work_state.py`, coverage
+and delivery through `proactive_state.py`, and health reads through `margo_doctor.py`.
+Keep evidence-only observations separate from canonical provider IDs and confirmed obligations.
+
+The optional canvas calls the same backend through fixed subprocess arguments. It owns no
+database, credentials, or approval endpoint. Treat an approval record as evidence of a specific
+human decision, not an authentication mechanism for a generally capable agent.
 
 ### Write the discipline down, with the reason
 
@@ -130,12 +142,12 @@ reasoned around the first time it's inconvenient. See [Working with Work IQ](wor
    keep the structure — capability disclaimer, one rule, voice, boundary, introduction.
 2. **Copy a skill as a starting shape.** `decision-log` is smaller and easier to read than
    `chief-of-staff`.
-3. **Delete the routines you don't need.** Remove the reference file and its row from the router
-   table. Nothing else depends on it.
+3. **Remove the routines you don't need.** Update their router rows, callers and automation
+   prompts together. Keep the shared state and approval contracts for any routines still using them.
 4. **Fill in the config template** before the first real run.
 5. **Run it read-only for a week** before turning on any writes.
 
-The two smaller skills are also worth reading as examples in their own right:
+The smaller skill is also worth reading as an example in its own right:
 
 | Skill | Pattern it demonstrates |
 |---|---|

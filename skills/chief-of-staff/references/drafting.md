@@ -4,6 +4,11 @@ Produce ready-to-send drafts (email replies, new emails, Teams messages, follow-
 real context and written in the user's voice. **Always present for approval; only send/reply via
 Work IQ after an explicit go-ahead.**
 
+Read `action-desk.md` and `feedback.md`. Store local proposals as versioned action records linked
+to their work item and evidence. An unattended run may prepare a local draft, never create an
+Outlook draft or send it. When the user requests an Outlook draft, show its exact recipients and
+content and obtain approval for that write; sending remains separately approved.
+
 ## Procedure
 
 1. **Load voice** from `../preferences.md` — tone, sign-off, length, do/don't. If unset, use
@@ -40,7 +45,8 @@ Work IQ after an explicit go-ahead.**
    ```
    If helpful, offer **2 variants** (e.g. concise vs. warmer, or accept vs. propose-alternative).
 
-5. **Iterate** on feedback until approved.
+5. **Iterate** on feedback until approved. Persist each changed revision, invalidate any prior
+   approval, and record corrections only under the explicit learning rules in `feedback.md`.
 
 6. **On explicit approval**, send/reply via Work IQ:
    - Reply/forward/send → `workiq-do_action` (or `workiq-create_entity` for a draft +
@@ -48,9 +54,10 @@ Work IQ after an explicit go-ahead.**
    - Teams message/reply/react → entity tools on `/chats/...` or `/teams/...`. Load the
      `workiq` skill (call the `skill` tool with `workiq`) and follow its Teams reference for
      the exact shapes.
-   Then confirm it was sent and, if the message created a commitment (you promised something) or
-   a waiting-on (you asked for something), offer to log it in `../commitments.md` with owner, due
-   date, and source link.
+   Re-read the target and relevant sources immediately before execution using the action-desk
+   preflight. Record the actual tool result and receipt; a timeout is `outcome_unknown`, not a
+   reason to send again. Confirm success only on evidence. If the message created an obligation,
+   persist a candidate with owner, explicit due date or unknown, and source; confirm it separately.
 
 ## Quality bar
 - Never fabricate a commitment, date, name, number, or link — pull it or ask the user.

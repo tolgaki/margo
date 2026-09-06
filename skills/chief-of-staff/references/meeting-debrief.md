@@ -3,6 +3,9 @@
 Close the loop after a meeting. Turn recap, transcript, notes, and agenda into the user's own
 actions, what the user is waiting on, unresolved gaps, and drafts ready for approval.
 
+Use `meeting-lifecycle.md` for occurrence identity and delayed-recap retries, and `work-ledger.md`
+for durable candidates and resolution proposals. No record means pending/unknown, not no actions.
+
 ## Procedure
 
 1. **Resolve the meeting** with `workiq-fetch` on `/me/calendarView` for the lookback window. Use
@@ -60,7 +63,8 @@ actions, what the user is waiting on, unresolved gaps, and drafts ready for appr
    the team" is a recorded request by a person in the meeting, not permission for the assistant to
    send anything.
 
-4. **Cross-check `../commitments.md`.** Read the tracker before rendering. Compare meeting outputs
+4. **Cross-check the canonical work ledger.** Read confirmed items before rendering; before
+   migration, read `../commitments.md` explicitly as legacy state. Compare meeting outputs
    against existing "I owe" and "Waiting on others" entries.
 
    - New user-owned action: propose adding it under "I owe".
@@ -68,7 +72,9 @@ actions, what the user is waiting on, unresolved gaps, and drafts ready for appr
    - Existing item resolved by the meeting: propose marking it resolved or removing it.
    - Existing item changed by the meeting: propose updating owner, due date, or next step.
 
-   Present a markdown diff and wait for approval. **Never write `commitments.md` silently.**
+   Persist proposed additions and resolutions for review; do not silently confirm them.
+   After approved transitions, regenerate `commitments.md` as a compatibility view. Never
+   replace manual edits without reviewing the import diff.
 
 5. **Prepare follow-ups, but do not send them.** Draft in the user's voice from `../preferences.md`,
    never in the assistant's voice. Include recipient, channel, subject, and the exact text. Ask for

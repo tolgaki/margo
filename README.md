@@ -3,25 +3,27 @@
 **An AI chief of staff for Microsoft 365, built on [Work IQ](docs/work-iq.md).**
 
 Margo reads your mail, calendar, Teams chats, meeting recaps and documents through the Work IQ
-MCP server, works out what actually needs you, and puts every send one approval away. She books
-the meeting, moves the four things it displaces, drafts the note to the people affected — and
-then waits for you to say yes.
+MCP server, works out what actually needs you, and puts every send one approval away. She prepares
+the meeting plan, accounts for what it displaces, and drafts the note to the people affected.
+She waits for your approval before making those changes.
 
 This repo is the **reference implementation**: one agent persona, two skills, and the
 documentation to build your own.
 
 **Read this as a Work IQ reference, not as a product.** It is configuration for GitHub Copilot
-CLI — an agent persona, two skills and their supporting docs — aimed at people building this kind
+CLI — an agent persona, two skills, local state tools, an optional app canvas, and supporting
+docs — aimed at people building this kind
 of assistant rather than at people who want one off the shelf. Margo is the vehicle: an agent with
 enough opinion to show what the API is actually for, since the interesting parts of Work IQ only
 appear once something has to make a decision with the data. If you are here to build,
 **[Build your own](docs/build-your-own.md)** is the point of the repo and the rest is worked
 example.
 
-The scope is deliberately narrow: everything goes through Work IQ. No local file access, no
-browser, no shell-driven automation of your desktop. That keeps the surface small enough that
-**[Trust & safety](docs/safety.md)** can describe the whole of it in one page — a claim that gets
-much harder to make honestly with every capability added.
+Microsoft 365 reads and approved writes go through Work IQ. Local Python helpers maintain private
+state, calculate capacity, and record approvals and receipts; an optional Copilot app canvas
+provides a review surface. The CLI remains sufficient. These helpers do not send mail or mutate
+calendars themselves. **[Trust & safety](docs/safety.md)** distinguishes runtime checks from agent
+instructions rather than claiming that a generally capable agent is sandboxed.
 
 ```
 "Brief me."                    → what today costs you, what to skip, what to answer
@@ -46,7 +48,7 @@ That gap is where **Work IQ** earns its keep, and where Margo is built to show i
 | Knowing it's *true* | Every hit carries a `webLink` and a sensitivity label | Cites the source on every claim, so nothing has to be taken on trust |
 | Enumerating without drowning | `fetch` with `$select` / `$top` against real Graph paths | Bounded reads, so the model spends its context on judgement not payload |
 | Actually doing it | `do_action`, `create_entity`, `update_entity` | Books, moves, replies, RSVPs — **only after you approve that exact action** |
-| Remembering across days | — | A durable commitments ledger and an on-disk state ledger for scheduled runs |
+| Carrying work across days | — | Account-scoped work history, evidence revisions, approval records, and delivery receipts |
 
 Work IQ makes the data reachable and writable. Margo is the layer that makes it *worth reaching* —
 opinionated, cited, and safe to let near a send button.
@@ -63,12 +65,12 @@ agents/
   margo.agent.md            The persona. Voice, not capability. Swap it for your own.
 
 skills/
-  chief-of-staff/           The playbook. 18 routines, from daily brief to exec follow-up.
+  chief-of-staff/           The playbook, from daily brief to closed-loop follow-through.
     SKILL.md                Operating rules, the Work IQ tool table, routine router
     preferences.md          ← template: how you work, who matters, your voice
     commitments.md          ← template: what you owe, what you're waiting on
     references/             One file per routine — the actual procedures
-    scripts/                State ledger, large-file bridge, community parsers
+    scripts/                Work/action ledger, coverage, capacity, diagnostics and parsers
 
   decision-log/             The append-only record of what the team decided, and why
 
@@ -79,15 +81,26 @@ install.sh / install.ps1    Install, upgrade, status, uninstall — never clobbe
 packaging/                  Native macOS .pkg and Windows .exe installers
 tools/margo-scheduled.sh    Runs a scheduled brief with Work IQ writes denied at the CLI
 tools/check-clean.sh        Fails if real workplace data creeps into the repo
+.github/extensions/         Optional action-desk canvas; the CLI works without it
+tests/                     Synthetic state, approval, capacity and installer regressions
 
 docs/                       Start here ↓
 ```
 
+**New: closed-loop work.** A private SQLite ledger separates proposed commitments from confirmed
+obligations, carries versioned actions across sessions, and records approval and execution outcomes.
+Source-level coverage and leased delivery prevent a successful mail read or a drained queue from
+being mistaken for a complete brief. See **[Closed-loop productivity](docs/closed-loop.md)**.
+
 | Doc | What it covers |
 |---|---|
 | **[Getting started](docs/getting-started.md)** | Install, connect Work IQ, first run |
+| **[How-to guides](docs/how-to/README.md)** | Setup, candidate review, action desk, planning, meetings, learning and health |
+| **[Feature reference](docs/features.md)** | What 1.1 implements, where it lives, and its limits |
+| **[Changelog](CHANGELOG.md)** | Release-level feature and deployment changes |
+| **[Closed-loop productivity](docs/closed-loop.md)** | How the ledger, actions, evidence and connected routines fit together |
 | **[How Margo uses Work IQ](docs/work-iq.md)** | `retrieve` vs `fetch` vs `ask`, payload discipline, failure modes |
-| **[The chief-of-staff playbook](docs/chief-of-staff.md)** | All 18 routines and when each fires |
+| **[The chief-of-staff playbook](docs/chief-of-staff.md)** | The routines and when each fires |
 | **[Walkthroughs](docs/walkthroughs.md)** | End-to-end: calendar management → sending the email |
 | **[Personalization](docs/personalization.md)** | Teaching Margo your voice, VIPs and rules |
 | **[Proactive & scheduled](docs/proactive.md)** | Unattended briefs, sweeps, and the state ledger |
@@ -149,14 +162,23 @@ Then teach her who you are — this is the step that matters:
 $EDITOR ~/.copilot/skills/chief-of-staff/preferences.md
 ```
 
-And run:
+Configure the private ledger with the account you have confirmed through Work IQ. Replace the
+fictional address below; this command configures storage and does not sign in:
+
+```bash
+python3 ~/.copilot/skills/chief-of-staff/scripts/margo_store.py init --account you@example.com
+python3 ~/.copilot/skills/chief-of-staff/scripts/margo_doctor.py
+```
+
+An existing installation also needs the explicit
+[state migration](docs/how-to/setup-and-migration.md), with its schedules paused. Then run:
 
 ```
 > Margo, brief me.
 ```
 
-Updating is a first-class command, and safe — `preferences.md`, `commitments.md`,
-`config.md` and saved state are never overwritten:
+Updating preserves `preferences.md`, `commitments.md`, `config.md`, and runtime state by default.
+Do not use `--force` unless you intend to replace personal files from their templates:
 
 ```bash
 ./install.sh update --check   # are you behind?
@@ -164,7 +186,9 @@ Updating is a first-class command, and safe — `preferences.md`, `commitments.m
 ```
 
 `./install.sh status` shows the installed version; `./install.sh uninstall`
-removes it and backs your files up.
+removes managed components and backs up legacy personal files. The private `margo/` runtime
+directory is retained. Installation copies files; app workflow prompt sync and extension reload
+are separate steps. Unversioned installations need a normal install, not `update`.
 
 Full instructions, including the Work IQ connection check, are in
 **[Getting started](docs/getting-started.md)**.

@@ -66,9 +66,10 @@ obligations: source them, judge relevance, and recommend read, defer, or declare
    A document is relevant when it is from a VIP, attached to or linked from an upcoming meeting,
    explicitly asks for review, names a deadline, or blocks a commitment in `../commitments.md`.
 
-4. **Apply the pre-read filter.** A pre-read for a meeting in the next 48 hours is urgent and clears
-   the interrupt test in `references/proactive.md`. Everything else is ambient unless it has an
-   explicit deadline today or a VIP direct ask.
+4. **Apply the pre-read filter.** A pre-read for a meeting in the next 48 hours belongs in the next
+   anchor. It interrupts only within two hours or when another criterion in `proactive.md`
+   applies. Ambient scans never interrupt. Everything else is ambient unless it has an explicit
+   deadline today or a VIP direct ask.
 
    - Next 48 hours pre-read → `section: "needs-your-response"`, action: read before meeting.
    - No imminent meeting, no deadline → `section: "ambient"` or `"fyi"`, action: read later or drop.
@@ -99,26 +100,19 @@ obligations: source them, judge relevance, and recommend read, defer, or declare
    Queue a normal doc item:
 
    ```bash
-   key='doc:{driveItemId}'
-   if ! python3 scripts/proactive_state.py seen "$key"; then
-     python3 scripts/proactive_state.py queue-add --json '{"id":"doc:{driveItemId}","kind":"mail","title":"{doc title}","source":"Shared doc · {sender} · {date}","url":"{webLink}","action":"read later or drop","why":"shared with you and relevant to {project/person}","section":"fyi"}'
-   fi
+   python3 scripts/proactive_state.py queue-add --json '{"id":"doc:{driveItemId}","revision":"{observed-revision}","family":"document","scope":"{driveId}","kind":"mail","title":"{doc title}","source":"Shared doc · {sender} · {date}","url":"{webLink}","action":"read later or drop","why":"shared with you and relevant to {project/person}","section":"fyi"}'
    ```
 
    Queue an imminent pre-read:
 
    ```bash
-   key='doc:{driveItemId}:pre-read:{eventId}'
-   if ! python3 scripts/proactive_state.py seen "$key"; then
-     python3 scripts/proactive_state.py queue-add --json '{"id":"doc:{driveItemId}:pre-read:{eventId}","kind":"event","title":"Pre-read: {doc title}","source":"Meeting · {title} · {time}","url":"{webLink}","action":"read before the meeting","why":"pre-read for a meeting in the next 48 hours","section":"needs-your-response"}'
-   fi
+   python3 scripts/proactive_state.py queue-add --json '{"id":"doc:{driveItemId}:pre-read:{eventId}","revision":"{observed-revision}","family":"document","scope":"{driveId}","kind":"event","title":"Pre-read: {doc title}","source":"Meeting · {title} · {time}","url":"{webLink}","action":"read before the meeting","why":"pre-read for a meeting in the next 48 hours","section":"needs-your-response"}'
    ```
 
-   When invoked directly by the user and rendered immediately, mark what was shown:
-
-   ```bash
-   python3 scripts/proactive_state.py mark "doc:{driveItemId}" --tier anchor
-   ```
+   Substitute real observed IDs/revisions; never execute the placeholder examples literally.
+   Queue insertion deduplicates transactionally. Do not `mark` at insertion time or treat every
+   nonzero `seen` exit as new: exit 2 is an error. For an on-demand rendered card, use the leased
+   publication/receipt protocol in `state-operations.md` before acknowledging its included IDs.
 
 8. **Render the document card:**
 

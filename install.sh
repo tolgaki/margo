@@ -35,6 +35,7 @@ SKILLS=""
 MODE="copy"
 DRY_RUN=0
 FORCE=0
+ACTION_DESK=0
 ASSUME_YES=0
 SRC=""
 TMP_DIR=""
@@ -103,6 +104,11 @@ write_manifest() {
     printf 'mode=%s\n' "$MODE"
     printf 'skills=%s\n' "$1"
     printf 'source=%s\n' "$SRC"
+    printf 'action_desk=%s\n' "$ACTION_DESK"
+    if [ -e "$SRC/.git" ] && command -v git >/dev/null 2>&1; then
+      printf 'revision=%s\n' "$(git -C "$SRC" rev-parse HEAD)"
+      if [ -n "$(git -C "$SRC" status --porcelain)" ]; then printf 'modified_source=1\n'; fi
+    fi
   } > "$DEST/$MANIFEST_NAME"
 }
 
@@ -134,6 +140,7 @@ ${B}OPTIONS${N}
   --dest DIR         Install root ${DIM}(default: ~/.copilot)${N}
   --check            With 'update': report whether you are behind, change nothing
   --force            Overwrite personal files, backing them up first
+  --action-desk      Install the optional Copilot app action-desk canvas
   --dry-run          Print what would happen, change nothing
   -y, --yes          Don't prompt
   -h, --help         This
@@ -158,6 +165,7 @@ while [ $# -gt 0 ]; do
     --dest)       [ $# -ge 2 ] || die "--dest needs a value"; DEST="$2"; shift ;;
     --dest=*)     DEST="${1#*=}" ;;
     --force)      FORCE=1 ;;
+    --action-desk) ACTION_DESK=1 ;;
     --dry-run)    DRY_RUN=1 ;;
     -y|--yes)     ASSUME_YES=1 ;;
     -h|--help)    usage; exit 0 ;;
@@ -636,6 +644,12 @@ assert_not_overlapping() {
 cmd_install() {
   resolve_source
   assert_not_overlapping "$SRC" "$DEST"
+  if [ "$(installed_field action_desk)" = "1" ]; then ACTION_DESK=1; fi
+  if [ "$ACTION_DESK" -eq 1 ]; then
+    python_bin >/dev/null || die "--action-desk requires Python 3.9+"
+    [ -f "$SRC/.github/extensions/margo-action-desk/extension.mjs" ] \
+      || die "this distribution does not contain the optional action desk"
+  fi
 
   step "Installing to $DEST"
   info "  ${DIM}source: $SRC${N}"
@@ -669,6 +683,11 @@ cmd_install() {
     info "     ${DIM}uncomment the personal-data lines in .gitignore before filling them in${N}"
   fi
 
+  if [ "$DRY_RUN" -eq 0 ] && py=$(python_bin); then
+    manifest_args=(--source "$SRC" --dest "$DEST" --skills "$selected")
+    [ "$ACTION_DESK" -eq 0 ] || manifest_args+=(--install-canvas)
+    "$py" "$SRC/skills/chief-of-staff/scripts/install_manifest.py" "${manifest_args[@]}"
+  fi
   write_manifest "$selected"
 
   printf '\n%sInstalled%s %s\n\n' "$G$B" "$N" "$(source_version)"
@@ -806,6 +825,14 @@ cmd_uninstall() {
   fi
 
   # Everything is safely archived; only now delete.
+  helper="$DEST/skills/chief-of-staff/scripts/install_manifest.py"
+  if [ "$DRY_RUN" -eq 0 ] && [ -f "$helper" ]; then
+    if py=$(python_bin); then
+      "$py" "$helper" --dest "$DEST" --remove-canvas
+    else
+      warn "Python unavailable; optional action-desk extension left in place"
+    fi
+  fi
   for s in $ALL_SKILLS; do
     target="$DEST/skills/$s"
     [ -e "$target" ] || [ -L "$target" ] || continue
@@ -865,7 +892,8 @@ cmd_uninstall() {
   fi
 
   # Install metadata, not user data: remove it rather than archiving it.
-  [ "$DRY_RUN" -eq 1 ] || rm -f "$DEST/$MANIFEST_NAME"
+  [ "$DRY_RUN" -eq 1 ] || rm -f "$DEST/$MANIFEST_NAME" "$DEST/.margo-files.json"
+  [ ! -d "$DEST/margo" ] || info "  Private work ledger and account configuration retained in $DEST/margo"
 
   [ "$found" -eq 1 ] || { info "  ${DIM}nothing installed${N}"; return; }
 
@@ -890,6 +918,14 @@ describe() {
 describe_user_file() {
   f="$1"
   if [ ! -f "$f" ]; then printf 'missing'; return; fi
+  if [ "${f##*/}" = "preferences.md" ]; then
+    if grep -qE '^- \*\*Name / preferred name:\*\* [^{(]' "$f"; then
+      printf 'personalized; doctor reports missing fields'
+    else
+      printf 'TEMPLATE'
+    fi
+    return
+  fi
   if grep -q '{[a-z_]*}' "$f" 2>/dev/null; then printf 'TEMPLATE'; return; fi
   if grep -q '^|' "$f" 2>/dev/null; then
     rows=$(awk '

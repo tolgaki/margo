@@ -3,6 +3,10 @@
 Make the user walk in ready. For a given meeting (or every meeting today that needs prep),
 assemble purpose, people, context, and talking points.
 
+Read `meeting-lifecycle.md` before preparing a recurring occurrence. Include accumulated agenda
+topics and linked unresolved work, and store the resulting packet with its evidence revisions
+using `work-products.md`. Do not rebuild the agenda from a fresh scrape alone.
+
 ## Procedure
 
 1. **Resolve the meeting** with `workiq-fetch` on `/me/calendarView` (or by event ID). The
