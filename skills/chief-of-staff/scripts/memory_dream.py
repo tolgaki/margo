@@ -17,6 +17,7 @@ MAX_INPUT = 100000
 MAX_EVENTS = 100
 MAX_SCAN = 500
 MAX_CLAIMS = 20
+MAX_PACKET_CHARS = 14000
 INTERPRETATIONS = {"hypothesis", "decision", "rationale", "alternative", "direction", "question", "discussion"}
 
 
@@ -184,6 +185,13 @@ def _current(memory, row):
             and memory._work_sources_current(row))
 
 
+def _episode_current(memory, row, sources):
+    return (row.get("metadata", {}).get("dream") == "episode"
+            and any(ref["kind"] == "memory_record" and (ref["ref"], ref.get("revision")) in sources
+                    for ref in row["source_refs"])
+            and _current(memory, row))
+
+
 def plan(memory, value):
     start, end = _window(value)
     scope = scope_for(memory.account, value["host"], value["workspace"])
@@ -200,7 +208,7 @@ def plan(memory, value):
             "SELECT id FROM memory_records WHERE account=? AND domain='user' AND kind='episode' "
             "AND status<>'forgotten' AND id>? ORDER BY id LIMIT ?",
             (memory.account, value["after"] or "", MAX_SCAN + 1)).fetchall()
-        events, excluded = [], 0
+        events, excluded, oversized = [], 0, 0
         for item in scanned[:MAX_SCAN]:
             row = memory.show(item["id"])
             if row.get("scope") != scope or row.get("metadata", {}).get("dream") != "checkpoint":
@@ -216,6 +224,10 @@ def plan(memory, value):
             if not _current(memory, row):
                 excluded += 1
                 continue
+            if len(canonical_json(row)) > MAX_PACKET_CHARS:
+                excluded += 1
+                oversized += 1
+                continue
             events.append(row)
         over = len(events) > MAX_EVENTS
         events = events[:MAX_EVENTS]
@@ -223,7 +235,7 @@ def plan(memory, value):
         packet, size = [], 0
         for row in events:
             cost = len(canonical_json(row))
-            if size + cost > 14000:
+            if size + cost > MAX_PACKET_CHARS:
                 over = True
                 break
             size += cost
@@ -235,6 +247,7 @@ def plan(memory, value):
                     "history_access": "unsupported", "window": {"start": start.isoformat(), "end": end.isoformat()},
                     "timezone": value["timezone"], "cutoff": value["cutoff"],
                     "lookback_days": value["lookback_days"], "excluded": excluded,
+                    "excluded_oversized": oversized,
                     "scan_truncated": len(scanned) > MAX_SCAN, "intake_truncated": over,
                     "next_cursor": cursor,
                     "pagination": "not-enumerated", "late_arrivals": "bounded-lookback; rerun with a new key",
@@ -346,6 +359,20 @@ def finish(memory, value):
         # Episodes are exact observations, not model-written summaries or confirmations.
         for event in events:
             refs = [{"kind": "memory_record", "ref": event["id"], "revision": str(event["revision"])}]
+            key = "dream-episode:" + event["id"] + ":" + str(event["revision"])
+            episode_id = memory.record_id("user", key)
+            previous = memory.conn.execute(
+                "SELECT id FROM memory_records WHERE id=? AND account=?", (episode_id, memory.account)).fetchone()
+            if previous:
+                episode = memory.show(episode_id)
+                if _episode_current(memory, episode, {(event["id"], str(event["revision"]))}):
+                    outputs.append(episode_id)
+                continue
+            # Restored deletion journals can retain an identity without a record.
+            if memory.conn.execute(
+                    "SELECT 1 FROM memory_tombstones WHERE id=? AND account=?",
+                    (episode_id, memory.account)).fetchone():
+                continue
             title = "Dream sourced episode: %s at %s" % (event["metadata"]["speaker"], event["metadata"]["timestamp"])
             data = _data(title, event["text"], event["scope"], refs,
                          {"dream": "episode", "chronology": event["metadata"],
@@ -354,7 +381,7 @@ def finish(memory, value):
                                                        "workspace": meta["request"]["workspace"]},
                           "work_refs": event["metadata"]["work_refs"]},
                          event["entities"], event["allowed_uses"], event["sensitivity"])
-            outputs.append(memory.capture("dream-episode:" + event["id"] + ":" + str(event["revision"]), data)["id"])
+            outputs.append(memory.capture(key, data)["id"])
         for claim, sources in prepared:
             refs = [{"kind": "memory_record", "ref": row["id"], "revision": str(row["revision"])}
                     for row in {row["id"]: row for row in sources}.values()]
@@ -391,10 +418,10 @@ def inspect(memory, snapshot_id):
         "SELECT id FROM memory_records WHERE account=? AND status<>'forgotten' ORDER BY id LIMIT ?",
         (memory.account, MAX_SCAN + 1)).fetchall()
     outputs = [memory.show(row["id"]) for row in rows[:MAX_SCAN]]
-    event_ids = {ref["ref"] for ref in snapshot["source_refs"]}
+    event_sources = {(ref["ref"], ref.get("revision")) for ref in snapshot["source_refs"]
+                     if ref["kind"] == "memory_record"}
     outputs = [row for row in outputs if row.get("metadata", {}).get("snapshot_id") == snapshot_id
-               or (row.get("metadata", {}).get("dream") == "episode"
-                   and any(ref["ref"] in event_ids for ref in row["source_refs"]))]
+               or _episode_current(memory, row, event_sources)]
     current = _current(memory, snapshot) and memory.policy()["revision"] == meta["policy_revision"]
     publication = (proactive_state.publication_show(memory.conn, "dream:" + snapshot_id)
                    if run["state"] == "completed" else None)

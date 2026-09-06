@@ -149,6 +149,11 @@ honor the model grant; these limits do not sandbox arbitrary host tools. Claims 
 
 If `next_cursor` is present, use it as `after` on a separately bounded page with a new key;
 chronology is ordered within each page. Page results are not independent corroboration.
+`excluded_oversized` counts otherwise eligible checkpoints whose full serialized record (including
+metadata and entities, not just text) exceeds 14000 characters. They remain stored but are excluded
+from reflection; scanning continues to later records. An empty page can still have a continuation
+cursor. If no eligible events remain, no reflection starts; inspect the saved checkpoints rather
+than claiming they were reflected on or silently truncating their evidence.
 Start future sweeps at `after:null` to catch changed events or late arrivals inside the explicit
 0–7-day lookback. Events outside that window, missing checkpoints, unsupported history, pagination
 gaps and excluded records remain limitations; “task completed” never means source coverage complete.
@@ -187,6 +192,13 @@ Re-plan under a new key; never force an old synthesis through. Exact successful 
 idempotent. If a response/token is lost, inspect the task with `task_state.py show`, use `recover`
 after lease expiry and cancel remaining work before starting a fresh bounded attempt. Existing
 receipts are not erased. A changed payload cannot reuse a completed claim.
+
+Overlapping runs reuse eligible sourced episodes for the exact checkpoint ID and memory revision
+without recapturing them, including after a capture-policy change. Existing episode review state and
+capture-policy provenance are preserved. Suppressed, forgotten, disputed, stale or review-due episodes
+are withheld, never reactivated or recreated under another key; they do not block reflection on other
+eligible evidence. `dream-inspect` also withholds ineligible episodes and episodes from obsolete source
+revisions. Candidate interpretations remain per-run records for separate review.
 
 Correct checkpoint source revisions, or suppress/dispute with the existing memory review commands.
 Dependent indexes are invalidated immediately and old derived prose becomes ineligible, while

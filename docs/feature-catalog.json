@@ -19,7 +19,7 @@
       "canvas_refs": [],
       "scenario_ids": ["dream"],
       "maintainer_role": "Margo maintainers",
-      "limitations": ["Only selected current-session checkpoints; session listing is not content access", "Manual bounded pages; no schedule or history importer is shipped", "Synthetic runtime evidence does not evaluate model reasoning or entailment"]
+      "limitations": ["Only selected current-session checkpoints; session listing is not content access", "Manual bounded pages; individually oversized checkpoints are reported and excluded without blocking later events", "Overlapping runs reuse exact-revision eligible episodes without reviving suppressed or forgotten outputs", "No schedule or history importer is shipped", "Synthetic runtime evidence does not evaluate model reasoning or entailment"]
     },
     {
       "id": "setup",

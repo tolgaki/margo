@@ -40,6 +40,9 @@ record, not a replacement. Resolve people/projects by exact IDs, not matching di
 2. Inspect coverage, excluded records, truncation and `next_cursor`. Even an exhausted local
    page is **partial checkpoint-only coverage**, never complete host history or an all-clear.
    The bounds are 500 scanned rows, 100 events and 14000 serialized event characters per page.
+   `excluded_oversized` reports checkpoints that exceed the character bound individually, including
+   metadata/entities. They are skipped, not truncated; later events remain accessible. Follow an
+   empty page's cursor too, and never claim excluded checkpoints were reflected on.
    Continue a returned cursor only as another deliberately bounded page with a new run key.
    New/changed events invalidate a preview; repeat from `after:null` to catch late arrivals.
 3. Run `dream-start KEY --input PRIVATE_JSON` with the exact request, snapshot hash and actual
@@ -72,7 +75,10 @@ Candidates and checkpoint/snapshot plumbing are excluded from ordinary recall.
 
 If a source revision or capture policy changed, discard the pending synthesis and prepare a new
 page/key. Never retry an old payload against new evidence. Exact successful finish replay is
-idempotent; a competing/expired/paused/cancelled claim cannot persist. For an interrupted claim,
+idempotent. Overlapping runs reuse only eligible episodes for the exact checkpoint ID/revision,
+without recapture or review reactivation. Suppressed/forgotten or otherwise ineligible episodes are
+withheld, not recreated; they do not block other eligible reflection. Inspection excludes obsolete
+source-revision episodes. A competing/expired/paused/cancelled claim cannot persist. For an interrupted claim,
 use task `show`/`recover` to inspect its real state, cancel remaining work and start a new key with
 a fresh snapshot and budget; do not reset task history or reuse a lost token.
 

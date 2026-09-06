@@ -241,8 +241,8 @@ class DreamTests(unittest.TestCase):
                               if row.get("metadata", {}).get("dream") == "episode"]), 1)
         search = MemorySearch(self.memory, encoder=unit_encoder)
         self.assertEqual(search.index()["indexed"], 1)
-        dream.checkpoint(self.memory, dict(self.event, revision="correction-r2", expected_revision=1,
-                                           text="Cedar was discussed, not selected."))
+        corrected = dream.checkpoint(self.memory, dict(self.event, revision="correction-r2", expected_revision=1,
+                                                       text="Cedar was discussed, not selected."))
         self.assertFalse(dream.inspect(self.memory, started["snapshot_id"])["sources_current"])
         self.assertEqual(dream.inspect(self.memory, second["snapshot_id"])["availability"], "unavailable")
         eligible = self.memory.eligible(environment={"account": self.memory.account, "host": self.request["host"],
@@ -250,6 +250,148 @@ class DreamTests(unittest.TestCase):
         self.assertFalse(set(result["output_ids"]) & {row["id"] for row in eligible})
         self.assertEqual(search.health()["vectors"], 0)
         self.assertEqual(search.index(rebuild=True)["indexed"], 0)
+        third = self.begin("third")
+        fresh = dream.finish(self.memory, dict(self.finish_input(third, corrected), claims=[]))
+        self.assertEqual(len(fresh["outputs"]), 1)
+        self.assertEqual(fresh["output_ids"], [fresh["outputs"][0]["id"]])
+        self.assertFalse(set(result["output_ids"]) & {row["id"] for row in fresh["outputs"]})
+        self.assertEqual(fresh["outputs"][0]["source_refs"],
+                         [{"kind": "memory_record", "ref": corrected["id"], "revision": str(corrected["revision"])}])
+        self.assertEqual(dream.inspect(self.memory, third["snapshot_id"])["outputs"], fresh["outputs"])
+        self.assertFalse(any(row.get("metadata", {}).get("dream") == "episode"
+                             for row in dream.inspect(self.memory, started["snapshot_id"])["outputs"]))
+
+    def test_fresh_run_reuses_episode_without_recapture_after_policy_change(self):
+        self.configure()
+        event = dream.checkpoint(self.memory, self.event)
+        first = self.begin()
+        previous = dream.finish(self.memory, self.finish_input(first, event))
+        episode = next(row for row in previous["outputs"] if row["metadata"]["dream"] == "episode")
+        history = self.memory.history(episode["id"])
+        old_policy_revision = episode["metadata"]["capture_policy_revision"]
+        policy = self.memory.policy()["data"]
+        policy["review_days"] = {"episode": 7}
+        preview = policy_preview(self.memory, policy)
+        changed = set_policy(self.memory, policy, evidence(preview["subject_id"], decision="configure"))
+        self.assertGreater(changed["revision"], old_policy_revision)
+
+        second = self.begin("new-policy")
+        result = dream.finish(self.memory, self.finish_input(second, event))
+        self.assertEqual(result["reflection"], "completed")
+        self.assertTrue(result["sources_current"])
+        self.assertEqual(set(result["output_ids"]), {row["id"] for row in result["outputs"]})
+        self.assertEqual(len(result["outputs"]), 2)
+        self.assertEqual([row for row in result["outputs"] if row["metadata"]["dream"] == "episode"], [episode])
+        self.assertEqual(self.memory.history(episode["id"]), history)
+        self.assertEqual(self.memory.show(episode["id"]), episode)
+        old_claim = next(row["id"] for row in previous["outputs"] if row["metadata"]["dream"] == "interpretation")
+        self.assertNotIn(old_claim, result["output_ids"])
+
+    def test_unavailable_episodes_are_not_revived_or_block_overlapping_reflection(self):
+        self.configure()
+        for status in ("suppressed", "forgotten", "disputed", "stale", "review_due"):
+            with self.subTest(status=status):
+                event = dream.checkpoint(self.memory, dict(
+                    self.event, event="event-" + status, locator="conversation:fixture-session/" + status))
+                first = self.begin("first-" + status)
+                previous = dream.finish(self.memory, dict(self.finish_input(first, event), claims=[]))
+                episode = next(row for row in previous["outputs"]
+                               if any(ref["ref"] == event["id"] for ref in row["source_refs"]))
+                if status == "forgotten":
+                    self.memory.forget(episode["id"], episode["revision"], evidence(episode["id"], decision="forget"))
+                else:
+                    data = {key: value for key, value in episode.items()
+                            if key not in {"id", "account", "revision", "status", "created_at", "updated_at"}}
+                    if status == "review_due":
+                        data["review_after"] = self.day + "T00:00:00+00:00"
+                    self.memory.revise(episode["id"], data, "active" if status == "review_due" else status,
+                                       episode["revision"])
+                unavailable = self.memory.show(episode["id"])
+                history = self.memory.history(episode["id"])
+                unrelated = dream.checkpoint(self.memory, dict(
+                    self.event, event="unrelated-" + status, locator="conversation:fixture-session/unrelated-" + status))
+                second = self.begin("second-" + status)
+                result = dream.finish(self.memory, self.finish_input(second, unrelated))
+                self.assertEqual(result["reflection"], "completed")
+                self.assertNotIn(episode["id"], result["output_ids"])
+                self.assertEqual(set(result["output_ids"]), {row["id"] for row in result["outputs"]})
+                self.assertTrue(any(row["metadata"]["dream"] == "episode"
+                                    and any(ref["ref"] == unrelated["id"] for ref in row["source_refs"])
+                                    for row in result["outputs"]))
+                self.assertEqual(self.memory.show(episode["id"]), unavailable)
+                self.assertEqual(self.memory.history(episode["id"]), history)
+                self.assertNotIn(episode["id"], {row["id"] for row in dream.inspect(
+                    self.memory, first["snapshot_id"])["outputs"]})
+                self.assertEqual([row["id"] for row in self.memory.list()
+                                  if row.get("metadata", {}).get("dream") == "episode"
+                                  and any(ref["ref"] == event["id"] for ref in row.get("source_refs", []))],
+                                 [] if status == "forgotten" else [episode["id"]])
+
+    def test_oversized_checkpoint_is_excluded_without_blocking_scan_progress(self):
+        self.configure()
+        inputs = [dict(self.event, event="bounded-" + str(number),
+                       locator="conversation:fixture-session/bounded-" + str(number)) for number in range(2)]
+        rows = sorted((dream.checkpoint(self.memory, value) for value in inputs), key=lambda row: row["id"])
+        original = next(value for value in inputs if value["event"] == rows[0]["metadata"]["event"])
+        oversized = dream.checkpoint(self.memory, dict(
+            original, revision="large-r2", expected_revision=1, text="x" * 6000,
+            entities=["project:fixture-" + str(number) + "-" + "x" * 100 for number in range(80)]))
+        self.assertGreater(len(dream.canonical_json(oversized)), 14000)
+        preview = dream.plan(self.memory, self.request)
+        self.assertEqual([row["id"] for row in preview["events"]], [rows[1]["id"]])
+        self.assertEqual(preview["coverage"]["excluded"], 1)
+        self.assertEqual(preview["coverage"]["excluded_oversized"], 1)
+        self.assertEqual(preview["coverage"]["status"], "partial")
+        self.assertFalse(preview["coverage"]["intake_truncated"])
+        self.assertIsNone(preview["coverage"]["next_cursor"])
+
+        with patch.object(dream, "MAX_SCAN", 1):
+            first = dream.plan(self.memory, self.request)
+            self.assertEqual(first["events"], [])
+            self.assertEqual(first["coverage"]["excluded_oversized"], 1)
+            self.assertTrue(first["coverage"]["scan_truncated"])
+            self.assertEqual(first["coverage"]["next_cursor"], oversized["id"])
+            self.request["after"] = first["coverage"]["next_cursor"]
+            next_page = dream.plan(self.memory, self.request)
+            self.assertEqual([row["id"] for row in next_page["events"]], [rows[1]["id"]])
+            self.assertEqual(next_page["coverage"]["excluded_oversized"], 0)
+            self.assertIsNone(next_page["coverage"]["next_cursor"])
+        started = self.begin("after-oversized")
+        result = dream.finish(self.memory, self.finish_input(started, rows[1]))
+        self.assertEqual(result["reflection"], "completed")
+
+    def test_restored_episode_tombstone_without_record_does_not_block_reflection(self):
+        from memory_governance import tombstones, tombstones_preview, restore_tombstones
+        self.configure()
+        event = dream.checkpoint(self.memory, self.event)
+        first = self.begin()
+        result = dream.finish(self.memory, dict(self.finish_input(first, event), claims=[]))
+        episode_id = result["output_ids"][0]
+        self.memory.forget(episode_id, 1, evidence(episode_id, decision="forget"))
+        bundle = tombstones(self.memory)
+        backup_tasks = TaskStore(self.memory.account, str(self.root / "backup"))
+        backup = MemoryStore(self.memory.account, str(self.root / "backup"))
+        try:
+            policy = self.memory.policy()["data"]
+            approval = policy_preview(backup, policy)
+            set_policy(backup, policy, evidence(approval["subject_id"], decision="configure"))
+            source = dream.checkpoint(backup, self.event)
+            preview = tombstones_preview(backup, bundle)
+            restore_tombstones(backup, bundle, evidence(preview["subject_id"], decision="restore-erasures"))
+            self.assertFalse(backup.conn.execute("SELECT 1 FROM memory_records WHERE id=?", (episode_id,)).fetchone())
+            plan = dream.plan(backup, self.request)
+            started = dream.start(backup, "restored", {
+                "request": self.request, "snapshot_hash": plan["snapshot_hash"],
+                "request_ref": "conversation:fixture-dream-request"})
+            result = dream.finish(backup, self.finish_input(started, source))
+            self.assertEqual(result["reflection"], "completed")
+            self.assertEqual(len(result["outputs"]), 1)
+            self.assertEqual(result["outputs"][0]["metadata"]["dream"], "interpretation")
+            self.assertNotIn(episode_id, result["output_ids"])
+            self.assertFalse(backup.conn.execute("SELECT 1 FROM memory_records WHERE id=?", (episode_id,)).fetchone())
+        finally:
+            backup.close()
+            backup_tasks.close()
 
     def test_source_correction_during_index_inference_cannot_reinsert_old_episode(self):
         from test_memory_search import unit_encoder
