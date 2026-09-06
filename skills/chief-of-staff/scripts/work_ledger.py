@@ -914,13 +914,13 @@ class Ledger:
                         "SELECT data FROM work_source_revisions WHERE source_id=? AND revision=?", (ref["source_id"], ref["revision"])
                     ).fetchone()
                     lines.append("  - Source: %s (revision %s)" % (clean(json.loads(source["data"])["web_link"]), clean(ref["revision"])))
-            content = "\n".join(lines) + "\n"
-            output_digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
+            content = ("\n".join(lines) + "\n").encode("utf-8")
+            output_digest = hashlib.sha256(content).hexdigest()
             # Same-directory exclusive staging permits atomic replacement without a shared temp directory.
             staging = path.with_name("." + path.name + "." + uuid.uuid4().hex + ".staging")
             try:
                 fd = os.open(str(staging), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-                with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                with os.fdopen(fd, "wb") as stream:
                     stream.write(content)
                     stream.flush()
                     os.fsync(stream.fileno())

@@ -5,11 +5,12 @@ integration. Missing or malformed integration artifacts are failures, never temp
 """
 import copy
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS_DIR = ROOT / "tools"
@@ -86,6 +87,25 @@ class RealCatalogTests(unittest.TestCase):
             catalog["features"][0]["guide"] = {"path": path, "anchor": "anything"}
             errors = fc.validate_catalog(catalog)
             self.assertTrue(any("repository-relative" in error for error in errors), errors)
+
+    def test_reference_paths_reject_roots_and_traversal_on_every_platform(self):
+        for path in ("../private-guide.md", "/private/guide.md", r"\private\guide.md",
+                     r"C:\private\guide.md", r"C:private\guide.md",
+                     r"\\server\share\guide.md", r"..\private-guide.md"):
+            with self.subTest(path=path):
+                errors = []
+                self.assertIsNone(fc._ref_path(path, errors, "guide"))
+                self.assertTrue(any("repository-relative" in error for error in errors), errors)
+
+    def test_router_keys_use_catalog_separators_on_windows(self):
+        routers = []
+        for path in fc.ROUTER_FILES:
+            router = Mock(wraps=path)
+            router.relative_to.return_value = PureWindowsPath(path.relative_to(fc.ROOT).as_posix())
+            routers.append(router)
+        with patch.object(fc, "ROUTER_FILES", routers):
+            errors = fc.validate_catalog(load_real_catalog())
+        self.assertEqual(errors, [], "\n".join(errors))
 
     def test_malformed_containers_and_design_availability_are_rejected(self):
         catalog = load_real_catalog()

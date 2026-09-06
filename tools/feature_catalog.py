@@ -28,7 +28,7 @@ import importlib.util
 import json
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from journey_json import load as load_contract_json
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -263,11 +263,7 @@ def discover_cli_commands(errors):
 # Canvas discovery (static parse of the extension's JS source; no execution)
 # ---------------------------------------------------------------------------
 
-def discover_canvas_groups(errors):
-    if not EXTENSION_FILE.exists():
-        errors.append(f"canvas extension missing: {EXTENSION_FILE}")
-        return {}
-    text = EXTENSION_FILE.read_text(encoding="utf-8")
+def parse_canvas_groups(text):
     groups = {}
     parts = text.split("createCanvas({")
     for chunk in parts[1:]:
@@ -276,9 +272,17 @@ def discover_canvas_groups(errors):
             continue
         canvas_id = id_match.group(1)
         actions_match = re.search(r"actions:\s*\[(.*?)\n\s*\],\n\s*open:", chunk, re.DOTALL)
-        region = actions_match.group(1) if actions_match else chunk
+        region = actions_match.group(1) if actions_match else ""
         names = re.findall(r'\bname:\s*"([^"]+)"', region)
         groups.setdefault(canvas_id, set()).update(names)
+    return groups
+
+
+def discover_canvas_groups(errors):
+    if not EXTENSION_FILE.exists():
+        errors.append(f"canvas extension missing: {EXTENSION_FILE}")
+        return {}
+    groups = parse_canvas_groups(EXTENSION_FILE.read_text(encoding="utf-8"))
     if not groups:
         errors.append(f"{EXTENSION_FILE}: no createCanvas({{ id: ... }}) declarations found")
     return groups
@@ -318,8 +322,9 @@ def load_scenario_manifest(path=SCENARIO_MANIFEST):
 # ---------------------------------------------------------------------------
 
 def _ref_path(rel_path, errors, context):
-    if (not isinstance(rel_path, str) or not rel_path or Path(rel_path).is_absolute()
-            or ".." in Path(rel_path).parts):
+    if (not isinstance(rel_path, str) or not rel_path or Path(rel_path).anchor
+            or PureWindowsPath(rel_path).anchor or ".." in Path(rel_path).parts
+            or ".." in PureWindowsPath(rel_path).parts):
         errors.append(f"{context}: reference must be a repository-relative path")
         return None
     path = ROOT / rel_path
@@ -382,7 +387,7 @@ def validate_catalog(catalog, scenario_path=SCENARIO_MANIFEST):
     router_rows = {}
     for router_file in ROUTER_FILES:
         try:
-            router_rows[str(router_file.relative_to(ROOT))] = set(parse_router_rows(router_file))
+            router_rows[router_file.relative_to(ROOT).as_posix()] = set(parse_router_rows(router_file))
         except CatalogError as exc:
             errors.append(str(exc))
     covered_router_rows = {path: set() for path in router_rows}

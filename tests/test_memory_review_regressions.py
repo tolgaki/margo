@@ -10,6 +10,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -160,6 +161,58 @@ class ReviewRegressionTests(unittest.TestCase):
             return {"model_fingerprint": "synthetic", "dimensions": 2, "vectors": [[1, 0]]}
 
         self.assertEqual(MemorySearch(self.store, encoder=changed).search("Review preparation")["results"], [])
+
+    @staticmethod
+    def file_stat(info, **overrides):
+        values = {name: getattr(info, name) for name in (
+            "st_mode", "st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")}
+        return SimpleNamespace(**dict(values, **overrides))
+
+    def test_source_digest_accepts_distinct_stat_and_fstat_ctimes(self):
+        source = self.root / "stable.txt"
+        content = b"Synthetic unchanged evidence\n"
+        source.write_bytes(content)
+        original_fstat = os.fstat
+
+        def descriptor_stat(fd):
+            info = original_fstat(fd)
+            return self.file_stat(info, st_ctime_ns=source.stat().st_ctime_ns + 1000000)
+
+        with patch("memory_store.os.fstat", side_effect=descriptor_stat):
+            self.assertEqual(self.store._file_digest(source), hashlib.sha256(content).hexdigest())
+
+    def test_source_digest_rejects_a_different_file_opened_after_stat(self):
+        source = self.root / "replaced-before-open.txt"
+        source.write_bytes(b"Synthetic evidence")
+        info = source.stat()
+        for field in ("st_dev", "st_ino", "st_size", "st_mtime_ns"):
+            with self.subTest(field=field):
+                changed = self.file_stat(info, **{field: getattr(info, field) + 1})
+                with patch("memory_store.os.fstat", return_value=changed):
+                    self.assertIsNone(self.store._file_digest(source))
+
+    def test_source_digest_rejects_descriptor_changes_during_read(self):
+        source = self.root / "changed-during-read.txt"
+        source.write_bytes(b"Synthetic evidence")
+        info = source.stat()
+        for field in ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns"):
+            with self.subTest(field=field):
+                opened = self.file_stat(info, st_ctime_ns=info.st_ctime_ns + 1000000)
+                changed = self.file_stat(opened, **{field: getattr(opened, field) + 1})
+                with patch("memory_store.os.fstat", side_effect=[opened, changed]) as descriptor_stat:
+                    self.assertIsNone(self.store._file_digest(source))
+                    self.assertEqual(descriptor_stat.call_count, 2)
+
+    def test_source_digest_rejects_path_changes_during_read(self):
+        source = self.root / "replaced-during-read.txt"
+        source.write_bytes(b"Synthetic evidence")
+        info = source.stat()
+        for field in ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns"):
+            with self.subTest(field=field):
+                changed = self.file_stat(info, **{field: getattr(info, field) + 1})
+                with patch.object(Path, "stat", side_effect=[info, changed]) as path_stat:
+                    self.assertIsNone(self.store._file_digest(source))
+                    self.assertEqual(path_stat.call_count, 2)
 
     def test_read_commands_do_not_initialize_and_record_ids_are_pure(self):
         missing = self.root / "never-created"

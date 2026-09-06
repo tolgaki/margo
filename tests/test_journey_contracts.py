@@ -3,7 +3,9 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -11,6 +13,65 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 import evaluate_agent_traces
 import journey_contracts
+
+
+class CanvasReferenceTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.directory = self.root / ".github/extensions/synthetic"
+        self.directory.mkdir(parents=True)
+        self.extension = self.directory / "extension.mjs"
+        self.extension.write_text('''createCanvas({
+            id: "synthetic-tasks",
+            actions: [
+                { name: "list", handler: () => [] },
+                { name: "health", handler: () => ({}) },
+            ],
+            open: async () => ({})
+        });
+        createCanvas({
+            id: "synthetic-other",
+            actions: [
+                { name: "unrelated", handler: () => ({}) },
+            ],
+            open: async () => ({})
+        });
+''', encoding="utf-8")
+
+    def test_canvas_discovery_ignores_test_literals_regardless_of_file_order(self):
+        (self.directory / "task.test.mjs").write_text(
+            '''const marker = 'id: "synthetic-tasks"';''', encoding="utf-8")
+        original_glob = Path.glob
+
+        def reversed_glob(path, pattern):
+            return iter(sorted(original_glob(path, pattern), reverse=True))
+
+        with patch.object(Path, "glob", reversed_glob):
+            journey_contracts._canvas_actions(
+                {"id": "synthetic-tasks", "actions": ["list", "health"]}, self.root)
+
+    def test_test_file_is_not_a_canvas_declaration(self):
+        self.extension.rename(self.directory / "task.test.mjs")
+        with self.assertRaisesRegex(journey_contracts.ContractError, "declaration does not exist"):
+            journey_contracts._canvas_actions(
+                {"id": "synthetic-tasks", "actions": ["list"]}, self.root)
+
+    def test_actions_cannot_be_borrowed_from_another_canvas(self):
+        with self.assertRaisesRegex(journey_contracts.ContractError, "missing canvas actions: unrelated"):
+            journey_contracts._canvas_actions(
+                {"id": "synthetic-tasks", "actions": ["unrelated"]}, self.root)
+
+    def test_open_handler_names_are_not_registered_actions(self):
+        self.extension.write_text('''createCanvas({
+            id: "synthetic-tasks",
+            open: async () => ({ name: "unregistered" })
+        });
+''', encoding="utf-8")
+        with self.assertRaisesRegex(journey_contracts.ContractError, "missing canvas actions: unregistered"):
+            journey_contracts._canvas_actions(
+                {"id": "synthetic-tasks", "actions": ["unregistered"]}, self.root)
 
 
 class JourneyContractTests(unittest.TestCase):

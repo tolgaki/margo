@@ -1067,8 +1067,11 @@ class MemoryStore:
                 self._file_checks = None
 
     def _file_digest(self, path):
+        def identity(info):
+            return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
+
         def signature(info):
-            return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+            return identity(info) + (info.st_ctime_ns,)
 
         try:
             before = path.stat()
@@ -1080,7 +1083,9 @@ class MemoryStore:
                 return cache[key]
             hasher, total = hashlib.sha256(), 0
             with path.open("rb") as stream:
-                if signature(os.fstat(stream.fileno())) != signature(before):
+                opened = os.fstat(stream.fileno())
+                # Windows stat/fstat can disagree on ctime; compare it only within each API.
+                if identity(opened) != identity(before):
                     return None
                 while True:
                     chunk = stream.read(min(65536, MAX_SOURCE_FILE_BYTES + 1 - total))
@@ -1091,7 +1096,8 @@ class MemoryStore:
                         return None
                     hasher.update(chunk)
                 after = os.fstat(stream.fileno())
-            if total != before.st_size or signature(after) != signature(before) or signature(path.stat()) != signature(before):
+            if (total != before.st_size or signature(after) != signature(opened)
+                    or signature(path.stat()) != signature(before)):
                 return None
             result = hasher.hexdigest()
             if cache is not None:

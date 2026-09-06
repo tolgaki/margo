@@ -7,6 +7,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from feature_catalog import parse_canvas_groups
 from journey_json import load as load_contract_json
 
 
@@ -132,16 +133,11 @@ def _canvas_actions(reference, root):
     if not isinstance(identity, str) or not identity.strip():
         raise ContractError("canvas_refs.id must be nonempty")
     actions = _strings(reference["actions"], "canvas_refs.actions")
-    marker = 'id: "%s"' % identity
-    for path in (root / ".github/extensions").glob("**/*.mjs"):
-        source = path.read_text(encoding="utf-8")
-        start = source.find(marker)
-        if start < 0:
+    for path in sorted((root / ".github/extensions").glob("*/extension.mjs")):
+        groups = parse_canvas_groups(path.read_text(encoding="utf-8"))
+        if identity not in groups:
             continue
-        end = source.find("\n            open:", start)
-        block = source[start:end if end >= 0 else len(source)]
-        missing = [action for action in actions
-                   if ('name: "%s"' % action) not in block]
+        missing = [action for action in actions if action not in groups[identity]]
         if missing:
             raise ContractError("%s is missing canvas actions: %s"
                                 % (identity, ", ".join(missing)))
