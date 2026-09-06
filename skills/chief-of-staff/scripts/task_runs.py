@@ -110,9 +110,23 @@ def task_identity(account, key):
 
 
 class TaskStore:
+    @classmethod
+    def from_connection(cls, conn, account):
+        """Borrow initialized account state without creating or repairing namespaces."""
+        store = cls.__new__(cls)
+        store.account = margo_store.resolve_account(account)
+        store.conn = conn
+        store._owns_connection = False
+        store.read_only = True
+        store.ledger = Ledger.from_connection(conn, store.account)
+        store._initialize()
+        store.read_only = False
+        return store
+
     def __init__(self, account=None, state_root=None, read_only=False):
         self.account = margo_store.resolve_account(account)
         self.read_only = read_only
+        self._owns_connection = True
         self.conn = None
         try:
             if read_only:
@@ -128,7 +142,8 @@ class TaskStore:
             raise
 
     def close(self):
-        self.conn.close()
+        if self._owns_connection:
+            self.conn.close()
 
     def transaction(self):
         return margo_store.transaction(self.conn, read_only=self.read_only)

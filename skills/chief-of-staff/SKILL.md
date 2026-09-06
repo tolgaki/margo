@@ -104,6 +104,11 @@ it never supplies external-action authority. Keep source-observed facts distinct
 confirmation. Missing semantic setup is an explicit limitation, not an invitation to download
 a model or send memory text to a cloud service.
 
+After substantive non-Dream work, save selected current-session checkpoints only when the exact
+account/host/workspace is opted in and the host supplies authorized content with stable event
+locators. Follow `references/dream.md`; do not scrape history or checkpoint Dream's own run/output.
+Unsupported checkpoint capability is a reported limitation, not permission to invent an adapter.
+
 Read **`preferences.md`** at the start of any routine. It holds the user's role, working hours,
 VIPs, projects, tone/voice for drafts, standing rules, and what to always/never surface. If it's
 empty or missing detail, proceed with sensible defaults and offer to capture preferences as you
@@ -175,6 +180,7 @@ Pick the routine that matches the request; combine as needed. Full procedures ar
 | **Prepare the work** | "prepare the decision memo", "compare these documents", "write the delegation brief" | `references/work-products.md` |
 | **Health and setup** | "is Margo working", "why did the sweep miss this", "set up my ledger" | `references/state-operations.md` |
 | **Memory and context** | "what do you remember", "remember this", "forget this", "find related context", "what have you learned" | `references/memory.md` |
+| **Dream reflection** | "Dream about yesterday", "save a session checkpoint", "review Dream", "reflect on our sessions" | `references/dream.md` |
 | **Task progress** | "where did you stop", "resume that task", "pause this task", "cancel the remaining steps" | `references/task-runs.md` |
 
 ## Proactive & scheduled operation

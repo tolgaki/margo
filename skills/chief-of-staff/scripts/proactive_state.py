@@ -779,6 +779,19 @@ def coverage_status(conn):
     return result
 
 
+def publication_show(conn, publication_id):
+    row = conn.execute("SELECT * FROM proactive_publications WHERE id=?", (publication_id,)).fetchone()
+    if row is None:
+        raise StateError("unknown publication")
+    result = dict(row)
+    result["standalone"] = _standalone(conn, publication_id)
+    result["receipt"] = json.loads(row["receipt"]) if row["receipt"] else None
+    result["items"] = [dict(r) for r in conn.execute("""SELECT i.stable_id AS id,i.revision,i.item_key
+        FROM proactive_items i JOIN proactive_publication_items pi ON i.item_key=pi.item_key
+        WHERE pi.publication_id=?""", (publication_id,))]
+    return result
+
+
 def publication_list(conn, limit=20):
     integer(limit, "limit", 1, 1000)
     return [dict(row) for row in conn.execute("""SELECT p.id AS publication_id,p.batch_id,p.status,
@@ -993,15 +1006,7 @@ def main(argv=None):
         elif command == "publication-list":
             result = publication_list(conn, args.limit)
         elif command == "publication-show":
-            row = conn.execute("SELECT * FROM proactive_publications WHERE id=?", (args.publication_id,)).fetchone()
-            if row is None:
-                raise StateError("unknown publication")
-            result = dict(row)
-            result["standalone"] = _standalone(conn, args.publication_id)
-            result["receipt"] = json.loads(row["receipt"]) if row["receipt"] else None
-            result["items"] = [dict(r) for r in conn.execute("""SELECT i.stable_id AS id,i.revision,i.item_key
-                FROM proactive_items i JOIN proactive_publication_items pi ON i.item_key=pi.item_key
-                WHERE pi.publication_id=?""", (args.publication_id,))]
+            result = publication_show(conn, args.publication_id)
         elif command == "publication-review":
             result = publication_review(conn, args.publication_id, args.at)
         elif command == "coverage-start":

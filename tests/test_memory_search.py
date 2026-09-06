@@ -49,6 +49,9 @@ class FakeMemory:
         return [row for row in self.list(domain, "active")
                 if not row["routines"] or routine in row["routines"]]
 
+    def dream_index_current(self, record):
+        return True
+
     def show(self, identity):
         return copy.deepcopy(self.records[identity])
 

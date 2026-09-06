@@ -28,6 +28,7 @@ User request / scheduled manifest
 | Collection and delivery | Per-source attempts/checkpoints, leased queues and output receipts | `proactive_state.py` |
 | Memory | Scoped claims, provenance, lifecycle, capture/retention policy and derived indexes | `memory_store.py`, `memory_governance.py`, `memory_search.py`, `memory_context.py` |
 | Agent learning | Evidence-scoped capability/lesson/trend candidates, not executable self-modification | `memory_learning.py`, `memory_consolidation.py` |
+| Dream reflection | Opted-in current-session checkpoints, sourced episodes and candidate interpretations; existing memory provenance and task claims | `memory_dream.py`, `memory_state.py`, `references/dream.md` |
 | Task progress | Bounded runs, step claims, budgets, pause/cancel/recovery and links to the owners above | `task_runs.py`, `task_state.py` |
 | Rolling agendas / relationships | Human-editable private discussion surfaces, not duplicate obligation stores | `references/one-on-ones.md`, `references/relationships.md` |
 | Team decisions | Approved shared-log records and supersession chain | `skills/decision-log/` |

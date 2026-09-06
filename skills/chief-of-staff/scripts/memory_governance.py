@@ -89,22 +89,27 @@ def set_policy(memory, data, evidence):
         return policy(memory)
 
 
+def authorize_capture(memory, normal, allow_confirmation=False):
+    current = policy(memory)
+    rules = current["data"]["capture"]
+    if not rules["enabled"]:
+        raise StateError("passive capture is disabled; review a scoped capture policy first")
+    for field, value in (("domains", normal["domain"]), ("kinds", normal["kind"]), ("scopes", normal["scope"])):
+        if value not in rules[field]:
+            raise StateError("capture policy excludes this " + field)
+    if any(ref["kind"] not in rules["source_kinds"] for ref in normal["source_refs"]):
+        raise StateError("capture policy excludes this source category")
+    if normal["sensitivity"] == "sensitive" and not current["data"]["allow_sensitive"]:
+        raise StateError("sensitive capture needs a separate explicit policy opt-in")
+    if normal["authority"] == "user_confirmed" and not allow_confirmation:
+        raise StateError("passive capture cannot manufacture user confirmation")
+    return current
+
+
 def capture(memory, key, data, revision=None):
     with memory.transaction():
-        current = policy(memory)
-        rules = current["data"]["capture"]
         normal = memory._resolve_work_sources(memory._normalise_data(data))
-        if not rules["enabled"]:
-            raise StateError("passive capture is disabled; review a scoped capture policy first")
-        for field, value in (("domains", normal["domain"]), ("kinds", normal["kind"]), ("scopes", normal["scope"])):
-            if value not in rules[field]:
-                raise StateError("capture policy excludes this " + field)
-        if any(ref["kind"] not in rules["source_kinds"] for ref in normal["source_refs"]):
-            raise StateError("capture policy excludes this source category")
-        if normal["sensitivity"] == "sensitive" and not current["data"]["allow_sensitive"]:
-            raise StateError("sensitive capture needs a separate explicit policy opt-in")
-        if normal["authority"] == "user_confirmed":
-            raise StateError("passive capture cannot manufacture user confirmation")
+        current = authorize_capture(memory, normal)
         metadata = dict(normal["metadata"], capture_policy_revision=current["revision"])
         normal["metadata"] = metadata
         if normal["kind"] in current["data"]["review_days"] and not normal.get("review_after"):
@@ -189,6 +194,19 @@ def tombstones_preview(memory, bundle):
                                   (entry["id"], memory.account)).fetchone()
         if row and row["status"] != "forgotten":
             affected.append({"id": row["id"], "revision": row["revision"]})
+    known = {entry["id"] for entry in affected}
+    from memory_dream import source_keys
+    for row in memory.conn.execute(
+            "SELECT r.memory_id,r.data,m.revision FROM memory_revisions r JOIN memory_records m "
+            "ON m.id=r.memory_id WHERE m.account=? AND m.status<>'forgotten'", (memory.account,)):
+        if row["memory_id"] in known:
+            continue
+        if any(ref["kind"] == "session_checkpoint"
+               and any(memory.record_id("user", key) in ids for key in source_keys(ref))
+               for ref in parse_json(row["data"]).get("source_refs", [])):
+            affected.append({"id": row["memory_id"], "revision": row["revision"]})
+            known.add(row["memory_id"])
+    affected.sort(key=lambda row: row["id"])
     value = {"account": memory.account, "journal_hash": digest(bundle), "affected": affected}
     return dict(value, subject_id="memory-restore:" + digest(value), revision=1)
 

@@ -2,6 +2,26 @@
   "schema_version": 1,
   "features": [
     {
+      "id": "dream",
+      "name": "Dream over opted-in session checkpoints",
+      "user_goal": "Reflect on selected Margo session evidence, review candidate interpretations and retrieve relevant sourced episodes next session",
+      "availability": "limited",
+      "implementation_kind": "runtime",
+      "since_version": "1.2.0",
+      "prerequisites": ["Explicit account, memory and task initialization", "Reviewed exact account/host/workspace capture policy", "Authorized current-session checkpoint adapter"],
+      "surfaces": ["cli"],
+      "approval": "Capture requires exact policy opt-in; interpretations remain candidates and human confirmation is separate from output review",
+      "guide": {"path": "docs/how-to/dream.md", "anchor": "reflect-on-one-daily-page"},
+      "sources": ["skills/chief-of-staff/references/dream.md", "skills/chief-of-staff/scripts/memory_dream.py", "skills/chief-of-staff/scripts/memory_state.py"],
+      "router_refs": [{"path": "skills/chief-of-staff/SKILL.md", "label": "Dream reflection"}],
+      "automation_refs": [],
+      "cli_refs": [{"path": "skills/chief-of-staff/scripts/memory_state.py", "commands": ["dream-checkpoint", "dream-plan", "dream-start", "dream-finish", "dream-status", "dream-inspect"]}],
+      "canvas_refs": [],
+      "scenario_ids": ["dream"],
+      "maintainer_role": "Margo maintainers",
+      "limitations": ["Only selected current-session checkpoints; session listing is not content access", "Manual bounded pages; no schedule or history importer is shipped", "Synthetic runtime evidence does not evaluate model reasoning or entailment"]
+    },
+    {
       "id": "setup",
       "name": "Get a first useful brief",
       "user_goal": "Install Margo and confirm the Work IQ connection works",

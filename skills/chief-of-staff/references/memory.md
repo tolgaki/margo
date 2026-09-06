@@ -5,6 +5,11 @@ rebuildable keyword/vector indexes live in the same account-scoped SQLite databa
 ledger. The local encoder runs a pinned model without sending memory text to an embedding service.
 Copilot still receives the context actually selected for reasoning.
 
+For opted-in session checkpoints and manual daily reflection, use `dream.md` and the
+`dream-checkpoint`, `dream-plan`, `dream-start`, `dream-finish`, `dream-status` and
+`dream-inspect` commands. Dream uses this same memory owner and review workflow; session
+listing is not history/content access. Do not checkpoint Dream's own reflection session.
+
 ## Initialise and migrate without collecting
 
 `init` creates a new version-2 memory schema. Existing version-1 memory requires the explicit
@@ -25,6 +30,10 @@ python3 scripts/memory_state.py context --input - --routine calendar
 ```
 
 Provide JSON `{"query":"the current task, without unnecessary private detail"}` on stdin.
+When Dream is opted in for this workspace, pass `--environment PRIVATE_ENVIRONMENT_JSON` with
+the actual current `account`, `host` and `workspace` so eligible sourced episodes can participate.
+Resolve those identifiers from the host, never from recalled content. If the binding is unavailable,
+report that Dream context is excluded; do not drop the scope guard or load the entire digest.
 Use the routine scope `calendar`, `drafting`, `meeting-prep`, `outcomes`, `follow-through`,
 or `work-products` consistently. The packet includes applicable mandatory preferences even
 when their similarity is low. If mandatory material exceeds the budget, the packet is blocked;

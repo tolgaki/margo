@@ -50,6 +50,10 @@ That gap is where **Work IQ** earns its keep, and where Margo is built to show i
 | Actually doing it | `do_action`, `create_entity`, `update_entity` | Books, moves, replies, RSVPs — **only after you approve that exact action** |
 | Carrying work across days | — | Account-scoped work history, evidence revisions, approval records, and delivery receipts |
 
+[Dream](docs/how-to/dream.md) adds opt-in, manual reflection over selected Margo session
+checkpoints: sourced episodes and reviewable hypotheses, not automatic transcript collection
+or confirmed decisions.
+
 Work IQ makes the data reachable and writable. Margo is the layer that makes it *worth reaching* —
 opinionated, cited, and safe to let near a send button.
 
