@@ -29,6 +29,12 @@ Use `tools/margo-scheduled.sh` or `tools/margo-scheduled.ps1`, not a hand-writte
 `copilot` command that can lose the deny flags. Installing wrappers does not enable schedules.
 Keep one scheduler owner per routine.
 
+For a substantive multi-step run, follow `task-runs.md`. Use a stable request key from the
+automation and scheduled slot; `task_state.py record-id KEY` lets a fresh session inspect that
+run before creating another. Never turn a changed plan into a duplicate execution. A new slot
+may create a new bounded preparation run, while source polling still starts from the existing
+coverage checkpoints. Unattended task plans contain reads/local preparation only.
+
 ### Automations and sync
 
 `automations/*.md` is the source of truth for prompts and schedules. Its flat front matter contains

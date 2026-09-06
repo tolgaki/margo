@@ -67,7 +67,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from margo_store import (SetupRequired, StateError, add_state_arguments, canonical_json,
-                         connect, parse_json, read_json, utc_now, validate_timestamp)
+                         connect, parse_json, read_json, transaction, utc_now, validate_timestamp)
 
 
 SCHEMA = (
@@ -145,8 +145,7 @@ def validate_schema(conn, allow_empty=False):
 
 
 def initialize(conn):
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         validate_schema(conn, allow_empty=True)
         for statement in SCHEMA:
             conn.execute(statement)
@@ -244,8 +243,7 @@ def _insert_item(conn, data, tier=None):
 
 
 def queue_add(conn, data, tier=None):
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         return _insert_item(conn, data, tier)
 
 
@@ -275,8 +273,7 @@ def queue_drain(conn, owner=None, lease_seconds=900, limit=100):
     owner = text(owner or batch_id, "owner")
     now = utc_now()
     expires = (datetime.fromisoformat(now) + timedelta(seconds=lease_seconds)).isoformat(timespec="microseconds")
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         _release_expired(conn, now)
         rows = list(conn.execute("SELECT * FROM proactive_items WHERE status='pending' "
                                  "ORDER BY created_at,item_key LIMIT ?", (limit,)))
@@ -301,8 +298,7 @@ def _live_batch(conn, batch_id):
 
 
 def queue_release(conn, batch_id, owner):
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         batch = conn.execute("SELECT * FROM proactive_batches WHERE id=?", (batch_id,)).fetchone()
         if batch is None or batch["owner"] != owner:
             raise StateError("batch owner mismatch")
@@ -318,8 +314,7 @@ def queue_release(conn, batch_id, owner):
 
 def queue_renew(conn, batch_id, owner, lease_seconds):
     integer(lease_seconds, "lease_seconds", 1, 86400)
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         batch = _live_batch(conn, batch_id)
         if batch["owner"] != owner:
             raise StateError("batch owner mismatch")
@@ -382,8 +377,7 @@ def publication_record(conn, batch_id, data):
     if standalone and any(data.get(key) not in (None, []) for key in ("ids", "item_keys")):
         raise StateError("standalone publications cannot claim queued items")
     now = utc_now()
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         existing = conn.execute("SELECT * FROM proactive_publications WHERE id=?", (publication_id,)).fetchone()
         if existing is not None:
             if _standalone(conn, publication_id) != standalone:
@@ -423,8 +417,7 @@ def publication_publish(conn, publication_id, data):
     if status not in ("available", "published"):
         raise StateError("publication status must be available or published")
     receipt = _receipt(status, data.get("receipt"), publication_id)
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         publication = conn.execute("SELECT * FROM proactive_publications WHERE id=?", (publication_id,)).fetchone()
         if publication is None:
             raise StateError("unknown publication")
@@ -444,8 +437,7 @@ def queue_ack(conn, receipt_id, batch_id=None, ids=None, item_keys=None):
         raise StateError("queue-ack/mark requires a durable --receipt publication ID")
     if not batch_id and not ids and not item_keys:
         raise StateError("queue-ack requires --batch, IDs or --item-key")
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         publication = conn.execute("SELECT * FROM proactive_publications WHERE id=?", (receipt_id,)).fetchone()
         if (publication is None or publication["status"] not in ("available", "published", "reviewed")
                 or not publication["receipt"]):
@@ -477,8 +469,7 @@ def queue_ack(conn, receipt_id, batch_id=None, ids=None, item_keys=None):
 
 def publication_review(conn, publication_id, reviewed_at=None):
     timestamp = validate_timestamp(reviewed_at) if reviewed_at is not None else utc_now()
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         row = conn.execute("SELECT * FROM proactive_publications WHERE id=?", (publication_id,)).fetchone()
         if row is None or row["status"] not in ("available", "published", "reviewed"):
             raise StateError("only an available/published output can be explicitly reviewed")
@@ -525,8 +516,7 @@ def coverage_start(conn, data):
     principal = conn.execute("SELECT value FROM margo_meta WHERE key='account'").fetchone()[0]
     key = digest([principal, family, scope, collection_window])
     attempt_id, now = uuid.uuid4().hex, utc_now()
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         prior_source = conn.execute("SELECT * FROM proactive_sources WHERE source_key=?", (key,)).fetchone()
         if conn.execute("SELECT 1 FROM proactive_meta WHERE key=?", ("retired:" + key,)).fetchone():
             if not data.get("reactivate"):
@@ -577,8 +567,7 @@ def coverage_start(conn, data):
 
 def coverage_retire(conn, source_key, reason):
     text(reason, "retirement reason")
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         source = conn.execute("SELECT * FROM proactive_sources WHERE source_key=?", (source_key,)).fetchone()
         if source is None:
             raise StateError("unknown source")
@@ -620,8 +609,7 @@ def coverage_page(conn, attempt_id, data):
         payload = {key: value for key, value in observation.items() if key != "observed_at"}
         validated.append((stable_id, revision, canonical_json(payload), observed_at))
     fingerprint = digest(dict(data, observations=[json.loads(row[2]) for row in validated]))
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         attempt = _attempt(conn, attempt_id)
         existing = conn.execute("SELECT digest FROM proactive_pages WHERE attempt_id=? AND page=?",
                                 (attempt_id, page)).fetchone()
@@ -687,8 +675,7 @@ def coverage_finish(conn, attempt_id, data):
         raise StateError("complete coverage cannot simultaneously report a failure/retry")
     result_json = canonical_json(data)
     now = utc_now()
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         attempt = _attempt(conn, attempt_id)
         if attempt["status"] != "running":
             if attempt["result"] != result_json:
@@ -852,8 +839,7 @@ def import_legacy(conn, directory):
         if "drained_at" in item:
             validate_timestamp(item["drained_at"])
     fingerprint = digest(data)
-    with conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with transaction(conn):
         prior = conn.execute("SELECT counts FROM proactive_imports WHERE digest=?", (fingerprint,)).fetchone()
         if prior:
             return {"replayed": True, "counts": json.loads(prior[0])}

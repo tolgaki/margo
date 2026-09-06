@@ -1,5 +1,8 @@
 # Meeting lifecycle
 
+Track substantial preparation/debrief/carry-forward work through `task-runs.md`. Delayed recaps
+remain explicit gaps; a resumed task does not repeat completed actions or infer attendance.
+
 This connects `one-on-ones.md`, `meeting-prep.md`, `meeting-debrief.md`, `follow-through.md`,
 and the decision log. It does not create another meeting archive.
 

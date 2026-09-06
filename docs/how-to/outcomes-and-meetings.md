@@ -250,3 +250,97 @@ newly carried, and no commitment is re-ingested.
 conflict rather than inventing a merged topic. Moving/cancelling one occurrence never applies a
 series-wide calendar change.
 See [meeting lifecycle](../../skills/chief-of-staff/references/meeting-lifecycle.md).
+
+## Feature reference
+
+The numbered sections above are the full CLI walkthrough. These are the stable per-feature entry
+points the [feature catalog](../feature-catalog.json) links to.
+
+### Week ahead
+
+See next week's shape — load, prep debt, focus time, conflicts, what's due — while there's still
+time to act on it; see [§1](#1-ask-for-a-plan-that-exposes-the-trade-offs) for the underlying
+agreement flow. Try it: *"Prepare me for next week."* What you'll see: meeting load and heaviest
+day, prep debt, what survives of your protected focus time, conflicts, and what's due — with
+missing deadlines or calendar coverage stated as explicit gaps, never smoothed over. What needs
+your decision: any proposed fix (draft an agenda, decline a conflict, protect a block) is its own
+approval, in [calendar management](calendar-management.md) or
+[drafting](drafting-and-follow-ups.md). Change your mind: ask for a narrower or wider window any
+time. Your data: private preparation can retain coverage, task progress, candidate records and
+published outputs/receipts without confirming an outcome or approving an outward action. Session
+history and any supplied input files also remain under their own retention rules.
+If something goes wrong: an incomplete calendar pull is reported as
+incomplete, not folded into a false feasible-looking week. Implemented, procedure. Runs on
+request, and automatically via the
+[week-ahead schedule](automation-health.md#automation-week-ahead). Since 1.0.0.
+
+### Meeting prep
+
+Walk into a meeting ready — purpose, people, context, and talking points, including accumulated
+agenda topics — see [§4](#4-keep-one-record-per-actual-meeting-occurrence). Try it: *"Prep me for
+my 2pm with Ines."* What you'll see: a prep card citing sources, with a missing attachment named
+explicitly rather than silently dropped. What needs your decision: any offered follow-on
+(pre-read, agenda, message) is a separate draft. Change your mind: ask for a different meeting or
+a different depth any time. Your data: a substantive agenda is stored as a private, versioned work
+product (see [feedback and work products](feedback-and-work-products.md#work-products)). If
+something goes wrong: an empty calendar search means unknown, not "no meeting" — Margo tries a
+known event ID or a wider window before giving up. Implemented, procedure. Since 1.0.0.
+
+### Meeting debrief
+
+Turn a recap or transcript into your actions, what you're waiting on, and unresolved gaps nobody
+owns — see [§5 Check recaps with a finite budget](#5-check-recaps-with-a-finite-budget). Try it:
+*"Debrief that meeting — what did I commit to?"* What you'll see: decisions, your actions, what
+you're waiting on, and an explicit "unresolved and nobody owns it" section — a debrief with zero
+actions for you is a legitimate, plainly stated result. What needs your decision: proposed
+work-ledger additions/resolutions and any drafted follow-up are separate approvals. Change your
+mind: ask for a different lookback window or to re-check for a delayed recap. Your data: proposed
+changes go into the same private work ledger as [commitments](commitments-and-action-desk.md#commitments).
+If something goes wrong: no recap available is a valid, explicitly stated result — never an
+invented set of decisions. Implemented, procedure. Since 1.0.0.
+
+### Meeting lifecycle
+
+Keep one durable record per meeting occurrence across preparation, delayed-recap retries, debrief
+and carry-forward — see [§4](#4-keep-one-record-per-actual-meeting-occurrence),
+[§5](#5-check-recaps-with-a-finite-budget) and
+[§6 Carry only unresolved work into the next occurrence](#6-carry-only-unresolved-work-into-the-next-occurrence).
+Try it: *"Carry this into the next occurrence and watch for the recap."* What you'll see: the
+occurrence tracked through `scheduled → recap_pending → debrief_proposed → reviewed →
+carried_forward`, retrying on the existing sweep/anchor cadence rather than a new poller. What
+needs your decision: promoting a candidate or closing an obligation always needs your
+confirmation. Change your mind: nothing here is undone by asking again — a carried-forward topic
+can be resolved or dropped in review the same way any other topic can. Your data: series/occurrence
+identity, recap-retry state, and carried topics live in the private work ledger. If something
+goes wrong: a policy denial on a recap check is blocked, not silently retried through another
+route. Implemented, runtime (deterministic occurrence/recap/carry-forward state machine with
+tests). Since 1.1.0.
+
+### Outcomes
+
+Agree up to three weekly outcomes with an owner, definition of done, due date, and effort — see
+[§3 Save a proposed outcome, then agree it](#3-save-a-proposed-outcome-then-agree-it). Try it:
+*"Help me agree three outcomes for this week."* What you'll see: a proposed outcome record with
+required fields present even when unknown, moved to `agreed` only after you supply what's missing
+and confirm. What needs your decision: agreeing an outcome never approves a calendar change or a
+message — those stay separate. Change your mind: defer or cancel an agreed outcome with the same
+review process used to agree it. Your data: outcome records live in the private work ledger,
+capped at three concurrently agreed/active/achieved. If something goes wrong: a revision conflict
+means something changed underneath you — re-read before deciding again. Implemented, runtime
+(deterministic outcome record state machine with tests). Since 1.1.0.
+
+### Capacity
+
+Check whether a plan actually fits the week, from real working hours, meetings, leave, and
+protected blocks — see [§2 Calculate capacity from explicit intervals](#2-calculate-capacity-from-explicit-intervals).
+Try it: ask Margo to check whether a plan fits, given your actual calendar. What you'll see: total
+working/busy/available minutes, focus-block gaps meeting your minimum, and an honest `null`
+(unknown) fit when coverage is partial or an estimate is missing — never a false "fits." What
+needs your decision: nothing — capacity is a pure calculation; any resulting calendar change is a
+separate approval in [calendar management](calendar-management.md). Change your mind: recompute
+with different inputs any time; the calculation itself does not save a decision. Your data: the
+calculator is stateless, but private input files remain until you remove them. Results can enter
+session history, task results or published outputs/receipts when used in a tracked routine.
+If something goes wrong: an incomplete input reports unknown fit and a lower-bound
+shortfall, never a fabricated allocation. Implemented, runtime (deterministic interval-union
+calculator with tests). Since 1.1.0.

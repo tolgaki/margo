@@ -33,6 +33,14 @@ jobs:
       - name: Transactional state, action desk, capacity and installation
         run: python -m unittest discover -s tests -p 'test_*.py'
 
+      - name: User feature catalog and generated navigation are complete
+        run: |
+          python -m py_compile tools/feature_catalog.py tools/journey_contracts.py tools/evaluate_agent_traces.py tools/journey_json.py
+          python tools/feature_catalog.py --check
+
+      - name: Synthetic journey contracts cover the feature inventory
+        run: python tools/journey_contracts.py --check
+
       - uses: actions/setup-node@v5
         with: { node-version: '22' }
 

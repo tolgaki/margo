@@ -20,6 +20,7 @@ config file; repository/shared overrides require the synthetic-testing opt-in.
 """
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -101,6 +102,28 @@ def read_json(path):
         return parse_json(Path(path).read_text(encoding="utf-8"))
     except (OSError, UnicodeError) as exc:
         raise StateError("cannot read valid JSON from " + str(path)) from exc
+
+
+@contextlib.contextmanager
+def transaction(connection, *, read_only=False):
+    """Keep an outer unit of work intact when existing state APIs are composed."""
+    nested = connection.in_transaction
+    savepoint = "margo_" + uuid.uuid4().hex if nested else None
+    try:
+        connection.execute("SAVEPOINT " + savepoint if nested else
+                           "BEGIN" if read_only else "BEGIN IMMEDIATE")
+        yield
+        if nested:
+            connection.execute("RELEASE SAVEPOINT " + savepoint)
+        else:
+            connection.commit()
+    except Exception:
+        if nested:
+            connection.execute("ROLLBACK TO SAVEPOINT " + savepoint)
+            connection.execute("RELEASE SAVEPOINT " + savepoint)
+        else:
+            connection.rollback()
+        raise
 
 
 def add_state_arguments(parser):

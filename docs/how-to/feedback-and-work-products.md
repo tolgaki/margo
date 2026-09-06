@@ -213,3 +213,79 @@ generation; without one, prepare just the highest-priority actionable item and d
 See [work-product policy](../../skills/chief-of-staff/references/work-products.md).
 
 [execution]: commitments-and-action-desk.md#6-approve-once-preflight-and-reconcile-uncertainty
+
+## Feature reference
+
+The numbered sections above are the full CLI walkthrough. These are the stable per-feature entry
+points the [feature catalog](../feature-catalog.json) links to.
+
+### Feedback
+
+Record a specific correction tied to the exact item it applies to, without it silently becoming a
+permanent rule — see [§1](#1-record-a-correction-without-making-it-a-general-rule). Try it: *"That
+recommendation was wrong — here's why. Don't turn this into a standing rule."* What you'll see: a
+correction recorded against the exact work/action revision, with the reason kept only if you gave
+one. What needs your decision: recording preserves the correction; changing future behavior
+requires a separately confirmed scoped rule and never grants action permission. Change your
+mind: the correction is a historical record, not an active control to revoke.
+Your data: corrections live in the private work ledger next to the item they correct. If
+something goes wrong: silence, delay, or a dismissed proposal is never treated as an implied
+preference. Implemented, runtime (deterministic correction record with tests). Since 1.1.0.
+
+### Rules
+
+Turn a repeated correction into a standing rule, proposed with evidence and activated only on
+your explicit confirmation — see [§2 Propose, activate, and revoke a scoped rule](#2-propose-activate-and-revoke-a-scoped-rule).
+Try it: *"I keep correcting this — propose it as a rule with the scope you'd apply it to."* What
+you'll see: a proposed rule with supporting examples, scope, and a conflict check against existing
+preferences — never a silent update to `preferences.md`. What needs your decision: activation is
+always explicit; a rule can never grant send permission, widen a standing grant, or lower an
+approval requirement. Change your mind: revoke an active rule any time — revocation keeps its
+supersession history and never rewrites messages already sent. Your data: rules live in the
+private work ledger with their supporting evidence. If something goes wrong: a proposed rule that
+conflicts with an existing preference is flagged before you're asked to activate it. Implemented,
+runtime (deterministic rule proposal/activation/revocation with tests). Since 1.1.0.
+
+### Do not learn
+
+Say "don't learn from this" and have it actually mean nothing is stored as a lesson or rule
+proposal — see [§1 → *Respect "do not learn"*](#respect-do-not-learn). Try it: *"Handle it this
+way, but don't learn from this — it's a one-off."* What you'll see: an ordinary operational
+result with no accompanying learning receipt. What needs your decision: nothing — this is an
+opt-out, not a write requiring its own approval. Change your mind: this marker only affects
+future learning; it does not retroactively remove other stored corrections or rules. Your data: a
+minimal marker is recorded so future runs know not to propose a rule from this interaction; no
+correction/reason text is stored alongside it. If something goes wrong: this is not a general
+erasure facility — for removing existing memory, see
+[memory control](memory-controls-and-learning.md#memory-control). Implemented, runtime (minimal
+deterministic opt-out marker). Since 1.1.0.
+
+### Work products
+
+Get a useful first draft of the real deliverable — a decision memo, comparison, status update,
+agenda, or delegation brief — tied to its sources and versioned as it changes — see
+[§3 Prepare a substantive private work product](#3-prepare-a-substantive-private-work-product).
+Try it: *"Prepare a decision memo on the migration options, with trade-offs and a recommendation."*
+What you'll see: a private, versioned Markdown draft citing its sources, with unknown dates/owners
+left unknown rather than invented. What needs your decision: content approval and delivery
+approval are different — an approved memo is not shared until you separately approve sending or
+publishing it. Change your mind: ask for a revision any time before approving the content; each
+edit is a new version. Your data: work products are private, versioned records in your account's
+ledger, re-checked as stale when their sources change. If something goes wrong: unattended
+preparation is bounded to the single highest-priority item and never bulk-generates without an
+agreed budget. Implemented, runtime (deterministic versioned artifact storage with tests). Since
+1.1.0.
+
+### Artifact delivery
+
+Know a work product actually reached someone, with the delivery receipt linked to the exact
+version that was shared — see [§4 Keep publishing separate](#4-keep-publishing-separate). Try it:
+after a real approved send/share of a memo, ask Margo to link the receipt. What you'll see: a
+`shared` history event tied to the exact artifact revision that was actually delivered; an
+attempt that did not deliver this revision is rejected outright. What needs your decision: the
+send/share itself is a separate, ordinary approval — recording the receipt afterward doesn't
+require a new one. Change your mind: not applicable — this only records that a real delivery
+already happened. Your data: the receipt link lives with the artifact's version history in the
+private ledger. If something goes wrong: content approval for a memo is never treated as
+approval to publish or send it — those stay two separate facts. Implemented, runtime
+(deterministic receipt-linkage with tests). Since 1.1.0.

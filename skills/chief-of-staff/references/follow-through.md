@@ -1,5 +1,8 @@
 # Follow-through — ageing and chasing commitments
 
+Use `task-runs.md` when this becomes a multi-step capture/draft/review workflow. The run tracks
+progress; the work ledger still owns the obligation and exact action approval.
+
 The canonical work ledger records what the user owes and what they're owed; `commitments.md`
 is its compatibility view after migration. Read `work-ledger.md` and `action-desk.md`.
 On its own a tracker is a filing

@@ -200,3 +200,23 @@ does not exist. All review buttons request a conversation, not an operation or a
 
 Keep real profiles, model caches, databases and snapshots outside the repository. SQLite and
 embeddings are not encrypted; vector storage is sensitive data too.
+
+## Feature reference
+
+### Memory retrieval
+
+Recall relevant context by meaning, not just keywords, and build a bounded context packet for a
+task — see [§3 Search and build context](#3-search-and-build-context). Try it: *"What have you
+learned about running smoother reviews?"* or let Margo call this during a routine automatically.
+What you'll see: matches with their source, authority (source-observed vs. user-confirmed) and
+current revision — a candidate or inferred lesson is never presented with a confirmed rule's
+authority. What needs your decision: nothing to recall context, but drafting-permitted content is
+still separate from send permission — recalled context never authorizes a send. Change your mind:
+nothing to undo; a search doesn't alter memory. Your data: search runs against your private
+account-scoped SQLite database, using local embeddings for semantic/hybrid mode or explicit
+keyword-only mode — never a cloud embedding service. If something goes wrong: semantic/hybrid
+search fails explicitly when the optional encoder is unavailable. Select **Keyword only** in the
+panel, or rerun with `--mode lexical` and the required scope; there is no automatic fallback.
+Optional (core memory setup is required; the
+local embedding runtime is a further optional install for semantic search), runtime (deterministic
+hybrid search and context-budget code with tests). Since 1.2.0.

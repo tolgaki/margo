@@ -404,9 +404,9 @@ test("frontend renders hostile stored content only through textContent and form 
     assert.ok(requests.every((path) => path.startsWith("/api/")));
 });
 
-test("agent-facing work and memory actions are read-only", async () => {
+test("agent-facing work, memory and task actions are read-only", async () => {
     const source = await readFile(new URL("./extension.mjs", import.meta.url), "utf8");
     const names = [...source.matchAll(/name: "([^"]+)"/g)].map((match) => match[1]);
-    assert.deepEqual(names, ["list", "show", "refresh", "list", "search", "status"]);
+    assert.deepEqual(names, ["list", "show", "refresh", "list", "search", "status", "list", "show", "history", "health"]);
     assert.doesNotMatch(source, /onPermissionRequest|systemMessage|console\.log/);
 });

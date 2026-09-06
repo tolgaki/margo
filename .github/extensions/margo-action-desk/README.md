@@ -77,6 +77,54 @@ replacing only `payload`. The complete document goes through subprocess stdin,
 not argv or temporary files. Structured CLI failures on stderr are propagated
 as HTTP errors; arbitrary stderr and stack traces are not exposed.
 
+## Margo Task Progress
+
+Optional read-only canvas over bounded task runs (`skills/chief-of-staff/scripts/task_state.py`,
+adjacent to the resolved `work_state.py`). This surface never initializes, plans, claims,
+charges, finishes, pauses, cancels, resumes, replans, recovers or reconciles a task run.
+
+- Canvas: `margo-task-progress`. Open input: `{}`.
+- Read-only agent actions: `list` (`{"limit"?,"after"?}`), `show` (`{"id":"…"}`),
+  `history` (`{"id":"…","limit"?}`), and `health`. There is no registered `review`
+  action; a registered agent action never requests foreground review of an
+  operation. Only the browser panel can do that, and only as a request.
+- `list` defaults to 20 runs and accepts at most 50; `history` defaults to 20
+  events and accepts at most 100. Cursors/IDs follow the `task_…` identity shape.
+- Every command uses fixed argv (`task_state.py list --limit N [--after CURSOR]`,
+  `show ID`, `history ID --limit N`, `health`) with `-B`, no shell, a bounded
+  10-second timeout and a 4 MiB output cap. The browser cannot select an account,
+  script, command, interpreter or state path; the CLI resolves the configured
+  account exactly as `work_state.py` does.
+- Reads use the core's actual `mode=ro` connection and never create, migrate or
+  repair state: an uninitialized account surfaces `not_initialized` (503), never
+  an empty-looking success. An unknown run surfaces `not_found` (404).
+- The response contract mirrors `TaskStore.list/show/history/health` exactly,
+  including `token_usage:null`, `model_cost:null`, `approval_granted:false`, and
+  `limits_enforcement` text clarifying that budgets are tracked-path claims, not
+  a sandbox over other host tools or a measure of all agent credits. Neither
+  `show` nor `history` ever include a claim/execution token.
+- The panel shows the current account, a paginated run list (`next_cursor`,
+  "Load next page"), the exact plan/steps/budgets/history for a selected run,
+  and distinguishes "no task runs yet" from "not initialized" or "unavailable".
+  Cancelled runs with unresolved effects, and expired read claims, are shown as
+  prominent warnings that explicitly say cancellation never undoes an in-flight
+  effect.
+- Optional buttons only **request** foreground review of one exact
+  `pause`/`cancel`/`resume`/`replan`/`recover`/`reconcile` intent for the
+  currently displayed run ID/revision/plan hash, via `POST /api/task/review`.
+  The server resolves the run's current `show` first and rejects a stale
+  revision or plan hash (409) before sending anything. The SDK message and the
+  HTTP response both state, verbatim, that the request is **not** approval and
+  **not** the operation itself, and that readiness still needs a fresh binding,
+  preflight and, for any action step, a separate current approval. No pause,
+  cancel, resume, replan, recover or reconcile endpoint executes anything.
+- The two static routes are `GET /tasks` and `GET /tasks.js`, following the
+  same nonce/theme substitution as `/memory`. The five API routes are
+  `POST /api/task/list`, `/show`, `/history`, `/health`, and `/review`
+  (request-only); they share this server's token, exact Host/Origin checks,
+  `Cache-Control: no-store`, strict CSP, and the single `reviewPending` lock
+  used by the other review-request routes on this same panel.
+
 ## Validation
 
 ```sh
@@ -85,6 +133,8 @@ node --check .github/extensions/margo-action-desk/extension.mjs
 node --check .github/extensions/margo-action-desk/backend.mjs
 node --check .github/extensions/margo-action-desk/server.mjs
 node --check .github/extensions/margo-action-desk/app.js
+node --check .github/extensions/margo-action-desk/task-backend.mjs
+node --check .github/extensions/margo-action-desk/task-app.js
 ```
 
 Tests cover argv isolation, script resolution, response errors, HTTP access
@@ -95,16 +145,24 @@ fixture directory outside any repository. It creates a unique isolated
 account/state directory there, resolves its physical path, removes it afterward,
 and never populates the configured user ledger. The production safe-root guard
 is not bypassed. No OS temporary directory is selected automatically.
+`task.test.mjs` covers the task-progress canvas the same way: allowed reads,
+invalid fields, missing initialization, stale/conflicting/concurrent review
+requests, hostile-content rendering, budget/unknown/cancellation states and
+pagination — all against a mocked `task_state.py`-shaped backend.
 
 ## Limitations
 
 - A matching portable CLI and Python on the app extension's PATH are required
   (`python3` on macOS/Linux, `python` on Windows).
-- Panels refresh every 15 seconds while visible, or immediately with Refresh.
-  Unsaved payload edits are panel-local; persisted revisions are shared.
+- The work-action panel refreshes every 15 seconds while visible. Memory and task-progress
+  panes refresh through their explicit controls. Unsaved payload edits are panel-local;
+  persisted revisions are shared.
 - The payload editor intentionally accepts JSON objects only, at most 64 KiB.
 - Source revalidation, authentication recovery, creation of proposals, work-item
   transitions, and actual approved execution belong to the portable
   CLI/conversation, not this canvas.
+- The task-progress panel never claims, charges, finishes, pauses, cancels,
+  resumes, replans, recovers or reconciles a run; those remain CLI/conversation
+  operations, requested here only as an explicit, non-binding foreground ask.
 - Canvas APIs are experimental. Parent-session reload/open verification is
   required after installation; CLI-only hosts need no extension.

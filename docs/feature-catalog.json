@@ -1,0 +1,2980 @@
+{
+  "schema_version": 1,
+  "features": [
+    {
+      "id": "setup",
+      "name": "Get a first useful brief",
+      "user_goal": "Install Margo and confirm the Work IQ connection works",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "GitHub Copilot CLI",
+        "Python 3.9+"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Installation and account configuration are not authentication; no external action is taken",
+      "guide": {
+        "path": "docs/how-to/setup-and-migration.md",
+        "anchor": "setup"
+      },
+      "sources": [
+        "skills/chief-of-staff/scripts/margo_store.py",
+        "install.sh",
+        "install.ps1"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Health and setup"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/margo_store.py",
+          "commands": [
+            "init"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "setup"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Account configuration does not itself sign in to Work IQ"
+      ]
+    },
+    {
+      "id": "account-storage",
+      "name": "Know which account and where data lives",
+      "user_goal": "Confirm the private, account-scoped storage location before any data is captured",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Configuring storage performs no reads or writes to Microsoft 365",
+      "guide": {
+        "path": "docs/how-to/setup-and-migration.md",
+        "anchor": "account-storage"
+      },
+      "sources": [
+        "skills/chief-of-staff/scripts/margo_store.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Health and setup"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/margo_store.py",
+          "commands": [
+            "init"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "account-storage"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Local SQLite storage is not application-encrypted"
+      ]
+    },
+    {
+      "id": "personalization",
+      "name": "Make Margo work the way you do",
+      "user_goal": "Teach preferences, VIPs, working hours and drafting voice so recommendations and drafts match how you actually work",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "setup complete"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Preferences shape recommendations and drafts; they never authorize a send by themselves",
+      "guide": {
+        "path": "docs/personalization.md",
+        "anchor": "personalization"
+      },
+      "sources": [
+        "skills/chief-of-staff/preferences.md",
+        "skills/chief-of-staff/references/memory.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Memory and context"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/memory_state.py",
+          "commands": [
+            "preferences-preview",
+            "preferences-import"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "personalization"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "An unfilled preferences file falls back to generic defaults, not a personalized voice"
+      ]
+    },
+    {
+      "id": "upgrade-migration",
+      "name": "Update without losing your settings or work",
+      "user_goal": "Upgrade an existing installation while preserving preferences, commitments and durable state",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "An existing installation"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Upgrading copies files only; it never sends, schedules, or changes external state",
+      "guide": {
+        "path": "docs/how-to/setup-and-migration.md",
+        "anchor": "upgrade-migration"
+      },
+      "sources": [
+        "install.sh",
+        "install.ps1"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Health and setup"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "upgrade-migration"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A --link install has nothing to copy; use git pull in the clone instead"
+      ]
+    },
+    {
+      "id": "uninstall",
+      "name": "Remove Margo without losing personal files",
+      "user_goal": "Uninstall managed files while keeping personal preferences and the private runtime database recoverable",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.0.0",
+      "prerequisites": [],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Uninstall never deletes the account's private runtime directory",
+      "guide": {
+        "path": "docs/how-to/setup-and-migration.md",
+        "anchor": "uninstall"
+      },
+      "sources": [
+        "install.sh",
+        "install.ps1"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Health and setup"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "uninstall"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Personal files are backed up, not deleted, and must be removed manually if truly unwanted"
+      ]
+    },
+    {
+      "id": "containers",
+      "name": "Run Margo unattended somewhere other than a laptop",
+      "user_goal": "Run scheduled routines in a container instead of a local machine, with the same unattended contract",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "A container runtime",
+        "A one-time interactive Work IQ sign-in to seed the OAuth volume"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "A container never gains a permission a local unattended run does not already have",
+      "guide": {
+        "path": "docs/container.md",
+        "anchor": "running-it"
+      },
+      "sources": [
+        "docs/container.md"
+      ],
+      "router_refs": [],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "containers"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Verified on the documented Linux container setup; not a claim of universal host support",
+        "A sleeping host still cannot run a scheduled job"
+      ]
+    },
+    {
+      "id": "daily-brief",
+      "name": "Know what needs attention today",
+      "user_goal": "Get a bounded, cited brief of today's calendar, mail and Teams, with priorities and suggested next steps",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "External actions from a brief (send, schedule, RSVP) require their own separate approval",
+      "guide": {
+        "path": "docs/how-to/briefs-and-catch-up.md",
+        "anchor": "daily-brief"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/daily-brief.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Daily Brief"
+        }
+      ],
+      "automation_refs": [
+        "automations/morning-brief.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "daily-brief"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A source that fails to load is a visible gap, never a false all-clear"
+      ]
+    },
+    {
+      "id": "catch-up",
+      "name": "See what changed since you were away",
+      "user_goal": "Catch up on mail, meetings and Teams changes since a chosen point without re-reading everything",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "Read-only synthesis; any resulting reply or change needs its own approval",
+      "guide": {
+        "path": "docs/how-to/briefs-and-catch-up.md",
+        "anchor": "catch-up"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/daily-brief.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Catch-up / EOD"
+        }
+      ],
+      "automation_refs": [
+        "automations/eod-wrap-up.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "catch-up"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Delta coverage is per source; one source's freshness does not establish another's"
+      ]
+    },
+    {
+      "id": "end-of-day",
+      "name": "Close the day without dropping anything",
+      "user_goal": "Wrap up the day: what got resolved, what rolls to tomorrow, and what you committed to today",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "Candidates staged from an EOD run still require explicit confirmation to become obligations",
+      "guide": {
+        "path": "docs/how-to/briefs-and-catch-up.md",
+        "anchor": "end-of-day"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/daily-brief.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Catch-up / EOD"
+        }
+      ],
+      "automation_refs": [
+        "automations/eod-wrap-up.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "end-of-day"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "An unattended EOD run leaves candidates staged; it never confirms them"
+      ]
+    },
+    {
+      "id": "week-ahead",
+      "name": "Prepare for what next week actually needs",
+      "user_goal": "See the shape of next week: load, prep debt, focus time, conflicts and what's due, while there's still time to act",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "Proposed fixes (declines, agendas, focus blocks) are drafts awaiting their own approval",
+      "guide": {
+        "path": "docs/how-to/outcomes-and-meetings.md",
+        "anchor": "week-ahead"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/daily-brief.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Week ahead"
+        }
+      ],
+      "automation_refs": [
+        "automations/week-ahead.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "week-ahead"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Missing deadlines, estimates or calendar coverage stay explicit gaps, never invented"
+      ]
+    },
+    {
+      "id": "inbox-triage",
+      "name": "Clear your inbox with confidence",
+      "user_goal": "Turn a noisy inbox into a short, ranked, decision-ready list with a recommended action per item",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Mark-read/archive may be a bounded standing grant; reply, forward and delete stay per-action",
+      "guide": {
+        "path": "docs/how-to/inbox-and-teams.md",
+        "anchor": "inbox-triage"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/triage.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Inbox Triage"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "inbox-triage"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A bulk action is re-confirmed with its exact count before it runs"
+      ]
+    },
+    {
+      "id": "teams-triage",
+      "name": "Find what needs a reply in Teams",
+      "user_goal": "Build an attention queue across chats and channels since there is no native unread feed to rely on",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Teams replies and reactions always require per-action approval, with no standing exception",
+      "guide": {
+        "path": "docs/how-to/inbox-and-teams.md",
+        "anchor": "teams-triage"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/triage.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Inbox Triage"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "teams-triage"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Recency is reported as recency; Work IQ exposes no native Teams unread/notification feed"
+      ]
+    },
+    {
+      "id": "drafting",
+      "name": "Get a ready-to-send draft in your voice",
+      "user_goal": "Produce a grounded reply, new message or Teams draft written in your voice, never the assistant's",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Nothing sends until you say so for that specific draft; edits invalidate a prior approval",
+      "guide": {
+        "path": "docs/how-to/drafting-and-follow-ups.md",
+        "anchor": "drafting"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/drafting.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Draft Studio"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "drafting"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A timeout or uncertain send result is reconciled, never silently retried"
+      ]
+    },
+    {
+      "id": "executive-followup",
+      "name": "Land a high-stakes message with the right tone",
+      "user_goal": "Turn a meeting or thread into an executive-ready follow-up: listen-first, specific, credited by name",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "The exact destination chat and text are both approved together, never the topic alone",
+      "guide": {
+        "path": "docs/how-to/drafting-and-follow-ups.md",
+        "anchor": "executive-followup"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/exec-followup.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Executive Follow-up"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "executive-followup"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Ambiguous destination chats stop for a human choice rather than guessing"
+      ]
+    },
+    {
+      "id": "calendar-scheduling",
+      "name": "Find time without the back-and-forth",
+      "user_goal": "Find and propose meeting times that respect working hours and protected focus blocks",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "The event is created only after you approve the exact proposed time and attendees",
+      "guide": {
+        "path": "docs/how-to/calendar-management.md",
+        "anchor": "calendar-scheduling"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/calendar.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Calendar Management"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "calendar-scheduling"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Availability for people outside your visibility is stated as an assumption, not fact"
+      ]
+    },
+    {
+      "id": "calendar-reschedule",
+      "name": "Move a meeting without making a mess",
+      "user_goal": "Reschedule or cancel a specific occurrence, showing who is affected before anything changes",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Cancelling or moving a meeting sends a notification and needs the same care as any send",
+      "guide": {
+        "path": "docs/how-to/calendar-management.md",
+        "anchor": "calendar-reschedule"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/calendar.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Calendar Management"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "calendar-reschedule"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Only the organizer can move or cancel the event outright; others get a proposal"
+      ]
+    },
+    {
+      "id": "calendar-rsvp",
+      "name": "Triage invitations quickly",
+      "user_goal": "Classify pending invitations against your standing rules and calendar conflicts, with a recommended response for each",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Accept/decline/tentative always needs per-action approval, batched or not",
+      "guide": {
+        "path": "docs/how-to/calendar-management.md",
+        "anchor": "calendar-rsvp"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/calendar.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Calendar Management"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "calendar-rsvp"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A batch response is re-confirmed with the exact set before it sends"
+      ]
+    },
+    {
+      "id": "calendar-hygiene",
+      "name": "See what your calendar actually costs you",
+      "user_goal": "Quantify optional hours, fragmentation and agenda-less meetings, and name the specific ones worth cutting",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "Declining or dropping a recurring series is always per-action, with no standing exception",
+      "guide": {
+        "path": "docs/how-to/calendar-management.md",
+        "anchor": "calendar-hygiene"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/calendar.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Calendar hygiene"
+        }
+      ],
+      "automation_refs": [
+        "automations/ambient-scan.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "calendar-hygiene"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A truncated calendar pull understates the problem; the window must be fully paged"
+      ]
+    },
+    {
+      "id": "meeting-prep",
+      "name": "Walk into a meeting ready",
+      "user_goal": "Assemble purpose, people, context and talking points for an upcoming meeting, including linked agenda topics and unresolved work",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Any offered follow-on (pre-read, agenda, message) is a separate draft awaiting approval",
+      "guide": {
+        "path": "docs/how-to/outcomes-and-meetings.md",
+        "anchor": "meeting-prep"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/meeting-prep.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Meeting Prep"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "meeting-prep"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A missing attachment is reported, not silently omitted from the prep card"
+      ]
+    },
+    {
+      "id": "meeting-debrief",
+      "name": "Close the loop after a meeting",
+      "user_goal": "Turn a recap or transcript into your actions, what you're waiting on, and unresolved gaps nobody owns",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Proposed work-ledger changes and drafts stay proposals until you confirm or approve them",
+      "guide": {
+        "path": "docs/how-to/outcomes-and-meetings.md",
+        "anchor": "meeting-debrief"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/meeting-debrief.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Meeting debrief"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "meeting-debrief"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "No recap available means pending/unknown, never zero decisions or actions"
+      ]
+    },
+    {
+      "id": "meeting-lifecycle",
+      "name": "Never rebuild a recurring meeting from scratch",
+      "user_goal": "Keep one durable record per meeting occurrence: preparation, delayed-recap retries, debrief and carry-forward",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Carrying work forward reuses existing IDs; it never re-ingests or silently closes an item",
+      "guide": {
+        "path": "docs/how-to/outcomes-and-meetings.md",
+        "anchor": "meeting-lifecycle"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/meeting-lifecycle.md",
+        "skills/chief-of-staff/scripts/work_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Meeting lifecycle"
+        }
+      ],
+      "automation_refs": [
+        "automations/hourly-sweep.md"
+      ],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/work_state.py",
+          "commands": [
+            "record",
+            "record-id",
+            "recap-check",
+            "carry-forward",
+            "show"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "meeting-lifecycle"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Calendar presence is not proof of attendance unless the source establishes it"
+      ]
+    },
+    {
+      "id": "one-on-ones",
+      "name": "Never reconstruct a 1:1 agenda five minutes before it",
+      "user_goal": "Keep a rolling, editable agenda per person, accumulated through the week and rendered before the meeting",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Turning an agenda topic into a tracked obligation still needs its own confirmation",
+      "guide": {
+        "path": "docs/how-to/relationships-and-one-on-ones.md",
+        "anchor": "one-on-ones"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/one-on-ones.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "1:1 agendas"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "one-on-ones"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Two attendees alone is not enough signal; a recurring, titled meeting is required"
+      ]
+    },
+    {
+      "id": "relationships",
+      "name": "Notice who you've quietly stopped talking to",
+      "user_goal": "Surface drifting relationships against an intended cadence, ambient-only and capped at a handful a week",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "This never drafts or sends anything itself; scheduling or messaging is a separate step",
+      "guide": {
+        "path": "docs/how-to/relationships-and-one-on-ones.md",
+        "anchor": "relationships"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/relationships.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Relationships"
+        }
+      ],
+      "automation_refs": [
+        "automations/ambient-scan.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "relationships"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "No contact on record is not proof no contact happened outside a tracked surface"
+      ]
+    },
+    {
+      "id": "document-queue",
+      "name": "Know what to read before it's too late",
+      "user_goal": "Surface shared documents worth reading, tied to a person, meeting, deadline or commitment, and age out the rest",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "This only recommends read/defer/decline; nothing is shared or replied to on its own",
+      "guide": {
+        "path": "docs/how-to/documents-and-files.md",
+        "anchor": "document-queue"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/doc-queue.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Unread documents"
+        }
+      ],
+      "automation_refs": [
+        "automations/ambient-scan.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "document-queue"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A labelled sensitive document is cited, never excerpted into a forwardable card"
+      ]
+    },
+    {
+      "id": "file-download",
+      "name": "Pull a large file from Microsoft 365 to disk",
+      "user_goal": "Download a file over the 4 MB MCP transport limit straight to local disk without flooding the conversation",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "A one-time browser sign-in (macOS Keychain today)"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Downloading is a read; nothing is shared or modified in Microsoft 365",
+      "guide": {
+        "path": "docs/how-to/documents-and-files.md",
+        "anchor": "file-download"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/files.md",
+        "skills/chief-of-staff/scripts/m365_files.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Large files"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/m365_files.py",
+          "commands": [
+            "auth",
+            "logout",
+            "status",
+            "info",
+            "download"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "file-download"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Verified working on macOS; the refresh-token store is macOS Keychain today, not a cross-platform claim",
+        "RMS-protected files are refused, not silently corrupted"
+      ]
+    },
+    {
+      "id": "file-copy",
+      "name": "Copy a file server-side within Microsoft 365",
+      "user_goal": "Copy a large file between Microsoft 365 locations without pulling bytes to this machine",
+      "availability": "limited",
+      "implementation_kind": "runtime",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "A Graph app registration with Files.ReadWrite.All or Sites.ReadWrite.All"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Blocked today: the consented app registration has no write scope, so the command cannot run",
+      "guide": {
+        "path": "docs/how-to/documents-and-files.md",
+        "anchor": "file-copy"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/files.md",
+        "skills/chief-of-staff/scripts/m365_files.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Large files"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/m365_files.py",
+          "commands": [
+            "copy"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "file-copy"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Blocked on a missing write scope in the consented app, not a code defect",
+        "Do not route this through the Work IQ MCP action; it returns a permission denial there too"
+      ]
+    },
+    {
+      "id": "file-upload",
+      "name": "Upload a local file into Microsoft 365",
+      "user_goal": "Upload a local file to a Microsoft 365 location once write scope is granted",
+      "availability": "limited",
+      "implementation_kind": "runtime",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "A Graph app registration with Files.ReadWrite.All or Sites.ReadWrite.All"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Blocked today: the consented app registration has no write scope, so the command cannot run",
+      "guide": {
+        "path": "docs/how-to/documents-and-files.md",
+        "anchor": "file-upload"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/files.md",
+        "skills/chief-of-staff/scripts/m365_files.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Large files"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/m365_files.py",
+          "commands": [
+            "put",
+            "upload"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "file-upload"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Blocked on a missing write scope in the consented app, not a code defect",
+        "The >250MB upload-session path also needs a SharePoint-audience token this app cannot obtain"
+      ]
+    },
+    {
+      "id": "file-sharing",
+      "name": "Share a file without emailing the bytes",
+      "user_goal": "Grant a specific person read access to a file, without sending an email notification unless you ask for one",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Sharing is visible to the recipient and always needs its own explicit per-action approval",
+      "guide": {
+        "path": "docs/how-to/documents-and-files.md",
+        "anchor": "file-sharing"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/files.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Large files"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "file-sharing"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Uses the standard approved Work IQ write path, separate from the blocked local-bridge copy/upload commands"
+      ]
+    },
+    {
+      "id": "commitments",
+      "name": "Track an ask without inventing a promise",
+      "user_goal": "Capture a request as sourced evidence, then confirm it as an obligation only after you say so",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Confirming an obligation is not permission to send anything related to it",
+      "guide": {
+        "path": "docs/how-to/commitments-and-action-desk.md",
+        "anchor": "commitments"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/work-ledger.md",
+        "skills/chief-of-staff/scripts/work_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Work ledger"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/work_state.py",
+          "commands": [
+            "source",
+            "ingest",
+            "list",
+            "item-update",
+            "relate",
+            "record-id",
+            "show",
+            "history",
+            "import-preview",
+            "import-commitments",
+            "export-commitments"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "commitments"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Different source/claim identities can create separate candidates; near-duplicates need human review"
+      ]
+    },
+    {
+      "id": "follow-through",
+      "name": "Know what you're waiting on, before it's overdue",
+      "user_goal": "Age every open row, check for silent resolution first, and prepare the right nudge at the right rung",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init",
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "Each drafted nudge is confirmed individually; a batch approval does not cover several people",
+      "guide": {
+        "path": "docs/how-to/commitments-and-action-desk.md",
+        "anchor": "follow-through"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/follow-through.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Follow-through"
+        }
+      ],
+      "automation_refs": [
+        "automations/commitments.md",
+        "automations/ambient-scan.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "follow-through"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A row is promoted only the run it crosses a threshold, not every day after"
+      ]
+    },
+    {
+      "id": "action-desk",
+      "name": "See what's ready for your decision",
+      "user_goal": "Review, edit, defer or dismiss a prepared action proposal before anything is sent",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli",
+        "canvas"
+      ],
+      "approval": "Dismissing a proposal only hides it; it does not close the underlying work item",
+      "guide": {
+        "path": "docs/how-to/commitments-and-action-desk.md",
+        "anchor": "action-desk"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/action-desk.md",
+        "skills/chief-of-staff/scripts/work_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Action desk"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/work_state.py",
+          "commands": [
+            "propose",
+            "edit",
+            "defer",
+            "dismiss",
+            "list"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "action-desk"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "The canvas can edit and defer/dismiss a proposal; it has no approve/send endpoint"
+      ]
+    },
+    {
+      "id": "approval-execution",
+      "name": "Approve once, safely",
+      "user_goal": "Approve an exact action, get a fresh preflight check immediately before it runs, and get an honest result even when the outcome is unclear",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Approval is bound to the exact target, payload, revision and hash; any change invalidates it",
+      "guide": {
+        "path": "docs/how-to/commitments-and-action-desk.md",
+        "anchor": "approval-execution"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/action-desk.md",
+        "skills/chief-of-staff/scripts/work_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Action desk"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/work_state.py",
+          "commands": [
+            "approve",
+            "begin",
+            "finish",
+            "reconcile"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "approval-execution"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "An uncertain outcome is reconciled from real evidence; it is never retried blindly"
+      ]
+    },
+    {
+      "id": "action-desk-canvas",
+      "name": "Review proposals without a second CLI window",
+      "user_goal": "Inspect and edit durable Margo proposals in an optional app panel instead of the CLI",
+      "availability": "optional",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "The optional canvas extension enabled with --action-desk / -ActionDesk"
+      ],
+      "surfaces": [
+        "cli",
+        "canvas"
+      ],
+      "approval": "The canvas has no approve/send endpoint; a review request is not consent",
+      "guide": {
+        "path": "docs/how-to/commitments-and-action-desk.md",
+        "anchor": "action-desk-canvas"
+      },
+      "sources": [
+        ".github/extensions/margo-action-desk/extension.mjs",
+        ".github/extensions/margo-action-desk/README.md"
+      ],
+      "router_refs": [],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [
+        {
+          "id": "margo-action-desk",
+          "actions": [
+            "list",
+            "show",
+            "refresh"
+          ]
+        }
+      ],
+      "scenario_ids": [
+        "action-desk-canvas"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Candidate work records and typed records are read-only in the canvas"
+      ]
+    },
+    {
+      "id": "outcomes",
+      "name": "Agree what success looks like this week",
+      "user_goal": "Agree up to three weekly outcomes with an owner, definition of done, due date and effort estimate",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Agreeing an outcome never approves a calendar change or a message on its own",
+      "guide": {
+        "path": "docs/how-to/outcomes-and-meetings.md",
+        "anchor": "outcomes"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/outcomes.md",
+        "skills/chief-of-staff/scripts/work_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Outcomes and capacity"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/work_state.py",
+          "commands": [
+            "record",
+            "record-id",
+            "show"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "outcomes"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "At most three outcomes may be agreed/active/achieved at once; a longer list must be discussed"
+      ]
+    },
+    {
+      "id": "capacity",
+      "name": "Check whether a plan actually fits the week",
+      "user_goal": "Calculate real available time from working hours, meetings, leave and protected blocks, with honest gaps for missing data",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Capacity output never triggers a calendar change; that stays in the action desk",
+      "guide": {
+        "path": "docs/how-to/outcomes-and-meetings.md",
+        "anchor": "capacity"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/outcomes.md",
+        "skills/chief-of-staff/scripts/capacity.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Outcomes and capacity"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "capacity"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Incomplete coverage or a missing estimate makes fit unknown, not false"
+      ]
+    },
+    {
+      "id": "feedback",
+      "name": "Correct Margo without a permanent rule you didn't ask for",
+      "user_goal": "Record a specific correction tied to the exact item it applies to, without turning it into a standing rule",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Recording a correction never grants action permission or activates a rule; future behavior changes require a separately confirmed scoped rule",
+      "guide": {
+        "path": "docs/how-to/feedback-and-work-products.md",
+        "anchor": "feedback"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/feedback.md",
+        "skills/chief-of-staff/scripts/work_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Learn from corrections"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/work_state.py",
+          "commands": [
+            "record",
+            "record-id"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "feedback"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Silence, delay or a dismissed proposal is never treated as a preference"
+      ]
+    },
+    {
+      "id": "rules",
+      "name": "Turn a repeated correction into a standing rule",
+      "user_goal": "Propose a scoped rule from supporting examples, then activate it only with explicit confirmation",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Activation requires an explicit yes; a rule can never grant send permission or lower approval",
+      "guide": {
+        "path": "docs/how-to/feedback-and-work-products.md",
+        "anchor": "rules"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/feedback.md",
+        "skills/chief-of-staff/scripts/work_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Learn from corrections"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/work_state.py",
+          "commands": [
+            "record",
+            "record-id"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "rules"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Revoking a rule does not erase its evidence or change messages already sent"
+      ]
+    },
+    {
+      "id": "do-not-learn",
+      "name": "Say 'not a lesson' and mean it",
+      "user_goal": "Mark an interaction as explicitly not to be learned from, without an operational receipt claiming otherwise",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "This is a minimal opt-out marker, not a request that changes any external state",
+      "guide": {
+        "path": "docs/how-to/feedback-and-work-products.md",
+        "anchor": "do-not-learn"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/feedback.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Learn from corrections"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "do-not-learn"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "This is not a general erasure facility for prior records; see memory-control for that"
+      ]
+    },
+    {
+      "id": "work-products",
+      "name": "Get a useful first draft of the real deliverable",
+      "user_goal": "Produce a decision memo, comparison, status update, agenda or delegation brief tied to its sources",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Content approval is separate from delivery approval; nothing is shared automatically",
+      "guide": {
+        "path": "docs/how-to/feedback-and-work-products.md",
+        "anchor": "work-products"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/work-products.md",
+        "skills/chief-of-staff/scripts/work_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Prepare the work"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/work_state.py",
+          "commands": [
+            "record",
+            "record-id",
+            "show"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "work-products"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Unattended preparation is local only and bounded to the single highest-priority item"
+      ]
+    },
+    {
+      "id": "artifact-delivery",
+      "name": "Know a work product actually reached someone",
+      "user_goal": "Link a prepared artifact to its real delivery receipt once it has actually been shared",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Recording a receipt never performs the send/share itself; that is a separate approved action",
+      "guide": {
+        "path": "docs/how-to/feedback-and-work-products.md",
+        "anchor": "artifact-delivery"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/work-products.md",
+        "skills/chief-of-staff/scripts/work_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Prepare the work"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/work_state.py",
+          "commands": [
+            "artifact-shared"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "artifact-delivery"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Content approval for a memo is not approval to publish or send it"
+      ]
+    },
+    {
+      "id": "github-reviews",
+      "name": "Never miss a stale review request",
+      "user_goal": "See review requests, your own stale PRs and assigned issues across both GitHub accounts, aged and cited",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "`gh` CLI signed in",
+        "Repositories listed in preferences.md"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "Reviewing, commenting, merging, closing or labelling always needs its own explicit approval",
+      "guide": {
+        "path": "docs/how-to/github-and-work-items.md",
+        "anchor": "github-reviews"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/github.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "GitHub"
+        }
+      ],
+      "automation_refs": [
+        "automations/ambient-scan.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "github-reviews"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A failed or empty search is unknown, not zero, until both accounts are queried successfully"
+      ]
+    },
+    {
+      "id": "ado-work-items",
+      "name": "Review your Azure DevOps backlog without hunting for the query",
+      "user_goal": "Run the saved bug and backlog queries by ID and summarize priority, staleness and ownership",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Azure CLI with the azure-devops extension",
+        "Configured org/project/queries"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Creating or updating a work item always needs the exact field change approved first",
+      "guide": {
+        "path": "docs/how-to/github-and-work-items.md",
+        "anchor": "ado-work-items"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/work-items.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Work items (ADO)"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "ado-work-items"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A tree query returns empty from `az boards query --id`; the REST route is required, not an empty backlog"
+      ]
+    },
+    {
+      "id": "engage",
+      "name": "See what your Viva Engage community actually thinks",
+      "user_goal": "Surface unanswered questions and recurring themes from a product's Viva Engage community",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Community name and GroupId recorded in preferences.md"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Posting an Engage reply is public and always needs explicit approval, written in your voice",
+      "guide": {
+        "path": "docs/how-to/community-and-feedback.md",
+        "anchor": "engage"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/engage.md",
+        "skills/chief-of-staff/scripts/engage_parse.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Engage community"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "engage"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "The verified Work IQ binding exposed grounded retrieval, not structured Engage paths or usable reply/upvote counts; re-check current host capabilities",
+        "The bundled parser has no dedicated automated test in this repository"
+      ]
+    },
+    {
+      "id": "teams-feedback",
+      "name": "See what's breaking, from the people hitting it",
+      "user_goal": "Surface unanswered reports and recurring failure themes from a product's Teams feedback channel",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Team ID and Channel ID recorded in preferences.md"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Posting a reply always needs explicit approval, written in your voice with no sign-off",
+      "guide": {
+        "path": "docs/how-to/community-and-feedback.md",
+        "anchor": "teams-feedback"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/teams-feedback.md",
+        "skills/chief-of-staff/scripts/teams_feedback.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Feedback channel"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "teams-feedback"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A partial page sweep is reported as partial, never as a clean unanswered count",
+        "The bundled parser has no dedicated automated test in this repository"
+      ]
+    },
+    {
+      "id": "decision-extraction",
+      "name": "Log what a team actually decided",
+      "user_goal": "Extract genuine decisions from a meeting or thread, separating them from discussion, tasks and open questions",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "The decision-log skill installed (--all)",
+        "config.md filled in"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Nothing is written to the log until the proposed records are explicitly approved",
+      "guide": {
+        "path": "docs/how-to/decision-log.md",
+        "anchor": "decision-extraction"
+      },
+      "sources": [
+        "skills/decision-log/references/extraction.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/decision-log/SKILL.md",
+          "label": "Extract"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "decision-extraction"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Under-extraction is the deliberate failure mode; unsure items are marked needs-confirmation"
+      ]
+    },
+    {
+      "id": "decision-answer",
+      "name": "Get the current answer, not a stale one",
+      "user_goal": "Ask why something was decided and get the current record, with the supersession chain if it changed",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "The decision-log skill installed (--all)"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Read-only; answering a question never writes to the log",
+      "guide": {
+        "path": "docs/how-to/decision-log.md",
+        "anchor": "decision-answer"
+      },
+      "sources": [
+        "skills/decision-log/references/retrieval.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/decision-log/SKILL.md",
+          "label": "Answer"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "decision-answer"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A transcript-sourced fallback answer is marked unconfirmed, never given a decision's authority"
+      ]
+    },
+    {
+      "id": "decision-supersession",
+      "name": "Change your mind on the record",
+      "user_goal": "Mark a prior decision superseded or reversed, keeping both records and the chain between them",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "The decision-log skill installed (--all)"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "A supersession is written only after explicit approval, same as any other log write",
+      "guide": {
+        "path": "docs/how-to/decision-log.md",
+        "anchor": "decision-supersession"
+      },
+      "sources": [
+        "skills/decision-log/references/schema.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/decision-log/SKILL.md",
+          "label": "Supersede"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "decision-supersession"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Records are immutable; only Status changes, so history is never edited away"
+      ]
+    },
+    {
+      "id": "decision-digest",
+      "name": "Get a short weekly read of what changed",
+      "user_goal": "Produce a short digest of what was decided, what changed, and what's still open this week",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "The decision-log skill installed (--all)"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "The digest is read-only output; it never writes a record on its own",
+      "guide": {
+        "path": "docs/how-to/decision-log.md",
+        "anchor": "decision-digest"
+      },
+      "sources": [
+        "skills/decision-log/SKILL.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/decision-log/SKILL.md",
+          "label": "Digest"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "decision-digest"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "An unowned open question is flagged, not silently dropped from the digest"
+      ]
+    },
+    {
+      "id": "decision-audit",
+      "name": "Find what's unresolved in the log",
+      "user_goal": "List stale needs-confirmation records, unowned open questions, and dead source links for review",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "The decision-log skill installed (--all)"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Audit only proposes fixes; it never changes a record without explicit approval",
+      "guide": {
+        "path": "docs/how-to/decision-log.md",
+        "anchor": "decision-audit"
+      },
+      "sources": [
+        "skills/decision-log/SKILL.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/decision-log/SKILL.md",
+          "label": "Audit"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "decision-audit"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A one-way decision with no recorded rationale is flagged, not rewritten"
+      ]
+    },
+    {
+      "id": "automation-morning",
+      "name": "Get the morning brief without asking for it",
+      "user_goal": "Run the full daily brief automatically on weekday mornings",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "Unattended runs never send, post, RSVP or change a work item under any standing grant",
+      "guide": {
+        "path": "docs/how-to/automation-health.md",
+        "anchor": "automation-morning"
+      },
+      "sources": [
+        "automations/morning-brief.md",
+        "skills/chief-of-staff/references/proactive.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Proactive / scheduled"
+        }
+      ],
+      "automation_refs": [
+        "automations/morning-brief.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "automation-morning"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Requires autopilot mode and the app running and awake at the scheduled time",
+        "The schedule itself lives only in automations/*.md front matter"
+      ]
+    },
+    {
+      "id": "automation-eod",
+      "name": "Get an end-of-day wrap-up automatically",
+      "user_goal": "Run the end-of-day/catch-up wrap-up on weekday evenings",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "Unattended runs never send, post, RSVP or change a work item under any standing grant",
+      "guide": {
+        "path": "docs/how-to/automation-health.md",
+        "anchor": "automation-eod"
+      },
+      "sources": [
+        "automations/eod-wrap-up.md",
+        "skills/chief-of-staff/references/proactive.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Proactive / scheduled"
+        }
+      ],
+      "automation_refs": [
+        "automations/eod-wrap-up.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "automation-eod"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "The anchor owns one leased batch; the underlying routine must not drain it again",
+        "The schedule itself lives only in automations/*.md front matter"
+      ]
+    },
+    {
+      "id": "automation-week-ahead",
+      "name": "Get next week's shape before Monday",
+      "user_goal": "Run the week-ahead routine automatically on Sunday afternoon",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "Unattended runs never send, post, RSVP or change a work item under any standing grant",
+      "guide": {
+        "path": "docs/how-to/automation-health.md",
+        "anchor": "automation-week-ahead"
+      },
+      "sources": [
+        "automations/week-ahead.md",
+        "skills/chief-of-staff/references/proactive.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Proactive / scheduled"
+        }
+      ],
+      "automation_refs": [
+        "automations/week-ahead.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "automation-week-ahead"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Missing estimates or calendar coverage stay explicit gaps in the scheduled output too",
+        "The schedule itself lives only in automations/*.md front matter"
+      ]
+    },
+    {
+      "id": "automation-commitments",
+      "name": "Get a weekly commitments and ambient digest",
+      "user_goal": "Run commitment ageing and render the week's ambient digest every Friday",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "Unattended runs never send, post, RSVP or change a work item under any standing grant",
+      "guide": {
+        "path": "docs/how-to/automation-health.md",
+        "anchor": "automation-commitments"
+      },
+      "sources": [
+        "automations/commitments.md",
+        "skills/chief-of-staff/references/proactive.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Proactive / scheduled"
+        }
+      ],
+      "automation_refs": [
+        "automations/commitments.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "automation-commitments"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Checks for silent resolution before ageing anything, even unattended",
+        "The schedule itself lives only in automations/*.md front matter"
+      ]
+    },
+    {
+      "id": "automation-hourly",
+      "name": "Get cheap, silent hourly checks",
+      "user_goal": "Run a lightweight, usually silent hourly sweep for anything that clears the interrupt test",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "Unattended runs never send, post, RSVP or change a work item under any standing grant",
+      "guide": {
+        "path": "docs/how-to/automation-health.md",
+        "anchor": "automation-hourly"
+      },
+      "sources": [
+        "automations/hourly-sweep.md",
+        "skills/chief-of-staff/references/proactive.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Proactive / scheduled"
+        }
+      ],
+      "automation_refs": [
+        "automations/hourly-sweep.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "automation-hourly"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Silence is a successful run; never call workiq-ask in this tier",
+        "The schedule itself lives only in automations/*.md front matter"
+      ]
+    },
+    {
+      "id": "automation-ambient",
+      "name": "Get a quiet daily scan for slow-moving drift",
+      "user_goal": "Run a daily ambient scan for commitment ageing, relationship drift and stale PRs, queued for the next anchor, never interrupting",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.0.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli",
+        "scheduled"
+      ],
+      "approval": "Unattended runs never send, post, RSVP or change a work item under any standing grant",
+      "guide": {
+        "path": "docs/how-to/automation-health.md",
+        "anchor": "automation-ambient"
+      },
+      "sources": [
+        "automations/ambient-scan.md",
+        "skills/chief-of-staff/references/proactive.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Proactive / scheduled"
+        }
+      ],
+      "automation_refs": [
+        "automations/ambient-scan.md"
+      ],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "automation-ambient"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Ambient findings never interrupt and are promoted only the run they cross a threshold",
+        "The schedule itself lives only in automations/*.md front matter"
+      ]
+    },
+    {
+      "id": "source-coverage",
+      "name": "Trust that a brief actually covered its sources",
+      "user_goal": "Track per-source attempts, completeness, retries and checkpoints so a partial read is never mistaken for done",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "This is a local state record; it performs no reads itself and authorizes nothing",
+      "guide": {
+        "path": "docs/how-to/automation-health.md",
+        "anchor": "source-coverage"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/state-operations.md",
+        "skills/chief-of-staff/scripts/proactive_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Health and setup"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/proactive_state.py",
+          "commands": [
+            "coverage-start",
+            "coverage-page",
+            "coverage-finish",
+            "coverage-status",
+            "coverage-retire",
+            "coverage-resume",
+            "cursor-get",
+            "cursor-set",
+            "import-legacy",
+            "seen",
+            "mark"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "source-coverage"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "One source succeeding never advances another source's checkpoint"
+      ]
+    },
+    {
+      "id": "output-delivery",
+      "name": "Know if a scheduled output was actually delivered",
+      "user_goal": "Track leased delivery batches and publication receipts, separate from a workflow exiting zero",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "A local 'available' receipt is not proof of host delivery or that a human read it",
+      "guide": {
+        "path": "docs/how-to/automation-health.md",
+        "anchor": "output-delivery"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/state-operations.md",
+        "skills/chief-of-staff/scripts/proactive_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Health and setup"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/proactive_state.py",
+          "commands": [
+            "queue-add",
+            "queue-list",
+            "queue-drain",
+            "queue-ack",
+            "queue-release",
+            "queue-renew",
+            "publication-record",
+            "publication-publish",
+            "publication-show",
+            "publication-list",
+            "publication-review",
+            "prune"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "output-delivery"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "A drained queue, a workflow exit code, and a delivered brief are three different facts"
+      ]
+    },
+    {
+      "id": "doctor",
+      "name": "Get one honest health report",
+      "user_goal": "See configuration, managed-file drift, source health, task-run health and delivery backlog in one report, without it repairing anything on its own",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.1.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Doctor is diagnostic only; it never schedules, repairs, or confirms work on your behalf",
+      "guide": {
+        "path": "docs/how-to/automation-health.md",
+        "anchor": "doctor"
+      },
+      "sources": [
+        "skills/chief-of-staff/scripts/margo_doctor.py",
+        "skills/chief-of-staff/scripts/task_runs.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Health and setup"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/proactive_state.py",
+          "commands": [
+            "status"
+          ]
+        },
+        {
+          "path": "skills/chief-of-staff/scripts/task_state.py",
+          "commands": [
+            "health"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "doctor"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "An absent or stale host workflow snapshot is reported unknown, not healthy",
+        "Task-run health degrades to not-initialized rather than failing when task tracking isn't set up"
+      ]
+    },
+    {
+      "id": "memory-capture",
+      "name": "Let Margo remember useful context, on your terms",
+      "user_goal": "Opt in to capturing sourced facts, preferences and episodes under a reviewed capture policy",
+      "availability": "optional",
+      "implementation_kind": "runtime",
+      "since_version": "1.2.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init",
+        "Explicit memory_state.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Capture defaults off; a passive observation is never promoted to a user-confirmed fact",
+      "guide": {
+        "path": "docs/how-to/memory-controls-and-learning.md",
+        "anchor": "memory-capture"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/memory.md",
+        "skills/chief-of-staff/scripts/memory_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Memory and context"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/memory_state.py",
+          "commands": [
+            "init",
+            "migrate",
+            "status",
+            "record-id",
+            "put",
+            "capture",
+            "revise",
+            "policy",
+            "policy-preview",
+            "policy-set"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "memory-capture"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Missing setup is a limitation to report, never an invitation to silently initialize state"
+      ]
+    },
+    {
+      "id": "memory-retrieval",
+      "name": "Recall relevant context by meaning, not just keywords",
+      "user_goal": "Search and build a bounded context packet for a task from hybrid keyword and local semantic search",
+      "availability": "optional",
+      "implementation_kind": "runtime",
+      "since_version": "1.2.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init",
+        "Optional local embedding runtime for semantic search"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Retrieved context informs reasoning; it never grants permission to quote it to a recipient",
+      "guide": {
+        "path": "docs/how-to/semantic-memory.md",
+        "anchor": "memory-retrieval"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/memory.md",
+        "skills/chief-of-staff/scripts/memory_search.py",
+        "skills/chief-of-staff/scripts/memory_context.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Memory and context"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/memory_state.py",
+          "commands": [
+            "show",
+            "list",
+            "history",
+            "search",
+            "context",
+            "explain",
+            "graph",
+            "link",
+            "unlink",
+            "index",
+            "inspect"
+          ]
+        },
+        {
+          "path": "skills/chief-of-staff/scripts/memory_encoder.py",
+          "commands": [
+            "download",
+            "encode",
+            "status"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "memory-retrieval"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Similarity is relevance, not proof of truth; semantic/hybrid search fails when the encoder is unavailable, requiring an explicit scoped lexical search"
+      ]
+    },
+    {
+      "id": "memory-control",
+      "name": "Correct, suppress or forget what Margo remembers",
+      "user_goal": "Inspect why a memory was used, dispute or suppress it, or forget it and its derived indexes entirely",
+      "availability": "optional",
+      "implementation_kind": "runtime",
+      "since_version": "1.2.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli",
+        "canvas"
+      ],
+      "approval": "Forgetting is explicit and approved; a restored old backup cannot silently revive it",
+      "guide": {
+        "path": "docs/how-to/memory-controls-and-learning.md",
+        "anchor": "memory-control"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/memory.md",
+        "skills/chief-of-staff/scripts/memory_governance.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Memory and context"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/memory_state.py",
+          "commands": [
+            "forget",
+            "forget-preview",
+            "maintain",
+            "record-usage",
+            "tombstones",
+            "tombstones-preview",
+            "tombstones-restore",
+            "usage"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "memory-control"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Forgetting removes retrievable memory and derived indexes but keeps a minimal tombstone"
+      ]
+    },
+    {
+      "id": "memory-learning",
+      "name": "Teach an approach without granting new permissions",
+      "user_goal": "Record installed capability evidence and propose a reviewed, scoped lesson from a real execution receipt",
+      "availability": "optional",
+      "implementation_kind": "runtime",
+      "since_version": "1.2.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Activating a lesson never grants tool authority or lowers an existing approval requirement",
+      "guide": {
+        "path": "docs/how-to/memory-controls-and-learning.md",
+        "anchor": "memory-learning"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/memory.md",
+        "skills/chief-of-staff/scripts/memory_learning.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Memory and context"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/memory_state.py",
+          "commands": [
+            "capabilities",
+            "validate-capability",
+            "propose-lesson",
+            "activate-lesson"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "memory-learning"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Input-contract validation is not remote execution and proves no general competence"
+      ]
+    },
+    {
+      "id": "memory-trends",
+      "name": "See a pattern without it becoming a rule",
+      "user_goal": "Review evidence-backed trend candidates over a bounded population and window, without automatic behavioral activation",
+      "availability": "optional",
+      "implementation_kind": "runtime",
+      "since_version": "1.2.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "A trend candidate is not a confirmed rule; it needs the same review as any proposed rule",
+      "guide": {
+        "path": "docs/how-to/memory-controls-and-learning.md",
+        "anchor": "memory-trends"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/memory.md",
+        "skills/chief-of-staff/scripts/memory_learning.py",
+        "skills/chief-of-staff/scripts/memory_consolidation.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Memory and context"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/memory_state.py",
+          "commands": [
+            "trend-definition",
+            "trend",
+            "consolidate",
+            "record-consolidation"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "memory-trends"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Rates apply only to the observed population; this is never a colleague performance score"
+      ]
+    },
+    {
+      "id": "memory-export",
+      "name": "Share a lesson without sharing your history",
+      "user_goal": "Export a newly authored, reviewed generic lesson to a new private file, with no personal history attached",
+      "availability": "optional",
+      "implementation_kind": "runtime",
+      "since_version": "1.2.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Export requires exact approval of the new lesson text; there is no automatic publication",
+      "guide": {
+        "path": "docs/how-to/memory-controls-and-learning.md",
+        "anchor": "memory-export"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/memory.md",
+        "skills/chief-of-staff/scripts/memory_learning.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Memory and context"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/memory_state.py",
+          "commands": [
+            "export",
+            "export-preview"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "memory-export"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Identifier checks before export are heuristic, not a guarantee against all leakage"
+      ]
+    },
+    {
+      "id": "memory-canvas",
+      "name": "Inspect memory without a CLI window",
+      "user_goal": "Inspect, search and request a foreground correction or forgetting decision from an optional app panel",
+      "availability": "optional",
+      "implementation_kind": "runtime",
+      "since_version": "1.2.0",
+      "prerequisites": [
+        "The optional canvas extension enabled with --action-desk / -ActionDesk"
+      ],
+      "surfaces": [
+        "cli",
+        "canvas"
+      ],
+      "approval": "The canvas has no approval or erasure endpoint; it can only request a foreground decision",
+      "guide": {
+        "path": "docs/how-to/memory-controls-and-learning.md",
+        "anchor": "memory-canvas"
+      },
+      "sources": [
+        ".github/extensions/margo-action-desk/extension.mjs",
+        ".github/extensions/margo-action-desk/memory-backend.mjs"
+      ],
+      "router_refs": [],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [
+        {
+          "id": "margo-memory",
+          "actions": [
+            "list",
+            "search",
+            "status"
+          ]
+        }
+      ],
+      "scenario_ids": [
+        "memory-canvas"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Read-only backend; correcting or forgetting a memory still requires the foreground conversation"
+      ]
+    },
+    {
+      "id": "task-progress",
+      "name": "Know where a task stopped",
+      "user_goal": "See a bounded task's plan, completed steps, remaining work and source gaps across sessions",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.2.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init",
+        "Explicit task_state.py init"
+      ],
+      "surfaces": [
+        "cli",
+        "canvas"
+      ],
+      "approval": "Task tracking is not itself an approval; sending or changing state still needs its own",
+      "guide": {
+        "path": "docs/how-to/task-progress-and-recovery.md",
+        "anchor": "task-progress"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/task-runs.md",
+        "skills/chief-of-staff/scripts/task_runs.py",
+        "skills/chief-of-staff/scripts/task_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Task progress"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/task_state.py",
+          "commands": [
+            "init",
+            "health",
+            "record-id",
+            "create",
+            "list",
+            "show",
+            "history",
+            "sync"
+          ]
+        }
+      ],
+      "canvas_refs": [
+        {
+          "id": "margo-task-progress",
+          "actions": [
+            "list",
+            "show",
+            "history",
+            "health"
+          ]
+        }
+      ],
+      "scenario_ids": [
+        "task-progress"
+      ],
+      "maintainer_role": "Margo maintainers (task runtime owned by the agentic-development-plan integrator)",
+      "limitations": [
+        "A task-journal state is not a guarantee the host delivered or you read a notification",
+        "The optional canvas is read-only; pause/resume/cancel/replan/recover/reconcile only request foreground review"
+      ]
+    },
+    {
+      "id": "task-recovery",
+      "name": "Pick up a task safely after an interruption",
+      "user_goal": "Pause, resume, cancel or reconcile a bounded task without repeating a completed external effect",
+      "availability": "implemented",
+      "implementation_kind": "runtime",
+      "since_version": "1.2.0",
+      "prerequisites": [
+        "Explicit account configured via margo_store.py init",
+        "Explicit task_state.py init"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "A resumed action still checks its bound ID/revision/hash and fresh preflight before running",
+      "guide": {
+        "path": "docs/how-to/task-progress-and-recovery.md",
+        "anchor": "task-recovery"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/task-runs.md",
+        "skills/chief-of-staff/scripts/task_runs.py",
+        "skills/chief-of-staff/scripts/task_state.py"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Task progress"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [
+        {
+          "path": "skills/chief-of-staff/scripts/task_state.py",
+          "commands": [
+            "pause",
+            "cancel",
+            "recover",
+            "resume",
+            "retry",
+            "reconcile",
+            "replan-preview",
+            "replan",
+            "start",
+            "charge",
+            "finish"
+          ]
+        }
+      ],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "task-recovery"
+      ],
+      "maintainer_role": "Margo maintainers (task runtime owned by the agentic-development-plan integrator)",
+      "limitations": [
+        "Cancellation stops future steps; it never undoes an effect that already happened"
+      ]
+    }
+  ]
+}

@@ -134,7 +134,7 @@ unlinked to conceal provenance; propose a sourced replacement instead.
 | "Correct this fact." | Review a revision-bound replacement with its source and scope | Margo does not overwrite a conflicting concurrent edit |
 | "Do not use this." | Suppress the record from ordinary recall while retaining its private history | The source and remembered content are not erased |
 | "Do not learn from this correction." | Apply the one-off correction without saving it as a learning example | It does not erase all prior memories |
-| "Forget this." | Review the affected root and derived records, then erase their content and indexes | Source messages, operational work records, earlier outputs and backups are not recalled |
+| "Forget this." | Review the affected root and derived records, then erase their content and indexes | Source messages, operational work records, earlier outputs and backups are not erased and may remain retrievable through their own systems |
 
 For a correction or suppression:
 
@@ -349,3 +349,89 @@ action. Previously exported copies are not erased by forgetting the original mem
 Private does not mean encrypted or processed only on this computer. SQLite and vectors depend
 on OS/disk/backup protections. Selected context reaches the configured Copilot/model service;
 Work IQ and other connected services retain their own data-handling boundaries.
+
+## Feature reference
+
+### Memory capture
+
+Opt in to capturing sourced facts, preferences and episodes under a reviewed capture policy — see
+[Choose what may be captured](#choose-what-may-be-captured). Try it: *"Remember that I prefer
+async updates over status meetings."* What you'll see: a stored candidate memory with its source
+and scope, never silently promoted to confirmed without your review. What needs your decision:
+the capture policy itself (which domains/kinds/sources are eligible) needs your explicit review
+before anything is captured. Change your mind: adjust the policy or forget a captured memory any
+time — see [memory control](#memory-control), below. Your data: memory lives in your private
+account-scoped SQLite database, migrated explicitly between schema versions, never silently.
+If something goes wrong: capture defaults off, and a passive observation never manufactures a
+user-confirmed fact on its own. Optional, runtime (deterministic capture/policy code with tests).
+Since 1.2.0.
+
+### Memory control
+
+Inspect why a memory was used, correct or suppress it, or forget it and its derived indexes
+entirely — see [Inspect why Margo knows something](#inspect-why-margo-knows-something) and
+[Correct, do not use, or forget](#correct-do-not-use-or-forget). Try it: *"Why did you bring that
+up? That's stale — forget it."* What you'll see: the source and scope behind a recalled memory,
+and, on request, its removal from retrieval and derived indexes. What needs your decision:
+forgetting is explicit and approved per record — nothing is erased implicitly. Change your mind:
+suppression ("do not use") preserves history and can itself be reversed; forgetting cannot be
+undone by later passive recapture. Your data: a minimal tombstone is kept after forgetting so a
+restored older backup can't silently revive it. If something goes wrong: see
+[If something goes wrong](#if-something-goes-wrong), above, for the specific failure/response
+table. Optional, runtime (deterministic governance/tombstone code with tests). Since 1.2.0.
+
+### Memory learning
+
+Record installed capability evidence and propose a reviewed, scoped lesson from a real execution
+receipt, without granting new tool authority — see
+[Learn an approach without granting new authority](#learn-an-approach-without-granting-new-authority).
+Try it: *"That approach worked well — propose it as a lesson, scoped to this kind of task."* What
+you'll see: a proposed lesson backed by an actual capability check or execution receipt, inert
+until you activate it. What needs your decision: activation is explicit, and even then a lesson
+never grants tool authority or lowers an approval requirement. Change your mind: an activated
+lesson can be revoked the same way a rule can. Your data: lessons and capability evidence live in
+the private memory database. If something goes wrong: input-contract validation is not remote
+execution and proves no general competence — it's reported as exactly that, a pinned synthetic
+check. Optional, runtime (deterministic lesson proposal/activation code with tests). Since 1.2.0.
+
+### Memory trends
+
+Review evidence-backed trend candidates over a bounded population and window, without automatic
+behavioral activation — see [Review patterns without manufacturing trends](#review-patterns-without-manufacturing-trends).
+Try it: *"Is there a pattern in when my meetings run over?"* What you'll see: a trend candidate
+with its population, window and coverage stated explicitly — never presented as a confirmed rule
+or a colleague performance score. What needs your decision: a trend candidate needs the same
+review as any proposed rule before it changes behavior. Change your mind: dismiss a candidate any
+time; nothing about it is applied automatically. Your data: trend candidates and their supporting
+evidence live in the private memory database. If something goes wrong: an observed rate applies
+only to the stated population — Margo will not generalize it further than the evidence supports.
+Optional, runtime (deterministic bounded trend/consolidation code with tests). Since 1.2.0.
+
+### Memory export
+
+Export a newly authored, reviewed generic lesson to a new private file, with no personal history
+attached — see [Export a generic lesson, not a personal history](#export-a-generic-lesson-not-a-personal-history).
+Try it: *"Turn that lesson into something shareable, with names and specifics stripped out."* What
+you'll see: a preview of the generic recipe for your review before anything is written, refusing
+to overwrite an existing file. What needs your decision: export requires your exact approval of
+the reviewed recipe text — there is no automatic publication, skill installation, or execution.
+Change your mind: don't approve the preview; nothing is written until you do. Your data: the
+export writes a new private file outside the original memory record; forgetting the original
+later does not retroactively erase an already-exported copy. If something goes wrong: identifier
+and credential-marker checks are heuristic, not a guarantee — review the preview yourself before
+approving. Optional, runtime (deterministic export-preview/approval code with tests). Since 1.2.0.
+
+### Memory canvas
+
+Inspect, search and request a foreground correction or forgetting decision from an optional app
+panel instead of the CLI — see [semantic memory § Use the optional panel](semantic-memory.md#6-use-the-optional-panel).
+Try it: enable the action-desk extension, reload it, and open **Margo Memory**. What you'll see:
+the same facts, people, projects, lessons and history the CLI shows, with search and record
+inspection. What needs your decision: the panel has **no approval or erasure endpoint** — it can
+only request a foreground conversation; correcting or forgetting a memory still happens there.
+Change your mind: close the panel any time; viewing it changes nothing. Your data: the panel reads
+the same private account-scoped database as the CLI, over a local server the extension starts for
+you. If something goes wrong: missing environment-scoped binding is reported as missing context,
+not proof the memory doesn't exist. Optional (requires the extension enabled with
+`--action-desk`/`-ActionDesk`), runtime (real Node.js code, tested against a real local account
+fixture). Since 1.2.0.

@@ -175,6 +175,7 @@ Pick the routine that matches the request; combine as needed. Full procedures ar
 | **Prepare the work** | "prepare the decision memo", "compare these documents", "write the delegation brief" | `references/work-products.md` |
 | **Health and setup** | "is Margo working", "why did the sweep miss this", "set up my ledger" | `references/state-operations.md` |
 | **Memory and context** | "what do you remember", "remember this", "forget this", "find related context", "what have you learned" | `references/memory.md` |
+| **Task progress** | "where did you stop", "resume that task", "pause this task", "cancel the remaining steps" | `references/task-runs.md` |
 
 ## Proactive & scheduled operation
 
@@ -197,6 +198,10 @@ Three things about it matter enough to state here:
 ### Default flow for a "prepare my day" request
 
 1. Read `preferences.md`.
+   For a substantive multi-step request, read `references/task-runs.md` and create or resume a
+   bounded private task plan under the confirmed account. Task tracking is not another obligation
+   or approval. If durable setup is unavailable, report that limitation instead of pretending the
+   work is resumable or silently initializing state for a status-only request.
 2. Pull the skeleton with `workiq-fetch` (parallel, with `$select` + `$top`): today's calendar,
    unread/flagged mail, unread Teams mentions/DMs, and anything due.
 3. Synthesize priority and context with `workiq-ask` (what's top of mind, what changed since

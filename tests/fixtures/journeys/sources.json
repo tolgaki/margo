@@ -1,0 +1,346 @@
+{
+  "schema_version": 1,
+  "fixtures": {
+    "setup-v1": {
+      "version": "setup-v1",
+      "sources": [
+        {
+          "id": "config:synthetic-account",
+          "kind": "configuration",
+          "account": "dana@example.com",
+          "state_root": "{private-state-root}",
+          "installed_copy": false
+        }
+      ]
+    },
+    "brief-partial-v1": {
+      "version": "brief-partial-v1",
+      "sources": [
+        {
+          "id": "mail:brief-ask",
+          "kind": "mail",
+          "revision": "m1",
+          "from": "rafa@example.com",
+          "subject": "Launch checklist question",
+          "received_at": "2026-09-06T14:00:00Z",
+          "summary": "Rafa needs a decision on the fictional launch checklist by Tuesday."
+        },
+        {
+          "id": "calendar:brief-review",
+          "kind": "calendar-occurrence",
+          "revision": "c1",
+          "start": "2026-09-06T17:00:00Z",
+          "end": "2026-09-06T17:30:00Z",
+          "subject": "Synthetic design review",
+          "response": "accepted"
+        },
+        {
+          "id": "teams:brief-project",
+          "kind": "teams-source",
+          "revision": "t1",
+          "status": "unavailable",
+          "error_class": "binding_unavailable"
+        }
+      ]
+    },
+    "mail-triage-v1": {
+      "version": "mail-triage-v1",
+      "sources": [
+        {
+          "id": "mail:triage-urgent",
+          "kind": "mail",
+          "revision": "m1",
+          "from": "ines@example.com",
+          "subject": "Decision needed for fictional rollout",
+          "received_at": "2026-09-06T15:15:00Z",
+          "summary": "A decision is requested; no deadline is stated."
+        },
+        {
+          "id": "mail:triage-fyi",
+          "kind": "mail",
+          "revision": "m1",
+          "from": "marco@example.com",
+          "subject": "Weekly synthetic metrics",
+          "received_at": "2026-09-06T13:20:00Z",
+          "summary": "Informational update with no explicit ask."
+        }
+      ]
+    },
+    "teams-triage-v1": {
+      "version": "teams-triage-v1",
+      "sources": [
+        {
+          "id": "teams:thread-blocker",
+          "kind": "teams-thread",
+          "revision": "t2",
+          "channel": "Synthetic Project",
+          "summary": "The fictional deployment is blocked on an owner decision."
+        },
+        {
+          "id": "teams:thread-unavailable",
+          "kind": "teams-source",
+          "revision": "t1",
+          "status": "partial",
+          "summary": "One configured channel could not be enumerated."
+        }
+      ]
+    },
+    "commitment-v1": {
+      "version": "commitment-v1",
+      "sources": [
+        {
+          "id": "mail:commitment-ask",
+          "kind": "mail",
+          "revision": "m1",
+          "from": "rafa@example.com",
+          "to": ["dana@example.com"],
+          "subject": "Fictional checklist follow-up",
+          "body": "Could you send the revised fictional checklist? No date was specified."
+        },
+        {
+          "id": "mail:commitment-later-reply",
+          "kind": "mail",
+          "revision": "m2",
+          "from": "rafa@example.com",
+          "body": "Please include the accessibility section in the revision."
+        }
+      ]
+    },
+    "meeting-delayed-recap-v1": {
+      "version": "meeting-delayed-recap-v1",
+      "sources": [
+        {
+          "id": "calendar:meeting-occurrence",
+          "kind": "calendar-occurrence",
+          "revision": "c1",
+          "series_id": "series-synthetic-review",
+          "occurrence_id": "occurrence-2026-09-06",
+          "start": "2026-09-06T16:00:00Z",
+          "end": "2026-09-06T16:30:00Z",
+          "response": "accepted",
+          "attendance": "unknown"
+        },
+        {
+          "id": "file:meeting-prep",
+          "kind": "document",
+          "revision": "f1",
+          "title": "Synthetic review pre-read",
+          "summary": "Lists two open questions and no approved decisions."
+        },
+        {
+          "id": "transcript:meeting-recap",
+          "kind": "recap",
+          "revision": "r1",
+          "status": "delayed"
+        }
+      ]
+    },
+    "calendar-change-v1": {
+      "version": "calendar-change-v1",
+      "sources": [
+        {
+          "id": "calendar:target-occurrence",
+          "kind": "calendar-occurrence",
+          "revision": "c4",
+          "organizer": "dana@example.com",
+          "attendees": ["rafa@example.com", "ines@example.com"],
+          "start": "2026-09-08T18:00:00Z",
+          "end": "2026-09-08T18:30:00Z"
+        },
+        {
+          "id": "calendar:availability",
+          "kind": "schedule",
+          "revision": "s1",
+          "coverage": "partial",
+          "unknown_attendees": ["ines@example.com"]
+        }
+      ]
+    },
+    "files-v1": {
+      "version": "files-v1",
+      "sources": [
+        {
+          "id": "file:synthetic-spec",
+          "kind": "document",
+          "revision": "f3",
+          "name": "fictional-spec.docx",
+          "location": "https://example.com/files/fictional-spec",
+          "permissions": "read"
+        },
+        {
+          "id": "file:synthetic-destination",
+          "kind": "folder",
+          "revision": "d1",
+          "location": "https://example.com/files/destination",
+          "permissions": "unknown"
+        }
+      ]
+    },
+    "relationship-v1": {
+      "version": "relationship-v1",
+      "sources": [
+        {
+          "id": "calendar:one-on-one-occurrence",
+          "kind": "calendar-occurrence",
+          "revision": "c1",
+          "subject": "Dana / Rafa synthetic one-on-one",
+          "start": "2026-09-07T17:00:00Z",
+          "end": "2026-09-07T17:30:00Z",
+          "attendance": "unknown"
+        },
+        {
+          "id": "notes:one-on-one",
+          "kind": "private-note",
+          "revision": "n2",
+          "summary": "Open topic: fictional onboarding feedback."
+        },
+        {
+          "id": "people:rafa-profile",
+          "kind": "directory-profile",
+          "revision": "p1",
+          "display_name": "Rafa Example",
+          "role": "Synthetic partner lead"
+        },
+        {
+          "id": "notes:relationship-cadence",
+          "kind": "private-note",
+          "revision": "n1",
+          "summary": "Last recorded check-in was four weeks ago; source coverage is incomplete."
+        }
+      ]
+    },
+    "executive-followup-v1": {
+      "version": "executive-followup-v1",
+      "sources": [
+        {
+          "id": "mail:exec-thread",
+          "kind": "mail-thread",
+          "revision": "m4",
+          "participants": ["dana@example.com", "marco@example.com"],
+          "summary": "The fictional pilot was approved; launch timing remains open."
+        }
+      ]
+    },
+    "engineering-work-v1": {
+      "version": "engineering-work-v1",
+      "sources": [
+        {
+          "id": "github:pr-42",
+          "kind": "pull-request",
+          "revision": "a1",
+          "title": "Synthetic parser boundary",
+          "review_requested": true,
+          "checks": "passing"
+        },
+        {
+          "id": "github:pr-57",
+          "kind": "pull-request",
+          "revision": "b3",
+          "title": "Fictional retry behavior",
+          "review_requested": true,
+          "checks": "unknown"
+        },
+        {
+          "id": "ado:item-12",
+          "kind": "work-item",
+          "revision": "w2",
+          "title": "Synthetic rollout task",
+          "state": "active"
+        }
+      ]
+    },
+    "engage-v1": {
+      "version": "engage-v1",
+      "sources": [
+        {
+          "id": "teams:engage-thread",
+          "kind": "teams-thread",
+          "revision": "t3",
+          "summary": "A colleague asks for a recommendation; no consensus is recorded."
+        },
+        {
+          "id": "teams:feedback-thread",
+          "kind": "teams-thread",
+          "revision": "t1",
+          "summary": "Ines says the previous synthetic summary hid an important uncertainty."
+        }
+      ]
+    },
+    "decision-thread-v1": {
+      "version": "decision-thread-v1",
+      "sources": [
+        {
+          "id": "file:decision-notes",
+          "kind": "meeting-notes",
+          "revision": "f2",
+          "summary": "The group decided to stage the fictional rollout. Budget timing was discussed but not decided."
+        },
+        {
+          "id": "decision:rollout-v1",
+          "kind": "decision",
+          "revision": "d1",
+          "status": "superseded",
+          "decision": "Run one fictional pilot."
+        },
+        {
+          "id": "decision:rollout-v2",
+          "kind": "decision",
+          "revision": "d2",
+          "status": "current",
+          "decision": "Run two staged fictional pilots."
+        },
+        {
+          "id": "decision:budget-v1",
+          "kind": "decision",
+          "revision": "b1",
+          "status": "uncertain",
+          "decision": "No confirmed budget decision."
+        }
+      ]
+    },
+    "automation-v1": {
+      "version": "automation-v1",
+      "sources": [
+        {
+          "id": "automation:manifest",
+          "kind": "schedule-manifest",
+          "revision": "a1",
+          "mode": "unattended",
+          "outbound_actions": false
+        }
+      ]
+    },
+    "memory-v1": {
+      "version": "memory-v1",
+      "sources": [
+        {
+          "id": "memory:preference",
+          "kind": "memory-record",
+          "revision": "1",
+          "authority": "user_confirmed",
+          "text": "Prefer concise synthetic summaries.",
+          "status": "active"
+        },
+        {
+          "id": "memory:stale-lesson",
+          "kind": "memory-record",
+          "revision": "2",
+          "authority": "observed",
+          "text": "A fictional tool was once available.",
+          "status": "stale"
+        }
+      ]
+    },
+    "task-recovery-v1": {
+      "version": "task-recovery-v1",
+      "sources": [
+        {
+          "id": "task:synthetic-run",
+          "kind": "task-run",
+          "revision": "1",
+          "states": ["paused", "expired-read", "outcome-unknown", "cancelled"]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,53 @@
+name: Agent implementation task
+description: Define a bounded, end-to-end user outcome for an implementation agent.
+title: "[Task]: "
+body:
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User outcome
+      description: What should a user be able to accomplish? Include current behavior and desired result.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Baseline and write scope
+      description: Base revision, owned files, known existing changes, integration owner and dependencies.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance and recovery
+      description: Concrete synthetic happy/failure scenarios, visible output and recovery. Do not include workplace data.
+    validations:
+      required: true
+  - type: textarea
+    id: authority
+    attributes:
+      label: Data and approval boundaries
+      description: Account, privacy, permitted local effects, outward actions and exact approval requirements.
+    validations:
+      required: true
+  - type: textarea
+    id: docs
+    attributes:
+      label: Feature documentation
+      description: Feature ID, user guide, availability, prerequisites and scenario mapping.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and validation scope
+      description: Existing commands; distinguish runtime scenarios, procedure contracts and model traces.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Non-goals and stop conditions
+      description: What must not change, and which decisions need a human before proceeding.
+    validations:
+      required: true

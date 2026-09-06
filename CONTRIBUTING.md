@@ -3,6 +3,11 @@
 Thanks for considering a contribution. This repo is a reference implementation — the most useful
 contributions sharpen the procedure or fix something that's wrong, rather than adding surface area.
 
+Coding agents start with [AGENTS.md](AGENTS.md), the
+[state-ownership map](docs/development/architecture.md), and the
+[bounded change workflow](docs/development/agent-workflow.md). Use the agent-task issue form to
+make ownership, acceptance, documentation and stop conditions explicit.
+
 ---
 
 ## The one hard rule
@@ -55,6 +60,8 @@ does not grant unattended shared-vault writes; see `docs/safety.md` §3.
 
 `docs/` is grounded in the actual skill files. If you change a routine's behaviour, update the doc
 page that describes it — and check the router table in `SKILL.md` still matches.
+Add or update its entry in `docs/feature-catalog.json` and its mapped scenario. A
+procedure-contract scenario must not be described as evidence that a model followed it.
 
 ---
 
@@ -77,6 +84,10 @@ node --test .github/extensions/margo-action-desk/*.test.mjs
 
 # The generated schedule table must match the manifests
 ./tools/gen-automations-docs.sh --check
+
+# User guides and scenario mappings must cover the supported feature inventory
+python3 tools/feature_catalog.py --check
+python3 tools/journey_contracts.py --check
 ```
 
 For full canvas integration, create a fresh private non-repository fixture directory beneath

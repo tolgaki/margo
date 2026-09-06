@@ -306,6 +306,25 @@ def memory_health(account=None, state_root=None):
             "note": "Memory relevance does not establish source truth, permissions or action approval."}
 
 
+def task_health(account=None, state_root=None):
+    principal, path = state_path(account, state_root)
+    if not path.exists():
+        return {"status": "not-initialized"}
+    connection = connect(principal, state_root, read_only=True)
+    try:
+        marker = connection.execute("SELECT value FROM margo_meta WHERE key='task_schema_version'").fetchone()
+        if marker is None:
+            return {"status": "not-initialized"}
+    finally:
+        connection.close()
+    from task_runs import TaskStore
+    tasks = TaskStore(principal, state_root, read_only=True)
+    try:
+        return tasks.health()
+    finally:
+        tasks.close()
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     add_state_arguments(parser)
@@ -330,15 +349,19 @@ def main(argv=None):
         try:
             state = state_health(args.account, args.state_dir)
             memory = memory_health(args.account, args.state_dir)
+            tasks = task_health(args.account, args.state_dir)
         except SetupRequired as exc:
             state = {"status": "setup-needed", "account_configured": False, "all_clear": False, "action": str(exc)}
             memory = {"status": "setup-needed"}
+            tasks = {"status": "setup-needed"}
         healthy = (state.get("all_clear", False) and snapshot["status"] == "healthy"
                    and memory["status"] in ("available", "not-initialized", "semantic-unavailable")
+                   and tasks["status"] in ("available", "not-initialized")
                    and all(group["status"] == "complete" for group in config.values()))
         status = "healthy" if healthy else "setup-needed" if not state["account_configured"] else "attention-needed"
         report = {"status": status, "checked_at": utc_now(), "configuration": config,
-                  "state": state, "memory": memory, "host_snapshot": snapshot, "managed_installation": installation,
+                  "state": state, "memory": memory, "tasks": tasks,
+                  "host_snapshot": snapshot, "managed_installation": installation,
                   "limitations": ["No host API/database inspected.",
                                   "Host completed does not establish source coverage or human review.",
                                   "Configured priority labels do not establish outcome definitions, deadlines or capacity feasibility.",

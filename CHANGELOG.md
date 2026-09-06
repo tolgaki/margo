@@ -2,6 +2,12 @@
 
 ## 1.2.0 (unreleased)
 
+- Agent-ready contribution instructions, state-ownership map, bounded task issue/PR contracts,
+  and a user-goal feature catalog with generated navigation and scenario coverage gates.
+- Durable account-scoped task runs with explicit budgets, claims, pause/cancel, bounded read
+  retries, exact action-ledger integration, reconciliation and reviewed replanning.
+- Task progress and recovery help, optional review surface, installed-copy preservation, and
+  distinct deterministic journey contracts versus recorded synthetic model evidence.
 - Adversarial-review fixes: truly read-only memory inspection; optional-runtime health separated
   from core health; explicit preference re-import recovery; persisted reuse labels and draft-purpose
   filtering; protected dispute/stale states; bounded source hashing and memory representations.

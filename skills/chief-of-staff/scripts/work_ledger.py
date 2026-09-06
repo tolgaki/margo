@@ -171,6 +171,7 @@ class Ledger:
     def __init__(self, account=None, state_root=None):
         self.account = margo_store.resolve_account(account)
         self.conn = margo_store.connect(account=self.account, state_root=state_root)
+        self._owns_connection = True
         try:
             self.conn.execute("PRAGMA foreign_keys=ON")
             self._initialize_schema()
@@ -178,12 +179,27 @@ class Ledger:
             self.conn.close()
             raise
 
-    def _initialize_schema(self):
+    @classmethod
+    def from_connection(cls, connection, account):
+        """Borrow an initialized account connection for atomic cross-namespace operations."""
+        principal = margo_store.resolve_account(account)
+        metadata = dict(connection.execute("SELECT key,value FROM margo_meta"))
+        if metadata.get("account") != principal or metadata.get("store_version") != "1":
+            raise StateError("borrowed ledger connection account/schema mismatch")
+        if metadata.get("work_schema_version") != "1":
+            raise margo_store.NotInitialized("Work ledger is not initialized; initialize task/work state explicitly.")
+        if connection.row_factory is not sqlite3.Row:
+            raise StateError("borrowed ledger connection requires sqlite3.Row results")
+        result = cls.__new__(cls)
+        result.account, result.conn, result._owns_connection = principal, connection, False
+        result._initialize_schema(read_only=True)
+        return result
+
+    def _initialize_schema(self, read_only=False):
         statements = [part.strip() for part in SCHEMA.split(";") if part.strip()]
         expected = {statement.split()[5] for statement in statements
                     if statement.startswith("CREATE TABLE")}
-        with self.conn:
-            self.conn.execute("BEGIN IMMEDIATE")
+        with margo_store.transaction(self.conn, read_only=read_only):
             all_tables = {row[0] for row in self.conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'")}
             existing = {name for name in all_tables if name.startswith("work_")}
@@ -214,6 +230,8 @@ class Ledger:
                                 raise StateError("work schema contract mismatch: " + table)
                 finally:
                     reference.close()
+            if read_only:
+                return
             for statement in statements:
                 self.conn.execute(statement)
             self.conn.execute("INSERT OR IGNORE INTO work_meta VALUES ('schema_version','1')")
@@ -221,17 +239,26 @@ class Ledger:
                 self.conn.execute("INSERT OR IGNORE INTO margo_meta VALUES ('work_schema_version','1')")
 
     def close(self):
-        self.conn.close()
+        if getattr(self, "_owns_connection", True):
+            self.conn.close()
 
     @contextlib.contextmanager
     def transaction(self):
-        try:
-            self.conn.execute("BEGIN IMMEDIATE")
+        with margo_store.transaction(self.conn):
             yield
-            self.conn.commit()
-        except Exception:
-            self.conn.rollback()
-            raise
+
+    def invalidate_approval(self, action_id, revision, action_hash, reason):
+        """Revoke only an exact unused approval; never alter a newer or executed action."""
+        text(reason, "invalidation reason")
+        with self.transaction():
+            action = self.show(action_id)
+            if (action.get("type") != "action" or action["revision"] != revision
+                    or action["action_hash"] != action_hash):
+                raise StateError("approval invalidation requires the exact current action")
+            if action["state"] in {"executing", "succeeded", "partial", "outcome_unknown"}:
+                return {"invalidated": False, "reason": "execution_already_started"}
+            self._invalidate(action_id, "task_cancelled", {"reason": reason})
+            return {"invalidated": True, "action_id": action_id, "revision": revision}
 
     def event(self, entity_id, event, data):
         self.conn.execute(

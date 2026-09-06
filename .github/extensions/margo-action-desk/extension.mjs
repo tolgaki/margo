@@ -2,9 +2,11 @@ import { joinSession, createCanvas, CanvasError } from "@github/copilot-sdk/exte
 import { createBackend } from "./backend.mjs";
 import { startServer } from "./server.mjs";
 import { createMemoryBackend } from "./memory-backend.mjs";
+import { createTaskBackend } from "./task-backend.mjs";
 
 const backend = createBackend();
 const memoryBackend = createMemoryBackend();
+const taskBackend = createTaskBackend();
 const servers = new Map();
 const emptyInput = { type: "object", properties: {}, additionalProperties: false };
 
@@ -104,6 +106,46 @@ const session = await joinSession({
                 const url = new URL(entry.url);
                 url.pathname = "/memory";
                 return { title: "Margo Memory", url: url.href };
+            },
+            onClose: async ctx => {
+                const pending = servers.get(ctx.instanceId);
+                servers.delete(ctx.instanceId);
+                if (pending) await (await pending).close();
+            },
+        }),
+        createCanvas({
+            id: "margo-task-progress",
+            displayName: "Margo Task Progress",
+            description: "Read-only view of bounded task runs: plan, steps, budgets and history. Requests foreground review of pause/cancel/resume/replan/recover/reconcile; never approves or executes them.",
+            inputSchema: emptyInput,
+            actions: [
+                { name: "list", description: "Read task runs for the configured account, most recent first.",
+                    inputSchema: { type: "object", properties: {
+                        limit: { type: "integer", minimum: 1, maximum: 50 },
+                        after: { type: "string", minLength: 1, maxLength: 200 } },
+                        additionalProperties: false }, handler: ctx => taskBackend.run("list", ctx.input) },
+                { name: "show", description: "Read one task run's current plan, steps, budgets and readiness.",
+                    inputSchema: { type: "object", properties: {
+                        id: { type: "string", minLength: 1, maxLength: 200 } },
+                        required: ["id"], additionalProperties: false }, handler: ctx => taskBackend.run("show", ctx.input) },
+                { name: "history", description: "Read one task run's recorded events, most recent first.",
+                    inputSchema: { type: "object", properties: {
+                        id: { type: "string", minLength: 1, maxLength: 200 },
+                        limit: { type: "integer", minimum: 1, maximum: 100 } },
+                        required: ["id"], additionalProperties: false }, handler: ctx => taskBackend.run("history", ctx.input) },
+                { name: "health", description: "Inspect aggregate task journal health for the configured account.",
+                    inputSchema: emptyInput, handler: () => taskBackend.run("health") },
+            ],
+            open: async ctx => {
+                if (!servers.has(ctx.instanceId)) {
+                    const pending = startServer({ backend, memoryBackend, taskBackend, sendReview: options => session.send(options) });
+                    servers.set(ctx.instanceId, pending);
+                    pending.catch(() => servers.delete(ctx.instanceId));
+                }
+                const entry = await servers.get(ctx.instanceId);
+                const url = new URL(entry.url);
+                url.pathname = "/tasks";
+                return { title: "Margo Task Progress", url: url.href };
             },
             onClose: async ctx => {
                 const pending = servers.get(ctx.instanceId);
