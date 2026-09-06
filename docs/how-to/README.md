@@ -1,4 +1,4 @@
-# Margo 1.1 how-to guides
+# Margo how-to guides
 
 These guides explain how to use durable work records without turning a suggestion into a promise,
 an approval into a send, or an empty search into an all-clear.
@@ -10,6 +10,8 @@ an approval into a send, or an empty search into an all-clear.
 | Plan a week and carry meeting work forward | [Outcomes and meetings](outcomes-and-meetings.md) |
 | Correct or prepare work | [Feedback and work products](feedback-and-work-products.md) |
 | Check coverage and durable output | [Automation health](automation-health.md) |
+| Recall context by meaning and manage private memory | [Semantic memory](semantic-memory.md) |
+| Control capture, retention, correction, forgetting and recipe export | [Memory controls and learning](memory-controls-and-learning.md) |
 
 Use the conversational recipes first. The CLI recipes are for inspecting records, troubleshooting,
 or operating with Margo in the foreground. They are not scripts for unattended approval.
@@ -18,7 +20,8 @@ or operating with Margo in the foreground. They are not scripts for unattended a
 
 Complete [setup](setup-and-migration.md) first. The examples use Python 3.9+ and a POSIX shell.
 On Windows, use your configured Copilot home and Python executable; the Python subcommands and
-JSON contracts are the same. No additional Python packages are needed.
+JSON contracts are the same. The core needs no additional Python packages; semantic embeddings
+have a separately installed optional runtime described in the memory setup guide.
 
 Dana is a fictional account. Replace the account value with the owner you explicitly selected.
 Do not infer it from a source message, repository settings, or whichever account last signed in.

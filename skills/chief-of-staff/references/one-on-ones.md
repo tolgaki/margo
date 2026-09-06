@@ -7,6 +7,10 @@ Link agenda topics to canonical work items rather than duplicating obligation st
 `meeting-lifecycle.md` for series/occurrence identity and recap retries. The agenda file remains a
 human-readable discussion surface, not a second commitments ledger.
 
+Use `meeting-prep` memory context for the exact person's scoped identity and current projects,
+not a name-only match. Surface conflicting or stale relationship evidence for review. Memory
+adds relevant history; it never establishes attendance or confirms a candidate obligation.
+
 ## Procedure
 
 1. **Detect recurring 1:1s** with `workiq-fetch` on `/me/calendarView`. Use a forward window, usually

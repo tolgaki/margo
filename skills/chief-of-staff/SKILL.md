@@ -98,6 +98,12 @@ the synthesis you actually need. On **every** `workiq-fetch` against a collectio
 
 ## Personalization
 
+For substantive work, read `references/memory.md` and retrieve the task-scoped context packet
+through `scripts/memory_state.py context`. It supplements current preferences and work records;
+it never supplies external-action authority. Keep source-observed facts distinct from user
+confirmation. Missing semantic setup is an explicit limitation, not an invitation to download
+a model or send memory text to a cloud service.
+
 Read **`preferences.md`** at the start of any routine. It holds the user's role, working hours,
 VIPs, projects, tone/voice for drafts, standing rules, and what to always/never surface. If it's
 empty or missing detail, proceed with sensible defaults and offer to capture preferences as you
@@ -168,6 +174,7 @@ Pick the routine that matches the request; combine as needed. Full procedures ar
 | **Learn from corrections** | "remember that preference", "don't learn from this", "undo that rule" | `references/feedback.md` |
 | **Prepare the work** | "prepare the decision memo", "compare these documents", "write the delegation brief" | `references/work-products.md` |
 | **Health and setup** | "is Margo working", "why did the sweep miss this", "set up my ledger" | `references/state-operations.md` |
+| **Memory and context** | "what do you remember", "remember this", "forget this", "find related context", "what have you learned" | `references/memory.md` |
 
 ## Proactive & scheduled operation
 

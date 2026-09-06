@@ -70,6 +70,9 @@ the automation files, not duplicated here. Only anchors may spend focused `worki
 
 1. Read doctor/status and the work ledger. Establish which sources are available and what remains
    unknown. Confirm that the connected Work IQ identity matches the configured account.
+   Read `memory.md` and build the routine-scoped memory context. Memory retrieval never changes
+   permission or commitment authority. If configured local embeddings are unavailable, label
+   the gap and use explicit lexical retrieval rather than cloud fallback.
    When `list_workflows` is available, capture its current results in the private timestamped
    snapshot format in `state-operations.md` and pass it to doctor. If host status cannot be read,
    retain its last capture time and report host coverage unknown rather than silently refreshing it.
@@ -86,6 +89,14 @@ the automation files, not duplicated here. Only anchors may spend focused `worki
    eligible for redelivery. Never acknowledge an item to get it out of the way.
 7. Prune old delivery history, not pending obligations or undelivered work. Do not set a global
    cursor at exit; source completion already advanced only the checkpoints it actually covered.
+   Process at most 100 pending memory-index jobs after approved/allowed local capture. Do not
+   install models, activate lessons, or import new source categories unattended. Observe installed
+   skill hashes only within the configured local-capability scope; installed is not validated.
+   Read the memory capture/retention policy first. Passive observations use `memory_state.py
+   capture`, never `put` to bypass a denied category. Run one bounded `maintain --limit 100`
+   batch under that policy; retain its continuation for the next eligible run. No approved
+   retention means no automatic erasure. Consolidation may propose changes, never activate
+   behavioural lessons or promote a repeated observation into human confirmation.
 
 An unattended anchor ends with its output and nothing else. An on-demand anchor may ask for the
 one decision that matters, using the host's question tool. A generated draft is not a send.

@@ -92,11 +92,20 @@ obligations, carries versioned actions across sessions, and records approval and
 Source-level coverage and leased delivery prevent a successful mail read or a drained queue from
 being mistaken for a complete brief. See **[Closed-loop productivity](docs/closed-loop.md)**.
 
+**Local semantic memory:** user context and agent learning now have explicit memory records,
+keyword and vector indexes in the same private SQLite database, and bounded context retrieval.
+The optional embedding runtime runs a pinned model on the machine, not through a cloud embedding
+service. See **[Semantic memory setup](docs/how-to/semantic-memory.md)**. Model installation and
+preference seeding are explicit steps, separate from copying code.
+Capture is opt-in. Review scope and retention, inspect why a memory was used, suppress or forget
+it, and export only a separately reviewed generic lesson through
+[Memory controls and learning](docs/how-to/memory-controls-and-learning.md).
+
 | Doc | What it covers |
 |---|---|
 | **[Getting started](docs/getting-started.md)** | Install, connect Work IQ, first run |
 | **[How-to guides](docs/how-to/README.md)** | Setup, candidate review, action desk, planning, meetings, learning and health |
-| **[Feature reference](docs/features.md)** | What 1.1 implements, where it lives, and its limits |
+| **[Feature reference](docs/features.md)** | Implemented capabilities, where they live, and their limits |
 | **[Changelog](CHANGELOG.md)** | Release-level feature and deployment changes |
 | **[Closed-loop productivity](docs/closed-loop.md)** | How the ledger, actions, evidence and connected routines fit together |
 | **[How Margo uses Work IQ](docs/work-iq.md)** | `retrieve` vs `fetch` vs `ask`, payload discipline, failure modes |

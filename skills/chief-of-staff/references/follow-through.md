@@ -6,6 +6,10 @@ On its own a tracker is a filing
 cabinet. This file is what makes it chase: age every row, decide which ones have gone quiet long
 enough to act on, and put a drafted nudge in front of the user.
 
+Retrieve the `follow-through` context packet under `memory.md` for relevant people, accepted
+preferences, current outcomes and prior decisions. Keep canonical work IDs and current ledger
+state authoritative. Missing context is a gap, not evidence that an ask remains unanswered.
+
 Chasing is the highest-value thing a chief of staff does and the thing people are worst at. The
 user will not remember that they asked someone for a cost model eleven days ago. The ledger will.
 

@@ -14,6 +14,10 @@ is attached to the work item and the source revisions that support it.
 
 ## Procedure
 
+Retrieve `work-products` context under `memory.md`, scoped to the actual audience and linked
+people/projects. Explain material preferences or decisions used. Do not copy private reasoning
+context into the deliverable merely because it was recalled.
+
 Read the work item, exact current sources, intended audience, and relevant user voice rules.
 Use `drafting.md` or `exec-followup.md` where appropriate. Respect sensitivity restrictions;
 never copy protected substance into a more shareable document. Separate facts, inferences, and

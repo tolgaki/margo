@@ -1,6 +1,6 @@
 # Feature reference
 
-This page describes the implemented 1.1 feature set. The
+This page describes the implemented 1.2 feature set. The
 [how-to guides](how-to/README.md) explain how to use it; the skill references define exact data
 contracts. All examples are fictional. No private account, work history, or installation state
 is distributed with this repository.
@@ -74,12 +74,44 @@ The native packages include the core and optional renderer source. Enable the ca
 `--action-desk` or `-ActionDesk`; copying it does not reload extensions or synchronise app
 workflows. See [setup and migration](how-to/setup-and-migration.md).
 
+## Local semantic memory
+
+| Feature | Behaviour | Boundary |
+|---|---|---|
+| User and agent domains | Explicit sourced facts/preferences, episodes, capabilities, lessons and trend candidates | Separate from authoritative obligations and action permissions |
+| Memory lifecycle | Conditional revisions, confirmation, dispute/staleness, source/time/routine/environment filtering | Candidate/inferred content is not recalled as established active knowledge |
+| Capture policy | Revision-bound review of exact domains, kinds, scopes, source categories and optional usage logging | Passive capture defaults off; source observations cannot manufacture user confirmation |
+| Temporal relationships | Dated, sourced relationships with exact endpoint revisions and reviewed changes | Names are not unique IDs; memory links do not change external directories or task trackers |
+| Hybrid search | Exact context, SQLite keyword search, local embeddings, rank fusion and bounded relationship expansion | Similarity is relevance, not proof of truth |
+| Context packets | Applicable mandatory preferences plus relevant recalled evidence within a character budget | Mandatory overflow blocks instead of silently dropping a constraint |
+| Reuse permissions | Context and graph entries retain permitted uses, sensitivity and recipient-copy eligibility; UI/CLI can filter drafting-permitted content | Reasoning context and a draft-purpose filter never grant permission to send |
+| Connected context | Exact people/project identities, bounded graph traversal, canonical work joins, current-decision resolution and selection explanations | Recent-row discovery is bounded, not exhaustive; unresolved external decisions require revalidation |
+| Rebuildable indexes | Revision/content/model fingerprints and transactional index jobs | Old vectors never override changed or forgotten authoritative records |
+| Local encoder | Pinned MiniLM ONNX artifacts, explicit download, CPU inference with a private optional runtime | No implicit download, remote code or cloud embedding fallback |
+| Capability evidence and lessons | Installed files, host-exported tool schemas, pinned local input exercises, existing execution receipts and reviewed environment-scoped recipes | Input-contract validation is not remote execution; neither level grants permissions or proves general competence |
+| Trend candidates | Reviewed thresholds, bounded windows, independent event groups, population and explicit coverage | Rates apply only to the observed population; no automatic behavioural activation or colleague performance scoring |
+| Consolidation proposals | Bounded exact-duplicate/candidate/failure review pages with once-per-evidence delivery markers | Page-local dedupe is not a global semantic merge; availability is not human review |
+| Forgetting | Remove retrievable memory/history and derived local indexes; retain minimal tombstones | Does not delete source mail, work records, prior outputs or backup copies |
+| Suppression and retention | Do-not-use preserves history; reviewed per-kind retention erases due records in bounded batches | Suppression cannot be undone by passive recapture; no retention grant means no automatic erasure |
+| Deletion recovery | Reviewed tombstone reconciliation prevents a restored older database from reviving known deletions | The latest private deletion journal must be available; a backup cannot infer later deletions |
+| Controlled recipe export | Exact approval of a newly authored generic lesson, saved to a new private file | Identifier checks are heuristic; no automatic publication, skill installation or execution |
+| Memory canvas | Inspect, search and request a foreground correction/forgetting decision | Read-only backend; no approval or erasure endpoint |
+
+Use [semantic memory](how-to/semantic-memory.md) for setup, seeding and actual CLI commands.
+Use [memory controls and learning](how-to/memory-controls-and-learning.md) for user-facing
+capture, correction, retention, recovery and export recipes. Memory schema version 1 requires
+an explicit migration to version 2; normal reads never upgrade it silently.
+Read commands open existing SQLite state read-only and do not create storage or indexes.
+An absent optional encoder is reported separately from core health. Known invalid legacy index
+jobs are reported and isolated, not allowed to block valid work; transient runtime failures stay
+retryable. Local file freshness checks are capped at 1 MiB and refreshed after inference.
+
 ## What this is not yet
 
-The ledger is operational memory, not a complete model of the user's world. Preferences,
-relationships, decisions and work records exist, but there is no general user-context graph,
-automatic capability-learning system, learned trend engine, semantic memory search, or universal
-forgetting API. Do not infer those capabilities from the word "memory."
+There is no model-weight training, automatic public lesson publication, cross-account knowledge
+sharing or multi-device memory synchronisation. Permission-aware recall is conservative; sensitive
+records are excluded rather than assuming cached access remains valid. The user still agrees
+capture scope, preferences and lessons. Margo does not infer a complete biography from a mailbox.
 
 The agent's skills orchestrate collection, reasoning and external execution. There is no standalone
 background service that replaces Copilot, no new agent identity, and no unattended permission to

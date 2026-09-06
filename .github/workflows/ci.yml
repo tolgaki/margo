@@ -274,6 +274,24 @@ jobs:
           Remove-Item Env:MARGO_AUTOMATIONS -ErrorAction SilentlyContinue
           Write-Host "both wrappers agree on every prompt, byte for byte"
 
+  semantic-memory:
+    name: Local semantic memory
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: '3.13' }
+      - name: Install optional local embedding dependencies
+        run: python -m pip install -r skills/chief-of-staff/requirements-embeddings.txt
+      - name: Download pinned public model
+        run: python skills/chief-of-staff/scripts/memory_encoder.py download
+      - name: Offline real-model retrieval and forgetting
+        env:
+          MARGO_RUN_EMBEDDING_INTEGRATION: '1'
+        run: |
+          python -m unittest discover -s tests -p test_memory_encoder.py
+          python -m unittest discover -s tests -p test_semantic_e2e.py
+
   docs:
     name: Documentation links
     runs-on: ubuntu-latest

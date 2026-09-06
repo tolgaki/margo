@@ -7,6 +7,10 @@ Read `meeting-lifecycle.md` before preparing a recurring occurrence. Include acc
 topics and linked unresolved work, and store the resulting packet with its evidence revisions
 using `work-products.md`. Do not rebuild the agenda from a fresh scrape alone.
 
+Retrieve `meeting-prep` context under `memory.md` for relevant people, prior decisions, user
+preferences and lessons. Revalidate changed roles and current decisions rather than treating
+old similar episodes as present facts.
+
 ## Procedure
 
 1. **Resolve the meeting** with `workiq-fetch` on `/me/calendarView` (or by event ID). The

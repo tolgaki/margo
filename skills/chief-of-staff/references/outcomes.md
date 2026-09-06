@@ -3,6 +3,10 @@
 Extend the week-ahead routine rather than creating another weekly report. Read the work ledger,
 confirmed preferences, open obligations, and action desk before making a plan.
 
+Retrieve `outcomes` context under `memory.md` to connect current goals, constraints and prior
+trade-offs. Broad remembered focus areas are not weekly promises and inferred trends are not
+confirmed obligations.
+
 ## Agree what success means
 
 Ask for up to three outcomes for the week. Each needs an owner, definition of done, due date, and

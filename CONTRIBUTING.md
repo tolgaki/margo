@@ -85,6 +85,14 @@ the production storage guard; do not disable it against real data. The test crea
 its own isolated account underneath that directory. CI runs this real-core path explicitly.
 Python installer tests also exercise PowerShell when `pwsh` is available.
 
+Memory tests cover explicit schema migration, capture and retention policy, temporal context,
+capability/lesson evidence, consolidation and forgetting without a workplace account. The
+real-model checks are opt-in: after the documented explicit local runtime/model setup, run
+`MARGO_RUN_EMBEDDING_INTEGRATION=1 PYTHONPATH=tests python -m unittest
+test_memory_encoder test_semantic_e2e` using that private environment's Python. Both use only
+fictional data. Do not download a model during an unattended routine or seed a real profile
+to make an integration example pass.
+
 `check-clean.sh` looks for email addresses outside `example.com`, GUIDs, corporate mail domains,
 tenant resource identifiers (OneDrive drive ids, SharePoint URLs, Teams links), absolute home
 paths, workplace data in *file and directory names*, committed runtime state, and personalization
