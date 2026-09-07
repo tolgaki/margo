@@ -8,7 +8,7 @@
       "availability": "limited",
       "implementation_kind": "runtime",
       "since_version": "1.2.0",
-      "prerequisites": ["Explicit account, memory and task initialization", "Reviewed exact account/host/workspace capture policy", "Authorized current-session checkpoint adapter"],
+      "prerequisites": ["Explicit account, memory and task initialization", "Reviewed exact account/host/workspace capture policy including episode and decision kinds", "Authorized current-session checkpoint adapter"],
       "surfaces": ["cli"],
       "approval": "Capture requires exact policy opt-in; interpretations remain candidates and human confirmation is separate from output review",
       "guide": {"path": "docs/how-to/dream.md", "anchor": "reflect-on-one-daily-page"},

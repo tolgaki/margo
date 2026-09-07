@@ -8,7 +8,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from margo_store import StateError, canonical_json, parse_json, utc_now, validate_timestamp
-from memory_governance import digest
+from memory_governance import authorize_capture, capture, digest
 from task_runs import TaskStore, zero
 import proactive_state
 
@@ -62,7 +62,7 @@ def source_keys(ref):
 
 
 def validate_source(memory, ref):
-    """Prevent reimport under an alternate memory key or source revision."""
+    """Validate source identity and return its canonical checkpoint key."""
     try:
         identity = parse_json(ref["ref"])
     except (ValueError, TypeError):
@@ -79,6 +79,7 @@ def validate_source(memory, ref):
                 "SELECT 1 FROM memory_tombstones WHERE account=? AND key_hash=?",
                 (memory.account, key_hash)).fetchone():
             raise StateError("forgotten session evidence cannot be reimported under another identity")
+    return "dream-event:" + digest(canonical_json(identity[:5]))
 
 
 def _data(title, body, scope, refs, metadata, entities=None, uses=None, sensitivity="private",
@@ -132,10 +133,13 @@ def checkpoint(memory, value):
             prior = old["source_refs"][0]["revision"]
             # Host revisions are opaque, but reusing one for changed substance is invalid.
             if prior == value["revision"]:
-                clean = dict(data, metadata=dict(meta, capture_policy_revision=old["metadata"]["capture_policy_revision"]))
-                compared = {key: old[key] for key in clean}
-                if clean != compared:
+                clean = memory._normalise_data(dict(
+                    data, metadata=dict(meta, capture_policy_revision=old["metadata"]["capture_policy_revision"])))
+                if any(clean[field] != old[field] for field in data):
                     raise StateError("same source revision has changed checkpoint content")
+                memory._resolve_work_sources(clean)
+                authorize_capture(memory, clean)
+                return old
             elif value["expected_revision"] != old["revision"]:
                 raise StateError("changed checkpoint requires its current expected_revision")
             elif any(ref.get("revision") == value["revision"]
@@ -144,7 +148,8 @@ def checkpoint(memory, value):
                      for ref in parse_json(revision["data"]).get("source_refs", [])
                      if ref["kind"] == "session_checkpoint"):
                 raise StateError("an older host revision cannot be replayed as a new checkpoint")
-        return memory.capture(key, data, revision=value["expected_revision"])
+        return capture(memory, key, data, revision=value["expected_revision"],
+                       _checkpoint_ref=data["source_refs"][0])
 
 
 def _window(value):
@@ -200,9 +205,9 @@ def plan(memory, value):
         if scope not in rules["data"]["capture"]["scopes"] or not rules["data"]["capture"]["enabled"]:
             raise StateError("Dream is not opted in for this exact account/host/workspace")
         capture = rules["data"]["capture"]
-        if ("user" not in capture["domains"] or "episode" not in capture["kinds"]
+        if ("user" not in capture["domains"] or not {"episode", "decision"} <= set(capture["kinds"])
                 or not {"session_checkpoint", "memory_record"} <= set(capture["source_kinds"])):
-            raise StateError("Dream requires user episodes and session_checkpoint/memory_record capture")
+            raise StateError("Dream requires user episode/decision kinds and session_checkpoint/memory_record capture")
         # Bound the scan before decoding metadata; never silently call a truncated scan complete.
         scanned = memory.conn.execute(
             "SELECT id FROM memory_records WHERE account=? AND domain='user' AND kind='episode' "
@@ -439,7 +444,7 @@ def status(memory, host, workspace):
     capture = rules["data"]["capture"]
     return {"account": memory.account, "host": host, "workspace": workspace, "scope": scope,
             "capture_policy": rules, "opted_in": capture["enabled"] and scope in capture["scopes"]
-            and "user" in capture["domains"] and "episode" in capture["kinds"]
+            and "user" in capture["domains"] and {"episode", "decision"} <= set(capture["kinds"])
             and {"session_checkpoint", "memory_record"} <= set(capture["source_kinds"]),
             "adapter": "margo-session-checkpoint-v1", "history_access": "unsupported",
             "schedule": "not-installed", "review": "memory_state.py inspect/revise/consolidate"}

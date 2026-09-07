@@ -56,9 +56,10 @@ class DreamTests(unittest.TestCase):
         self.env.stop()
         shutil.rmtree(self.root)
 
-    def configure(self, enabled=True):
+    def configure(self, enabled=True, kinds=None):
         policy = self.memory.policy()["data"]
-        policy["capture"] = {"enabled": enabled, "domains": ["user"], "kinds": ["episode", "decision"],
+        policy["capture"] = {"enabled": enabled, "domains": ["user"],
+                             "kinds": ["episode", "decision"] if kinds is None else kinds,
                              "scopes": [dream.scope_for(self.memory.account, self.request["host"], self.request["workspace"])],
                              "source_kinds": ["session_checkpoint", "memory_record"]}
         preview = policy_preview(self.memory, policy)
@@ -171,6 +172,153 @@ class DreamTests(unittest.TestCase):
         with self.assertRaises(StateError):
             dream.finish(self.memory, dict(self.finish_input(started, event), claims=[]))
 
+    def test_checkpoint_replay_normalizes_lists_without_changing_observations(self):
+        self.configure()
+        for number, override in enumerate((
+                {"entities": ["project:zulu", "project:alpha"]},
+                {"entities": ["project:cedar", "project:cedar"]},
+                {"allowed_uses": ["reasoning", "drafting", "reasoning"]},
+                {"entities": ["project:zulu", "project:alpha"],
+                 "allowed_uses": ["reasoning", "drafting"]})):
+            with self.subTest(override=override):
+                value = dict(self.event, event="normalized-" + str(number),
+                             locator="conversation:fixture-session/normalized-" + str(number), **override)
+                code, row = self.cli("dream-checkpoint", "--input", "-", value=value)
+                self.assertEqual(code, 0, row)
+                history = self.memory.history(row["id"])
+                code, replay = self.cli("dream-checkpoint", "--input", "-", value=value)
+                self.assertEqual(code, 0, replay)
+                self.assertEqual(replay, row)
+                self.assertEqual(self.memory.history(row["id"]), history)
+                with self.assertRaisesRegex(StateError, "same source revision"):
+                    dream.checkpoint(self.memory, dict(value, text="Changed substance."))
+
+    def test_checkpoint_replay_still_requires_current_capture_authorization(self):
+        for change in ("disabled", "scope", "source_kind"):
+            with self.subTest(change=change):
+                self.configure()
+                event = dream.checkpoint(self.memory, self.event)
+                policy = self.memory.policy()["data"]
+                if change == "disabled":
+                    policy["capture"]["enabled"] = False
+                elif change == "scope":
+                    policy["capture"]["scopes"] = ["another-scope"]
+                else:
+                    policy["capture"]["source_kinds"] = ["memory_record"]
+                preview = policy_preview(self.memory, policy)
+                set_policy(self.memory, policy, evidence(preview["subject_id"], decision="configure"))
+                with self.assertRaisesRegex(StateError, "capture"):
+                    dream.checkpoint(self.memory, self.event)
+                self.assertEqual(self.memory.show(event["id"]), event)
+
+    def test_checkpoint_replay_preserves_review_due_state(self):
+        self.configure()
+        event = dream.checkpoint(self.memory, self.event)
+        data = {key: value for key, value in event.items()
+                if key not in {"id", "account", "revision", "status", "created_at", "updated_at"}}
+        data["review_after"] = self.day + "T00:00:00+00:00"
+        data["routines"] = ["dream"]
+        due = self.memory.revise(event["id"], data, "active", event["revision"])
+        self.assertEqual(dream.checkpoint(self.memory, self.event), due)
+        self.assertEqual(dream.plan(self.memory, self.request)["events"], [])
+
+    def test_readiness_requires_all_supported_interpretation_kinds(self):
+        self.configure(kinds=["episode"])
+        event = dream.checkpoint(self.memory, self.event)
+        code, status = self.cli("dream-status", "--host", self.request["host"],
+                                "--workspace", self.request["workspace"])
+        self.assertEqual(code, 0, status)
+        self.assertFalse(status["opted_in"])
+        code, error = self.cli("dream-plan", "--input", "-", value=self.request)
+        self.assertEqual(code, 2)
+        self.assertIn("episode/decision", json.dumps(error))
+        with self.assertRaisesRegex(StateError, "episode/decision"):
+            dream.start(self.memory, "incomplete-policy", {
+                "request": self.request, "snapshot_hash": "not-started",
+                "request_ref": "conversation:fixture-dream-request"})
+        self.assertEqual(self.memory.list(), [event])
+        self.configure()
+        self.assertTrue(dream.status(self.memory, self.request["host"], self.request["workspace"])["opted_in"])
+        started = self.begin()
+        value = self.finish_input(started, event)
+        value["claims"][0]["type"] = "decision"
+        result = dream.finish(self.memory, value)
+        self.assertEqual(result["reflection"], "completed")
+        self.assertTrue(any(row["kind"] == "decision" and row["status"] == "candidate"
+                            for row in result["outputs"]))
+
+    def test_generic_writes_reject_missing_checkpoint_sources(self):
+        from test_memory_search import unit_encoder
+        self.configure()
+        event = dream.checkpoint(self.memory, self.event)
+        data = {key: value for key, value in event.items()
+                if key not in {"id", "account", "revision", "status", "created_at", "updated_at"}}
+        source = copy.deepcopy(data["source_refs"][0])
+        identity = json.loads(source["ref"])
+        identity[4] = "never-captured"
+        source["ref"] = dream.canonical_json(identity)
+        data["source_refs"] = [source]
+        canonical_key = dream.validate_source(self.memory, source)
+        for role in (None, "episode", "checkpoint"):
+            for key in ("dangling-copy", canonical_key):
+                for command in ("put", "capture"):
+                    with self.subTest(role=role, key=key, command=command):
+                        data["metadata"] = {} if role is None else {"dream": role}
+                        value = {"data": data, "status": "active"} if command == "put" else data
+                        code, error = self.cli(command, key, "--input", "-", value=value)
+                        self.assertEqual(code, 2, error)
+                        self.assertIn("checkpoint dependency", json.dumps(error))
+                        self.assertEqual(self.memory.list(), [event])
+        search = MemorySearch(self.memory, encoder=unit_encoder)
+        self.assertEqual(search.index()["indexed"], 0)
+        self.assertEqual(search.health()["vectors"], 0)
+        self.assertEqual(search.context("Cedar", mode="lexical")["entries"], [])
+
+    def test_legacy_missing_checkpoint_sources_are_not_recalled_or_indexed(self):
+        from test_memory_search import unit_encoder
+        self.configure()
+        event = dream.checkpoint(self.memory, self.event)
+        data = {key: value for key, value in event.items()
+                if key not in {"id", "account", "revision", "status", "created_at", "updated_at"}}
+        data["metadata"] = {}
+        derived = self.memory.put("legacy-source-copy", data, status="active")
+        search = MemorySearch(self.memory, encoder=unit_encoder)
+        self.assertEqual(search.index()["indexed"], 1)
+        identity = json.loads(data["source_refs"][0]["ref"])
+        identity[4] = "missing-legacy-root"
+        data["source_refs"][0]["ref"] = dream.canonical_json(identity)
+        # Model a persisted orphan accepted by an older writer.
+        with self.memory.transaction():
+            self.memory.conn.execute("UPDATE memory_records SET data=? WHERE id=?",
+                                     (dream.canonical_json(data), derived["id"]))
+        self.assertNotIn(derived["id"], {row["id"] for row in self.memory.eligible()})
+        self.assertEqual(search.context("Cedar", mode="lexical")["entries"], [])
+        self.assertEqual(search.context("Cedar", mode="semantic")["entries"], [])
+        self.assertEqual(search.index()["indexed"], 0)
+        self.assertEqual(search.health()["vectors"], 0)
+        self.assertEqual(search.index(rebuild=True)["indexed"], 0)
+
+    def test_checkpoint_capture_override_is_bound_to_the_canonical_root(self):
+        from memory_governance import capture
+        self.configure()
+        event = dream.checkpoint(self.memory, self.event)
+        original = {key: value for key, value in event.items()
+                    if key not in {"id", "account", "revision", "status", "created_at", "updated_at"}}
+        ref = original["source_refs"][0]
+        for mismatch in ("key", "role", "sources"):
+            with self.subTest(mismatch=mismatch):
+                data = copy.deepcopy(original)
+                key = dream.validate_source(self.memory, ref)
+                if mismatch == "key":
+                    key = "alternate-checkpoint-root"
+                elif mismatch == "role":
+                    data["metadata"]["dream"] = "episode"
+                else:
+                    data["source_refs"].append({"kind": "memory_record", "ref": event["id"], "revision": "1"})
+                with self.assertRaisesRegex(StateError, "exact canonical root"):
+                    capture(self.memory, key, data, revision=1, _checkpoint_ref=ref)
+                self.assertEqual(self.memory.list(), [event])
+
     def test_forgetting_erases_outputs_and_blocks_alternate_key_and_interrupted_run(self):
         self.configure()
         event = dream.checkpoint(self.memory, self.event)
@@ -268,12 +416,20 @@ class DreamTests(unittest.TestCase):
         previous = dream.finish(self.memory, self.finish_input(first, event))
         episode = next(row for row in previous["outputs"] if row["metadata"]["dream"] == "episode")
         history = self.memory.history(episode["id"])
+        checkpoint_history = self.memory.history(event["id"])
         old_policy_revision = episode["metadata"]["capture_policy_revision"]
         policy = self.memory.policy()["data"]
         policy["review_days"] = {"episode": 7}
         preview = policy_preview(self.memory, policy)
         changed = set_policy(self.memory, policy, evidence(preview["subject_id"], decision="configure"))
         self.assertGreater(changed["revision"], old_policy_revision)
+        replay = dream.checkpoint(self.memory, self.event)
+        self.assertEqual(replay, event)
+        self.assertEqual(self.memory.history(event["id"]), checkpoint_history)
+        environment = {"account": self.memory.account, "host": self.request["host"],
+                       "workspace": self.request["workspace"]}
+        self.assertIn(episode["id"], {row["id"] for row in self.memory.eligible(environment=environment)})
+        self.assertFalse(dream.inspect(self.memory, first["snapshot_id"])["sources_current"])
 
         second = self.begin("new-policy")
         result = dream.finish(self.memory, self.finish_input(second, event))
@@ -488,7 +644,9 @@ class DreamTests(unittest.TestCase):
             policy = self.memory.policy()["data"]
             approval = policy_preview(backup, policy)
             set_policy(backup, policy, evidence(approval["subject_id"], decision="configure"))
-            alternate = backup.put("backup-alternate", data, status="active")
+            # A legacy writer could persist an alternate key without the canonical root.
+            with patch.object(backup, "_resolve_work_sources", side_effect=lambda normal, **kwargs: normal):
+                alternate = backup.put("backup-alternate", data, status="active")
             preview = tombstones_preview(backup, bundle)
             self.assertIn(alternate["id"], {row["id"] for row in preview["affected"]})
             restore_tombstones(backup, bundle, evidence(preview["subject_id"], decision="restore-erasures"))

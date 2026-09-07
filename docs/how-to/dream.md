@@ -30,6 +30,8 @@ Enable `domains:["user"]`, `kinds:["episode","decision"]`,
 settings; do not overwrite unrelated scopes. The existing policy preview binds your actual
 `configure` decision. Sensitive capture remains separately controlled; this first reflection
 slice excludes sensitive checkpoints even if capture was approved.
+Both `dream-status` and `dream-plan` require episode and decision capture before reporting readiness,
+so missing decision support is reported before a reflection reserves model work.
 
 This adds a source category to memory schema v2, not a new schema or migration. Existing v1
 accounts still need the documented explicit memory migration. Do not downgrade writers that do
@@ -81,6 +83,16 @@ of the opaque revision or text. A changed source revision requires the current m
 `expected_revision`. Reusing a source revision for different content fails. Distinct contradictory
 events remain distinct; repeated wording does not establish independence. Use canonical work IDs
 in `work_refs`, not copied task status. Names alone are not entity identity.
+
+An unchanged checkpoint retry is a no-op after entity/allowed-use normalization, including after a
+policy revision. It preserves the observation's memory revision, capture-policy provenance and review
+state, but still requires current capture authorization. Do not manufacture a source correction just
+to retry an unchanged observation.
+
+Only `dream-checkpoint` creates the canonical source checkpoint. Generic `put`/`capture` references
+must resolve an existing checkpoint; a matching source-shaped string or metadata label is not enough.
+Legacy dangling references are excluded from recall and cleared from derived indexes by index
+maintenance; inspect, correct or forget those records rather than treating them as current evidence.
 
 Exclude Dream's own prompts, outputs and reflection runs, including feedback loops disguised as
 fresh session observations. The host must enforce this origin contract: Python cannot identify
@@ -202,7 +214,9 @@ revisions. Candidate interpretations remain per-run records for separate review.
 
 Correct checkpoint source revisions, or suppress/dispute with the existing memory review commands.
 Dependent indexes are invalidated immediately and old derived prose becomes ineligible, while
-historical revisions stay inspectable. Use `forget-preview CHECKPOINT_ID`, then the exact
+historical revisions stay inspectable. Still-current memories reached only through a relationship or
+historical dependency are reindexed by the next ordinary index pass; they do not require a full rebuild.
+Use `forget-preview CHECKPOINT_ID`, then the exact
 reviewed `forget` command to erase the checkpoint's historical text and all dependent reflection
 records/indexes, including interrupted snapshots and alternate memory keys. Minimal hashed
 event-identity and locator tombstones prevent reimport with another key/revision, including changed

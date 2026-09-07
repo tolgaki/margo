@@ -31,6 +31,9 @@ Checkpoint selected observations, not entire transcripts. Assistant/tool stateme
 observations, never user confirmation. A changed event needs its current memory `expected_revision`;
 keep earlier revisions for chronology. A different event that contradicts it remains a separate
 record, not a replacement. Resolve people/projects by exact IDs, not matching display names.
+Retry an unchanged checkpoint without minting a source correction: normalized list order and policy
+revision changes do not change the stored observation. Current capture authorization still applies.
+Use `dream-checkpoint` to create source roots; generic memory writes must reference an existing root.
 
 ## Prepare one daily page
 

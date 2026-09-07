@@ -76,6 +76,51 @@ class ReviewRegressionTests(unittest.TestCase):
                                            evidence(updated["id"], updated["revision"], "confirm"))
                 self.assertEqual(active["status"], "active")
 
+    def test_parent_updates_reindex_current_descendants_without_rebuilding(self):
+        from test_memory_search import unit_encoder
+
+        for mutation in ("put", "revise"):
+            for relation in ("linked", "historical", "pinned"):
+                with self.subTest(mutation=mutation, relation=relation):
+                    key = mutation + "-" + relation
+                    parent = self.store.put(key, memory_data(title="Parent fact", text="Cedar ships in March."),
+                                            status="active")
+                    data = memory_data(title="Child fact", text="Preparation leaves room for discussion.")
+                    if relation != "linked":
+                        data["source_refs"] = [{"kind": "memory_record", "ref": parent["id"],
+                                                "revision": str(parent["revision"])}]
+                    child = self.store.put(key + "-child", data, status="active")
+                    if relation == "linked":
+                        self.store.link(child["id"], parent["id"], "derives_from", child["revision"],
+                                        target_revision=parent["revision"])
+                        child = self.store.show(child["id"])
+                    elif relation == "historical":
+                        data["source_refs"] = memory_data()["source_refs"]
+                        child = self.store.revise(child["id"], data, "active", child["revision"])
+                    search = MemorySearch(self.store, encoder=unit_encoder)
+                    search.index()
+                    self.assertIn(child["id"], {row["memory"]["id"] for row in
+                                               search.search("review", mode="semantic")["results"]})
+
+                    revised = dict(data_only(parent), text="Cedar ships in April.")
+                    if mutation == "put":
+                        self.store.put(key, revised, status="active", revision=parent["revision"])
+                    else:
+                        self.store.revise(parent["id"], revised, "active", parent["revision"])
+                    expected = relation != "pinned"
+                    self.assertEqual(child["id"] in {row["id"] for row in self.store.eligible()}, expected)
+                    self.assertEqual(self.store.show(child["id"]), child)
+                    self.assertEqual(self.store.conn.execute(
+                        "SELECT count(*) FROM semantic_vectors WHERE memory_id=?", (child["id"],)).fetchone()[0], 0)
+                    jobs = {job["memory_id"]: job["operation"] for job in self.store.pending_jobs()}
+                    self.assertEqual(jobs[child["id"]], "upsert" if expected else "delete")
+                    search.index()
+                    self.assertEqual(child["id"] in {row["memory"]["id"] for row in
+                                                    search.search("review", mode="semantic")["results"]}, expected)
+                    self.assertEqual(self.store.conn.execute(
+                        "SELECT count(*) FROM semantic_documents WHERE memory_id=?",
+                        (child["id"],)).fetchone()[0], int(expected))
+
     def test_memory_representation_limit_includes_title_scope_and_entities(self):
         data = memory_data(text="x", entities=["user"])
         prefix = len(search_text(data)) - 1

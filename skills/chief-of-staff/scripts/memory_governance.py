@@ -106,9 +106,9 @@ def authorize_capture(memory, normal, allow_confirmation=False):
     return current
 
 
-def capture(memory, key, data, revision=None):
+def capture(memory, key, data, revision=None, *, _checkpoint_ref=None):
     with memory.transaction():
-        normal = memory._resolve_work_sources(memory._normalise_data(data))
+        normal = memory._resolve_work_sources(memory._normalise_data(data), _checkpoint_ref=_checkpoint_ref)
         current = authorize_capture(memory, normal)
         metadata = dict(normal["metadata"], capture_policy_revision=current["revision"])
         normal["metadata"] = metadata
@@ -125,6 +125,11 @@ def capture(memory, key, data, revision=None):
                                        (memory.record_id(normal["domain"], key), memory.account)).fetchone()
         if previous is not None and previous["status"] in {"disputed", "stale"}:
             status = previous["status"]
+        if _checkpoint_ref is not None:
+            # Only the validated Dream adapter can write a root before its source exists.
+            memory_id, key_hash = memory._identity(normal["domain"], key)
+            return memory._put(memory_id, key_hash, memory._normalise_data(normal), status, revision, None,
+                               _checkpoint_ref=_checkpoint_ref)
         return memory.put(key, normal, status=status, revision=revision)
 
 
