@@ -178,7 +178,7 @@ Pick the routine that matches the request; combine as needed. Full procedures ar
 | **Meeting lifecycle** | "carry this into the next meeting", "watch for the recap", "close out that meeting" | `references/meeting-lifecycle.md` |
 | **Learn from corrections** | "remember that preference", "don't learn from this", "undo that rule" | `references/feedback.md` |
 | **Prepare the work** | "prepare the decision memo", "compare these documents", "write the delegation brief" | `references/work-products.md` |
-| **Health and setup** | "is Margo working", "why did the sweep miss this", "set up my ledger" | `references/state-operations.md` |
+| **Health and setup** | "is Margo working", "why did the sweep miss this", "set up my ledger", "update my local Margo" | `references/state-operations.md` |
 | **Memory and context** | "what do you remember", "remember this", "forget this", "find related context", "what have you learned" | `references/memory.md` |
 | **Dream reflection** | "Dream about yesterday", "save a session checkpoint", "review Dream", "reflect on our sessions" | `references/dream.md` |
 | **Task progress** | "where did you stop", "resume that task", "pause this task", "cancel the remaining steps" | `references/task-runs.md` |

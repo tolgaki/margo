@@ -36,6 +36,25 @@ Pause affected schedules before migration, back up both legacy state and persona
 use the import command. Retain the original files. Import is repeat-safe and must not infer
 successful coverage or human review from the old cursor/surfaced records.
 
+## Updating the installed app copy
+
+Inspect the actual install root, `.margo-install`, local customizations and remote version/revision
+before changing files. Do not infer the installed version from a PR title or a checkout. Use
+`install.sh update --check`, then `update` (`-Check` on PowerShell). Copy updates download the exact
+remote revision checked; linked installations require a separately authorized checkout update.
+`update --reinstall` (`-Reinstall`) refreshes matching code while preserving personal files.
+Never recommend `--force` merely because the version number has not changed: it also replaces
+personal files. Remote failure is an unavailable update, not proof that local code is current.
+
+Separate file deployment from state readiness. Before an explicitly approved memory migration,
+record which affected schedules are enabled, pause them and other writers, and retain a private
+SQLite-aware backup plus personal files outside the checkout. Use the installed
+`memory_state.py migrate` for a schema v1 account; inspect status afterwards without resetting
+state or enabling capture. Restore only previously enabled schedules when state is ready.
+Saved app workflow prompt changes require their own reviewed diff; do not silently sync them.
+Reload extensions through the host and start a fresh session for updated agent/skill instructions.
+Report installed revision, migration outcome and any remaining reload/setup requirement separately.
+
 ## Source collection protocol
 
 Use the coverage commands from the installed `proactive_state.py --help` for each read operation.

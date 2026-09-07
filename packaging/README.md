@@ -64,6 +64,10 @@ to it, and both installers stamp it into `~/.copilot/.margo-install` so
 `install.sh update` can tell whether the machine is behind. Bump that file in the
 same commit as the tag.
 
+Copy updates compare the remote commit as well as `VERSION` and download that pinned commit,
+not the staged native package's older source. `update --reinstall` / `update -Reinstall` safely
+refreshes the same revision. Remote failures never fall back to a stale staged payload.
+
 The install also records managed-file hashes in `.margo-files.json` and source revision when
 available. These describe the copied files, not a signed attestation. Customised automation
 prompts may intentionally differ from upstream; reconcile them explicitly.

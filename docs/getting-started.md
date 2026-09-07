@@ -107,18 +107,35 @@ behind:
 ```bash
 ./install.sh update --check   # are you behind? changes nothing
 ./install.sh update           # re-install, at the latest version
+./install.sh update --reinstall # refresh even at the same revision, keeping personal files
 ```
 
 `update` re-installs **only the skills you already have** — it won't quietly add
 ones you never chose — and your personal files are preserved exactly as on any
-reinstall. It compares against the published `VERSION`, falling back to your
-local source when offline.
+reinstall. It compares both `VERSION` and the recorded source revision, so a same-version
+commit is not mistaken for an up-to-date installation. Metadata and downloaded code are pinned
+to the same remote commit, even when the command runs from an older local clone or native
+package. `update --check` changes no installed files; `--dry-run` previews the pinned payload.
+
+Remote failures or invalid metadata stop without changing the installation; there is no
+success-shaped offline fallback. To install reviewed local changes deliberately, run normal
+`install` from that source. Updates refuse an older remote version. `--reinstall` preserves
+personal files; **do not use `--force` merely to refresh code** because it also replaces
+personal files and customized prompts after backing them up.
 
 For a `--link` install there is nothing to copy: `update` tells you to
-`git pull` in your clone instead, which is where the files actually live.
+update the reviewed clone explicitly instead, which is where the files actually live.
+It never changes your branch or working tree for you.
 
 The PowerShell equivalents are `.\install.ps1 update -Check` and
-`.\install.ps1 update`.
+`.\install.ps1 update`; safe same-revision refresh is `.\install.ps1 update -Reinstall`.
+
+File installation does **not** migrate private state, change capture policy, synchronize saved
+app workflow prompts, or reload running sessions/extensions. Back up and pause writers before an
+explicit memory migration; memory schema v1 requires `memory_state.py migrate`. Restore only
+previously enabled schedules after the migration succeeds, reload app extensions, and start a
+fresh Margo session to load updated instructions. See
+[setup and migration](how-to/setup-and-migration.md). Installing Dream does not opt you into capture.
 
 ### Checking and removing
 

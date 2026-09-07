@@ -1,6 +1,17 @@
 # Changelog
 
-## 1.2.0 (unreleased)
+## 1.3.0 (unreleased)
+
+- Opt-in, manual Dream reflection over selected current-session checkpoints: sourced episodes,
+  reviewable candidate interpretations, bounded daily pages and task-scoped recall.
+- Revision-aware shell and PowerShell updates fetch the exact remote commit checked, including
+  same-version changes, instead of reinstalling a stale local checkout.
+- Safe `update --reinstall` / `update -Reinstall` refreshes code without forcing replacement of
+  personal files. Remote failures and downgrades stop without changing the installation.
+- Installation explicitly distinguishes copying files from private-state migration, app workflow
+  synchronization, extension/session reload and capture opt-in.
+
+## 1.2.0
 
 - Agent-ready contribution instructions, state-ownership map, bounded task issue/PR contracts,
   and a user-goal feature catalog with generated navigation and scenario coverage gates.

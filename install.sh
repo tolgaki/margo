@@ -30,6 +30,7 @@ decision-log/config.md"
 
 COMMAND="install"
 CHECK_ONLY=0
+REINSTALL=0
 DEST="${MARGO_DEST:-$HOME/.copilot}"
 SKILLS=""
 MODE="copy"
@@ -38,6 +39,7 @@ FORCE=0
 ACTION_DESK=0
 ASSUME_YES=0
 SRC=""
+SOURCE_REVISION=""
 TMP_DIR=""
 
 # ---------------------------------------------------------------- output ----
@@ -105,19 +107,32 @@ write_manifest() {
     printf 'skills=%s\n' "$1"
     printf 'source=%s\n' "$SRC"
     printf 'action_desk=%s\n' "$ACTION_DESK"
-    if [ -e "$SRC/.git" ] && command -v git >/dev/null 2>&1; then
+    if [ -n "$SOURCE_REVISION" ]; then
+      printf 'revision=%s\n' "$SOURCE_REVISION"
+    elif [ -e "$SRC/.git" ] && command -v git >/dev/null 2>&1; then
       printf 'revision=%s\n' "$(git -C "$SRC" rev-parse HEAD)"
       if [ -n "$(git -C "$SRC" status --porcelain)" ]; then printf 'modified_source=1\n'; fi
     fi
   } > "$DEST/$MANIFEST_NAME"
 }
 
-# The newest version published upstream. Empty if offline or unavailable.
+# Pin metadata and payload to the same commit, even if the branch moves mid-update.
+remote_revision() {
+  command -v curl >/dev/null 2>&1 || return 1
+  revision=$(curl -fsSL --max-time 15 -H 'Accept: application/vnd.github.sha' \
+    "https://api.github.com/repos/$REPO_SLUG/commits/$BRANCH") || return 1
+  [ "${#revision}" -eq 40 ] || return 1
+  printf '%s' "$revision" | grep -Eq '^[0-9a-f]{40}$' || return 1
+  printf '%s' "$revision"
+}
+
 remote_version() {
   command -v curl >/dev/null 2>&1 || return 1
-  curl -fsSL --max-time 10 \
-    "https://raw.githubusercontent.com/$REPO_SLUG/$BRANCH/VERSION" 2>/dev/null \
-    | tr -d ' \t\n\r'
+  value=$(curl -fsSL --max-time 15 \
+    "https://raw.githubusercontent.com/$REPO_SLUG/$1/VERSION") || return 1
+  value=$(printf '%s' "$value" | tr -d ' \t\n\r')
+  printf '%s' "$value" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$' || return 1
+  printf '%s' "$value"
 }
 
 usage() {
@@ -139,6 +154,7 @@ ${B}OPTIONS${N}
   --link             Symlink to this clone instead of copying
   --dest DIR         Install root ${DIM}(default: ~/.copilot)${N}
   --check            With 'update': report whether you are behind, change nothing
+  --reinstall        With 'update': refresh code even at the same revision; keep personal files
   --force            Overwrite personal files, backing them up first
   --action-desk      Install the optional Copilot app action-desk canvas
   --dry-run          Print what would happen, change nothing
@@ -157,6 +173,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     install|uninstall|status|update) COMMAND="$1" ;;
     --check)      CHECK_ONLY=1 ;;
+    --reinstall)  REINSTALL=1 ;;
     --all)        SKILLS="$ALL_SKILLS" ;;
     --skills)     [ $# -ge 2 ] || die "--skills needs a value"
                   SKILLS=$(printf '%s' "$2" | tr ',' ' '); shift ;;
@@ -174,6 +191,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+[ "$REINSTALL" -eq 0 ] || [ "$COMMAND" = "update" ] || die "--reinstall requires update"
 [ -n "$SKILLS" ] || SKILLS="$DEFAULT_SKILLS"
 
 for s in $SKILLS; do
@@ -192,21 +210,27 @@ is_user_data() {
 
 # Locate the repo: the directory this script lives in, or a fresh download.
 resolve_source() {
+  [ -z "$SRC" ] || return 0
   script_dir=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd)
   if [ -f "$script_dir/agents/$AGENT_FILE" ]; then
     SRC="$script_dir"
     return
   fi
 
-  # Piped from curl, or run from outside a checkout.
+  revision=$(remote_revision) || die "cannot resolve the remote revision; no installation changed"
+  download_source "$revision"
+}
+
+download_source() {
   command -v curl >/dev/null 2>&1 || die "curl is required to download the repo"
-  step "Downloading $REPO_SLUG@$BRANCH"
+  step "Downloading $REPO_SLUG@$1"
   TMP_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t margo)
-  curl -fsSL "https://codeload.github.com/$REPO_SLUG/tar.gz/refs/heads/$BRANCH" \
+  curl -fsSL --max-time 120 "https://codeload.github.com/$REPO_SLUG/tar.gz/$1" \
     | tar -xzf - -C "$TMP_DIR" \
     || die "download failed — check your network, or clone the repo and run ./install.sh"
   SRC=$(find "$TMP_DIR" -maxdepth 1 -type d -name 'margo-*' | head -n 1)
   [ -n "$SRC" ] && [ -f "$SRC/agents/$AGENT_FILE" ] || die "downloaded archive looks wrong"
+  SOURCE_REVISION="$1"
   ok "fetched to a temporary directory"
 }
 
@@ -697,6 +721,10 @@ cmd_install() {
   info "  2. In Copilot CLI: ${B}Margo, brief me.${N}"
   info "  3. ${B}$DEST/tools/margo-scheduled.sh list${N}"
   info "     ${DIM}the scheduled runs — start with the morning brief, add the rest later${N}"
+  info "  Files only: private-state migration, saved app workflow sync, and extension/session reload"
+  info "  are separate steps. Capture and schedules are not enabled by installation."
+  info "  Existing memory v1 needs an explicit backed-up, paused-writer migration:"
+  info "    python3 \"$DEST/skills/chief-of-staff/scripts/memory_state.py\" migrate"
   info ""
   info "  ${DIM}Docs: https://github.com/$REPO_SLUG/blob/$BRANCH/docs/getting-started.md${N}"
 }
@@ -726,19 +754,18 @@ cmd_update() {
     return 0
   fi
 
-  # Prefer the published version; fall back to whatever source we have locally,
-  # which is what a clone or the staged copy under /usr/local/share/margo gives.
-  latest=$(remote_version || true)
-  if [ -n "$latest" ]; then
-    ok "available: $latest ${DIM}(published)${N}"
-  else
-    resolve_source
-    latest=$(source_version)
-    warn "could not fetch the published version — using the local source ($latest)"
+  revision=$(remote_revision) || die "cannot check the remote revision; no installation changed.
+       Retry when online, or deliberately run install from a reviewed local source."
+  latest=$(remote_version "$revision") || die "cannot read a valid remote VERSION; no installation changed"
+  ok "available: $latest ${DIM}($revision)${N}"
+  if version_gt "$have" "$latest"; then
+    die "remote version $latest is older than installed $have; refusing to downgrade"
   fi
 
-  if version_gt "$latest" "$have"; then
+  if version_gt "$latest" "$have" || [ "$(installed_field revision)" != "$revision" ] \
+      || [ "$(installed_field modified_source)" = "1" ]; then
     printf '\n%sUpdate available:%s %s → %s\n' "$Y$B" "$N" "$have" "$latest"
+    [ "$have" != "$latest" ] || info "  Source revision changed or is not recorded; refreshing code safely."
     if [ "$CHECK_ONLY" -eq 1 ]; then
       info "  ${DIM}run: ./install.sh update${N}"
       return 0
@@ -746,14 +773,15 @@ cmd_update() {
   else
     printf '\n%sUp to date.%s  (%s)\n' "$G$B" "$N" "$have"
     [ "$CHECK_ONLY" -eq 1 ] && return 0
-    if [ "$FORCE" -eq 1 ]; then
-      warn "--force given: reinstalling anyway"
-    else
-      info "  ${DIM}re-run with --force to reinstall the same version${N}"
+    if [ "$REINSTALL" -eq 0 ] && [ "$FORCE" -eq 0 ]; then
+      info "  ${DIM}use update --reinstall to refresh code while preserving personal files${N}"
       return 0
     fi
   fi
 
+  [ "$FORCE" -eq 0 ] || warn "--force also overwrites personal files; --reinstall alone preserves them"
+  download_source "$revision"
+  [ "$(source_version)" = "$latest" ] || die "downloaded VERSION does not match checked revision; no installation changed"
   # Reinstall exactly what is already there. Adding skills the user never chose
   # would be a surprise, and updating is not the moment to spring one.
   SKILLS="$prev_skills"
@@ -948,6 +976,9 @@ cmd_status() {
   have=$(installed_version)
   if [ -n "$have" ]; then
     ok "version    $have ${DIM}(installed $(installed_field installed_at), $(installed_field mode))${N}"
+    revision=$(installed_field revision)
+    [ -z "$revision" ] || info "             ${DIM}revision $revision${N}"
+    [ "$(installed_field modified_source)" != "1" ] || warn "installed from a modified local source"
   else
     skip "version    not recorded ${DIM}(installed before version tracking, or by hand)${N}"
   fi

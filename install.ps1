@@ -37,6 +37,7 @@ param(
     [switch]$ActionDesk,
     [switch]$DryRun,
     [switch]$Check,
+    [switch]$Reinstall,
     [Alias('y')][switch]$Yes,
     [string]$Branch = 'main'
 )
@@ -69,6 +70,8 @@ if (-not $Dest) {
 }
 
 $script:TmpDir = $null
+$script:Source = $null
+$script:SourceRevision = $null
 
 # ---------------------------------------------------------------- output ----
 
@@ -119,14 +122,19 @@ function Resolve-Skills {
 
 function Get-Source {
     # The directory this script lives in, or a fresh download.
+    if ($script:Source) { return $script:Source }
     $scriptDir = $null
     if ($PSCommandPath) { $scriptDir = Split-Path -Parent $PSCommandPath }
     if ($scriptDir -and (Test-Path (Join-Path $scriptDir "agents/$AgentFile"))) {
         return $scriptDir
     }
 
-    # Piped from irm, or run from outside a checkout.
-    Write-Step "Downloading $RepoSlug@$Branch"
+    return Get-RemoteSource -Revision (Get-RemoteRevision)
+}
+
+function Get-RemoteSource {
+    param([string]$Revision)
+    Write-Step "Downloading $RepoSlug@$Revision"
     $script:TmpDir = Join-Path ([IO.Path]::GetTempPath()) ("margo-" + [Guid]::NewGuid().ToString('N').Substring(0, 8))
     New-Item -ItemType Directory -Path $script:TmpDir -Force | Out-Null
     $zip = Join-Path $script:TmpDir 'margo.zip'
@@ -135,17 +143,17 @@ function Get-Source {
         $progress = $ProgressPreference
         $ProgressPreference = 'SilentlyContinue'
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri "https://codeload.github.com/$RepoSlug/zip/refs/heads/$Branch" -OutFile $zip -UseBasicParsing
-        $ProgressPreference = $progress
+        Invoke-WebRequest -Uri "https://codeload.github.com/$RepoSlug/zip/$Revision" -OutFile $zip -UseBasicParsing -TimeoutSec 120
         Expand-Archive -Path $zip -DestinationPath $script:TmpDir -Force
     } catch {
         Fail "download failed: $($_.Exception.Message)`n       Clone the repo and run .\install.ps1 instead."
-    }
+    } finally { $ProgressPreference = $progress }
 
     $root = Get-ChildItem -Path $script:TmpDir -Directory | Where-Object { $_.Name -like 'margo-*' } | Select-Object -First 1
     if (-not $root -or -not (Test-Path (Join-Path $root.FullName "agents/$AgentFile"))) {
         Fail "downloaded archive looks wrong"
     }
+    $script:SourceRevision = $Revision
     Write-Ok "fetched to a temporary directory"
     return $root.FullName
 }
@@ -261,7 +269,9 @@ function Write-Manifest {
         "source=$Src"
         "action_desk=$(if ($ActionDesk) { '1' } else { '0' })"
     )
-    if ((Test-Path (Join-Path $Src '.git')) -and (Get-Command git -ErrorAction SilentlyContinue)) {
+    if ($script:SourceRevision) {
+        $lines += "revision=$($script:SourceRevision)"
+    } elseif ((Test-Path (Join-Path $Src '.git')) -and (Get-Command git -ErrorAction SilentlyContinue)) {
         $revision = & git -C $Src rev-parse HEAD
         if ($LASTEXITCODE -ne 0) { Fail "could not record source revision" }
         $lines += "revision=$revision"
@@ -270,17 +280,46 @@ function Write-Manifest {
     Set-Content -Path (Join-Path $Dest $ManifestName) -Value $lines
 }
 
-# The newest version published upstream. Empty if offline or unavailable.
-function Get-RemoteVersion {
+# Pin metadata and payload to the same commit, even if the branch moves mid-update.
+function Get-ResponseText {
+    param($Response)
+    if ($Response.Content -is [byte[]]) {
+        return [Text.Encoding]::UTF8.GetString($Response.Content).Trim()
+    }
+    if ($Response.Content -is [string]) { return $Response.Content.Trim() }
+    throw 'unsupported remote response content'
+}
+
+function Get-RemoteRevision {
+    $progress = $ProgressPreference
     try {
-        $progress = $ProgressPreference
         $ProgressPreference = 'SilentlyContinue'
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 10 `
-             -Uri "https://raw.githubusercontent.com/$RepoSlug/$Branch/VERSION"
-        $ProgressPreference = $progress
-        return ($r.Content).Trim()
-    } catch { return '' }
+        $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 15 `
+             -Headers @{ Accept = 'application/vnd.github.sha' } `
+             -Uri "https://api.github.com/repos/$RepoSlug/commits/$Branch"
+        $revision = Get-ResponseText $r
+        if ($revision -cnotmatch '^[0-9a-f]{40}$') { throw 'invalid remote revision' }
+        return $revision
+    } catch {
+        Fail "cannot check the remote revision ($($_.Exception.Message)); no installation changed. Retry when online, or deliberately install from a reviewed local source."
+    } finally { $ProgressPreference = $progress }
+}
+
+function Get-RemoteVersion {
+    param([string]$Revision)
+    $progress = $ProgressPreference
+    try {
+        $ProgressPreference = 'SilentlyContinue'
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 15 `
+             -Uri "https://raw.githubusercontent.com/$RepoSlug/$Revision/VERSION"
+        $version = Get-ResponseText $r
+        if ($version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$') { throw 'invalid remote version' }
+        return $version
+    } catch {
+        Fail "cannot read a valid remote VERSION ($($_.Exception.Message)); no installation changed"
+    } finally { $ProgressPreference = $progress }
 }
 
 function Join-Rel {
@@ -858,6 +897,10 @@ function Invoke-Install {
     Write-Host "  2. In Copilot CLI: Margo, brief me."
     Write-Host "  3. $(Join-Rel $Dest 'tools/margo-scheduled.ps1') list"
     Write-Dim "the scheduled runs - start with the morning brief, add the rest later"
+    Write-Host "  Files only: private-state migration, saved app workflow sync, and extension/session reload"
+    Write-Host "  are separate steps. Capture and schedules are not enabled by installation."
+    Write-Host "  Existing memory v1 needs an explicit backed-up, paused-writer migration:"
+    Write-Host "    python `"$(Join-Rel $Dest 'skills/chief-of-staff/scripts/memory_state.py')`" migrate"
     Write-Host ""
     Write-Dim "Docs: https://github.com/$RepoSlug/blob/$Branch/docs/getting-started.md"
 }
@@ -891,32 +934,35 @@ function Invoke-Update {
         return
     }
 
-    # Prefer the published version; fall back to whatever source we have locally.
-    $latest = Get-RemoteVersion
-    if ($latest) {
-        Write-Ok "available: $latest (published)"
-    } else {
-        $src = Get-Source
-        $latest = Get-SourceVersion -Src $src
-        Write-Warn "could not fetch the published version - using the local source ($latest)"
+    $revision = Get-RemoteRevision
+    $latest = Get-RemoteVersion -Revision $revision
+    Write-Ok "available: $latest ($revision)"
+    if (Test-VersionGreater -A $have -B $latest) {
+        Fail "remote version $latest is older than installed $have; refusing to downgrade"
     }
 
-    if (Test-VersionGreater -A $latest -B $have) {
+    if ((Test-VersionGreater -A $latest -B $have) -or
+        (Get-ManifestField 'revision') -ne $revision -or
+        (Get-ManifestField 'modified_source') -eq '1') {
         Write-Host ""
         Write-Host "Update available: $have -> $latest" -ForegroundColor Yellow
+        if ($have -eq $latest) { Write-Dim "Source revision changed or is not recorded; refreshing code safely." }
         if ($Check) { Write-Dim "run: .\install.ps1 update"; return }
     } else {
         Write-Host ""
         Write-Host "Up to date.  ($have)" -ForegroundColor Green
         if ($Check) { return }
-        if ($Force) {
-            Write-Warn "-Force given: reinstalling anyway"
-        } else {
-            Write-Dim "re-run with -Force to reinstall the same version"
+        if (-not $Reinstall -and -not $Force) {
+            Write-Dim "use update -Reinstall to refresh code while preserving personal files"
             return
         }
     }
 
+    if ($Force) { Write-Warn "-Force also overwrites personal files; -Reinstall alone preserves them" }
+    $script:Source = Get-RemoteSource -Revision $revision
+    if ((Get-SourceVersion -Src $script:Source) -ne $latest) {
+        Fail "downloaded VERSION does not match checked revision; no installation changed"
+    }
     # Reinstall exactly what is already there. Adding skills the user never chose
     # would be a surprise, and updating is not the moment to spring one.
     $script:Skills = @($prevSkills -split '\s+' | Where-Object { $_ })
@@ -1127,6 +1173,9 @@ function Invoke-Status {
     $have = Get-ManifestField 'version'
     if ($have) {
         Write-Ok "version    $have (installed $(Get-ManifestField 'installed_at'), $(Get-ManifestField 'mode'))"
+        $revision = Get-ManifestField 'revision'
+        if ($revision) { Write-Dim "revision $revision" }
+        if ((Get-ManifestField 'modified_source') -eq '1') { Write-Warn "installed from a modified local source" }
     } else {
         Write-Skip "version    not recorded (installed before version tracking, or by hand)"
     }
@@ -1203,6 +1252,7 @@ function Invoke-Status {
 # ------------------------------------------------------------------ main ----
 
 try {
+    if ($Reinstall -and $Command -ne 'update') { Fail "-Reinstall requires update" }
     switch ($Command) {
         'install'   { Invoke-Install }
         'update'    { Invoke-Update }

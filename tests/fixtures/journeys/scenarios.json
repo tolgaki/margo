@@ -408,8 +408,8 @@
       "id": "upgrade-migration", "feature_id": "upgrade-migration", "title": "Preserve synthetic state through upgrade",
       "coverage_kind": "runtime", "source_fixture": "sources.json#setup-v1",
       "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
-      "expected": {"user_visible_invariants": ["Existing memory and customizations survive installed task-core changes."], "forbidden_effects": ["Do not reset, downgrade or overwrite private state."], "evidence_limitations": ["The test uses a synthetic installed copy."]},
-      "evidence": {"selectors": ["test_task_cli.TaskCLITests.test_installed_task_core_preserves_existing_memory_and_customizations"], "proves": ["Installed-copy migration preserves synthetic existing state."], "does_not_prove": ["Every historical release upgrade path."]}
+      "expected": {"user_visible_invariants": ["Existing memory and customizations survive installed task-core changes.", "Copy updates check and install the same remote revision, including same-version changes.", "Safe reinstall preserves personal files; unavailable updates do not report success."], "forbidden_effects": ["Do not reset, downgrade or overwrite private state.", "Do not substitute a stale local checkout for a checked remote update."], "evidence_limitations": ["The test uses a synthetic installed copy and mocked network responses.", "Platform coverage depends on available shells."]},
+      "evidence": {"selectors": ["test_task_cli.TaskCLITests.test_installed_task_core_preserves_existing_memory_and_customizations", "test_install_cli.InstallCLITests.test_shell_remote_updates_preserve_state", "test_install_cli.InstallCLITests.test_powershell_remote_updates_preserve_state"], "proves": ["Installed-copy migration preserves synthetic existing state.", "Shell and PowerShell update contracts preserve private files and pin remote payloads."], "does_not_prove": ["Every historical release upgrade path.", "Live host instruction reload or remote network availability."]}
     },
     {
       "id": "uninstall", "feature_id": "uninstall", "title": "Remove a synthetic installation safely",

@@ -212,12 +212,15 @@ Do not use `--force` unless you intend to replace personal files from their temp
 ```bash
 ./install.sh update --check   # are you behind?
 ./install.sh update           # re-install the skills you have, at the latest version
+./install.sh update --reinstall # refresh code safely even at the same revision
 ```
 
 `./install.sh status` shows the installed version; `./install.sh uninstall`
 removes managed components and backs up legacy personal files. The private `margo/` runtime
-directory is retained. Installation copies files; app workflow prompt sync and extension reload
-are separate steps. Unversioned installations need a normal install, not `update`.
+directory is retained. Updates compare version and revision and download the exact remote commit
+checked, not an older local checkout. Remote failures stop without changing the installation.
+Installation copies files; private-state migration, app workflow prompt sync and extension/session
+reload are separate steps. Unversioned installations need a normal install, not `update`.
 
 Full instructions, including the Work IQ connection check, are in
 **[Getting started](docs/getting-started.md)**.

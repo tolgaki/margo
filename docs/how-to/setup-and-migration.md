@@ -164,6 +164,18 @@ does not import edits, and there is no two-way Markdown sync.
 
 ## 6. Check health, then sync schedules separately
 
+File installation never performs memory migration. If the doctor reports
+`memory.status:"migration-required"` for a schema v1 account, keep writers paused, retain the
+SQLite-aware backup, and explicitly run the installed command:
+
+```sh
+python3 "$COPILOT_HOME/skills/chief-of-staff/scripts/memory_state.py" migrate
+python3 "$COPILOT_HOME/skills/chief-of-staff/scripts/memory_state.py" status
+```
+
+Migration preserves existing records and does not enable capture. Stop on an unsupported schema;
+never reset private state or retry with a different account to hide a failure.
+
 ```sh
 python3 "$COPILOT_HOME/skills/chief-of-staff/scripts/margo_doctor.py" \
   --account "$MARGO_ACCOUNT" --state-dir "$MARGO_STATE_DIR" \
@@ -183,6 +195,8 @@ The optional canvas is installed with `./install.sh --action-desk --dest "$HOME/
 the checkout. Reload extensions in the invoking Copilot app and verify it opens against the right
 account. It is not needed for the CLI. It edits action proposals and requests foreground review;
 it cannot approve actions or edit candidate work records.
+Start a fresh Margo session to load updated agent/skill instructions. Restore only the schedules
+that were enabled before the upgrade, after state is ready; do not enable additional routines.
 
 **If anything is damaged:** stop writes, preserve current files and the backup, and investigate.
 Do not delete the database to make health green. A rollback must retain new history and must not
@@ -231,7 +245,10 @@ without losing preferences or work — see [§1](#1-choose-copy-or-link),
 [§4 Import the legacy queue](#4-import-the-legacy-queue) and
 [§5 Review and import commitments](#5-review-and-import-commitments). Try it:
 `./install.sh update --check`, then `./install.sh update`, then the legacy import commands above.
-What you'll see: version comparison, then an atomic, replay-safe import with counts — never a
+For a preserving same-revision refresh, use `update --reinstall` (`-Reinstall` in PowerShell),
+not `--force`. Updates fetch one pinned remote revision, including same-version changes, and
+refuse remote failure, invalid metadata or downgrade without changing installed files.
+What you'll see: version/revision comparison, then an atomic, replay-safe import with counts — never a
 partial import on malformed input. Nothing sends or changes external state; this only copies
 files and imports local records after your review. Change your mind by keeping the backup and
 restoring from it; a rollback must retain new history and never run old and new writers at once.
