@@ -247,6 +247,21 @@ class DreamTests(unittest.TestCase):
         self.assertTrue(any(row["kind"] == "decision" and row["status"] == "candidate"
                             for row in result["outputs"]))
 
+    def test_utc_reflection_does_not_require_a_timezone_database(self):
+        self.configure()
+        event = dream.checkpoint(self.memory, self.event)
+        with patch.object(dream, "ZoneInfo", side_effect=dream.ZoneInfoNotFoundError(
+                "timezone database unavailable")) as lookup:
+            preview = dream.plan(self.memory, self.request)
+            self.assertEqual(preview["coverage"]["window"]["start"], self.day + "T00:00:00+00:00")
+            started = self.begin()
+            result = dream.finish(self.memory, self.finish_input(started, event))
+            self.assertEqual(result["reflection"], "completed")
+            lookup.assert_not_called()
+            with self.assertRaisesRegex(StateError, "timezone database unavailable"):
+                dream.plan(self.memory, dict(self.request, timezone="America/Los_Angeles"))
+            lookup.assert_called_once_with("America/Los_Angeles")
+
     def test_generic_writes_reject_missing_checkpoint_sources(self):
         from test_memory_search import unit_encoder
         self.configure()

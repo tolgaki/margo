@@ -121,9 +121,9 @@ python3 scripts/memory_state.py dream-inspect SNAPSHOT_ID
 
 `PRIVATE_START_JSON` contains `request` (the exact window object), `snapshot_hash` from the
 preview, and `request_ref` pointing to your actual current conversation request. The local
-cutoff must have completed. Use an IANA timezone; ambiguous/nonexistent DST cutoffs fail rather
-than silently choosing an offset. Windows may need an OS timezone database; no package is
-installed implicitly.
+cutoff must have completed. Explicit `UTC` works without a timezone database, including on Windows.
+Other IANA zones require available timezone data; missing data and ambiguous/nonexistent DST cutoffs
+fail rather than silently choosing an offset. No timezone package is installed implicitly.
 
 The start response supplies events, coverage and a private task claim. The host may reason once
 outside the database transaction. Submit that claim as follows:

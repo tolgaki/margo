@@ -161,7 +161,7 @@ def _window(value):
     if value["after"] is not None:
         text(value["after"], "scan cursor", 100)
     try:
-        zone = ZoneInfo(value["timezone"])
+        zone = timezone.utc if value["timezone"] == "UTC" else ZoneInfo(value["timezone"])
         day = date.fromisoformat(value["day"])
         cutoff = time.fromisoformat(value["cutoff"])
         if cutoff.tzinfo or cutoff.second or cutoff.microsecond:
