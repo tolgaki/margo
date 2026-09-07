@@ -1,6 +1,18 @@
 {
   "schema_version": 1,
   "fixtures": {
+    "dream-v1": {
+      "version": "dream-v1",
+      "sources": [
+        {
+          "id": "event-1",
+          "kind": "session_checkpoint",
+          "speaker": "user",
+          "locator": "conversation:fixture-session/event-1",
+          "text": "Consider the Cedar option. Timing is open."
+        }
+      ]
+    },
     "setup-v1": {
       "version": "setup-v1",
       "sources": [

@@ -87,8 +87,8 @@ class JourneyContractTests(unittest.TestCase):
         report = journey_contracts.validate_contract(
             self.scenarios, self.sources, self.evals)
         self.assertEqual(report["status"], "valid", report["errors"])
-        self.assertEqual(report["scenario_count"], 67)
-        self.assertEqual(sum(report["coverage_by_kind"].values()), 67)
+        self.assertEqual(report["scenario_count"], 68)
+        self.assertEqual(sum(report["coverage_by_kind"].values()), 68)
         self.assertGreater(report["coverage_by_kind"]["runtime"], 0)
         self.assertGreater(report["coverage_by_kind"]["procedure-contract"], 0)
         self.assertGreater(report["coverage_by_kind"]["model-evaluation"], 0)

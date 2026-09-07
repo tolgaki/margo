@@ -29,7 +29,7 @@ FEATURE_IDS = (
     "automation-hourly", "automation-ambient", "source-coverage", "output-delivery", "doctor",
     "action-desk-canvas", "upgrade-migration", "uninstall", "containers", "memory-capture",
     "memory-retrieval", "memory-control", "memory-learning", "memory-trends", "memory-export",
-    "memory-canvas", "task-progress", "task-recovery",
+    "memory-canvas", "task-progress", "task-recovery", "dream",
 )
 COVERAGE_KINDS = {"runtime", "procedure-contract", "model-evaluation"}
 

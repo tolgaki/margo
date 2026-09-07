@@ -3,6 +3,21 @@
   "contract_version": "1.0.0",
   "scenarios": [
     {
+      "id": "dream", "feature_id": "dream", "title": "Reflect on opted-in synthetic session checkpoints",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#dream-v1",
+      "routing": {"expected_skills": ["chief-of-staff", "memory"], "forbidden_skills": ["mail"]},
+      "expected": {
+        "user_visible_invariants": ["Checkpoint-only coverage remains partial.", "Model interpretations remain cited candidates and ordinary recall selects only sourced episodes.", "Forgetting invalidates dependent reflection outputs and interrupted runs.", "Overlapping runs reuse only eligible exact-revision episodes and never revive suppressed or forgotten outputs.", "Oversized checkpoints are reported as excluded without blocking later evidence.", "Unchanged checkpoint retries preserve the observation after list normalization and policy changes while enforcing current capture authorization.", "Readiness requires all supported interpretation kinds, and missing checkpoint sources cannot enter recall or indexing.", "Still-current derived memories recover semantic indexing on an ordinary index pass."],
+        "forbidden_effects": ["Do not scrape host history, enable schedules or confirm shared decisions.", "Do not reuse forgotten evidence under an alternate memory identity."],
+        "evidence_limitations": ["Synthetic APIs and CLI do not establish model quality, source entailment or live host compatibility."]
+      },
+      "evidence": {
+        "selectors": ["test_memory_dream.DreamTests.test_daily_checkpoint_reflection_and_task_context_journey", "test_memory_dream.DreamTests.test_forgetting_erases_outputs_and_blocks_alternate_key_and_interrupted_run", "test_memory_dream.DreamTests.test_fresh_run_reuses_episode_without_recapture_after_policy_change", "test_memory_dream.DreamTests.test_unavailable_episodes_are_not_revived_or_block_overlapping_reflection", "test_memory_dream.DreamTests.test_oversized_checkpoint_is_excluded_without_blocking_scan_progress", "test_memory_dream.DreamTests.test_corrected_outputs_are_not_recalled_and_duplicate_runs_do_not_duplicate_episodes", "test_memory_dream.DreamTests.test_checkpoint_replay_normalizes_lists_without_changing_observations", "test_memory_dream.DreamTests.test_checkpoint_replay_still_requires_current_capture_authorization", "test_memory_dream.DreamTests.test_readiness_requires_all_supported_interpretation_kinds", "test_memory_dream.DreamTests.test_generic_writes_reject_missing_checkpoint_sources", "test_memory_dream.DreamTests.test_legacy_missing_checkpoint_sources_are_not_recalled_or_indexed", "test_memory_review_regressions.ReviewRegressionTests.test_parent_updates_reindex_current_descendants_without_rebuilding"],
+        "proves": ["Real memory policy, task claims, source revisions, candidate lifecycle, output preparation and task-scoped retrieval are exercised together."],
+        "does_not_prove": ["A host supplies complete session content or a model generates useful interpretations."]
+      }
+    },
+    {
       "id": "setup", "feature_id": "setup", "title": "Configure a fictional account safely",
       "coverage_kind": "runtime", "source_fixture": "sources.json#setup-v1",
       "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},

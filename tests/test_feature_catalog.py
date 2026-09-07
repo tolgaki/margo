@@ -57,10 +57,10 @@ def write_json(directory, name, data):
 class RealCatalogTests(unittest.TestCase):
     """The shipped catalog must validate cleanly against a synthetic, complete manifest."""
 
-    def test_real_catalog_has_exactly_67_features_matching_the_shared_contract(self):
+    def test_real_catalog_has_exactly_68_features_matching_the_shared_contract(self):
         catalog = load_real_catalog()
         ids = [f["id"] for f in catalog["features"]]
-        self.assertEqual(len(ids), 67)
+        self.assertEqual(len(ids), 68)
         self.assertEqual(set(ids), set(fc.EXPECTED_FEATURE_IDS))
         self.assertEqual(len(ids), len(set(ids)), "duplicate feature id present")
 

@@ -37,7 +37,7 @@ KINDS = {
 AUTHORITIES = {"user_confirmed", "source_observed", "inferred"}
 SENSITIVITIES = {"public", "private", "sensitive"}
 USES = {"reasoning", "drafting"}
-SOURCE_KINDS = {"user_statement", "file", "work_source", "tool_result", "memory_record"}
+SOURCE_KINDS = {"user_statement", "file", "work_source", "tool_result", "memory_record", "session_checkpoint"}
 STATUSES = {"candidate", "active", "rejected", "disputed", "stale", "superseded", "suppressed", "forgotten"}
 TYPED_RELATIONS = {"owns", "reports_to", "depends_on", "constrains", "advances", "discusses", "contradicts"}
 RELATIONS = {"derives_from", "about", "related_to", "supersedes"} | TYPED_RELATIONS
@@ -439,10 +439,19 @@ class MemoryStore:
                              % MAX_MEMORY_TEXT_CHARS)
         return value
 
-    def _resolve_work_sources(self, data):
+    def _resolve_work_sources(self, data, *, _checkpoint_ref=None):
         refs = []
         for original in data["source_refs"]:
             ref = dict(original)
+            if ref["kind"] == "session_checkpoint":
+                from memory_dream import validate_source
+                key = validate_source(self, ref)
+                if ref != _checkpoint_ref:
+                    checkpoint = self.conn.execute(
+                        "SELECT status FROM memory_records WHERE id=? AND account=?",
+                        (self.record_id("user", key), self.account)).fetchone()
+                    if checkpoint is None or checkpoint["status"] == "forgotten":
+                        raise StateError("session checkpoint dependency is unknown or forgotten; use dream-checkpoint")
             if ref["kind"] == "memory_record":
                 parent = self.conn.execute(
                     "SELECT status FROM memory_records WHERE id=? AND account=?",
@@ -584,6 +593,7 @@ class MemoryStore:
         operation = (
             "upsert"
             if status == "active" and data.get("sensitivity") != "sensitive"
+            and self.dream_index_current(data)
             else "delete"
         )
         self.conn.execute(
@@ -594,6 +604,14 @@ class MemoryStore:
                 content_hash=excluded.content_hash,created_at=excluded.created_at""",
             (memory_id, revision, operation, content_hash, stamp),
         )
+
+    def dream_index_current(self, data):
+        role = data.get("metadata", {}).get("dream")
+        if role in {"checkpoint", "snapshot"}:
+            return False
+        sourced = role or any(ref["kind"] in {"session_checkpoint", "memory_record"}
+                              for ref in data.get("source_refs", []))
+        return not sourced or self._work_sources_current(data)
 
     def put(self, key, data, status="candidate", revision=None, evidence=None):
         data = self._normalise_data(data)
@@ -607,11 +625,26 @@ class MemoryStore:
             raise StateError("memory domain/kind is immutable; propose a separate sourced record")
         return self._put(memory_id, row["key_hash"], normalised, status, revision, evidence)
 
-    def _put(self, memory_id, key_hash, data, status, revision, evidence):
+    def _put(self, memory_id, key_hash, data, status, revision, evidence, *, _checkpoint_ref=None):
         if status not in STATUSES - {"forgotten"}:
             raise StateError("unsupported memory status")
         with self.transaction():
-            data = self._resolve_work_sources(data)
+            if _checkpoint_ref is not None:
+                from memory_dream import validate_source
+                key = validate_source(self, _checkpoint_ref)
+                if (memory_id != self.record_id("user", key)
+                        or data["metadata"].get("dream") != "checkpoint"
+                        or data["source_refs"] != [_checkpoint_ref]):
+                    raise StateError("checkpoint capture must write its exact canonical root")
+            data = self._resolve_work_sources(data, _checkpoint_ref=_checkpoint_ref)
+            dream = bool(data["metadata"].get("dream")) or any(
+                ref["kind"] == "session_checkpoint"
+                or (ref["kind"] == "memory_record" and
+                    self.show(ref["ref"]).get("metadata", {}).get("dream"))
+                for ref in data["source_refs"])
+            if dream and status in {"active", "candidate"}:
+                from memory_governance import authorize_capture
+                authorize_capture(self, data, allow_confirmation=evidence is not None)
             tombstone = self.conn.execute(
                 "SELECT id FROM memory_tombstones WHERE account=? AND key_hash=?",
                 (self.account, key_hash),
@@ -719,7 +752,19 @@ class MemoryStore:
                 raise StateError("revision conflict; memory changed concurrently")
             self._snapshot(memory_id, next_revision, status, data, evidence, stamp)
             self._queue(memory_id, next_revision, status, data, stamp)
+            self._invalidate_derived_indexes(memory_id)
             return self.show(memory_id)
+
+    def _invalidate_derived_indexes(self, memory_id):
+        """Remove obsolete derived index text without rewriting evidence history."""
+        identities = self._derived_descendants(memory_id) - {memory_id}
+        tables = {row[0] for row in self.conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        for identity in identities:
+            row = self._row(identity)
+            self._queue(identity, row["revision"], row["status"], parse_json(row["data"]), utc_now())
+            for table in ("semantic_vectors", "semantic_documents", "semantic_fts"):
+                if table in tables:
+                    self.conn.execute("DELETE FROM %s WHERE memory_id=?" % table, (identity,))
 
     def _cycle(self, source_id, target_id, relation):
         edges = [
@@ -901,6 +946,7 @@ class MemoryStore:
 
     def _derived_descendants(self, memory_id):
         children = {}
+        checkpoint_groups = {}
         for row in self.conn.execute(
                 "SELECT source_id,target_id FROM memory_links WHERE relation='derives_from'"):
             children.setdefault(row["target_id"], set()).add(row["source_id"])
@@ -911,6 +957,15 @@ class MemoryStore:
             for ref in parse_json(row["data"]).get("source_refs", []):
                 if ref["kind"] == "memory_record":
                     children.setdefault(ref["ref"], set()).add(row["memory_id"])
+                elif ref["kind"] == "session_checkpoint":
+                    from memory_dream import source_keys
+                    for key in source_keys(ref):
+                        checkpoint_groups.setdefault(key, set()).add(row["memory_id"])
+        for identities in checkpoint_groups.values():
+            root = min(identities)
+            for identity in identities:
+                children.setdefault(root, set()).add(identity)
+                children.setdefault(identity, set()).add(root)
         pending = [memory_id]
         seen = {memory_id}
         while pending:
@@ -968,6 +1023,17 @@ class MemoryStore:
             redacted_hash = hashlib.sha256(b"forgotten").hexdigest()
             for identity in sorted(rows):
                 row = rows[identity]
+                # Source identities survive erasure, including older corrected revisions.
+                for history in self.conn.execute(
+                        "SELECT data FROM memory_revisions WHERE memory_id=?", (identity,)):
+                    for ref in parse_json(history["data"]).get("source_refs", []):
+                        if ref["kind"] == "session_checkpoint":
+                            from memory_dream import source_keys
+                            for key in source_keys(ref):
+                                alias, alias_hash = self._identity("user", key)
+                                self.conn.execute(
+                                    "INSERT OR IGNORE INTO memory_tombstones VALUES(?,?,?,?)",
+                                    (alias, self.account, alias_hash, stamp))
                 next_revision = row["revision"] + 1
                 self.conn.execute(
                     """UPDATE memory_revisions SET data='{}',evidence=NULL,content_hash=NULL
@@ -1109,6 +1175,19 @@ class MemoryStore:
     def _work_sources_current(self, data, seen=None):
         seen = set(seen or ())
         for ref in data.get("source_refs", []):
+            if ref.get("kind") == "session_checkpoint":
+                from memory_dream import validate_source
+                try:
+                    key = validate_source(self, ref)
+                except StateError:
+                    return False
+                checkpoint = self.conn.execute(
+                    "SELECT status,data FROM memory_records WHERE id=? AND account=?",
+                    (self.record_id("user", key), self.account)).fetchone()
+                if checkpoint is None or (
+                        checkpoint["status"] != "active"
+                        or ref not in parse_json(checkpoint["data"]).get("source_refs", [])):
+                    return False
             if ref.get("kind") == "memory_record":
                 if ref["ref"] in seen:
                     return False
@@ -1200,6 +1279,8 @@ class MemoryStore:
         result = []
         for row in rows:
             data = parse_json(row["data"])
+            if data.get("metadata", {}).get("dream") in {"snapshot", "checkpoint"}:
+                continue
             if data.get("authority") == "inferred":
                 continue
             if data.get("sensitivity") == "sensitive":

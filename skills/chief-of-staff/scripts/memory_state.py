@@ -9,8 +9,15 @@ import sys
 from margo_store import NotInitialized, StateError, add_state_arguments, canonical_json, parse_json, resolve_account
 
 
-def load(path):
-    result = parse_json(sys.stdin.read() if path == "-" else Path(path).read_text(encoding="utf-8"))
+def load(path, maximum=None):
+    if path == "-":
+        raw = sys.stdin.read() if maximum is None else sys.stdin.read(maximum + 1)
+    else:
+        with Path(path).open(encoding="utf-8") as stream:
+            raw = stream.read() if maximum is None else stream.read(maximum + 1)
+    if maximum is not None and len(raw) > maximum:
+        raise StateError("input exceeds its character budget")
+    result = parse_json(raw)
     if not isinstance(result, dict):
         raise StateError("input must be a JSON object")
     return result
@@ -152,6 +159,17 @@ def parser():
     command.add_argument("--environment")
     command = sub.add_parser("record-consolidation", help="record delivery of an unchanged proposal page, never human approval")
     command.add_argument("--input", required=True)
+    for name in ("dream-checkpoint", "dream-plan", "dream-finish"):
+        command = sub.add_parser(name, help="opted-in bounded Dream checkpoint/reflection; no history scraping")
+        command.add_argument("--input", required=True, help="private checkpoint/reflection JSON; - reads stdin")
+    command = sub.add_parser("dream-start", help="claim one manual reflection and reserve its host model budget")
+    command.add_argument("key")
+    command.add_argument("--input", required=True, help="{request,snapshot_hash,request_ref} from dream-plan and current user")
+    command = sub.add_parser("dream-inspect", help="inspect collection, reflection, candidates and source validity")
+    command.add_argument("id")
+    command = sub.add_parser("dream-status", help="show exact host/workspace scope and opt-in; no setup or history reads")
+    command.add_argument("--host", required=True)
+    command.add_argument("--workspace", required=True)
     return root
 
 
@@ -175,6 +193,7 @@ def main(argv=None):
             "status", "show", "inspect", "history", "forget-preview", "usage", "graph", "explain",
             "list", "search", "context", "policy", "policy-preview", "tombstones", "tombstones-preview",
             "export-preview", "preferences-preview", "consolidate",
+            "dream-plan", "dream-inspect", "dream-status",
         }
         read_only = args.command in read_commands or (args.command == "trend-definition" and not args.evidence)
         memory = MemoryStore(account=args.account, state_root=args.state_dir,
@@ -295,6 +314,18 @@ def main(argv=None):
         elif args.command == "record-consolidation":
             from memory_consolidation import surface_consolidation
             result = surface_consolidation(memory, load(args.input))
+        elif args.command.startswith("dream-"):
+            import memory_dream as dream
+            if args.command == "dream-status":
+                result = dream.status(memory, args.host, args.workspace)
+            elif args.command == "dream-inspect":
+                result = dream.inspect(memory, args.id)
+            elif args.command == "dream-start":
+                result = dream.start(memory, args.key, load(args.input, dream.MAX_INPUT))
+            else:
+                operation = {"dream-checkpoint": dream.checkpoint, "dream-plan": dream.plan,
+                             "dream-finish": dream.finish}[args.command]
+                result = operation(memory, load(args.input, dream.MAX_INPUT))
         else:
             raise StateError("unsupported memory command")
         print(canonical_json(result))

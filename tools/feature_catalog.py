@@ -8,7 +8,7 @@ any network access — it only inspects files already in this checkout.
     python3 tools/feature_catalog.py --check        # same as above, explicit
     python3 tools/feature_catalog.py --write         # validate, then (re)write generated sections
 
-Validation covers: catalog schema and the exact 67-feature-ID set, mandatory field shapes,
+Validation covers: catalog schema and the exact 68-feature-ID set, mandatory field shapes,
 enum values, planned-status misuse, that every source/guide/router/automation/CLI/canvas
 reference actually exists, that guide anchors resolve to a real heading, that every skill
 router row and every automation manifest is referenced by at least one feature, that every
@@ -60,7 +60,7 @@ EXPECTED_FEATURE_IDS = [
     "automation-hourly", "automation-ambient", "source-coverage", "output-delivery", "doctor",
     "action-desk-canvas", "upgrade-migration", "uninstall", "containers",
     "memory-capture", "memory-retrieval", "memory-control", "memory-learning", "memory-trends",
-    "memory-export", "memory-canvas", "task-progress", "task-recovery",
+    "memory-export", "memory-canvas", "task-progress", "task-recovery", "dream",
 ]
 
 AVAILABILITY_VALUES = {"implemented", "optional", "limited", "planned"}
@@ -380,9 +380,9 @@ def validate_catalog(catalog, scenario_path=SCENARIO_MANIFEST):
         errors.append(f"catalog is missing required feature ids: {missing}")
     if extra:
         errors.append(f"catalog has unexpected feature ids not in the shared contract: {extra}")
-    if len(id_set) != 67 or (not missing and not extra and len(ids) != 67):
-        if not missing and not extra and len(ids) != 67:
-            errors.append(f"catalog must have exactly 67 features, found {len(ids)}")
+    if len(id_set) != 68 or (not missing and not extra and len(ids) != 68):
+        if not missing and not extra and len(ids) != 68:
+            errors.append(f"catalog must have exactly 68 features, found {len(ids)}")
 
     router_rows = {}
     for router_file in ROUTER_FILES:
@@ -722,7 +722,7 @@ def main(argv=None):
                 print(f"wrote generated section in {path.relative_to(ROOT)}")
             else:
                 print(f"{path.relative_to(ROOT)} already up to date")
-        print("catalog valid; 67 features; generated sections written")
+        print("catalog valid; 68 features; generated sections written")
         return 0
 
     stale = []
@@ -744,7 +744,7 @@ def main(argv=None):
             print(f"  - {item}", file=sys.stderr)
         return 1
 
-    print("catalog valid; 67 features; generated sections up to date")
+    print("catalog valid; 68 features; generated sections up to date")
     return 0
 
 

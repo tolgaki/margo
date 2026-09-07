@@ -224,7 +224,8 @@ class MemorySearch:
             self.conn.execute("BEGIN IMMEDIATE")
             for memory_id in ids:
                 record = records.get(memory_id)
-                if record is None or record["status"] != "active" or record.get("sensitivity") == "sensitive":
+                if (record is None or record["status"] != "active" or record.get("sensitivity") == "sensitive"
+                        or not self.memory.dream_index_current(record)):
                     self._purge(memory_id)
                     removed += 1
         return removed
@@ -284,14 +285,14 @@ class MemorySearch:
             for job in pending:
                 record = self.memory.show(job["memory_id"])
                 if (job["operation"] == "delete" or record["status"] != "active"
-                        or record.get("sensitivity") == "sensitive"):
+                        or record.get("sensitivity") == "sensitive" or not self.memory.dream_index_current(record)):
                     delete_jobs.append(job)
                     if len(delete_jobs) == limit:
                         break
             deleted_jobs, skipped_deletes = self._delete_jobs(delete_jobs)
             capacity = limit - len(delete_jobs)
             active = [row for row in self.memory.list(status="active")
-                      if row.get("sensitivity") != "sensitive"]
+                      if row.get("sensitivity") != "sensitive" and self.memory.dream_index_current(row)]
             active_by_id = {row["id"]: row for row in active}
             encodable = []
             for row in active:
@@ -365,7 +366,7 @@ class MemorySearch:
                     skipped += 1
                     continue
                 if (job["operation"] == "delete" or record["status"] != "active"
-                        or record.get("sensitivity") == "sensitive"):
+                        or record.get("sensitivity") == "sensitive" or not self.memory.dream_index_current(record)):
                     completed, stale = self._delete_jobs([job])
                     deleted_jobs += completed
                     skipped += stale
@@ -388,7 +389,8 @@ class MemorySearch:
                 with self.conn:
                     self.conn.execute("BEGIN IMMEDIATE")
                     current = self.memory.show(record["id"])
-                    if current["revision"] != record["revision"] or current["status"] != "active":
+                    if (current["revision"] != record["revision"] or current["status"] != "active"
+                            or not self.memory.dream_index_current(current)):
                         skipped += 1
                         continue
                     self._purge(record["id"])

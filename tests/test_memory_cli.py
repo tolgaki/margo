@@ -109,11 +109,16 @@ class MemoryCLITests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         scripts = destination / "skills/chief-of-staff/scripts"
         for name in ("memory_state.py", "memory_store.py", "memory_search.py", "memory_governance.py",
-                     "memory_learning.py", "memory_consolidation.py", "memory_context.py"):
+                     "memory_learning.py", "memory_consolidation.py", "memory_context.py", "memory_dream.py"):
             self.assertTrue((scripts / name).is_file(), name)
         result = self.run_cli("init", script=scripts / "memory_state.py")
         self.assertFalse(result["collected"])
         self.assertFalse(self.run_cli("policy", script=scripts / "memory_state.py")["configured"])
+        status = self.run_cli("dream-status", "--host", "fixture-host", "--workspace", "fixture-workspace",
+                              script=scripts / "memory_state.py")
+        self.assertFalse(status["opted_in"])
+        self.assertEqual(status["history_access"], "unsupported")
+        self.assertTrue((destination / "skills/chief-of-staff/references/dream.md").is_file())
 
 
 if __name__ == "__main__":
