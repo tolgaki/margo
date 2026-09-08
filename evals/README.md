@@ -3,11 +3,55 @@
 These scenarios evaluate imported host/model traces separately from deterministic journey tests.
 They do not call a model, generate an answer from expected text, or access a workplace account.
 
+[Developer journey](../docs/development/README.md) ·
+[Journey fixtures](../tests/fixtures/journeys/README.md) · [Evidence classes](../docs/development/architecture.md#evidence-classes)
+
+## Where this fits
+
+| Artifact | Responsibility |
+| --- | --- |
+| `evals/scenarios-v1.json` | Versioned synthetic prompts, deterministic assertions and named human rubric dimensions |
+| `tests/fixtures/journeys/sources.json` | Fictional source bundles, IDs and versions used by those prompts |
+| `tests/fixtures/journeys/scenarios.json` | Catalog-to-scenario mapping and declared evidence class |
+| `tools/evaluate_agent_traces.py` | Validate imported evidence and evaluate its assertions; never run the assistant |
+| `tests/test_journey_contracts.py` | Regression tests for the importer and contracts, not real model evaluation results |
+
+The repository does not supply a universal live-host recorder or automatically generated
+evaluation results. An explicitly chosen host/adapter must run the synthetic prompts, expose
+only the fictional source tools, and preserve the actual trace. Do not point a scenario at a
+real mailbox to fill in missing evidence. Optional embedding integration tests are another
+evidence class again: they test a local encoder, not this conversational behavior.
+
+## Prepare evidence
+
+1. Select the scenario and its exact source bundle before the run. Record the code, skill,
+   host and model versions, and compute the fixture fingerprint.
+2. Run in an isolated synthetic host setup with no workplace credentials or outbound provider
+   access. Keep malicious text in fixtures as data; never follow it as setup instructions.
+3. Normalize the actual ordered routes/tools/decisions into the evaluator vocabulary without
+   dropping calls or inventing approval. Preserve unavailable counters as `null`.
+4. Have a human review each dimension named in that scenario's `human_rubric`. Record the
+   actual reviewer, explicitly zoned review time and judgments; a model-generated rating is
+   not a substitute.
+5. Import the resulting bundle and inspect both per-scenario checks and aggregate status.
+   Keep transcripts and imported result bundles out of ordinary repository commits; share
+   deliberately sanitized summaries, not private host logs or account artifacts.
+
 ## Run
 
 ```bash
 python3 tools/evaluate_agent_traces.py --results path/to/imported-results.json
 ```
+
+Run from the repository root and replace the path with an actual imported bundle. The CLI
+prints JSON to stdout. Defaults are `evals/scenarios-v1.json` and the journey `sources.json`;
+use `--scenarios` / `--fixtures` only when intentionally evaluating another versioned set.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Every scenario in the selected set passed with complete required evidence |
+| `1` | At least one evaluated failure or an incomplete aggregate, including missing scenarios |
+| `2` | Invalid input bundle or scenario/fixture contract prevented evaluation |
 
 The results file uses `schema_version: 1` and contains a `traces` array. Each trace binds to an
 exact scenario and fixture version and records:
@@ -38,6 +82,11 @@ not a pass. The evaluator never collapses routing, safety, grounding and qualita
 single model-generated score.
 
 ## Trace shape
+
+The object below is **one trace**, to be placed in the outer results bundle's `traces` array
+beside `schema_version: 1`. It is explanatory, not a recorded run or passing fixture: substitute
+actual provenance, output and hash, and supply real counters and human review. Missing traces
+for other scenarios keep the aggregate incomplete even if this scenario passes.
 
 ```json
 {
@@ -76,6 +125,28 @@ single model-generated score.
 }
 ```
 
+The optional `human_review` object has exactly `reviewer`, `reviewed_at` and `judgments`.
+`judgments` maps each scenario rubric dimension to a `rating` (`pass`, `fail` or `needs-review`)
+and explanatory `notes`. Do not fill those fields from the expected answer merely to get a
+green result.
+
 This evidence can show how one recorded run behaved on fictional inputs. It cannot prove live
 provider correctness, authenticated human identity, or that the model will behave the same way on
 unseen inputs.
+
+## Changing a scenario or the importer
+
+Keep fixture versions and fingerprints honest when source content changes. Update the mapped
+journey contract and catalog references in the same contribution. New tool families require a
+deliberate vocabulary/effect classification and importer regression tests; unknown calls must
+not become a successful read-only default.
+
+Existing credential-free checks:
+
+```bash
+PYTHONPATH=tests python3 -m unittest test_journey_contracts.TraceEvaluatorTests
+python3 tools/journey_contracts.py --check
+```
+
+Passing these checks establishes importer/contract behavior only. It does not create evidence
+that an assistant followed the procedure.

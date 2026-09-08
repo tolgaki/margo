@@ -1,5 +1,8 @@
 # A complete agent-owned change
 
+[Developer journey](README.md) · [Architecture](architecture.md) ·
+[Contribution rules](../../CONTRIBUTING.md)
+
 Start from a user outcome, not a directory-sized refactor. A feature is complete when its
 documented workflow, core behavior, failure handling and installed surfaces agree.
 
@@ -38,6 +41,28 @@ anything merely because this document mentions one.
    runtime proof, procedure-contract coverage and model observations.
 7. Inspect the proposed change, source/data hygiene and migration effects. Hand off evidence
    and limitations. Commit, publish or deploy only when the current request authorizes it.
+
+### Example task contract
+
+**Outcome:** a user cancelling a task with an in-flight effect can see that future work stopped,
+but the earlier effect still needs reconciliation. **Non-goal:** change approval or retry rules.
+Trace the existing task feature before editing. If its core state is already correct, keep the
+change in the procedure, user guide or rendering layer; do not add another status representation.
+
+Use fictional `dana@example.com` fixtures and the existing
+`test_task_pause_cancel_expiry_retry_unknown_write_and_resume` journey. Run `test_task_runs`,
+`test_task_cli` and `test_user_journeys` together when core behavior changes; select
+`task.test.mjs` for the task panel. The [developer journey](README.md) gives the exact commands
+and installed-copy rehearsal. Neither test evidence nor a review button authorizes a real action.
+
+### Documentation is part of the contract
+
+Update authored guides and mapped fixtures before regenerating navigation. Use
+`python3 tools/feature_catalog.py --write` only for its marked generated sections, and run
+`--check` afterward. Schedule documentation comes from `automations/*.md` and
+`tools/gen-automations-docs.sh`, not a second list maintained in prose.
+For a docs-only change, run the relevant documentation checks; do not turn a writing task into
+a profile installation, model download or live-account evaluation.
 
 ## Parallel work
 

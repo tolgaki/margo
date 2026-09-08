@@ -2,6 +2,12 @@
 
 Margo is one agent. The pattern underneath is reusable, and it's the reason this repo exists.
 
+**Choose your route:** to contribute to Margo, use the
+[developer journey](development/README.md). To use the existing assistant, use the
+[user journey](user-guide.md). This page explains the design pattern for a fork or a different
+persona; it does not provision a hosted agent, credentials or autonomous-send permissions.
+The [feature inventory](features.md) shows what is implemented before you decide to extend it.
+
 ---
 
 ## The split
@@ -35,8 +41,9 @@ The two meet at one line in the agent file:
   is voice-free — usable by any agent, including the default one.
 - **Both halves stay reviewable.** A persona file that also contains pagination rules is a file
   nobody rereads.
-- **The failure modes are separable.** Wrong tone is an agent-file bug. Wrong data is a skill bug.
-  Knowing which one you're looking at is most of debugging.
+- **The failure modes are easier to locate.** Wrong tone points to the agent file. Wrong data
+  requires tracing the procedure, source/tool response and local state; it is not automatically
+  a persona problem.
 
 ---
 
@@ -107,6 +114,9 @@ only when that routine fires.
 Filled `preferences.md`, `config.md`, runtime state and commitment exports are the user's;
 `SKILL.md`, `references/`, and helper code are the skill's. Copy installations keep private data
 outside the checkout. Do not rely on `.gitignore` to protect modifications to tracked templates.
+Real usage requires a separate private copy. Linked installations are for synthetic-only
+development profiles; `skip-worktree` is not a safe alternative to keeping private data outside
+the checkout.
 
 ### Scripts for things models are bad at
 
@@ -160,8 +170,22 @@ rather than letting an agent claim success from a fixture it wrote to match its 
    `chief-of-staff`.
 3. **Remove the routines you don't need.** Update their router rows, callers and automation
    prompts together. Keep the shared state and approval contracts for any routines still using them.
-4. **Fill in the config template** before the first real run.
-5. **Run it read-only for a week** before turning on any writes.
+4. **Rehearse with fictional fixtures first.** Follow the
+   [isolated copied-install example](development/README.md#2-start-with-credential-free-checks).
+   Do not fill tracked templates with real people, account identifiers or workplace links.
+5. **Prepare a separate private copy for real use**, only when deliberately requested. Fill its
+   config and preferences, authenticate the chosen host/providers, confirm the account and
+   follow [setup and migration](how-to/setup-and-migration.md). Copying code does not sign in.
+6. **Pilot bounded read-only work before considering any outward action.** A successful pilot
+   never removes exact foreground approval. Scheduled routines remain prohibited from sending,
+   posting, RSVPing, deleting or changing external work items under this repository's contract;
+   that contract is not a general host-tool sandbox.
+
+If your fork adds a capability, deliver the router entry, focused procedure, existing-owner API
+integration, user guide and synthetic scenario together. Add an optional UI only after the CLI
+path works. Keep its unavailable and recovery states visible. A separate identity or hosted
+service is a different trust design, not an installer flag; [autopilot](autopilot.md) is a
+research note, not a supported setup path.
 
 The smaller skill is also worth reading as an example in its own right:
 

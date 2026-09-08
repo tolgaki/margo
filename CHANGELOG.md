@@ -2,6 +2,8 @@
 
 ## 1.3.0 (unreleased)
 
+- Connected user and developer documentation journeys, a shared documentation home, and detailed
+  task guides for all 68 catalogued features, with corrected setup, approval and recovery guidance.
 - Opt-in, manual Dream reflection over selected current-session checkpoints: sourced episodes,
   reviewable candidate interpretations, bounded daily pages and task-scoped recall.
 - Revision-aware shell and PowerShell updates fetch the exact remote commit checked, including

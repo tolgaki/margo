@@ -4,6 +4,30 @@
 account, and current observations from the invoking host. These helpers record local state only.
 They do not perform Work IQ reads, publish to a host, or authenticate a session.
 
+## Find the missing brief before rerunning it
+
+Start in conversation:
+
+> I cannot find today's morning brief. Check the schedule and latest run, then source coverage,
+> then durable output and host delivery. Do not enable another schedule or rerun blindly.
+
+| Question | Evidence to inspect | What it does not prove |
+| --- | --- | --- |
+| Was the routine enabled and invoked? | Current host workflow listing/latest run, or the actual OS/container scheduler | That mail, calendar and Teams were read |
+| What was covered? | Per-source coverage windows and completion states | That a usable output was created |
+| Where is the result? | Publication record, content and local/host receipt | That you saw or reviewed it |
+| Where did work stop? | Task progress and any interrupted claim | That an unknown write had no effect |
+
+For app schedules, the app must be running and the machine awake. The local `proactive status`
+command reports queue/publication/coverage state; it cannot tell you whether a saved app workflow
+is enabled. Doctor needs an actual host snapshot for that view. If the host does not expose it,
+inspect the scheduler manually and leave the missing evidence unknown.
+
+Choose one action after diagnosis: retrieve an existing output, repair sign-in, review an exact
+schedule change, or [resume a bounded task](task-progress-and-recovery.md). Do not create a second
+scheduler owner for the same routine. See [schedule setup](../proactive.md) before enabling one.
+Most users can stop here; the numbered sections are the advanced collector/receipt protocol.
+
 ## 1. Ask the questions separately
 
 > Show each source's last reliable coverage, gaps and retry state. Then show the latest durable
@@ -320,50 +344,58 @@ See [schedule setup](../proactive.md), [automation definitions](../../automation
 
 The numbered sections above are the full CLI walkthrough. These are the stable per-feature entry
 points the [feature catalog](../feature-catalog.json) links to. The six scheduled routines share
-one contract — [§6 Choose the schedule's safety boundary](#6-choose-the-schedules-safety-boundary)
-— and differ only in the routine and cron in their own `automations/*.md` file, which remains the
-single source of truth for the schedule; nothing here duplicates a cron value.
+the boundary in [§6](#6-choose-the-schedules-safety-boundary); their tier, cadence and prompt
+come from each `automations/*.md` manifest. Anchors may synthesize; hourly/ambient scans cannot
+call `workiq-ask`. Nothing here replaces the manifest as the source of the exact schedule.
 
 ### Automation morning
 
-Get the full daily brief automatically on weekday mornings, with no chat interaction needed. Try
-it: ask Margo to confirm the schedule is enabled, or check directly with
-`proactive status`. What you'll see: the brief prepared and its output receipt persisted before
-weekday morning, following the [morning brief](../../automations/morning-brief.md) manifest exactly.
+Get the full daily brief automatically on weekday mornings, with no chat interaction needed.
+Try it: ask Margo to inspect the actual schedule and latest run, then use `proactive
+publication-list --limit 10` for stored outputs. What you'll see after a successful run: the
+brief and its output receipt, following the [morning brief](../../automations/morning-brief.md)
+manifest. The configured start time is not a guarantee of completed delivery at that instant.
 Nothing is sent, posted, or changed — the unattended contract in [§1](#1-ask-the-questions-separately)
-applies fully. Change your mind: pause or edit the schedule the same way as any automation, below.
+applies fully. Change your mind: review a pause or edit through [your scheduler](../proactive.md).
 Your data: same private output-delivery and source-coverage records described in this file.
-If something goes wrong: a missed run is visible in `proactive status`/doctor, never silently
-assumed successful. Implemented, procedure (the schedule invocation is deterministic; the brief's
-content is model-authored). Since 1.0.0.
+If something goes wrong: check the host's actual latest-run evidence and doctor with a fresh
+snapshot; local state alone cannot establish that a host run was missed or completed.
+Implemented, procedure (schedule invocation is deterministic; brief content is model-authored).
+Since 1.0.0.
 
 ### Automation eod
 
-Get an end-of-day/catch-up wrap-up automatically on weekday evenings. Try it: check
-`proactive status` for the last run. What you'll see: the anchor owning one leased batch and
+Get an end-of-day/catch-up wrap-up automatically on weekday evenings. Try it: inspect the
+host's latest run, then `proactive publication-list --limit 10` for the corresponding output.
+What you'll see: the anchor owning one leased batch and
 persisting the output before acknowledging only what it included — see
 [§4 Lease one batch and acknowledge only recorded output](#4-lease-one-batch-and-acknowledge-only-recorded-output).
-Nothing sends; drafts may be prepared and held only. Change your mind: pause/edit the schedule,
-below. Your data: same output-delivery boundary as automation morning, above. If something goes
+Nothing sends; drafts may be prepared and held only. Change your mind: review a pause/edit in
+[your scheduler](../proactive.md). Your data: same output-delivery boundary as automation morning.
+If something goes
 wrong: the underlying brief routine must not drain the leased batch again — that's a bug to
 report, not a retry to attempt yourself. Implemented, procedure. Since 1.0.0.
 
 ### Automation week ahead
 
-Get next week's shape automatically on Sunday afternoon, before Monday. Try it: check
-`proactive status`. What you'll see: the same week-ahead output described in
+Get next week's shape automatically on Sunday afternoon, before Monday. Try it: inspect the
+actual schedule/latest run and then `proactive publication-list --limit 10`.
+What you'll see: the same week-ahead output described in
 [outcomes and meetings](outcomes-and-meetings.md#week-ahead), persisted as a receipt. Nothing
-sends or changes your calendar. Change your mind: pause/edit the schedule, below. Your data: same
+sends or changes your calendar. Change your mind: review a pause/edit in
+[your scheduler](../proactive.md). Your data: same
 boundary as the other anchors. If something goes wrong: missing estimates or calendar coverage
 stay explicit gaps in the scheduled output too, never smoothed into a false-looking plan.
 Implemented, procedure. Since 1.0.0.
 
 ### Automation commitments
 
-Get a weekly commitments-ageing pass and ambient digest every Friday afternoon. Try it: check
-`proactive status`. What you'll see: silent-resolution checked before ageing anything, then
+Get a weekly commitments-ageing pass and ambient digest every Friday afternoon. Try it: inspect
+the actual schedule/latest run and the latest stored publication.
+What you'll see: silent-resolution checked before ageing anything, then
 versioned nudge proposals held in the action desk (never sent) plus a five-item digest rendered
-from the week's ambient queue. Nothing sends. Change your mind: pause/edit the schedule, below.
+from the week's ambient queue. Nothing sends.
+Change your mind: review a pause/edit in [your scheduler](../proactive.md).
 Your data: same boundary as the other anchors, plus the [follow-through](commitments-and-action-desk.md#follow-through)
 ledger. If something goes wrong: coverage is recorded per source, with failed/incomplete
 resolution checks left explicitly unknown. Implemented, procedure. Since 1.0.0.
@@ -372,9 +404,11 @@ resolution checks left explicitly unknown. Implemented, procedure. Since 1.0.0.
 
 Get cheap, usually-silent hourly checks for anything that clears the interrupt test. Try it:
 check `proactive coverage-status` for recent sweep attempts. What you'll see: silence on most
-runs — that is the intended, successful outcome, not a sign something is broken — and a queued
-(never interrupting) item when something crosses the bar. Nothing sends; `workiq-ask` is never
-called in this tier. Change your mind: pause/edit the schedule, below. Your data: same
+runs when source coverage is healthy, with non-urgent findings queued. An item meeting the
+documented interrupt test may surface privately through the host's supported output channel;
+that is not permission to contact a colleague. Nothing sends externally; `workiq-ask` is never
+called in this tier. Change your mind: review a pause/edit in [your scheduler](../proactive.md).
+Your data: same
 source-coverage boundary as other tiers. If something goes wrong: a recap-pending meeting that
 hits an access denial is reported blocked, not retried through another route. Implemented,
 procedure. Since 1.0.0.
@@ -382,10 +416,11 @@ procedure. Since 1.0.0.
 ### Automation ambient
 
 Get a quiet daily scan for slow-moving drift — commitment ageing, relationship cadence, stale
-PRs, calendar hygiene, unread documents — queued for the next anchor and never interrupting. Try
+PRs, calendar hygiene, unread documents — queued for the Friday digest and never interrupting. Try
 it: check `proactive queue-list` to see what's queued. What you'll see: items promoted only the
 run they first cross a threshold, never re-promoted every day after. Nothing sends or changes
-anything. Change your mind: pause/edit the schedule, below. Your data: same source-coverage and
+anything externally. Change your mind: review a pause/edit in [your scheduler](../proactive.md).
+Your data: same source-coverage and
 output-delivery boundary as the other tiers. If something goes wrong: a partial or failed read
 does not advance that source's successful checkpoint. Implemented, procedure. Since 1.0.0.
 

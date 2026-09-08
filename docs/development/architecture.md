@@ -1,8 +1,13 @@
 # Architecture and state ownership
 
+[Developer journey](README.md) · [Documentation hub](../README.md) ·
+[User journey](../user-guide.md) · [Feature inventory](../features.md)
+
 Margo is an agent persona and procedural skills running in a capable host. Python helpers
 preserve state; they do not replace the model, authenticate the human, or sandbox host tools.
-Microsoft 365 operations use Work IQ after the applicable approval.
+Microsoft 365 routines use Work IQ after the applicable approval. The optional
+[large-file bridge](../how-to/documents-and-files.md) is a separate authenticated Graph client,
+not a state owner or a route around provider policy.
 
 ```text
 User request / scheduled manifest
@@ -40,6 +45,23 @@ Python filenames above live in `skills/chief-of-staff/scripts/`. Reference filen
 that skill unless another location is given. The account's operational database lives outside
 the checkout and survives uninstall.
 
+### Public entry points, not a second store
+
+| Need | CLI entry point | Implementation owner |
+| --- | --- | --- |
+| Configure the private account | `margo_store.py init` | Storage identity; does not authenticate Work IQ |
+| Inspect or change obligations and proposed actions | `work_state.py` | `work_ledger.py` and `work_productivity.py` |
+| Record source coverage or publication state | `proactive_state.py` | Existing coverage, queue and receipt APIs |
+| Inspect or explicitly change memory | `memory_state.py` | Memory modules listed above |
+| Inspect or explicitly change a task attempt | `task_state.py` | `task_runs.py`, linking the other owners |
+| Diagnose setup, versions and operational state | `margo_doctor.py` | Read-only health aggregation |
+
+Use each command's `--help` and its linked procedure for input shapes. The canvas adapters
+invoke those CLIs with fixed arguments; they do not choose databases or own schemas.
+An installed copy is another distribution of the same implementation, not a separate data owner.
+`COPILOT_HOME` selects the bundled helpers' installation root; explicit account/config/state
+overrides retain the same private-path checks.
+
 ## Task runs do not replace work
 
 A task run tracks *this attempt to help*: its goal, bounded plan, evidence collection and
@@ -76,4 +98,5 @@ empty ones.
 | Live pilot | Scoped real-world behavior when separately authorized | Permission to publish workplace fixtures or transcripts |
 
 See [the agent workflow](agent-workflow.md), [feature reference](../features.md) and
-[trust and safety](../safety.md).
+[trust and safety](../safety.md). For a concrete path from user request through these owners,
+follow [the task-progress example](README.md#3-trace-one-existing-feature-end-to-end).

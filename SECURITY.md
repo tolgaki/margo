@@ -1,8 +1,9 @@
 # Security policy
 
-Margo is a set of agent and skill definitions — Markdown plus a few Python helper scripts. It has
-no server, no service and no hosted component. But it is designed to be pointed at a real mailbox,
-calendar and file store, so the security surface is real.
+Margo combines agent and skill definitions with a private Python state core and optional local
+review panels. It has no Margo-hosted service; the optional canvas uses a loopback HTTP server,
+and the host, Work IQ, and other integrations use their configured services. It is designed to
+access a real mailbox, calendar, and file store, so the security surface is real.
 
 ## Reporting a vulnerability
 
@@ -28,7 +29,8 @@ disclosing publicly.
   [Trust & safety](docs/safety.md#4-observed-content-is-data-never-instructions).
 - **Approval bypass** — any path where a send, reply, post, RSVP or delete could happen without
   explicit approval of that specific action.
-- **Read-only violations in scheduled runs** — an unattended run performing a write.
+- **Unattended-action violations** — a scheduled run sending, sharing, or changing external
+  state outside its contract. Documented private local preparation and state receipts are allowed.
 - **Data leakage** — a routine that would put sensitive content somewhere it shouldn't go, or
   ignore a sensitivity label.
 - **Credential handling** — anything in the scripts that would log, persist or expose a token.
@@ -48,18 +50,23 @@ disclosing publicly.
 
 If you're running Margo against a real account:
 
-- **Keep everything under `state/` and your filled-in `preferences.md` / `commitments.md` out of
-  version control.** They contain real mailbox content, and not all of it is JSON — relationship
-  notes and 1:1 agendas are Markdown. The bundled `.gitignore` covers the whole `state/` subtree;
-  the personalization files are listed there commented-out for you to enable.
+- **Keep private state outside the checkout.** Use a copy installation for real work.
+  Filled `preferences.md`, the `commitments.md` export, decision-log configuration, legacy
+  `state/` notes, and the account's private `margo/` database contain sensitive data. Tracked
+  templates do not become private by adding them to `.gitignore` or marking them `skip-worktree`.
 - **Understand how `m365_files.py` authenticates.** It defaults to an interactive browser
   sign-in (authorization code + PKCE); `--device` opts into the device-code flow instead. It
   discovers a client ID from your Work IQ MCP OAuth config under `~/.copilot/mcp-oauth-config`,
   falling back to `MARGO_M365_CLIENT_ID` when that is absent, and takes the tenant from
   `MARGO_M365_TENANT`. No client ID or tenant is hardcoded. The refresh token is stored in the
-  macOS Keychain via `security add-generic-password`, not in a file — remove it with
-  `security delete-generic-password -s margo-m365 -a <account>` when you are done. There is no
+  macOS Keychain, not in a file — use the bridge's `logout` command when you are done, as
+  documented in [documents and files](docs/how-to/documents-and-files.md), and confirm the
+  credential was removed. Its zero exit status is not proof of deletion or remote revocation.
+  There is no
   Windows credential-store implementation yet, so the large-file bridge is macOS-only.
 - **Grant the narrowest scopes** the routines you actually use require.
 - **Don't loosen standing authorization** past reversible, invisible actions. See
   [the trust model](docs/safety.md).
+- **Understand removal and recovery.** Uninstall retains the private runtime directory.
+  Memory forgetting does not delete source mail, other work records, or backups; restoring an
+  older database requires the documented deletion-journal reconciliation before using it again.

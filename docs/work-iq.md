@@ -10,8 +10,13 @@ Those three things are the difference between a brief that arrives in twenty sec
 recommendation on every line, and one that arrives in three minutes having spent its whole context
 window on JSON.
 
-> In Copilot CLI every tool is exposed with a `workiq-` prefix. Always call the full prefixed name
-> (`workiq-fetch`, not `fetch`) — unprefixed names are not callable.
+For first-time use, start with [Getting started](getting-started.md). This page is the integration
+reference for the [developer journey](development/README.md) and
+[worked request flows](walkthroughs.md).
+
+> This repository uses names such as `workiq-fetch`. The callable name comes from the host's
+> registered MCP server, not the skill folder. Discover the tool and its current schema before
+> calling it; do not assume another host exposes the same spelling or arguments.
 
 ---
 
@@ -37,6 +42,10 @@ Three rules that follow from the table:
 Margo's default shape for a brief is therefore: **`fetch` in parallel to enumerate the skeleton,
 then one to three focused `ask` calls to work out what it means.** Enumeration and judgement are
 different jobs and use different tools.
+
+The relative costs above explain the retrieval strategy, not a latency guarantee. Actual
+latency, supported paths, payload limits, and permissions depend on the connected host and
+service. Recheck capabilities rather than treating a previously observed limitation as universal.
 
 ### The other tools
 
@@ -121,8 +130,10 @@ Two related rules:
 
 ## Writing: where the care goes
 
-Work IQ writes **execute immediately**. There is no staging, no preview, no undo. A send, a
-decline, a reaction or a `permanentDelete` is instantly visible to other people or unrecoverable.
+Work IQ writes **execute when called**; they are not automatically staged for later approval.
+Reversible operations and explicit draft creation exist, but there is no universal undo or
+Margo-specific preview gate in the provider. A send, decline, reaction, or `permanentDelete`
+can become visible or irreversible immediately.
 
 That single property is why this repo's central rule exists:
 
@@ -135,8 +146,10 @@ Two notes specific to Work IQ that shape how Margo drafts:
   it is not an Outlook draft. A request for an Outlook draft requires an explicitly approved
   draft-creation write, and sending remains separately approved. Never call a local proposal
   an Outlook draft or a prepared artefact a published one.
-- **Tasks are M365 data.** "Add a task" / "remind me" routes to Planner or To Do through Work IQ.
-  It never gets satisfied with a local file or an in-session list.
+- **External tasks keep their canonical store.** A request for a Planner or To Do task uses
+  the supported Work IQ surface and its approval boundary. A local commitment ledger or
+  bounded task run is not a substitute for creating that requested external task. Link the
+  canonical ID rather than creating another competing tracker; report a denied path as blocked.
 
 See **[Trust & safety](safety.md)** for the full approval model, including which actions can be
 covered by a standing instruction and which never can.
@@ -153,7 +166,7 @@ Failures here are mostly *informative*, and treating them as transient is the mi
 | `Access denied for path: X` | The tenant has disabled that path family server-side | **Don't retry, don't reroute, don't fall back to `ask`.** Tell the user the path is not available in their tenant |
 | `400` on `calendarView` | Missing `startDateTime` / `endDateTime` | They're mandatory — supply both |
 | Empty tree from a CLI query | Often a tool limitation, not an empty result | Verify by another route before reporting zero |
-| `tool does not exist` | Missing the `workiq-` prefix, or the tool isn't released | Use the full prefixed name; check the tool list |
+| `tool does not exist` | Incorrect callable name or unavailable tool | Discover the host's full registered tool name and schema |
 
 `/me/todo/*`, `/me/contacts` and `/me/outlook/masterCategories` writes are commonly denied at the
 tenant level. Also worth knowing: directory users and personal contacts are **separate stores with
@@ -165,21 +178,38 @@ For deeper troubleshooting, load the `workiq` skill and read its `references/tro
 
 ## Large files
 
-`fetch_blob` caps at **4 MB**, and Work IQ cannot accept raw byte uploads. For anything larger,
-this repo ships `skills/chief-of-staff/scripts/m365_files.py` — a small bridge that authenticates
-with the same identity your Work IQ MCP connection already uses (it reads the client ID from the
-MCP's own OAuth config) and streams files to local disk.
+The documented `fetch_blob` transport caps at **4 MB**, and Work IQ does not accept raw byte
+uploads through the entity tools. Recheck the current host's binary tool contract before choosing
+a transfer route. For larger files, this repo ships
+`skills/chief-of-staff/scripts/m365_files.py`, a separate Graph client that streams to local disk.
+It can discover the client ID from the Work IQ MCP OAuth configuration, but performs its own
+interactive sign-in; it does not reuse the MCP connection's token or prove the same user signed in.
+
+The bridge currently requires **macOS Keychain** for its refresh-token store. From a default
+copy installation on macOS, replace the fictional account and provider IDs:
 
 ```bash
-python3 scripts/m365_files.py auth --account you@example.com
-python3 scripts/m365_files.py status
-python3 scripts/m365_files.py download --drive <driveId> --item <itemId>
+python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py --account you@example.com auth
+python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py --account you@example.com status
+python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py --account you@example.com download \
+  --drive "{driveId}" --item "{itemId}"
 ```
 
+`--account` is a global option before the subcommand. Its environment fallback is
+`MARGO_M365_ACCOUNT`, not the work ledger's `MARGO_ACCOUNT`. Confirm status's returned `upn`
+matches the intended principal; the account label is only a login hint and credential key.
+Status may refresh a token. Client discovery currently uses `~/.copilot/mcp-oauth-config`
+even when `COPILOT_HOME` points at another installation.
+
 Download works today. Server-side copy and upload are written and waiting on one thing: the
-public client needs `Files.ReadWrite.All`, which its consented Graph scopes don't currently
-include. `status` reports `can_write_files` so you can check rather than guess. Full detail in
-`skills/chief-of-staff/references/files.md`.
+documented client's consented Graph scopes lack file-write permission. `status` reports
+`can_write_files` so you can check rather than guess. Scope availability alone does not prove
+a completed transfer; the large upload-session path also has a documented token-audience
+limitation. Full detail in
+[documents and files](how-to/documents-and-files.md) and the
+[file procedure](../skills/chief-of-staff/references/files.md). A scope or policy denial is a
+blocked result, not permission to reroute through another credential or tool. This bridge is
+not covered by the scheduled wrappers' Work IQ tool denials.
 
 ---
 

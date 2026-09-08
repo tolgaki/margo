@@ -10,20 +10,22 @@ She waits for your approval before making those changes.
 This repo is the **reference implementation**: one agent persona, two skills, and the
 documentation to build your own.
 
-**Read this as a Work IQ reference, not as a product.** It is configuration for GitHub Copilot
-CLI — an agent persona, two skills, local state tools, an optional app canvas, and supporting
-docs — aimed at people building this kind
-of assistant rather than at people who want one off the shelf. Margo is the vehicle: an agent with
-enough opinion to show what the API is actually for, since the interesting parts of Work IQ only
-appear once something has to make a decision with the data. If you are here to build,
-**[Build your own](docs/build-your-own.md)** is the point of the repo and the rest is worked
-example.
+**This is a reference implementation, not a hosted product.** You can run it with your own
+Copilot host and connected accounts, or use it as a worked example to build an assistant.
+The documentation supports both paths:
 
-Microsoft 365 reads and approved writes go through Work IQ. Local Python helpers maintain private
-state, calculate capacity, and record approvals and receipts; an optional Copilot app canvas
-provides a review surface. The CLI remains sufficient. These helpers do not send mail or mutate
-calendars themselves. **[Trust & safety](docs/safety.md)** distinguishes runtime checks from agent
-instructions rather than claiming that a generally capable agent is sandboxed.
+| Your goal | Start here |
+| --- | --- |
+| **Use Margo** | [User journey](docs/user-guide.md): first brief, reviewed reply, meeting follow-through, and a weekly rhythm |
+| **Develop or adapt Margo** | [Developer journey](docs/development/README.md): safe checkout, architecture, a complete feature change, and contribution |
+| **Explore before choosing** | [Documentation home](docs/README.md) and [all 68 features](docs/features.md#full-feature-index), including availability and limitations |
+
+Microsoft 365 routines use Work IQ for reads and approved writes. Local Python state helpers
+maintain private records, calculate capacity, and record approvals and receipts; optional Copilot
+app panels provide review surfaces. The CLI remains sufficient. These state helpers do not send
+mail or mutate calendars. The separate [large-file bridge](docs/how-to/documents-and-files.md)
+has its own authentication and platform limits. **[Trust & safety](docs/safety.md)** distinguishes
+runtime checks from agent instructions rather than claiming a generally capable agent is sandboxed.
 
 ```
 "Brief me."                    → what today costs you, what to skip, what to answer
@@ -91,7 +93,7 @@ tests/                     Synthetic state, approval, capacity and installer reg
 docs/                       Start here ↓
 ```
 
-**New: closed-loop work.** A private SQLite ledger separates proposed commitments from confirmed
+**Closed-loop work.** A private SQLite ledger separates proposed commitments from confirmed
 obligations, carries versioned actions across sessions, and records approval and execution outcomes.
 Source-level coverage and leased delivery prevent a successful mail read or a drained queue from
 being mistaken for a complete brief. See **[Closed-loop productivity](docs/closed-loop.md)**.
@@ -107,12 +109,13 @@ it, and export only a separately reviewed generic lesson through
 
 ### Use Margo
 
-Task-oriented docs for running the assistant day to day. Start with
-**[the full feature index](docs/features.md#full-feature-index)** for every capability, its
-availability, and where its guide lives.
+Start with the **[user journey](docs/user-guide.md)** for an ordered path from your first brief
+to ongoing work. The **[full feature index](docs/features.md#full-feature-index)** lists every
+capability, its availability, and where its detailed guide lives.
 
 | Doc | What it covers |
 |---|---|
+| **[User journey](docs/user-guide.md)** | What to ask, what to expect, what you decide, and how to recover at each stage |
 | **[Getting started](docs/getting-started.md)** | Install, connect Work IQ, first run |
 | **[How-to guides](docs/how-to/README.md)** | Briefs, inbox, calendar, commitments, meetings, files, GitHub/ADO, community, decisions, memory and health — one guide per task |
 | **[Feature reference](docs/features.md)** | Every capability, where it lives, and its limits |
@@ -125,11 +128,13 @@ availability, and where its guide lives.
 
 ### Build with Margo
 
-This repo is a **reference implementation**, not a product — these docs are for forking it,
-understanding the Work IQ tool surface, or extending a skill.
+Start with the **[developer journey](docs/development/README.md)**. You can explore and exercise
+the synthetic core without connecting a real mailbox or installing into your normal profile.
 
 | Doc | What it covers |
 |---|---|
+| **[Developer journey](docs/development/README.md)** | Local exploration, extension points, a feature traced end-to-end, and a first contribution |
+| **[Architecture and state ownership](docs/development/architecture.md)** | Which layer owns evidence, work, approval, memory, task progress, and the optional UI |
 | **[Build your own](docs/build-your-own.md)** | The agent/skill split, and how to fork this |
 | **[How Margo uses Work IQ](docs/work-iq.md)** | `retrieve` vs `fetch` vs `ask`, payload discipline, failure modes |
 | **[The chief-of-staff playbook](docs/chief-of-staff.md)** | The routines and when each fires |
@@ -182,8 +187,11 @@ Or from a clone, which is what you want if you're here to read and fork:
 git clone https://github.com/tolgaki/margo.git
 cd margo
 ./install.sh --all          # or: .\install.ps1 -All
-./install.sh --link         # contributors: edit in place
 ```
+
+This copies the installation outside the checkout. For synthetic-only contributor setups and
+link mode, follow the [developer journey](docs/development/README.md); never personalize tracked
+files with real workplace data.
 
 Then teach her who you are — this is the step that matters:
 
@@ -200,7 +208,13 @@ python3 ~/.copilot/skills/chief-of-staff/scripts/margo_doctor.py
 ```
 
 An existing installation also needs the explicit
-[state migration](docs/how-to/setup-and-migration.md), with its schedules paused. Then run:
+[state migration](docs/how-to/setup-and-migration.md), with its schedules paused. Start Margo:
+
+```bash
+copilot --agent margo
+```
+
+Then ask:
 
 ```
 > Margo, brief me.

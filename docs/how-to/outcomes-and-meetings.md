@@ -4,6 +4,20 @@
 explicitly selected account, and current sources. The capacity calculator never fetches or changes
 a calendar.
 
+## Run the journey in conversation
+
+| When | Ask | Check before moving on |
+| --- | --- | --- |
+| Planning the week | "Propose up to three outcomes, and check whether the work fits." | Missing effort, calendar coverage and mandatory work are visible |
+| Before a meeting | "Prep my next review with Ines, including the carried agenda and decision needed." | The correct occurrence, current documents and source gaps are identified |
+| After the meeting | "Debrief that occurrence; separate decisions, my actions and unresolved questions." | A missing recap is not reported as no actions |
+| Reviewing follow-through | "Show the candidate obligations and carry only unresolved topics into the next occurrence." | Confirmation, carry-forward and any shared decision-log write stay separate |
+
+The conversation is sufficient; the numbered sections below show the underlying CLI records.
+For a prep-only request, start at [section 4](#4-keep-one-record-per-actual-meeting-occurrence);
+you do not need weekly outcomes before preparing a meeting. For a delayed recap, go to
+[section 5](#5-check-recaps-with-a-finite-budget).
+
 ## 1. Ask for a plan that exposes the trade-offs
 
 > Help me agree up to three outcomes for next week. Show owners, definitions of done, due dates,
@@ -250,6 +264,11 @@ newly carried, and no commitment is re-ingested.
 conflict rather than inventing a merged topic. Moving/cancelling one occurrence never applies a
 series-wide calendar change.
 See [meeting lifecycle](../../skills/chief-of-staff/references/meeting-lifecycle.md).
+
+For recurring 1:1 discussion files, continue to
+[Relationships and one-on-ones](relationships-and-one-on-ones.md). For a durable team decision,
+use the separately approved [decision-log](decision-log.md) workflow rather than treating the
+meeting's decision reference as another authoritative log.
 
 ## Feature reference
 

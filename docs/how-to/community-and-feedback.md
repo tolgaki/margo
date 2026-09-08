@@ -3,6 +3,19 @@
 **Preconditions:** complete [setup](setup-and-migration.md). Both routines are optional and need
 a one-time configuration step in `preferences.md` before they do anything.
 
+## Configure one source, then review one window
+
+1. Choose a community or feedback channel you are allowed to read. Ask Margo to resolve its
+   actual identity and show it before saving the pointer in your **installed private**
+   `preferences.md`. Do not put names, IDs or sweep results in the source checkout.
+2. Ask: **"Review that channel for this week so far. Show the covered window, unanswered
+   candidates and recurring themes. Do not reply or file anything."**
+3. Inspect the leading source threads. Separate product questions, reproducible failures,
+   team announcements and uncertain reports before deciding what merits a response.
+4. Choose a [private reply draft](drafting-and-follow-ups.md) or a
+   [backlog review](github-and-work-items.md#ado-work-items). A missing bug link is a reason to
+   investigate and deduplicate, not permission to create a work item.
+
 ## Engage
 
 **What this helps you do:** see what your product's Viva Engage community actually thinks —
@@ -10,8 +23,8 @@ unanswered questions first, since a customer question sitting open for weeks in 
 commitment nobody logged, then recurring themes and threads that ran hot.
 
 **Before you start:** the community name and GroupId recorded in `preferences.md` → *Community —
-Viva Engage*. If you don't own a community, this does nothing — delete
-`references/engage.md` and its `SKILL.md` row.
+Viva Engage*. If you do not own a community, skip this routine without deleting bundled
+procedures or changing the skill router.
 
 **Try it:**
 
@@ -23,9 +36,10 @@ Viva Engage*. If you don't own a community, this does nothing — delete
 what the community's collective mental model gets right or wrong about the product — each with
 the poster's name, the thread title, and a link.
 
-**What needs your decision:** posting a reply is public and company-wide, so it always needs
-explicit approval, written in your voice — Engage's visibility raises the bar, it doesn't lower
-it.
+**What needs your decision:** posting a reply is visible to the community's actual audience, so
+it always needs explicit approval of the account, destination, content and revision, in your
+voice. Do not assume every community is public or that a membership boundary permits wider
+distribution of its content.
 
 **Change your mind:** ask for a narrower time window or a specific theme any time.
 
@@ -45,14 +59,19 @@ a reply count or proof of reply-level threading.
 **Availability:** optional (needs a configured community), procedure. Runs on request, and
 recommended as a periodic manual sweep — not one of the six scheduled routines. Since 1.0.0.
 
+Treat "unanswered" as an evidence-qualified candidate when only retrieval metadata or a marked
+best answer is available; neither missing answer metadata nor an incomplete search proves no
+one replied. Parser rows without links are not citable, and salvaged rows need source review
+before you quote them.
+
 ## Teams feedback
 
 **What this helps you do:** see what's actually broken, from the people hitting it — a sharper
 signal than Engage, which is more "can this do X" than "this did not work."
 
 **Before you start:** the Team ID and Channel ID for the feedback channel, recorded in
-`preferences.md` → *Community — feedback channel (Teams)*. If you don't have one, delete
-`references/teams-feedback.md` and its `SKILL.md` row.
+`preferences.md` → *Community — feedback channel (Teams)*. If you do not have one, leave the
+integration unconfigured and skip it.
 
 **Try it:**
 
@@ -78,6 +97,9 @@ outputs may also persist. A summary is not a promise that source content was nev
 prints an explicit `WARNING ... PARTIAL` line) — Margo will never report an unanswered count from
 an incomplete sweep. "No replies" is not treated as "ignored" without checking whether the poster
 simply solved their own problem afterward.
+The documented timestamp walk is an approximation, not a complete change feed: it does not
+report deletions, and top-level posts alone do not establish reply coverage. Request the actual
+window, page completion and reply-fetch status alongside any count.
 
 **Availability:** optional (needs a configured channel), procedure. Runs on request. Since 1.0.0.
 
@@ -85,11 +107,17 @@ simply solved their own problem afterward.
 
 [Viva Engage community](../../skills/chief-of-staff/references/engage.md) and
 [Product feedback — Teams channel](../../skills/chief-of-staff/references/teams-feedback.md) have
-the exact retrieval/delta query shapes and parser invocations:
+documented retrieval/query examples and parser invocations. Discover current supported tools
+and schemas rather than applying one endpoint's fields to every collection.
+
+For optional local parsing, use the installed copy and private input files. After the
+[shared shell setup](README.md#before-running-a-cli-recipe):
 
 ```sh
-python3 skills/chief-of-staff/scripts/engage_parse.py RETRIEVAL_OUTPUT.txt --group "Product name" --format table
-python3 skills/chief-of-staff/scripts/teams_feedback.py MESSAGE_PAGE.txt --replies REPLIES_PAGE.txt --format table
+python3 "$COPILOT_HOME/skills/chief-of-staff/scripts/engage_parse.py" \
+  RETRIEVAL_OUTPUT.txt --group "Product name" --format table
+python3 "$COPILOT_HOME/skills/chief-of-staff/scripts/teams_feedback.py" \
+  MESSAGE_PAGE.txt --replies REPLIES_PAGE.txt --format table
 ```
 
 Both parser scripts are plain utilities with no automated test in this repository today — treat

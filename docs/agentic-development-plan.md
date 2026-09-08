@@ -1,10 +1,15 @@
 # Plan: make Margo agentic and agent-ready
 
-**Status: repository implementation delivered for 1.2.0; unreleased.** This roadmap covers two
-related goals: reliable, bounded assistance and a repository that coding agents can develop
-safely. End-user documentation is part of each feature, not a separate cleanup phase. The
-implementation status below is authoritative; the remaining sections preserve the rationale,
-acceptance goals and contribution requirements.
+**Status: historical delivery plan for the 1.2 development work, with implemented foundations.**
+This is design rationale, not the current setup guide, a release-status assertion or a list of
+unfinished tasks to execute automatically. The repository has continued evolving, including
+Dream reflection. Consult [VERSION](../VERSION), [release notes](../CHANGELOG.md) and the
+[feature inventory](features.md) for the version and capabilities in the checkout.
+
+For a new contribution, follow the [developer journey](development/README.md). For using Margo,
+start with the [user journey](user-guide.md) and [documentation hub](README.md). The sections
+below retain the original recommendation, sequencing and acceptance criteria so later changes
+can preserve their rationale without mistaking a proposal for current behavior.
 
 **Baseline and memory:** the branch `agentic-development-plan` started from `origin/main` at
 `14fa13e` (1.1.0), preserving existing memory work. That memory implementation was subsequently
@@ -16,12 +21,12 @@ Neither that commit nor this roadmap means a release or personal installation ha
 | Slice | Delivered in the repository | Boundary |
 | --- | --- | --- |
 | **P0** | [Agent instructions](../AGENTS.md), [state map](development/architecture.md), [change workflow](development/agent-workflow.md), aligned contribution/PR guidance and an agent-task issue form | Instructions are a development contract, not host-tool isolation |
-| **P1** | [67-entry feature catalog](feature-catalog.json), generated [feature navigation](features.md), guide anchors and metadata validation | Availability distinguishes runtime, procedure and optional/limited capabilities |
-| **P2** | Synthetic source fixtures, three integrated core journeys, catalog-wide scenario mappings and a [versioned model-trace evaluator](../evals/README.md) | 38 runtime mappings, 17 procedure-contract mappings and 12 model-evaluation mappings are different evidence classes; no live model journey results are claimed |
+| **P1** | [Feature catalog](feature-catalog.json), generated [feature navigation](features.md), guide anchors and metadata validation | Availability distinguishes runtime, procedure and optional/limited capabilities; use the current catalog rather than a historical feature count |
+| **P2** | Synthetic source fixtures, integrated core journeys, catalog-wide scenario mappings and a [versioned model-trace evaluator](../evals/README.md) | Runtime, procedure-contract and model-evaluation mappings are different evidence classes; `tools/journey_contracts.py --check` reports current counts, not model results |
 | **P3** | Durable bounded task runs, CLI, budgets/claims, safe read retries, pause/cancel, resume, replan and uncertain-effect reconciliation | The agent still performs provider/model calls; tracked limits do not constrain arbitrary host tools or grant permission |
 | **P4** | Task-oriented [user guides](how-to/README.md), router/procedure integration and the optional task-progress canvas | The panel reads progress and requests foreground discussion; it cannot approve, execute or silently resume work |
 | **P5** | Optional scoped memory, capture/retention controls, learning review, forgetting/recovery and [user guidance](how-to/memory-controls-and-learning.md) | No personal capture, model installation or state migration is enabled by editing this repository |
-| **P6** | Catalog/journey CI gates, installed-copy preservation scenarios, [distribution guidance](../packaging/README.md) and release notes | Actual release, native-package publication, deployment and cross-platform execution remain release/operator steps |
+| **P6** | Catalog/journey CI gates, installed-copy preservation scenarios, [distribution guidance](../packaging/README.md) and release notes | The existence of CI jobs and source code does not establish a particular release, personal deployment or successful cross-platform run |
 
 The catalog maps every feature to a scenario, not to a completed model evaluation. Missing
 traces, resource counters or human judgments remain unevaluated/unknown rather than passing.
@@ -69,9 +74,10 @@ the rules**.
 | Useful docs, but split between builder explanations, recipes and contracts | [Features](features.md), [how-to index](how-to/README.md), [playbook](chief-of-staff.md) | Add a complete user-task index; a router row or Python schema is not a user guide |
 | Explicit limits on unattended permissions | [Safety](safety.md) | Never advertise instruction-based safeguards as a sandbox |
 
-The original baseline had no root `AGENTS.md` or repository Copilot instruction file. Its feature reference
-focuses on the durable core, while the skill routers expose a broader set of user tasks.
-The existing how-to guides are a good starting point, not something to replace wholesale.
+At the original baseline there was no root `AGENTS.md` or repository Copilot instruction file,
+and the feature reference focused on the durable core. Those gaps informed the plan; they are
+not claims about today's checkout. Preserve the detailed how-to guides and current catalog
+rather than recreating them from this historical inventory.
 
 ## 2. The user experience to aim for
 

@@ -7,6 +7,23 @@ reviewed lesson. [Semantic memory setup](semantic-memory.md) covers the optional
 The examples are fictional. All memory operations described here are local; an export is not
 publication, and remembering a request is not accepting an obligation.
 
+## Pick the smallest control that solves the problem
+
+| You want to... | Start here |
+| --- | --- |
+| Stop new passive collection, keeping useful existing context | [Capture policy](#choose-what-may-be-captured) |
+| Understand a recommendation | [Inspect the record and its sources](#inspect-why-margo-knows-something) |
+| Change one fact, withhold it, or erase its memory copies | [Correct, do not use, or forget](#correct-do-not-use-or-forget) |
+| Avoid learning from one correction | [Feedback opt-out](feedback-and-work-products.md#respect-do-not-learn) |
+| Learn a bounded method from evidence | [Review a lesson](#learn-an-approach-without-granting-new-authority) |
+| Recover without reviving forgotten records | [Restore the deletion journal](#recover-safely-from-a-backup) |
+| Share reusable advice rather than private history | [Generic recipe export](#export-a-generic-lesson-not-a-personal-history) |
+
+Before CLI examples, complete [account and memory setup](semantic-memory.md#2-initialise-account-memory-and-review-a-seed).
+Use that installed skill directory, the same explicitly selected account, and private JSON files.
+Inspecting memory never initializes it. A missing optional model can be handled by explicitly
+selecting lexical retrieval; it is not permission to download one during a routine.
+
 ## Choose what may be captured
 
 > Remember task-relevant observations about review preparation, but do not collect my whole
@@ -354,12 +371,15 @@ Work IQ and other connected services retain their own data-handling boundaries.
 
 ### Memory capture
 
-Opt in to capturing sourced facts, preferences and episodes under a reviewed capture policy — see
+Opt in to passive capture of eligible sourced observations under a reviewed policy, or explicitly
+propose a preference in the foreground — see
 [Choose what may be captured](#choose-what-may-be-captured). Try it: *"Remember that I prefer
 async updates over status meetings."* What you'll see: a stored candidate memory with its source
 and scope, never silently promoted to confirmed without your review. What needs your decision:
-the capture policy itself (which domains/kinds/sources are eligible) needs your explicit review
-before anything is captured. Change your mind: adjust the policy or forget a captured memory any
+the policy itself (eligible domains/kinds/sources) needs review before passive capture.
+Foreground preference preparation and activation use their own exact review workflow; passive
+capture cannot assert user-confirmed authority.
+Change your mind: adjust the policy or forget a captured memory any
 time — see [memory control](#memory-control), below. Your data: memory lives in your private
 account-scoped SQLite database, migrated explicitly between schema versions, never silently.
 If something goes wrong: capture defaults off, and a passive observation never manufactures a
@@ -375,8 +395,9 @@ up? That's stale — forget it."* What you'll see: the source and scope behind a
 and, on request, its removal from retrieval and derived indexes. What needs your decision:
 forgetting is explicit and approved per record — nothing is erased implicitly. Change your mind:
 suppression ("do not use") preserves history and can itself be reversed; forgetting cannot be
-undone by later passive recapture. Your data: a minimal tombstone is kept after forgetting so a
-restored older backup can't silently revive it. If something goes wrong: see
+undone by later passive recapture of the same identity. Your data: a minimal tombstone is kept
+after forgetting. Restore the latest deletion journal before recalling an older backup; the old
+backup cannot know about later deletions on its own. If something goes wrong: see
 [If something goes wrong](#if-something-goes-wrong), above, for the specific failure/response
 table. Optional, runtime (deterministic governance/tombstone code with tests). Since 1.2.0.
 
@@ -389,7 +410,8 @@ Try it: *"That approach worked well — propose it as a lesson, scoped to this k
 you'll see: a proposed lesson backed by an actual capability check or execution receipt, inert
 until you activate it. What needs your decision: activation is explicit, and even then a lesson
 never grants tool authority or lowers an approval requirement. Change your mind: an activated
-lesson can be revoked the same way a rule can. Your data: lessons and capability evidence live in
+lesson can be suppressed through the memory revision workflow; unlike work-ledger rules, memory
+does not use a `revoked` state. Your data: lessons and capability evidence live in
 the private memory database. If something goes wrong: input-contract validation is not remote
 execution and proves no general competence — it's reported as exactly that, a pinned synthetic
 check. Optional, runtime (deterministic lesson proposal/activation code with tests). Since 1.2.0.
@@ -398,7 +420,8 @@ check. Optional, runtime (deterministic lesson proposal/activation code with tes
 
 Review evidence-backed trend candidates over a bounded population and window, without automatic
 behavioral activation — see [Review patterns without manufacturing trends](#review-patterns-without-manufacturing-trends).
-Try it: *"Is there a pattern in when my meetings run over?"* What you'll see: a trend candidate
+Try it: *"Are meeting-preparation gaps recurring? Show independent events, the window and coverage."*
+What you'll see: a trend candidate
 with its population, window and coverage stated explicitly — never presented as a confirmed rule
 or a colleague performance score. What needs your decision: a trend candidate needs the same
 review as any proposed rule before it changes behavior. Change your mind: dismiss a candidate any

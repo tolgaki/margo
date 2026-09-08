@@ -1,5 +1,9 @@
 # Personalization
 
+**Start with working hours, priorities, important people, and your drafting voice.** Return here
+after your first brief to refine the settings that made its recommendations useful or wrong.
+This is the personalization step in the [user journey](user-guide.md#1-set-up-a-small-private-starting-point).
+
 Margo can explain routines before setup, but durable state requires an explicitly configured
 account. Personalisation then makes the difference between a generic summary and advice grounded
 in the user's actual working hours, priorities and communication preferences.
@@ -69,6 +73,10 @@ The categories matter more than the specific entries. **"Drop, don't move"** is 
 forget to fill in and then miss: for a large meeting you're tentative on and not presenting at,
 declining is far cheaper than reshuffling three other things around it.
 
+These categories guide a proposed plan, not permission to execute it. "Move freely" does not
+mean unattended movement or a standing grant. You still review the exact named moves; sends,
+cancellations, and responses retain their applicable per-action approval.
+
 The **"ask before touching"** row exists for a specific failure. If a colleague is twelve time
 zones away, your working overlap might be one hour a day — and casually moving the meeting that
 sits in it is expensive in a way that free/busy data doesn't show.
@@ -132,8 +140,8 @@ Two rules keep it worth reading:
 - **Every row carries a source** — subject or meeting name, plus the `webLink` — so any item can
   be verified and reopened in one click.
 
-And one that keeps it honest: **a row is added only when the commitment was really made**, in a
-real message or meeting, or because you said so. Nothing is inferred.
+And one that keeps it honest: **a possible commitment stays a candidate until confirmed**.
+Sourced extraction can propose a row; it cannot silently turn an inference into an obligation.
 
 Closed items remain in the ledger history rather than being deleted. A compact export can show
 only recent history without destroying the underlying record.
@@ -150,6 +158,18 @@ through learning.
 
 The fastest way to improve output is to fix the file rather than re-explaining in chat. If a
 brief surfaces something you never care about, that's a missing *auto-deprioritize* row.
+
+### Preferences are not passive memory capture
+
+Editing your private preferences does not enable general collection of sessions or messages.
+Memory capture has a separate reviewed scope and defaults off. If you have explicitly imported
+preferences into memory, later file edits require the documented reviewed re-import; stale
+memory must not overrule the current file.
+
+Use [memory controls](how-to/memory-controls-and-learning.md) to inspect, suppress, or forget a
+record, and [semantic memory setup](how-to/semantic-memory.md) for preference seeding. A correction
+to one draft is not automatically a standing rule. "Do not learn from this" is not a global
+erasure command.
 
 ---
 

@@ -3,6 +3,24 @@
 Optional Copilot app canvas over Margo's portable work ledger. The app supplies
 `@github/copilot-sdk`; no package installation or build step is required.
 
+This one extension declares three canvases: **Action Desk**, **Memory** and **Task Progress**.
+None is required for the CLI/conversation workflow. Start with the
+[developer journey](../../../docs/development/README.md) for a synthetic-only setup and
+[the user guide](../../../docs/user-guide.md) for the surrounding workflow.
+
+## Development map
+
+| Surface | Declaration / implementation | State owner |
+| --- | --- | --- |
+| All three canvases | `extension.mjs`; shared `server.mjs` | None; host lifecycle and local HTTP adapters only |
+| Action Desk | `backend.mjs`, `index.html`, `app.js` | `work_state.py` |
+| Memory | `memory-backend.mjs`, `memory.html`, `memory-app.js` | `memory_state.py` |
+| Task Progress | `task-backend.mjs`, `tasks.html`, `task-app.js` | `task_state.py` |
+
+Read the [state map](../../../docs/development/architecture.md) before adding data. Extend an
+existing CLI contract first, not a renderer-owned database or browser-selected command.
+Review requests return to the conversation; they never stand in for a subsequent exact decision.
+
 ## Runtime contract
 
 - Canvas: `margo-action-desk`. Open input: `{}`.
@@ -16,7 +34,9 @@ Optional Copilot app canvas over Margo's portable work ledger. The app supplies
   `~/.copilot/skills/…`), checking each for an existing regular file. This also
   supports the installer's custom `--dest` layout. Missing core/configuration is
   shown as setup needed.
-- The CLI resolves `~/.copilot/margo/config.json`. Browser input cannot select
+- The CLI resolves the configured account using its trusted process environment and private
+  config (normally `~/.copilot/margo/config.json`, or the bundled helpers' `COPILOT_HOME` /
+  `MARGO_CONFIG` override). Browser input cannot select
   an account, script, command, interpreter, configuration file, or database path.
 - Local UI operations on action proposals are payload revision, defer, and
   dismiss. Work items and typed records are read-only because their transitions
@@ -46,7 +66,7 @@ labelled with their actual hostname and optional stored title. Links use
 `target="_blank"` and `rel="noopener noreferrer"`; credentials, relative URLs and
 other schemes are rejected. The canvas never fetches those external URLs.
 
-The two HTTP read routes are `GET /api/items` and `GET /api/items/:id`.
+The two Action Desk HTTP read routes are `GET /api/items` and `GET /api/items/:id`.
 User-interface POST routes are `/api/items/:id/revise`, `/defer`, `/dismiss`,
 and `/review`; there is deliberately no `/approve` or `/execute`.
 
@@ -76,6 +96,32 @@ references, fingerprints, work-item association and optional dependencies while
 replacing only `payload`. The complete document goes through subprocess stdin,
 not argv or temporary files. Structured CLI failures on stderr are propagated
 as HTTP errors; arbitrary stderr and stack traces are not exposed.
+
+## Margo Memory
+
+Optional read-only inspection/search over `memory_state.py`, adjacent to the resolved work
+script. This panel does not initialize, migrate, capture, correct, forget, activate or export
+memory and does not install a model.
+
+- Canvas: `margo-memory`. Open input: `{}`.
+- Registered agent actions: `list`, `search` and `status`. The browser also offers detail,
+  inspection/history, graph and policy reads; those are **not** additional registered actions.
+- Search defaults to hybrid meaning-based retrieval. A missing local runtime is an explicit
+  unavailable state, not a cloud or silent keyword fallback. The user may explicitly select
+  lexical search with a domain or routine scope. Query text goes through subprocess stdin.
+- `memory-backend.mjs` uses fixed `memory_state.py` argv, `-B`, no shell, a 60-second timeout
+  and a 4 MiB response cap. IDs, enums and result shapes are validated.
+- Read operations use `POST /api/memory/list`, `/show`, `/search`, `/status`, `/inspect`,
+  `/graph` and `/policy`; HTTP POST here does not imply a memory mutation. Static routes are
+  `GET /memory` and `GET /memory.js`.
+- `POST /api/memory/review` requests foreground discussion of an exact ID/revision and
+  `correct`, `forget`, `supersede`, `do-not-use` or `export` intent. It rereads the current
+  record, rejects changed or forgotten records, and shares the panel's review-request lock.
+  Export review is restricted to an active user-confirmed lesson and is discussion of a
+  sanitized recipe, not a raw dump, file creation or publication.
+- Schema mismatch and missing initialization require explicit foreground recovery. Do not
+  catch those errors and render an empty collection. Memory data and selected context remain
+  subject to the [memory privacy contract](../../../docs/how-to/memory-controls-and-learning.md).
 
 ## Margo Task Progress
 
@@ -133,6 +179,8 @@ node --check .github/extensions/margo-action-desk/extension.mjs
 node --check .github/extensions/margo-action-desk/backend.mjs
 node --check .github/extensions/margo-action-desk/server.mjs
 node --check .github/extensions/margo-action-desk/app.js
+node --check .github/extensions/margo-action-desk/memory-backend.mjs
+node --check .github/extensions/margo-action-desk/memory-app.js
 node --check .github/extensions/margo-action-desk/task-backend.mjs
 node --check .github/extensions/margo-action-desk/task-app.js
 ```
@@ -149,6 +197,18 @@ is not bypassed. No OS temporary directory is selected automatically.
 invalid fields, missing initialization, stale/conflicting/concurrent review
 requests, hostile-content rendering, budget/unknown/cancellation states and
 pagination — all against a mocked `task_state.py`-shaped backend.
+
+For a focused change, run the matching `action-desk.test.mjs`, `memory.test.mjs` or
+`task.test.mjs` with `node --test` before escalating to the full set.
+Without `MARGO_CANVAS_TEST_PARENT`, report the real-core cases as skipped, not passed.
+Use an existing private fixture parent created deliberately outside repositories and
+synchronized folders; its ancestors must satisfy the production ownership/permission checks.
+Do not point this variable at a configured account database.
+
+CI's real-core path exercises persisted state through Python and HTTP, not a live Copilot app
+or a real embedding model. Host-level install/reload/open and accessibility observations are
+separate, explicitly opted-in checks. The installer flag `--action-desk` / `-ActionDesk` copies
+all three canvases; it does not initialize account state, enable capture or activate schedules.
 
 ## Limitations
 

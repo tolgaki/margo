@@ -3,6 +3,10 @@
 The scheduled half of Margo, as files. One Markdown file per automation: YAML front matter for
 the schedule, the body is the prompt that gets sent.
 
+Users should start with [scheduled operation](../docs/proactive.md) and
+[automation health](../docs/how-to/automation-health.md). This page is the manifest-authoring
+reference linked from the [developer journey](../docs/development/README.md).
+
 ```
 ---
 name: CoS — Morning brief
@@ -41,7 +45,9 @@ skipped — see below.
 The prompts used to live in exactly one place — the app's local database, on one machine,
 backed up by nothing — while the repo shipped a wrapper that sent `"Run my morning brief."`
 instead. Two schedule paths, no shared source of truth, and a documented tier table that had
-drifted from the live crons. Editing a prompt here now changes both paths.
+drifted from the live crons. Both paths now take their prompts from these files, but deployment
+is separate: wrappers read the installed files at run time, while saved app workflows need an
+explicit sync. Editing the checkout alone does not update an installed copy or a saved workflow.
 
 ## Running them
 
@@ -54,8 +60,11 @@ denials:
 ./tools/margo-scheduled.sh crontab     # ready-to-install crontab lines
 ```
 
-**Via the Copilot app's scheduled workflows** — ask Margo to *"sync my automations"* and she
-registers each file with `save_workflow`, matching on `name`.
+**Via the Copilot app's scheduled workflows** — review the exact proposed prompts, cadence,
+time zone, agent, and enablement changes before approving sync. Registration uses the host's
+workflow tool (such as `save_workflow`), matching on `name`; do not change unrelated workflows.
+The manifest's `mode: autopilot` is a host execution mode, not permission to send unattended
+or a reference to the proposed agent-owned identity in `docs/autopilot.md`.
 
 > ⚠️ The two paths do not carry the same guarantee. The wrapper makes the four Work IQ write
 > tools uncallable; app workflows run under the app's own permissions with **no deny list**, so
