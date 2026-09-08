@@ -4,6 +4,19 @@ Semantic memory is a local search layer over authoritative memory records. It co
 context, keyword search and embeddings; a similarity score is never a truth or approval score.
 The work ledger remains the source of truth for obligations and actions.
 
+## Choose how much setup you need
+
+| Goal | Required | Not required |
+| --- | --- | --- |
+| Briefs using current preferences and live sources | Ordinary Margo/Work IQ setup | Memory capture or an embedding model |
+| Inspect saved memory and search keywords | Explicit account memory setup | Optional embedding runtime |
+| Search saved memory by meaning | Memory setup plus the local runtime/model below | A cloud embedding service |
+| Capture observations or learn a standing preference | Reviewed capture/review workflow | Permission to act on the outside world |
+
+Installing a model does not populate memory or enable passive capture. Initializing memory does
+not install a model. Keep these choices separate; start with lexical inspection if you want to
+understand the records before adding the optional download.
+
 ## Start with what you want to do
 
 > What do you remember about my review preferences? Show the sources and anything that is
@@ -57,6 +70,7 @@ Configure the account using the existing [setup guide](setup-and-migration.md). 
 skill directory:
 
 ```bash
+cd "$COPILOT_HOME/skills/chief-of-staff"
 python3 scripts/memory_state.py init
 python3 scripts/memory_state.py preferences-preview preferences.md
 ```
@@ -81,6 +95,9 @@ python3 scripts/memory_state.py capabilities --skills-dir "$COPILOT_HOME/skills"
 python3 scripts/memory_state.py index --limit 100
 python3 scripts/memory_state.py status
 ```
+
+`index` in this example needs the optional runtime from section 1. If you chose keyword-only
+use, skip it and select `--mode lexical` in section 3; lexical reads do not need a vector index.
 
 Profile sections are stored as observations of the saved file, not independently verified facts.
 Preference sections preserve their user-confirmed scope. Unfilled placeholders are not user

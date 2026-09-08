@@ -4,6 +4,19 @@
 [shared shell setup](README.md#before-running-a-cli-recipe). For connected reads, verify the
 invoking Work IQ binding and account. All CLI writes below are local.
 
+## Choose the decision you are making
+
+| You want to... | Ask | Result |
+| --- | --- | --- |
+| Remember an observed ask | "Capture a candidate with its source; leave owner/date unknown if unclear." | Private candidate, not a promise |
+| Accept the work | "Confirm this exact candidate; here is the owner and agreed due date." | Confirmed obligation, not a send |
+| Prepare a response | "Draft the next action privately and show recipients and content." | Versioned proposal, not delivery |
+| Delay or decline a proposal | "Defer it until Friday" or "Dismiss this proposal." | Proposal disposition; underlying work stays open |
+| Close accepted work | "Review the completion evidence and resolve this exact item." | Reviewed work transition; history retained |
+
+Start with section 1 in conversation. Sections 2-6 are the advanced record-by-record CLI path;
+you do not need to construct JSON manually for ordinary use.
+
 ## 1. Start with an ask, not an inferred promise
 
 Try:
@@ -260,8 +273,8 @@ machine with tests). Since 1.1.0.
 ### Follow-through
 
 Know what you're waiting on, aged honestly, with silent resolution checked before any nudge is
-drafted — see the [follow-through procedure](../../skills/chief-of-staff/references/follow-through.md) and
-[Follow-through](../../skills/chief-of-staff/references/follow-through.md) for the ageing ladder
+drafted — see the [follow-through procedure](../../skills/chief-of-staff/references/follow-through.md)
+for the ageing ladder
 and escalation rungs; there is no dedicated CLI section for this routine beyond the shared
 `work`/`proactive` commands used throughout this page. Try it: *"What am I waiting on? What needs
 chasing?"* What you'll see: rows aged in working days, checked for a reply that already arrived,
@@ -309,8 +322,9 @@ execution pipeline with tests). Since 1.1.0.
 
 Review the same durable proposals in an optional app panel instead of the CLI. Try it: enable it
 with `./install.sh --all --action-desk` (or `.\install.ps1 -All -ActionDesk`), reload extensions
-in your Copilot app, then open the Margo Action Desk panel. What you'll see: the same work items,
-evidence links, and action payloads as the CLI, editable and defer/dismiss-able from the panel.
+in a Copilot host supporting canvas extensions, then open the Margo Action Desk panel. What
+you'll see: the same work items, evidence links, and action payloads as the CLI. Action proposals
+can be edited, deferred or dismissed; work items and typed records are read-only in the panel.
 What needs your decision: the canvas has **no approve/send endpoint** — a review request sent from
 the panel is not consent; approval still happens in the foreground conversation as described
 above. Change your mind: close the panel any time; nothing it shows is mutated by viewing it.

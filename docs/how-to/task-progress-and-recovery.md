@@ -25,6 +25,11 @@ it does not authenticate, collect source data, send anything or enable a schedul
 
 ## Try it
 
+For a first use, choose a small task such as preparing a meeting, not an unattended multi-day
+campaign. Ask Margo to show the goal, source window, deadline, budgets and final deliverable.
+If progress cannot be stored, decide whether an explicitly non-resumable read-only answer is
+enough; do not assume that a conversation summary is a durable task checkpoint.
+
 ### Task progress
 
 > Prepare my day. Keep progress so we can pick it up later. Show any missing sources and stop
@@ -37,6 +42,10 @@ to manipulate a database or know the internal step IDs.
 
 Expect the current task status, step outcomes, remaining budget and source gaps. An expired
 claim is a recovery item, not proof that a call never happened.
+
+In a later session, identify the actual saved task by its goal and date, then inspect it before
+starting a new run. With several similar tasks, choose the existing record rather than allowing
+the same request to become a duplicate attempt.
 
 ### Task recovery
 
@@ -173,3 +182,8 @@ progress so an actual recovered result can settle it without another remote read
 
 Exact field contracts and controller procedure:
 [Task runs](../../skills/chief-of-staff/references/task-runs.md).
+
+For a run that stopped at **approval**, continue in the
+[action desk](commitments-and-action-desk.md#approval-execution). For a run that completed but
+whose brief you cannot find, check [output delivery](automation-health.md#output-delivery);
+that is a different problem from task execution or source coverage.

@@ -3,6 +3,23 @@
 **Preconditions:** complete [setup](setup-and-migration.md) and confirm the Work IQ connection.
 Fill in `preferences.md` → *Communication & drafting voice* so drafts sound like you, not Margo.
 
+## From request to reviewed draft
+
+1. Give the source and intent: **"Reply to Dana's specification-review email. Acknowledge the
+   questions and propose a short discussion; don't promise a completion date."**
+2. Check the draft's To/Cc, reply versus reply-all, channel, facts and any proposed commitment.
+   If two threads or people match, choose the actual one before approving.
+3. Revise: **"Make it shorter, keep the source link, and remove the new deadline."** Margo saves
+   a new proposal revision; earlier approval no longer applies.
+4. Choose the next state explicitly: keep it private, request an Outlook draft, send this exact
+   version, or dismiss it. Creating an Outlook draft and sending it are different external writes,
+   each requiring its own approval. A private draft needs neither mailbox write.
+5. After any approved send, expect a result reference or an explicit unknown/partial outcome.
+   A prepared draft or approved proposal is not evidence that the recipient received anything.
+
+For a memo, comparison or full agenda rather than a message, use
+[Prepare a work product](feedback-and-work-products.md#work-products).
+
 ## Drafting
 
 **What this helps you do:** get a ready-to-send reply, new message, or Teams draft — grounded in
@@ -23,8 +40,9 @@ followed by "Send as-is, edit, or discard?" The draft is always in **your** voic
 `preferences.md`, never the assistant's; commentary around the block can carry Margo's voice, the
 draft itself never does.
 
-**What needs your decision:** nothing sends until you say so for that exact draft. Editing the
-draft invalidates any prior approval — a changed body needs a fresh yes.
+**What needs your decision:** nothing sends until you approve the exact account, action,
+destination, payload and revision. Editing recipients, attachments, body or other write-relevant
+fields invalidates prior approval; changing only the proposal's reason also creates a new revision.
 
 **Change your mind:** ask for a rewrite, a different tone, or a second variant any time before you
 approve it; dismissing a draft hides it from the active action desk and invalidates unused
@@ -59,9 +77,10 @@ meeting or thread to start from.
 > Make this exec-ready — pull in the meeting chat and the transcript too.
 
 **What you will see:** a message structured "what we heard from you" before "what we're doing,"
-each point credited to the person who raised it, with concrete owners, dates, and cadence — not
-vague commitments. Before presenting it, Margo resolves the exact destination chat; if more than
-one candidate chat matches, it stops and asks which one rather than guessing.
+each point credited to the person who raised it, with supported owners, dates, and cadence.
+Missing details stay open questions or clearly marked proposals, not invented commitments.
+Before presenting it, Margo resolves the exact destination chat; if more than one candidate
+matches, it stops and asks which one rather than guessing.
 
 **What needs your decision:** you approve the destination and the text together — approving a
 topic string is not approval to post to a specific chat if the chat gets resolved afterward.

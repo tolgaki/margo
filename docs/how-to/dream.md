@@ -9,6 +9,24 @@ daily reflection → sourced episodes and candidate interpretations → task-sco
 context. It uses the existing account memory, work ledger, task journal and output APIs. No second
 memory database, model download, background schedule, or outward-action permission is added.
 
+## Try a small reflection before the advanced commands
+
+1. Ask **"Can this host supply authorized checkpoints from our current Margo session in this
+   workspace? Show the supported scope; do not import history."** Unsupported hosts stop here.
+2. Review the exact capture-policy proposal, including episode/decision kinds and checkpoint
+   sources. Opting in is not the same as importing every session.
+3. During ordinary non-Dream work, choose a short observation to checkpoint. Ask to see its
+   actual text, speaker and source locator; it should not be replaced with an invented summary.
+4. After the chosen daily cutoff has passed, ask **"Dream about that completed day in my time
+   zone. Use one bounded page; show what was omitted and keep interpretations as candidates."**
+5. Review one candidate against its citation. Correct, reject or explicitly confirm it through
+   [memory controls](memory-controls-and-learning.md), then retrieve only relevant context for a
+   later task. A reflected "decision" is not automatically a team decision-log entry.
+
+Expect **checkpoint-only partial coverage**, even when reflection succeeds. If no checkpoints
+were saved, Dream cannot reconstruct the day from a session list. The commands below explain
+the host/controller contract; ordinary users do not need to manufacture checkpoint JSON.
+
 ## Set up and opt in
 
 Run commands from the installed `chief-of-staff` skill directory. Normal copy installation ships

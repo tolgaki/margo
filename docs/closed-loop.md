@@ -6,8 +6,28 @@ prepared actions, approvals, and results. Both use the same account-scoped SQLit
 Neither script makes Microsoft 365 writes. The interactive agent performs explicitly approved
 Work IQ actions and records their actual results.
 
-Start with the [how-to index](how-to/README.md) for step-by-step recipes or the
-[feature reference](features.md) for implemented behaviour and limits.
+Start with the [user journey](user-guide.md#5-make-the-work-survive-the-next-session) for the
+user-facing flow, the [how-to index](how-to/README.md) for step-by-step recipes, or the
+[feature reference](features.md) for implemented behaviour and limits. Developers can follow
+the same path through the [state-ownership map](development/architecture.md).
+
+## One thread, several distinct decisions
+
+Suppose a meeting recap says you will send Dana a revised launch plan. This fictional example
+shows why the records are connected but not interchangeable.
+
+| Stage | What Margo keeps | What you decide |
+| --- | --- | --- |
+| Capture | The exact recap revision and a candidate obligation | Whether you actually accepted that commitment |
+| Confirm | A confirmed work item with owner, date, and source | Whether its details accurately describe what you owe |
+| Prepare | A private, versioned plan and follow-up proposal | Whether the content is ready |
+| Approve | The exact account, recipient, payload, and action revision | Whether to send that specific version |
+| Execute | Fresh preflight, an execution claim, and the actual result | How to handle a stale proposal or uncertain effect |
+| Reconcile | Later evidence and any proposed work-item transition | Whether the obligation is resolved, not just whether a message was sent |
+
+You can stop at any stage. A ready draft can remain unsent; a sent message can leave work still
+open; a dismissed proposal does not erase the commitment. An interrupted task run points back
+to these records rather than creating a second copy of the work.
 
 ## Install and upgrade
 
@@ -98,3 +118,8 @@ The separate memory records now support user context and agent learning with hyb
 retrieval, provenance, lifecycle and forgetting. They link context without replacing work records.
 See [semantic memory](how-to/semantic-memory.md). Installing a skill still does not imply proven
 competence; the capability observer records installation and version, not execution success.
+
+Opt-in [Dream reflection](how-to/dream.md) adds sourced episodes and candidate interpretations
+from selected checkpoints, not confirmed obligations or team decisions. Durable
+[task progress](how-to/task-progress-and-recovery.md) records this attempt's plan, claims, and
+limits. Neither memory nor task tracking grants external-action authority.

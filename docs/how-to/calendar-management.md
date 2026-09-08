@@ -4,6 +4,19 @@
 All calendar writes below — create, update, cancel, accept, decline, tentative — happen only
 after your explicit approval of that specific action.
 
+## Give a schedulable request
+
+Include the people, purpose, duration, date window and time zone. Mention whether an existing
+meeting is one occurrence or a whole series; titles alone do not uniquely identify events.
+
+> Find 30 minutes with Dana next week for a specification review, during my working hours.
+> Keep my protected focus blocks. Show options only; do not book anything.
+
+Review the selected slot's attendees, agenda and time zone together. **"The morning option looks
+better"** is a preference while choosing, not necessarily approval of a fully specified event.
+Before a real create/update, Margo shows the exact account, action and current proposal revision.
+Afterward, expect the event link and observed result, not merely "approved".
+
 ## Calendar scheduling
 
 **What this helps you do:** find a time that actually works and get a meeting on the calendar,
@@ -56,9 +69,10 @@ with the same care as any other send, always per-action. If you don't organize t
 proposes the attendee-side action instead (respond, propose a new time, message the organizer) —
 it will not modify or delete an event you don't own.
 
-**Change your mind:** ask to keep the original time, change who gets notified, or add a note
-before approving; a partially completed multi-step plan reports which steps finished and which
-didn't, rather than silently rolling back.
+**Change your mind:** ask to keep the original time, change the proposed attendees, or revise a
+note before approving. Whether notifications can be controlled depends on the actual provider
+operation; do not assume an organizer update can be made silently. A partially completed plan
+reports which steps finished and which did not rather than silently rolling back.
 
 **Your data:** the proposed old→new time, affected people, source revisions, approvals and
 execution receipts remain in the private ledger after approval, dismissal or execution.
@@ -94,8 +108,9 @@ instead of a flat decline, before you approve the batch.
 **Your data:** the proposed response set, its revisions, approvals and execution receipts remain
 in the private ledger after approval, dismissal or execution.
 
-**If something goes wrong:** a batch response that partially fails reports which responses went
-through; it does not retry the ones that failed without telling you.
+**If something goes wrong:** a partial batch reports known completed responses separately from
+failed or unknown ones. Unknown outcomes require a fresh provider read, not another RSVP.
+Remaining writes need their own valid proposal and approval; they are not blindly retried.
 
 **Availability:** implemented, procedure. Since 1.0.0.
 
@@ -132,14 +147,18 @@ proposals and their history remain in the private action ledger; dismissing one 
 the full window before reporting rather than judging from a partial read; if it can't, it says the
 window was incomplete rather than presenting partial numbers as final.
 
-**Availability:** implemented, procedure. Runs on request, and folded into the weekly
-[ambient scan](automation-health.md#automation-ambient). Since 1.0.0.
+**Availability:** implemented, procedure. Runs on request; the daily
+[ambient scan](automation-health.md#automation-ambient) can queue findings for the weekly digest.
+Since 1.0.0.
 
 ## Advanced reference
 
 All four modes share one reference file —
 [Calendar Management](../../skills/chief-of-staff/references/calendar.md) — including the exact
-Work IQ query shapes (`calendarView` requires `startDateTime`/`endDateTime` or it 400s), the
+Work IQ query examples (`calendarView` requires `startDateTime`/`endDateTime`), the
 invite-text guidance (never expose scheduling mechanics to the recipient), and the hygiene
 computation. There is no dedicated calendar CLI; every proposed change flows through the same
 [action desk](commitments-and-action-desk.md#action-desk) as any other action.
+Provider capabilities and schemas must still be discovered in the current host. For a
+week-level plan rather than an individual meeting, continue to
+[Outcomes and capacity](outcomes-and-meetings.md#capacity).

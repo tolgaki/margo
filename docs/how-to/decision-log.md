@@ -1,9 +1,28 @@
 # Keep a durable decision log
 
 **Preconditions:** install the optional `decision-log` skill (`./install.sh --all` or
-`.\install.ps1 -All`) and fill in `skills/decision-log/config.md` with the log's location,
-sources, team members and workstream areas. Writes to the log are pull requests to a shared git
+`.\install.ps1 -All`) and fill in the installed `skills/decision-log/config.md` with the private
+registry repository, clone location, team slug and ID prefix. That file is a **pointer**:
+the shared registry's `teams/{team-slug}/config.md` holds sources, people, areas and conventions;
+`teams/{team-slug}/DECISIONS.md` is the log. Writes are pull requests to that shared git
 repository, not in-place edits — this is a team-shared surface, not private account state.
+
+## Your first source-to-record journey
+
+1. Verify the configured registry and read its current default-branch log. If you cannot refresh
+   it, say the log may be stale; do not infer that a decision is still current.
+2. Ask: **"Extract the decisions from this meeting, using its actual date. Show duplicates,
+   uncertain items, open questions and tasks separately. Do not publish yet."**
+3. Review the proposed choice, rationale, owner, affected area, reversibility and decisive source.
+   An AI recap without decisive quoted language may warrant `needs-confirmation`, not `high`.
+4. Approve the exact records and destination when ready. The PR contains one meeting or thread,
+   newly allocated IDs, any supersession updates and a regenerated index.
+5. Treat an unmerged PR as a proposal, not the authoritative default-branch log. Later, ask
+   **"What is the current call on this, including amendments and supersession?"**
+
+Keep the registry private when it contains workplace decisions. This reference-implementation
+repository is not a destination for your team's log. Logging a team's conditional decision also
+does not give Margo standing permission to execute its future external actions.
 
 ## Decision extraction
 
@@ -25,15 +44,19 @@ raised but not decided, and action items misclassified as decisions (routed else
 **What needs your decision:** nothing is written to the log without your explicit approval of the
 proposed set — a summary is not consent. You can log all, a subset, or edit any record first.
 
-**Change your mind:** reject a proposed record before it's written; nothing durable happens
-until you approve it. Once written, a record is never edited away — see supersession, below.
+**Change your mind:** reject a proposed record before it is written to the shared log.
+Once active, a record is never edited away — see supersession, below. The procedure has a
+specific exception for a human-rejected `needs-confirmation` record, which may be removed.
 
 **Your data:** approved records go into the shared decision-log repository via a pull request,
-reviewable like any other change; nothing about the extraction process is stored privately.
+reviewable like any other change. Source content and proposals may remain in session history,
+private local inputs or the registry clone; approval of publication is not a no-retention promise.
 
 **If something goes wrong:** genuinely uncertain items are marked `needs-confirmation` rather
 than logged at full confidence — under-extracting is the deliberate failure mode here, because a
-log with 20 real decisions beats one with 200 maybes.
+log with 20 real decisions beats one with 200 maybes. With your approval, uncertain records can
+be stored as `Status: needs-confirmation`; they do not outrank active decisions. Later explicit
+confirmation updates Status/Confidence, while rejection removes that unconfirmed record.
 
 **Availability:** optional (requires the `decision-log` skill), procedure. Since 1.0.0.
 
@@ -50,15 +73,16 @@ outranks a settled decision.
 > Is the schema freeze still three weeks before release?
 
 **What you will see:** the current record, and if it was superseded, the full chain to what's
-active now. If the log has no answer, Margo says so explicitly and falls back to transcripts,
-clearly marked unconfirmed — never presented with the log's authority.
+active now. Applicable amendments are included too; a passed `Revisit` date is flagged, not
+silently treated as expiry. If the log has no answer, Margo checks repository artifacts before
+meeting/chat evidence, keeping implementation evidence and unconfirmed discussion distinct.
 
 **What needs your decision:** nothing — this is read-only.
 
 **Change your mind:** not applicable; answering a question never writes anything.
 
-**Your data:** nothing is stored; this reads the existing shared log and, if needed, other Work
-IQ sources.
+**Your data:** this does not change the log. It reads the registry and any needed supporting
+sources; retrieved content and the answer can remain in the conversation and private inputs.
 
 **If something goes wrong:** a conflict between a transcript and a logged decision is flagged
 explicitly, with the decision winning by default.
@@ -76,6 +100,8 @@ decision, since the record of *changing your mind* is often the most valuable th
 
 **What you will see:** a proposed new record marked as superseding the old one, with what changed
 and why; the original record's `Status` updates, but its text is never edited away.
+An amendment that only adds a constraint can leave both records active. A reversal withdraws
+the constraint; it is not necessarily a replacement decision.
 
 **What needs your decision:** the same explicit approval as any other log write — supersession is
 still a write.
@@ -102,12 +128,13 @@ what changed, and what's still open — without re-reading the whole log.
 **What you will see:** decided items, changed-our-mind items (with what changed), still-open
 questions (unowned ones flagged), and needs-confirmation records due for review.
 
-**What needs your decision:** nothing — the digest is read-only output.
+**What needs your decision:** nothing to produce the digest privately. Posting it to Teams,
+emailing it or publishing a mirror is a separate, exact approved action.
 
 **Change your mind:** not applicable.
 
-**Your data:** nothing is stored beyond the conversation; the digest is generated fresh from the
-current log each time.
+**Your data:** the digest is generated from the current log without changing it. Session history
+and any private output copy remain under their own retention rules.
 
 **If something goes wrong:** an unowned open question is named plainly rather than dropped
 silently — in a fast team, an un-owned question is the actual failure mode, not a bad decision.
@@ -134,7 +161,8 @@ approval as extraction, above.
 **Change your mind:** not applicable to the audit itself; declining a proposed fix leaves the
 record as-is.
 
-**Your data:** nothing is stored beyond the conversation.
+**Your data:** the audit leaves the shared log unchanged. The report and any private input/output
+files remain subject to their own retention rules.
 
 **If something goes wrong:** a record whose source link is dead is flagged, not silently trusted
 or silently dropped from the log.

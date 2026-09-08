@@ -8,7 +8,10 @@
 > deliberately fictional — replace them with your own.
 >
 > ⚠️ **This file will contain real names, addresses, and internal identifiers once you fill it in.**
-> Keep your working copy out of version control (see `.gitignore`), or keep it in a private repo.
+> Fill only the installed copy outside the checkout. A private repository, `.gitignore`, or
+> `skip-worktree` does not make a tracked template safe for real workplace data. See
+> [personalization guide](https://github.com/tolgaki/margo/blob/main/docs/personalization.md)
+> for the storage boundary.
 
 ## About me
 

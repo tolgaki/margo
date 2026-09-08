@@ -2,6 +2,20 @@
 
 **Preconditions:** complete [setup](setup-and-migration.md) and confirm the Work IQ connection.
 
+## Work through one queue
+
+1. Bound the review: **"Triage mail and Teams since yesterday afternoon. Show the sources checked
+   and leave everything unchanged."** Mention important senders or channels if useful.
+2. Correct the ranking: **"Rafa's request can wait until Thursday; Dana's blocks my review."**
+   A ranking correction need not become a permanent [rule](feedback-and-work-products.md#rules).
+3. Choose one item: **"Draft a reply to Dana in this thread, for private review only."**
+   [Drafting](drafting-and-follow-ups.md) resolves the exact thread and destination.
+4. For work that outlasts this triage, ask to capture a [commitment candidate](commitments-and-action-desk.md#commitments).
+   A "Waiting" bucket is not proof that an ask is unresolved; later replies still need checking.
+
+Mail read state and reply obligation are different: a message you already opened can still need
+your response. Ask for recent relevant mail as well as unread mail when that distinction matters.
+
 ## Inbox triage
 
 **What this helps you do:** turn a noisy inbox into a short, ranked list — what needs a reply
@@ -23,16 +37,20 @@ ask in one line, and a recommended action. Nothing is marked read, archived, rep
 deleted while this list is being shown.
 
 **What needs your decision:** every reply, forward, or delete needs approval of that specific
-message. Mark-read, categorize, flag, and move-between-folders can be granted as a **standing,
-bounded authorization** because they're reversible and invisible to anyone else — ask Margo to
-set that up if you want it. Archiving in bulk is re-confirmed with the exact count before it runs.
+message. Mark-read, categorize, flag, archive, and move-between-folders have a narrow **standing,
+bounded authorization** exception in the procedure because they are reversible and private.
+If you want it, review the exact account, operations and scope and have the grant confirmed in
+writing. It never covers delete, sends, Teams actions or unattended writes, and is not an
+approve-all feature in the action ledger. Bulk archiving is still re-confirmed with the exact
+batch before it runs.
 
 **Change your mind:** ask for a different bucket, a narrower sender, or to skip the archive
-suggestions entirely; nothing here is durable until you approve a specific action.
+suggestions entirely. Changing a recommendation does not erase earlier session or local records.
 
-**Your data:** the triage list itself isn't persisted; any draft you ask for is stored as a
-private action-desk proposal (see [commitments and the action desk](commitments-and-action-desk.md))
-until you approve or discard it.
+**Your data:** the list remains in session history. Tracked or scheduled work may also retain
+private evidence, candidates, coverage, task progress and output receipts. Drafts are versioned
+[action-desk proposals](commitments-and-action-desk.md); dismissal or approval does not erase
+their payloads, revisions or execution history.
 
 **If something goes wrong:** an ambiguous priority is surfaced for your judgment rather than
 silently deprioritized. A failed or partial mail fetch is reported as such, not folded into
@@ -62,10 +80,10 @@ message, with no standing-authorization exception — Teams and Engage posts are
 people and stay per-action always.
 
 **Change your mind:** ask for a narrower window ("just the last hour") or to skip a specific chat
-going forward; this triage keeps no memory of what it showed you unless you ask it to.
+going forward. A one-off scope change is not a standing preference; ask separately to save one.
 
-**Your data:** same boundary as inbox triage above — nothing persists unless you ask for a draft,
-which becomes a private action-desk proposal.
+**Your data:** the same session and private-state boundary as inbox triage above. A local queue
+receipt records what was surfaced, not whether you read or answered a Teams message.
 
 **If something goes wrong:** if the chat/message enumeration is incomplete, Margo says which
 chats it couldn't check rather than reporting a clean queue.
@@ -76,7 +94,9 @@ chats it couldn't check rather than reporting a clean queue.
 
 Both routines are described in
 [the triage reference](../../skills/chief-of-staff/references/triage.md), including the exact
-Work IQ query shapes (`$select`/`$top`/`$filter` constraints — note `flag/flagStatus` and `from`
-cannot be server-filtered and return `400 InefficientFilter`) and the classification buckets.
+Work IQ query examples and the classification buckets. In the documented binding,
+server-filtering `flag/flagStatus` or `from` can return `400 InefficientFilter`; the procedure
+narrows recent mail locally instead. Discover the current host's tools and supported schemas,
+rather than assuming every endpoint accepts the same `$select`/`$top`/`$filter` fields.
 There is no dedicated CLI for triage; approved replies flow through the same
 [work ledger and action desk](commitments-and-action-desk.md) as any other draft.

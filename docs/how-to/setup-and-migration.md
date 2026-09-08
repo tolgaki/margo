@@ -1,8 +1,22 @@
-# Set up Margo 1.1 and migrate existing state
+# Set up, update and migrate Margo
 
 **Result:** one explicitly selected account, preserved personal files, repeat-safe imports, and
 separately reviewed schedules. Installing files alone does not migrate commitments or update saved
 app workflow prompts.
+
+## Choose your path
+
+| Situation | Follow |
+| --- | --- |
+| First install, no personal state yet | [Getting started](../getting-started.md), then sections 1-2 and the health checks in section 6 |
+| Existing copy installation | Inspect status; pause writers; set the same environment; back up in section 3 **before** updating |
+| Legacy JSON queue or handwritten commitments | Back up, then use sections 4-5 only for the legacy data you actually have |
+| Existing memory schema v1 | Back up and explicitly migrate memory in section 6; copying new files is not migration |
+| Remove the installation | [Uninstall deliberately](#7-uninstall-deliberately), including scheduler cleanup |
+
+You do not need to create fictional commitments, import an empty legacy queue, enable memory
+capture or turn on schedules to finish a fresh installation. Use the actual installed version
+and reported schema status rather than assuming a version from this guide's historical examples.
 
 ## 1. Choose copy or link
 
@@ -32,10 +46,12 @@ Ordinary copy installation preserves personal files, legacy `state/`, and modifi
 files. Review anything reported as kept; preserved custom prompts may need a manual merge.
 Use `--all` only if you also want the decision-log skill.
 
-Copy is the recommended everyday mode. `--link` is for contributors: installed skill files resolve
-into the checkout, so edits take effect immediately. Personalization files and legacy skill state
-may then also live in that checkout. Ignoring a tracked file does not make it private. The new
-SQLite store must still remain outside repositories and synchronized folders.
+Copy is the recommended everyday mode. Reserve `--link` for synthetic-only contributor
+profiles, not real workplace use: installed skill files resolve into the checkout, including
+personalization templates and legacy skill-local paths. A fresh session loads changed
+instructions; running sessions or extensions can still require a reload. Ignoring a tracked
+file does not make it private. The SQLite store must remain outside repositories and
+synchronized folders.
 
 Changing copy to link can replace a personal directory after archiving it. Changing link to copy
 does not automatically import the linked personal data. Back up and review that transition
@@ -85,7 +101,7 @@ named backup. It refuses to reuse a destination:
 cd "$COPILOT_HOME"
 umask 077
 mkdir -p "$HOME/.margo-backups"
-backup="$HOME/.margo-backups/before-1.1-$(date -u +%Y%m%dT%H%M%SZ)"
+backup="$HOME/.margo-backups/before-margo-update-$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir "$backup" &&
   cp -pR "$COPILOT_HOME/margo" "$backup/margo" &&
   cp -pR "$COPILOT_HOME/skills/chief-of-staff" "$backup/chief-of-staff"
@@ -203,6 +219,26 @@ Do not delete the database to make health green. A rollback must retain new hist
 restart legacy writers concurrently.
 See [state operations](../../skills/chief-of-staff/references/state-operations.md).
 
+## 7. Uninstall deliberately
+
+1. Inspect which scheduler owns each routine and disable the affected app workflows, OS jobs or
+   container schedules through that scheduler. Removing files does not delete saved app jobs.
+2. Stop active Margo writers, retain a private backup and note your actual installation root.
+3. From your source checkout, preview `./install.sh uninstall --dest "$COPILOT_HOME" --dry-run`,
+   then run the same command without `--dry-run` only when ready. On Windows use
+   `.\install.ps1 uninstall -Dest $env:COPILOT_HOME -DryRun`, then omit `-DryRun`.
+4. Read the reported archive locations. Managed files are removed; personal files are archived
+   and the private `margo/` runtime directory is retained. Reload extensions if the host still
+   shows a removed panel.
+5. Reinstalling copies the tools back; review and restore personal files from the reported
+   archive deliberately. Retained SQLite state is not erased or reset by reinstalling.
+
+Uninstall is not account sign-out or data erasure. It does not revoke Work IQ access, remove
+sent messages, erase host transcripts, remove backups or necessarily clear separate bridge
+credentials. For selective memory erasure, use
+[memory controls](memory-controls-and-learning.md#correct-do-not-use-or-forget) before removing
+the tools. Do not delete a database just to make a setup or migration error disappear.
+
 ## Feature reference
 
 The numbered sections above are the full walkthrough. These are the stable per-feature entry
@@ -216,8 +252,9 @@ Get Copilot CLI, Work IQ, and Margo's skills installed and confirmed working —
 one-liner or a clone, then ask `Margo, brief me.` What you'll see: a real brief once Work IQ is
 connected, or a plain "not connected" message if it isn't — never a fabricated one. Nothing here
 sends or changes anything; installation copies files and Work IQ connection is a separate,
-existing Copilot CLI setting. Change your mind by re-running the installer or picking different
-optional skills; nothing is destructive. Your data: install only copies files into your chosen
+existing Copilot CLI setting. Change your mind by reviewing a different installation mode or
+optional skill selection first; mode changes and `--force` can replace files, so preservation
+warnings matter. Your data: install copies files into your chosen
 Copilot directory; no account or workplace data is touched until you configure one (below).
 If something goes wrong, see [Troubleshooting](../getting-started.md#troubleshooting). Implemented,
 procedure (the installer is deterministic; connecting Work IQ and running the first brief depend
@@ -230,8 +267,11 @@ lives — see [§2 Select the owner and private root](#2-select-the-owner-and-pr
 `python3 scripts/margo_store.py init --account you@example.com`. What you'll see: `status`:
 `"configured"`, and every later command bound to that one account. Nothing here signs in to
 Work IQ or reads any mail/calendar/Teams content — it only records which account's data is which.
-Change your mind by starting over with a fresh, empty state directory if you configured the wrong
-account; the tool refuses to silently replace an existing owner. Your data: a private,
+If you configured the wrong owner, stop before collecting data and review both the selected
+config and state base. A new state directory alone does not change the owner saved in
+`config.json`; a separately selected private config can be initialized for the correct account.
+Preserve existing data and never mix account records or overwrite an owner to clear an error.
+Your data: a private,
 account-scoped SQLite database outside any repository or synced folder, permission-checked
 (0700/0600 on POSIX) and never application-encrypted. If something goes wrong, an existing
 configuration for a different owner is refused, not overwritten. Implemented, runtime (deterministic
@@ -261,12 +301,13 @@ deterministic and tested). Since 1.0.0.
 ### Uninstall
 
 Remove Margo's managed files while keeping personal files recoverable — see
-[§6](#6-check-health-then-sync-schedules-separately) for what stays. Try it: `./install.sh
+[§7 Uninstall deliberately](#7-uninstall-deliberately) for scheduler cleanup and what stays. Try it: `./install.sh
 uninstall`. What you'll see: managed files removed and personal files backed up, not deleted; the
 private `margo/` runtime directory is retained outright. Nothing here touches Work IQ, sent mail,
 or any external state — it only removes local files. Change your mind by reinstalling normally;
 your backed-up personal files and retained runtime directory are still there. Your data: the
 account-scoped database survives uninstall by design, specifically so you don't lose commitment
-and memory history by mistake; delete it yourself if you truly want it gone. If something goes
+and memory history by mistake. Full erasure needs a deliberate review of retained state, backups,
+exports and host history, not just an uninstall command. If something goes
 wrong, backed-up personal files are left exactly where the uninstaller reports them. Implemented,
 runtime (installer uninstall path is deterministic and tested). Since 1.0.0.

@@ -1,5 +1,15 @@
 # Getting started
 
+**Your first milestone is a cited brief for the right account, with nothing sent or changed.**
+This page covers installation and connection. Continue through the
+[user journey](user-guide.md) to turn that first brief into a daily workflow. Developers who
+only want to explore or contribute should use the [synthetic-only developer setup](development/README.md)
+instead of connecting their normal profile.
+
+Follow sections 1-4 in order. Optional integrations and schedules can wait until the first
+interactive run is useful. Existing users should review
+[setup and migration](how-to/setup-and-migration.md) before updating private state.
+
 ## Prerequisites
 
 | | |
@@ -59,9 +69,10 @@ Useful flags — `--skills a,b` to pick specific ones, `--dest DIR` for a differ
 Copilot directory, `--dry-run` to see what would happen, `--help` for the rest.
 The PowerShell equivalents are `-Skills`, `-Dest`, `-DryRun`.
 
-> **Upgrading is safe.** `preferences.md`, `commitments.md`, `config.md` and
-> `state/` are never overwritten. Re-run the installer any time to pick up
-> changes; your own files are left exactly as they are.
+> **Normal installs and updates preserve personal files.** `preferences.md`, `commitments.md`,
+> `config.md`, and runtime state are retained by default. `--force` / `-Force` can replace
+> personal templates after backing them up; do not use it just to refresh code. File copying
+> and private-state migration are separate operations.
 
 ### Copilot CLI's own skill installer
 
@@ -79,25 +90,15 @@ use `./install.sh` for a real install.
 
 ### Contributors: link instead of copy
 
-```bash
-./install.sh --link       # or: .\install.ps1 -Link
-```
+Link mode (`--link` / `-Link`) points the installed skill at your checkout. Use it only for
+synthetic contributor work, following the [developer journey](development/README.md).
+Instruction changes are loaded by a fresh session; already-loaded instructions and extensions
+may still need a reload.
 
-Edits in the clone take effect immediately.
-
-> ⚠️ If you link, `preferences.md`, `commitments.md` and `state/` then live
-> **inside your clone**, and they will contain real names and mailbox content.
-> `state/` is gitignored, but the personalization files are tracked, so adding
-> them to `.gitignore` has no effect. Tell git to ignore your local edits:
->
-> ```bash
-> git update-index --skip-worktree \
->   skills/chief-of-staff/preferences.md skills/chief-of-staff/commitments.md \
->   skills/decision-log/config.md
-> ```
->
-> `./tools/check-clean.sh` inspects them regardless, so a filled copy is caught
-> before it can be pushed.
+For real use, keep the copy installation. In link mode, preferences and legacy skill-local
+files resolve inside the checkout even though the account database stays outside it.
+`.gitignore` and `skip-worktree` are not privacy controls and do not make it safe to fill tracked
+templates with workplace data.
 
 ### Updating
 
@@ -156,17 +157,21 @@ In Copilot CLI, confirm the tools are present and prefixed:
 > list my tools
 ```
 
-You're looking for `workiq-fetch`, `workiq-retrieve`, `workiq-ask` and friends. **The `workiq-`
-prefix matters** — unprefixed names are not callable, and a missing prefix is the most common
-first-run failure.
+You're looking for the Work IQ `fetch`, `retrieve`, `ask`, and discovery tools. This repository
+uses names such as `workiq-fetch`, but the exact callable spelling comes from the host's registered
+server. Discover the tools in that host rather than guessing a name or argument schema.
+Installing Margo does not install or authenticate the Work IQ connection for you.
 
 A quick live check:
 
 ```
-> Margo, what's on my calendar today?
+> Margo, confirm which Work IQ account is signed in, then show my calendar today.
 ```
 
-If that returns real events, the surface is working.
+Confirm that it is the account you intended to connect. A successful, bounded read establishes
+access to that calendar window; it does not prove mail, Teams, documents, or write permissions
+are available. An empty calendar can be a valid result. A denied or failed source is a separate
+limitation, not evidence of an empty day.
 
 ## 3. Teach her who you are
 
@@ -176,8 +181,9 @@ This is the step that decides whether Margo is useful or generic. Open the templ
 $EDITOR ~/.copilot/skills/chief-of-staff/preferences.md
 ```
 
-It works unfilled — everything falls back to a sensible default — but the four sections below are
-worth ten minutes each:
+Unfilled settings produce generic advice, not a personalized plan. Fill these four sections
+first; missing working hours or time zone should be resolved before relying on scheduling
+recommendations:
 
 | Section | Why it matters |
 |---|---|
@@ -206,17 +212,21 @@ Without an account, state commands report setup required instead of guessing.
 If upgrading from legacy JSON or Markdown state, follow
 [setup and migration](how-to/setup-and-migration.md) before running scheduled routines.
 
-```
-> Margo, brief me.
-```
-
-Addressing her by name works because the agent file is loaded. To pin the session
-to her explicitly — or to script her — use `--agent`:
+Start a session with the installed agent explicitly selected:
 
 ```bash
 copilot --agent margo                       # interactive, as Margo
 copilot --agent margo -p "Brief me."        # one-shot, non-interactive
 ```
+
+In the interactive session, ask:
+
+```
+> Margo, brief me.
+```
+
+In a compatible app, select the Margo agent through the host's agent picker. Mentioning a name
+is not a substitute for confirming which agent and installed instructions the host loaded.
 
 Then try, in rough order of how much they'll tell you:
 
@@ -231,6 +241,11 @@ Then try, in rough order of how much they'll tell you:
 
 Nothing in that list sends, posts, RSVPs or deletes anything. See
 **[Trust & safety](safety.md)**.
+
+You are ready for everyday use when the brief names its sources and time window, flags gaps,
+and helps you choose a next action. Continue with
+[your first useful brief](user-guide.md#2-get-your-first-useful-brief), then review one draft
+before adding optional integrations.
 
 ---
 
@@ -256,19 +271,23 @@ work ledger, and confirmed state changes require explicit approval independently
 
 ### Azure DevOps work items
 
-Fill in `preferences.md` → *Work tracking*, then `references/work-items.md`. You need the org,
+Fill in the installed `preferences.md` → *Work tracking* and read the installed
+`references/work-items.md`. You need the org,
 project, area path and the two saved query IDs. Auth is your signed-in `az` identity — no PAT is
 stored, and a 401 means `az login`, not a token hunt.
 
-If you don't use ADO, delete `references/work-items.md` and its row from `SKILL.md`.
+If you do not use ADO, leave it unconfigured. You do not need to delete managed procedures
+to skip an optional integration; see [GitHub and work items](how-to/github-and-work-items.md).
 
 ### Community sweeps
 
 `references/engage.md` (Viva Engage) and `references/teams-feedback.md` (a Teams feedback
-channel) both need IDs recorded in `preferences.md`. Resolve them once with `workiq-fetch` on
-`/me/joinedTeams` and `/teams/{team}/channels`.
+channel) need their own scope recorded in the private `preferences.md`. Teams discovery uses
+the supported team/channel paths, such as `/me/joinedTeams` and `/teams/{team}/channels`.
+An Engage GroupId is a different identifier, not a Teams channel ID; use the
+[community guide](how-to/community-and-feedback.md) and the current host's supported discovery.
 
-If you don't own a community, delete both files and their rows from `SKILL.md`.
+If you do not own a community, leave these optional routines unconfigured.
 
 ### Scheduled runs
 
@@ -280,16 +299,28 @@ python3 ~/.copilot/skills/chief-of-staff/scripts/proactive_state.py status
 
 ### Large files
 
-Only needed for files over 4 MB:
+The separate large-file bridge is only needed beyond the Work IQ binary transport limit.
+Its refresh-token store currently requires **macOS Keychain**; it is not part of the
+cross-platform core. See [documents and files](how-to/documents-and-files.md) before enabling
+it. Downloads, copy/upload limitations, and sharing have different permission boundaries.
+
+For a default macOS installation:
 
 ```bash
-python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py auth --account you@example.com
-python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py status
+python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py --account you@example.com auth
+python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py --account you@example.com status
 ```
 
 It reuses the client ID from your Work IQ MCP OAuth config. If it can't find one, set
 `MARGO_M365_CLIENT_ID` to your own app registration. Set `MARGO_M365_TENANT` if your tenant
 rejects the default `organizations` authority.
+
+This is a separate sign-in, not reuse of Work IQ's authenticated token. Confirm the account
+matches the intended source using the returned `upn`, not just the Keychain label. `--account`
+is a global option before the subcommand; the environment fallback is `MARGO_M365_ACCOUNT`,
+not the ledger's `MARGO_ACCOUNT`. Status can refresh a token. OAuth discovery currently reads
+`~/.copilot/mcp-oauth-config` even with a custom installation root. Do not change registrations
+or scopes to bypass a policy denial.
 
 ---
 
@@ -297,15 +328,15 @@ rejects the default `organizations` authority.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `tool does not exist` | Missing the `workiq-` prefix | Use the full prefixed name |
+| `tool does not exist` | Wrong callable name or missing server registration | Discover the host's Work IQ tools and schema; fix the connection if absent |
 | Margo answers generically, ignores your rules | `preferences.md` not found or unfilled | Check it's next to `SKILL.md` in the installed skill |
 | Brief has stale items | `$filter` without `$orderby` returns oldest-first | See [payload discipline](work-iq.md#payload-discipline) |
 | `400 InefficientFilter` | No index backs that filter+sort pair | Drop the `$filter`, keep `$orderby`, narrow locally |
 | `Access denied for path: X` | Tenant has disabled that path family | Not retryable — report it |
 | Persona doesn't appear | Agent not loaded | Confirm `~/.copilot/agents/margo.agent.md` exists, then address her by name |
 | Scheduled runs repeat themselves | State ledger reset | Run `proactive_state.py status`; check for `WARNING` output |
-| Installer says "unidentified developer" | Unsigned build | Right-click the `.pkg` → **Open**, or `sudo installer -pkg Margo-*.pkg -target /` |
-| Windows SmartScreen warning | Unsigned build | **More info → Run anyway**, or use the `irm ... \| iex` one-liner |
+| Installer says "unidentified developer" | Build may be unsigned | Confirm the release source and follow your organization's software policy; use a reviewed source checkout if appropriate |
+| Windows SmartScreen warning | Build may be unsigned or unrecognized | Confirm the release source and follow your organization's software policy rather than treating the warning as a setup step |
 | Reinstall didn't pick up a change | Preserved personal file or customised prompt | Review and reconcile the diff. `--force` also replaces personal files; do not use it merely to update a prompt |
 | State commands say setup required | No explicit account configured | Initialise the confirmed owner with `margo_store.py init`; this is separate from OAuth |
 | App prompts did not change after copying | Workflow store is separate from installed files | Ask to sync the reviewed automation files to existing workflows |

@@ -1,9 +1,36 @@
 # Feature reference
 
-This page describes the implemented 1.2 feature set. The
+This page describes the feature set in the current checkout, including changes marked unreleased
+in the [changelog](../CHANGELOG.md). Compare your installed version with [VERSION](../VERSION)
+before assuming a downloaded package includes every entry. The
 [how-to guides](how-to/README.md) explain how to use it; the skill references define exact data
 contracts. All examples are fictional. No private account, work history, or installation state
 is distributed with this repository.
+
+New to Margo? Follow the [user journey](user-guide.md). Extending it? Follow the
+[developer journey](development/README.md). This page is the reference to return to, not a list
+of everything you must configure on day one.
+
+## Explore by outcome
+
+| Feature family | What you can accomplish | Detailed guide |
+| --- | --- | --- |
+| Setup and personalization | Install a private copy, bind storage to the confirmed account, set working hours and voice, update or uninstall safely | [Setup](how-to/setup-and-migration.md), [personalization](personalization.md) |
+| Briefs and attention | Get a daily brief, catch up over a chosen window, close the day, and triage inbox or Teams attention | [Briefs](how-to/briefs-and-catch-up.md), [triage](how-to/inbox-and-teams.md) |
+| Calendar and meetings | Find time, assess a cascade, review invitations, quantify meeting load, prepare and debrief an occurrence | [Calendar](how-to/calendar-management.md), [meetings](how-to/outcomes-and-meetings.md) |
+| Relationships | Carry a rolling 1:1 agenda and notice drift against your intended contact cadence | [Relationships and 1:1s](how-to/relationships-and-one-on-ones.md) |
+| Drafts and deliverables | Prepare replies, executive follow-ups, decision memos, comparisons, status notes, and agendas | [Drafting](how-to/drafting-and-follow-ups.md), [work products](how-to/feedback-and-work-products.md) |
+| Durable work and approvals | Review commitment candidates, chase confirmed work, inspect exact action proposals, and retain real execution receipts | [Commitments and action desk](how-to/commitments-and-action-desk.md) |
+| Planning and progress | Agree weekly outcomes, calculate capacity, and pause, resume, cancel, or reconcile a bounded task | [Outcomes](how-to/outcomes-and-meetings.md), [task recovery](how-to/task-progress-and-recovery.md) |
+| Documents and files | Prioritize shared reading, download large files, review sharing, and understand copy/upload restrictions | [Documents and files](how-to/documents-and-files.md) |
+| Engineering and community | Review GitHub/ADO work, unanswered community questions, and Teams feedback themes | [GitHub and work items](how-to/github-and-work-items.md), [community](how-to/community-and-feedback.md) |
+| Team decisions | Extract decisions, retrieve the current call, retain supersession history, and audit unresolved records | [Decision log](how-to/decision-log.md) |
+| Memory and learning | Review capture, recall context, correct or forget records, propose scoped lessons, and reflect on selected checkpoints | [Semantic memory](how-to/semantic-memory.md), [controls](how-to/memory-controls-and-learning.md), [Dream](how-to/dream.md) |
+| Proactive operation | Run the six scheduled routines and distinguish source coverage, local output, delivery, and human review | [Automation and health](how-to/automation-health.md), [deployment](proactive.md) |
+
+Each linked guide explains prerequisites, example requests, expected results, approval boundaries,
+and recovery. The index below lists the individual capabilities; the sections after it explain
+the shared runtime behavior behind them.
 
 ## Full feature index
 
@@ -94,7 +121,9 @@ is currently blocked on an external condition) or `planned` (not yet built).
 Margo runs in Copilot CLI. Python 3.9+ provides deterministic state and calculations using the
 standard library; the optional Copilot app canvas requires its host's extension support. Work IQ
 supplies Microsoft 365 reads and explicitly approved writes. The local Python tools do not call
-outbound Microsoft 365 APIs.
+outbound Microsoft 365 APIs on the state/approval path. The separate
+[large-file bridge](how-to/documents-and-files.md) is an authenticated Graph client with its
+own platform and scope limitations; it is not a state helper or an approval bypass.
 
 | Feature | Implemented behaviour | Boundary |
 |---|---|---|
@@ -189,6 +218,42 @@ Read commands open existing SQLite state read-only and do not create storage or 
 An absent optional encoder is reported separately from core health. Known invalid legacy index
 jobs are reported and isolated, not allowed to block valid work; transient runtime failures stay
 retryable. Local file freshness checks are capped at 1 MiB and refreshed after inference.
+
+## Bounded task progress and recovery
+
+Task tracking records a particular attempt to help, not a replacement for a work item.
+Initialize it explicitly under the confirmed account before relying on resumability.
+
+| Feature | Behavior | Boundary |
+| --- | --- | --- |
+| Bounded plan | Goal, ordered steps, source scope, and resource limits persisted across sessions | A task plan grants no action permission and cannot expand its own budget |
+| Step claims | Claims and recorded outcomes distinguish pending, completed, and interrupted work | A claimed step is not proof that its external effect succeeded |
+| Progress inspection | CLI and optional panel show completed steps, remaining work, and source gaps | Reading progress does not initialize or repair missing state |
+| Pause and cancel | Stop future claims or remaining work while preserving history | Already claimed effects cannot be undone by cancellation |
+| Resume and replan | Review the remaining bounded work against current state | A resumed outward action still requires valid exact approval and fresh preflight |
+| Reconcile | Resolve uncertain effects using actual provider evidence and receipts | A timeout is not proof that nothing happened; blind write retries are unsafe |
+
+The optional Task Progress panel requests foreground discussion of controls; it has no direct
+pause, resume, cancel, or approval authority. Limits cover the tracked path, not arbitrary tools
+exposed by the host. Use [task progress and recovery](how-to/task-progress-and-recovery.md).
+
+## Dream reflection
+
+Dream is **limited**, not an always-on memory service. It connects selected session evidence to
+the existing memory and task systems.
+
+| Stage | What it provides | What remains under your control |
+| --- | --- | --- |
+| Opt in | Exact account, host, workspace, and capture policy | Installing code does not enable capture |
+| Checkpoint | Selected authorized current-session content with stable event locators | Listing sessions is not authorization to scrape their contents |
+| Reflect | Manual bounded daily pages of sourced episodes and candidate interpretations | There is no shipped history importer, automatic schedule, or model-weight training |
+| Review | Inspect evidence, limitations, and candidate meaning | Reviewing the output does not confirm an interpretation as fact |
+| Recall | Relevant sourced episodes may inform later scoped context | Recall never replaces canonical decisions, obligations, or action approval |
+
+An unsupported checkpoint adapter is reported as a capability gap. Oversized checkpoints are
+reported and excluded rather than blocking every later event. Synthetic runtime scenarios
+establish state and recovery behavior, not the correctness of a model's interpretation.
+See the [Dream guide](how-to/dream.md).
 
 ## What this is not yet
 

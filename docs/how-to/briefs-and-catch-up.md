@@ -3,6 +3,21 @@
 **Preconditions:** complete [setup](setup-and-migration.md) and confirm the Work IQ connection.
 These three routines share one data pull; they differ in window and emphasis, not mechanism.
 
+## A first morning, step by step
+
+1. Ask: **"Brief me for today in my time zone. Keep it quick and name any missing sources."**
+   If your working hours or time zone are unfilled, confirm them rather than relying on a default
+   for scheduling or capacity.
+2. Read the priorities, calendar and needs-response sections. Open the source behind any
+   consequential recommendation; a partial brief is still useful, but not an all-clear.
+3. Pick one next step: **"Prepare a private reply to the first item. Do not send or create an
+   Outlook draft."** Review it in [Drafting and follow-ups](drafting-and-follow-ups.md).
+4. If it represents work you owe, ask to capture a [candidate](commitments-and-action-desk.md).
+   Confirm the owner and deadline separately; urgency in the brief does not establish a deadline.
+
+For a return from leave, start with **"Catch me up from Monday morning through now; decisions and
+anything needing me first."** Give dates and a time zone if "Monday" could be ambiguous.
+
 ## Daily brief
 
 **What this helps you do:** start the day knowing what actually needs you — priorities,
@@ -24,18 +39,20 @@ calendar with conflicts and no-prep-time flags, mail/Teams needing a response, F
 open commitments. Every line cites its source (sender, meeting, or chat) with a link. A source
 that failed to load is named as a gap, never silently dropped from the count.
 
-**What needs your decision:** the brief itself is read-only. If Margo offers to draft a reply,
-prep a meeting, or schedule something, each of those is a separate proposal with its own
-approval — a brief is never itself consent to send or change anything.
+**What needs your decision:** the brief makes no external changes. Private drafting or meeting
+preparation can follow within the request's scope; an actual send or calendar change needs its
+own exact proposal and approval. A brief is never itself consent to execute those actions.
 
 **Change your mind:** ask for a different depth ("just the quick version") or a narrower scope
-("only what's new since yesterday") any time; nothing from a brief is durable beyond what you
-explicitly confirm into a commitment or action.
+("only what's new since yesterday") any time. Suggestions become obligations only when you
+explicitly confirm them. Private candidates, drafts, coverage and output history
+can still be retained before that confirmation.
 
 **Your data:** the brief's output receipt and any useful drafts it prepares are stored locally in
-your private account state (see [automation health](automation-health.md)); the underlying mail,
-calendar and Teams content is not copied anywhere beyond the current conversation and whatever
-your configured Copilot/model service already processes to answer you.
+your private account state (see [automation health](automation-health.md)). Minimal source
+excerpts, references, candidates and task progress may also persist there. This is not an archive
+of the whole mailbox, nor a promise of no local retention. The conversation and selected source
+content remain subject to your host and configured model service's handling.
 
 **If something goes wrong:** an unavailable source (mail, calendar, or Teams) is reported by
 name, and the rest of the brief still renders — a partial brief is never presented as complete.
@@ -64,8 +81,8 @@ so "since X" is accurate rather than a re-read of everything.
 **What needs your decision:** nothing by itself — catch-up is a read. Any suggested reply or
 follow-up is a separate draft awaiting your approval.
 
-**Change your mind:** ask for a narrower or wider window at any time; a catch-up doesn't persist
-anything you don't separately confirm.
+**Change your mind:** ask for a narrower or wider window at any time. This changes the requested
+coverage; it does not erase a prior output or confirm its suggested obligations.
 
 **Your data:** same storage boundary as the daily brief above.
 
@@ -73,9 +90,9 @@ anything you don't separately confirm.
 a gap. Missing coverage for Teams, for example, is reported as "Teams coverage unavailable," never
 folded silently into "nothing changed."
 
-**Availability:** implemented, procedure. Runs on request, and automatically on weekday evenings
-via the [EOD wrap-up schedule](automation-health.md#automation-eod) (see End-of-day below for
-the distinct scheduled variant). Since 1.0.0.
+**Availability:** implemented, procedure. Runs on request for your chosen window. The related
+[EOD wrap-up schedule](automation-health.md#automation-eod) runs a distinct end-of-day variant,
+not an automatic reconstruction of any absence you have in mind. Since 1.0.0.
 
 ## End-of-day
 

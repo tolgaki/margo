@@ -1,11 +1,16 @@
 # Walkthroughs
 
-Four end-to-end runs, from the request to the send. Each one shows the Work IQ calls underneath,
-where the approval gate sits, and what actually gets written down afterwards.
+Four worked examples, from a request to a recommendation or an explicitly approved action.
+Each shows the Work IQ calls underneath, where the approval gate sits, and what gets recorded.
 
-The illustrative names and content are fictional.
-For copy-and-configure instructions and all new features, use the
-[how-to guides](how-to/README.md). These walkthroughs show the agent's decision flow.
+The names and content are fictional. These are explanations of the intended workflow, not
+recorded live runs or model-evaluation results. The paths are illustrative; discover the current
+host's Work IQ tools and schemas before making calls.
+
+If this is your first visit, follow the [user journey](user-guide.md) first. For
+copy-and-configure instructions and detailed feature recipes, use the
+[how-to guides](how-to/README.md). Developers can trace the same flow through the
+[developer journey](development/README.md).
 
 - [1. The morning brief](#1-the-morning-brief)
 - [2. Finding time — and paying for it](#2-finding-time--and-paying-for-it)
@@ -123,7 +128,9 @@ the whole plan.**
 | **Drop, don't move** | Large FYI meetings you're tentative on and not presenting at — declining is cheaper than reshuffling |
 | **Ask before touching** | Anything with someone in a distant time zone, where the daily overlap is an hour |
 
-**Show the whole damage.** No move cap. If it costs six moves, say six.
+**Show the whole damage.** Do not hide known moves to make an option look cheaper. If it costs
+six moves, say six. This does not remove task budgets: if the bounded search cannot establish
+the full cascade, report that limitation rather than presenting a partial plan as complete.
 
 ### What comes back
 
@@ -155,7 +162,9 @@ Three distinct levels, and this is where most of the design lives:
 | **Always per-action** | Proposing a new time to someone else, declining or moving a meeting **you don't own**, cancelling, messaging attendees | Every time, specifically |
 
 The middle row is **not** a standing grant to rearrange your calendar. One yes covers one
-specific, already-shown set of moves. A new request needs a new plan and a new yes.
+specific, already-shown set of moves. The approval must bind the exact account, actions,
+targets, payloads, and revisions, not just the label "A." A changed step needs renewed approval.
+A new request needs a new plan and a new yes.
 
 **Recurring meetings:** single occurrence only, never the series, unless you say "the series".
 
@@ -265,8 +274,9 @@ The other calendar modes act on one meeting. This one judges the whole thing and
 it costs.
 
 **Pull a real window** — last week and the next two, not today. `calendarView` requires both
-`startDateTime` and `endDateTime` or it 400s. Page until the window is genuinely complete: a
-truncated pull understates the problem, and understating it makes the exercise pointless.
+`startDateTime` and `endDateTime` or it 400s. Page within the agreed budget, and only describe
+the window as complete if all its pages succeeded. A truncated pull understates the problem;
+report partial coverage and narrow or continue the work explicitly rather than inventing a total.
 
 **Compute, don't impress.** Hours, not adjectives:
 
@@ -305,9 +315,12 @@ Every walkthrough above follows the same four beats:
 1. **Bounded reads** — `fetch` with `$select` and `$top`, in parallel, so context goes on
    judgement rather than payload.
 2. **A recommendation, not a menu** — lead with the call, attach the cost, cite the source.
-3. **One explicit approval gate**, at the exact point something becomes visible to another person.
-4. **Write it down** — commitments, decisions and surfaced-item state persist to disk, because
-   the next session starts with no memory of this one.
+3. **Explicit decisions at the right boundaries** — confirming an obligation, approving content,
+   and authorizing an external action are separate decisions, not one blanket yes.
+4. **Record the actual result** — evidence, work history, and output receipts provide continuity.
+   Persistent memory supplies scoped context only when configured; it is not a substitute for
+   current source reads or canonical work and decision records.
 
 Next: **[Personalization](personalization.md)** for tuning the ladder and the voice to you, or
-**[Proactive & scheduled](proactive.md)** for running all of this without being asked.
+**[Proactive & scheduled](proactive.md)** for unattended collection and private preparation.
+Scheduled runs do not execute the sends and calendar changes shown in these interactive examples.

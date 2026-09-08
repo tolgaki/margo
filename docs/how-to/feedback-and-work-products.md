@@ -4,6 +4,25 @@
 Corrections need a stored subject and exact revision. Work products need current source references.
 Everything in these recipes stays private unless a separately approved action actually publishes it.
 
+## Start with the deliverable or correction
+
+| Ask for | Include in your request | Expect |
+| --- | --- | --- |
+| Decision memo | Audience, decision needed, current sources | Options, trade-offs, recommendation and unresolved evidence |
+| Document comparison | Both documents and the versions to compare | Material differences, consequences and open questions |
+| Status update | Reporting window, audience and work scope | Changes, blockers, supported owners/dates and decisions needed |
+| Meeting agenda | Exact meeting occurrence and purpose | Ordered topics, preparation sources and carried asks |
+| Delegation brief | Intended outcome, proposed owner and boundaries | Scope, constraints and acceptance criteria; not an assigned task |
+
+You can ask for these in conversation without writing JSON. The default work product is
+versioned private Markdown; Word or slide output needs the relevant separately available
+document skill. [Documents and files](documents-and-files.md) covers transfer and sharing,
+not authoring or an automatic publication step.
+
+To correct an existing output, identify the exact draft or agenda, state the edit, and say whether
+it is one-off or something you want proposed as a rule. The next sections show the local records
+behind those choices.
+
 ## 1. Record a correction without making it a general rule
 
 > For this agenda, move Priya's decision first. This is a one-off correction, not a rule.
@@ -251,8 +270,10 @@ runtime (deterministic rule proposal/activation/revocation with tests). Since 1.
 Say "don't learn from this" and have it actually mean nothing is stored as a lesson or rule
 proposal — see [§1 → *Respect "do not learn"*](#respect-do-not-learn). Try it: *"Handle it this
 way, but don't learn from this — it's a one-off."* What you'll see: an ordinary operational
-result with no accompanying learning receipt. What needs your decision: nothing — this is an
-opt-out, not a write requiring its own approval. Change your mind: this marker only affects
+result without storing the correction as a learning example. What needs your decision: your
+explicit opt-out is the decision; the CLI still requires real revision-bound confirmation evidence
+to record its minimal marker. No synthetic approval is supplied for you.
+Change your mind: this marker only affects
 future learning; it does not retroactively remove other stored corrections or rules. Your data: a
 minimal marker is recorded so future runs know not to propose a rule from this interaction; no
 correction/reason text is stored alongside it. If something goes wrong: this is not a general
@@ -269,8 +290,9 @@ Try it: *"Prepare a decision memo on the migration options, with trade-offs and 
 What you'll see: a private, versioned Markdown draft citing its sources, with unknown dates/owners
 left unknown rather than invented. What needs your decision: content approval and delivery
 approval are different — an approved memo is not shared until you separately approve sending or
-publishing it. Change your mind: ask for a revision any time before approving the content; each
-edit is a new version. Your data: work products are private, versioned records in your account's
+publishing it. Change your mind: ask for a revision before or after content approval; each
+edit is a new version, and editing approved content returns it to `prepared`.
+Your data: work products are private, versioned records in your account's
 ledger, re-checked as stale when their sources change. If something goes wrong: unattended
 preparation is bounded to the single highest-priority item and never bulk-generates without an
 agreed budget. Implemented, runtime (deterministic versioned artifact storage with tests). Since

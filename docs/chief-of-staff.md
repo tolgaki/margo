@@ -6,6 +6,10 @@ reference file, plus the operating rules and the Work IQ tool discipline they al
 It carries **procedure and no personality**. Whatever agent loads it supplies the voice — see
 [Build your own](build-your-own.md).
 
+Use this page to understand routing. For an ordered introduction, choose the
+[user journey](user-guide.md) or [developer journey](development/README.md); for task-level
+steps and limits, use the [how-to guides](how-to/README.md).
+
 ---
 
 ## How a request gets routed
@@ -30,6 +34,7 @@ when the matching routine fires, which keeps the resident cost low.
 | **Relationships** | "who haven't I spoken to", "am I neglecting anyone" | `relationships.md` |
 | **1:1 agendas** | "what's on the agenda with X", "add this to my 1:1" | `one-on-ones.md` |
 | **Document queue** | "what should I be reading", "what's been shared with me" | `doc-queue.md` |
+| **Large files** | "download that file", "put this in my OneDrive", "share that recording" | `files.md` |
 | **GitHub** | "what PRs need me", "what's waiting on my review" | `github.md` |
 | **Work items** | "review the backlog", "how do bugs look", "add a bug" | `work-items.md` |
 | **Engage community** | "what's the community saying", "any unanswered questions" | `engage.md` |
@@ -42,13 +47,19 @@ when the matching routine fires, which keeps the resident cost low.
 | **Explicit learning** | "remember that preference", "do not learn from this" | `feedback.md` |
 | **Prepared work products** | "prepare the decision memo", "write the delegation brief" | `work-products.md` |
 | **Health and setup** | "is Margo working", "set up my ledger" | `state-operations.md` |
+| **Memory and context** | "what do you remember", "forget this", "find related context" | `memory.md` |
+| **Dream reflection** | "Dream about yesterday", "save a session checkpoint", "review Dream" | `dream.md` |
+| **Task progress** | "where did you stop", "resume that task", "pause this task" | `task-runs.md` |
 
 Routines combine freely. A daily brief pulls from follow-through, GitHub and the document queue
 without being asked.
 
 The shared [work ledger and action desk](closed-loop.md) connect these routines across sessions,
 alongside outcomes/capacity planning, meeting lifecycle, explicit learning, and prepared work
-products. `SKILL.md` is the complete current trigger table.
+products. Memory adds scoped context; Dream adds opted-in reflection on selected checkpoints;
+task runs track bounded execution and recovery. Their setup and permission boundaries remain
+distinct. `SKILL.md` is the complete current trigger table; the optional
+[decision-log skill](../skills/decision-log/SKILL.md) has its own router.
 
 ---
 
@@ -87,11 +98,11 @@ compatibility view after migration, not a second writable tracker.
 Two rules keep it trustworthy:
 
 - **Dates are always absolute.** `2026-09-02`, never "next Friday". Relative dates rot.
-- **Never invent or infer a commitment.** A row is added only when it was really made, in a real
-  message or meeting, or you say so directly.
+- **Never turn inference into confirmation.** A sourced possible commitment may be staged as a
+  candidate. It becomes authoritative work only after explicit confirmation.
 
-Closed items move to a Log rather than being deleted, so "did I ever actually reply to that" has
-an answer.
+Closed items retain their ledger history, so "did I ever actually reply to that" has an answer.
+The compatibility export can show a recent Log without being the authority for that history.
 
 ### Executive follow-up — a separate voice
 
@@ -133,8 +144,12 @@ Worked example in **[Walkthroughs](walkthroughs.md#4-calendar-hygiene)**.
 
 | Script | Job |
 |---|---|
+| `margo_store.py` | Explicit account configuration and private storage identity |
 | `proactive_state.py` | Transactional delivery batches, source attempts and successful coverage |
 | `work_state.py` | Work items, action revisions, approvals, receipts and productivity records |
+| `task_state.py` | Bounded task plans, budgets, claims, progress and recovery |
+| `memory_state.py` | Scoped memory, capture policy, context, learning, forgetting and Dream commands |
+| `memory_encoder.py` | Explicit optional local-model setup, indexing and offline semantic encoding |
 | `margo_doctor.py` | Configuration gaps, installation drift, pending delivery and source health |
 | `capacity.py` | Interval-union calendar capacity without double-counting overlaps |
 | `m365_files.py` | Large-file bridge for anything over the 4 MB `fetch_blob` cap |
@@ -144,13 +159,19 @@ Worked example in **[Walkthroughs](walkthroughs.md#4-calendar-hygiene)**.
 These scripts report failure loudly. A `WARNING` line or a non-zero exit goes into the read-out — the
 skill treats a silent partial as worse than an obvious error.
 
+These names are under `skills/chief-of-staff/scripts/` in the checkout and under the installed
+chief-of-staff skill for real use. The [architecture map](development/architecture.md) identifies
+the Python APIs behind the CLIs. Core state helpers are standard-library-only; optional embedding
+dependencies and the macOS large-file credential bridge have separate setup requirements.
+
 ---
 
 ## Trimming it down
 
-The playbook is modular on purpose. If a routine doesn't apply to you, delete its reference file
-and its row from the `SKILL.md` table. `work-items.md`, `engage.md`, `teams-feedback.md` and
-`github.md` are the usual candidates.
+For everyday use, leave an optional integration unconfigured rather than deleting managed
+files. If you are building a smaller fork, select procedures deliberately through
+[Build your own](build-your-own.md).
 
-Update callers and automation prompts when removing a routine. The shared ledger, source
-coverage, and approval contracts remain required by the connected routines that use them.
+In a fork, update callers, the router, automation prompts, catalog, guides, and scenario coverage
+together when removing a routine. The shared ledger, source coverage, and approval contracts
+remain required by the connected routines that use them.

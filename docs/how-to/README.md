@@ -1,30 +1,54 @@
 # Margo how-to guides
 
-These guides explain how to use durable work records without turning a suggestion into a promise,
-an approval into a send, or an empty search into an all-clear.
+Start with a task, not a command. These guides explain what to ask, what you should receive,
+what needs your decision, and what to do when a source or capability is unavailable.
+
+New here? Follow [getting started](../getting-started.md), then the staged
+[user guide](../user-guide.md). The [documentation hub](../README.md) connects user and developer
+paths; the [feature reference](../features.md) distinguishes implemented, optional and limited
+features. You do not need schedules, a canvas, or local embeddings for your first useful brief.
+
+## Run your day
 
 | I want to... | Start here |
 | --- | --- |
-| Install or migrate safely | [Setup and migration](setup-and-migration.md) |
 | Get briefed, catch up, or close the day | [Briefs and catch-up](briefs-and-catch-up.md) |
-| Clear my inbox or Teams | [Inbox and Teams](inbox-and-teams.md) |
+| Find what needs a reply in mail or Teams | [Inbox and Teams](inbox-and-teams.md) |
 | Draft a reply or an executive follow-up | [Drafting and follow-ups](drafting-and-follow-ups.md) |
 | Schedule, reschedule, RSVP, or clean up my calendar | [Calendar management](calendar-management.md) |
-| Track an ask or review an action | [Commitments and action desk](commitments-and-action-desk.md) |
-| Plan a week and carry meeting work forward | [Outcomes and meetings](outcomes-and-meetings.md) |
-| Correct or prepare work | [Feedback and work products](feedback-and-work-products.md) |
+| Plan a week, prepare a meeting, and follow it through | [Outcomes and meetings](outcomes-and-meetings.md) |
 | Keep up with people and 1:1s | [Relationships and one-on-ones](relationships-and-one-on-ones.md) |
+
+## Carry work forward
+
+| I want to... | Start here |
+| --- | --- |
+| Track an ask, chase a reply, or review an action | [Commitments and action desk](commitments-and-action-desk.md) |
+| Prepare a memo, comparison, agenda, status update or delegation brief | [Feedback and work products](feedback-and-work-products.md) |
 | Read, download, copy, upload or share a file | [Documents and files](documents-and-files.md) |
 | Review GitHub PRs or an Azure DevOps backlog | [GitHub and work items](github-and-work-items.md) |
 | Watch a community or feedback channel | [Community and feedback](community-and-feedback.md) |
-| Keep a durable decision log | [Decision log](decision-log.md) |
-| Check coverage and durable output | [Automation health](automation-health.md) |
-| Recall context by meaning and manage private memory | [Semantic memory](semantic-memory.md) |
+| Keep a durable team decision log | [Decision log](decision-log.md) |
+
+## Personalize, inspect and recover
+
+| I want to... | Start here |
+| --- | --- |
+| Install, upgrade, migrate or uninstall safely | [Setup and migration](setup-and-migration.md) |
+| Check schedules, source coverage and output delivery separately | [Automation health](automation-health.md) |
+| Recall context by meaning with optional local embeddings | [Semantic memory](semantic-memory.md) |
 | Control capture, retention, correction, forgetting and recipe export | [Memory controls and learning](memory-controls-and-learning.md) |
+| Reflect on selected opted-in session checkpoints | [Dream](dream.md) |
 | Know where a task stopped and continue safely | [Task progress and recovery](task-progress-and-recovery.md) |
 
 Use the conversational recipes first. The CLI recipes are for inspecting records, troubleshooting,
 or operating with Margo in the foreground. They are not scripts for unattended approval.
+
+For a complete first journey, go from [brief](briefs-and-catch-up.md) to
+[private draft](drafting-and-follow-ups.md), then
+[review the exact action](commitments-and-action-desk.md#5-review-an-exact-action-proposal).
+Capturing a candidate is not confirming an obligation; preparing a draft is not delivering it.
+Private evidence, candidates and output history can persist before you approve an outward action.
 
 ## Every feature, by guide
 

@@ -2,7 +2,12 @@
 
 Everything else in this repo is *pull* — a routine runs when you ask. This is the *push* half:
 scheduled runs that produce the morning brief, the end-of-day wrap-up, hourly sweeps and weekly
-ambient scans.
+ambient digests from daily scans.
+
+Add this after the interactive loop works; the
+[user journey](user-guide.md#6-build-a-weekly-rhythm) explains when to make that transition.
+Use [automation health](how-to/automation-health.md) for operational recipes and
+[the manifests](../automations/README.md) for authoring schedules.
 
 > This is the difference between a chief of staff and a search box: something is watching, and
 > **mostly choosing not to speak.**
@@ -75,8 +80,9 @@ matter and run `./tools/gen-automations-docs.sh --write`.
 
 <!-- END GENERATED: automations -->
 
-The same files drive both ways of running a schedule, so a prompt cannot mean one thing in cron
-and another in the app.
+These files are the shared prompt source. Wrappers read the installed files when they run;
+app workflows use a saved copy that must be synchronized explicitly. Editing or installing a
+manifest does not update an already-registered app workflow.
 
 ---
 
@@ -101,10 +107,12 @@ advance independently after complete ingestion, not as a blanket step at the end
 
 Hourly during working hours. **Cheap, fast, and usually silent.**
 
-**Never call `workiq-ask` in a sweep.** It costs 10–60 seconds per call and this runs ~40 times a
-week. Sweeps use `workiq-call_function` (delta) and `workiq-fetch` only.
+**Never call `workiq-ask` in a sweep.** Synthesis is materially more expensive than structured
+reads, and this runs repeatedly through the working week. Sweeps use `workiq-call_function`
+(delta) and `workiq-fetch` only.
 
-> A sweep that takes a minute and prints nothing is a bug.
+> Silence alone does not tell you whether a sweep was cheap or healthy. Inspect duration,
+> bounded work, and per-source coverage rather than adding output just to prove it ran.
 
 Calendar cancellations and moves are high-value signals. Discover supported delta capabilities
 and record unavailable or denied sources honestly; a known path is not proof it works in a tenant.
@@ -122,16 +130,23 @@ document queue, stale PRs. Findings are promoted into an anchor rather than inte
 
 ## State lives on disk
 
-Every scheduled run is **a fresh session with no memory**. Continuity comes from
+Every scheduled run starts without the previous conversation's context. Operational continuity
+comes from
 `scripts/proactive_state.py`, which manages leased delivery batches and per-source coverage in
-the private account-scoped SQLite store shared with `work_state.py`.
+the private account-scoped SQLite store shared with `work_state.py`. Configured memory can
+supplement context; it does not replace these authoritative checkpoints.
+
+For a default copy installation:
 
 ```bash
-python3 scripts/proactive_state.py --help
-python3 scripts/proactive_state.py status
-python3 scripts/margo_doctor.py --help
-python3 scripts/work_state.py --help
+python3 ~/.copilot/skills/chief-of-staff/scripts/proactive_state.py --help
+python3 ~/.copilot/skills/chief-of-staff/scripts/proactive_state.py status
+python3 ~/.copilot/skills/chief-of-staff/scripts/margo_doctor.py --help
+python3 ~/.copilot/skills/chief-of-staff/scripts/work_state.py --help
 ```
+
+On Windows, use `python` and `$HOME\.copilot\skills\chief-of-staff\scripts`. Set `COPILOT_HOME`
+to the matching private profile for a custom installation.
 
 Two rules:
 
@@ -236,8 +251,9 @@ instruction not to send mail at 06:00 while you are asleep.
 
 ### Via the Copilot app's scheduled workflows
 
-Ask Margo to **"sync my automations"** and she registers each file as a workflow, matching on
-`name` so a re-sync updates rather than duplicates.
+Ask Margo to **"review my automations for sync"**, inspect the exact workflows, prompts,
+cadences, and enablement changes, and approve the intended registration or update. Sync matches
+on `name` so a re-sync updates rather than duplicates.
 The updated workflows explicitly select the Margo agent. Copy deployment alone does not
 change saved app prompts. Review custom prompt differences and leave unrelated workflows alone.
 
@@ -249,6 +265,8 @@ change saved app prompts. Review custom prompt differences and leave unrelated w
 ### Either way
 
 Start with **one anchor** — the morning brief — and run it for a week before adding sweeps.
+The manifests use scheduler-local time; verify the host's time zone and awake/running behavior.
+Changing a preferred briefing time in `preferences.md` does not change a registered schedule.
 The interrupt bar needs tuning against your actual inbox, and it's much easier to loosen a quiet
 system than to regain trust in a noisy one.
 

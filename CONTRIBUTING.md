@@ -3,6 +3,12 @@
 Thanks for considering a contribution. This repo is a reference implementation — the most useful
 contributions sharpen the procedure or fix something that's wrong, rather than adding surface area.
 
+**New here?** Follow the [developer journey](docs/development/README.md) from a clean checkout
+to an isolated, synthetic rehearsal and a complete contribution. It includes a feature traced
+through the router, procedure, core, CLI, optional UI, installer and tests.
+For the product perspective, start with the [documentation hub](docs/README.md),
+[user journey](docs/user-guide.md) and [feature inventory](docs/features.md).
+
 Coding agents start with [AGENTS.md](AGENTS.md), the
 [state-ownership map](docs/development/architecture.md), and the
 [bounded change workflow](docs/development/agent-workflow.md). Use the agent-task issue form to
@@ -28,6 +34,9 @@ If you're forking to use Margo for real, see
 [what stays on your machine](docs/safety.md#7-what-stays-on-your-machine). Use a copy installation
 so filled preferences, commitments and configuration live outside the repository. The template
 files are tracked; adding them to `.gitignore` does not hide modifications to tracked files.
+Neither `.gitignore` nor `skip-worktree` is a privacy control. Reserve linked installations for
+synthetic-only development profiles; never connect a linked checkout to real workplace use or
+personalize its tracked templates. Use a separate private copy for real usage.
 
 **If real data does get committed:** do not push it or copy the leak into a public issue. Follow
 the private reporting guidance in [SECURITY.md](SECURITY.md). Removing it in a later commit does
@@ -70,6 +79,12 @@ procedure-contract scenario must not be described as evidence that a model follo
 The Python state/installer tests use synthetic data and the standard library. The optional
 canvas uses Node's built-in test runner. Neither needs a real mailbox:
 
+Start with the smallest relevant existing tests; examples and evidence classes are in the
+[developer journey](docs/development/README.md#5-prove-the-right-thing). The commands below are
+the broader integration gates, not a requirement to run every suite for a prose-only edit.
+Python 3.9+ is the core baseline; canvas CI uses Node 22. You do not need to install a model,
+launch Copilot, authenticate Work IQ or alter `~/.copilot` to contribute.
+
 ```bash
 # The no-real-data check that CI runs on every PR, and its self-test
 ./tools/check-clean.sh
@@ -111,8 +126,11 @@ files that have stopped being templates.
 
 **Add your own terms.** Some leaks are only recognisable to you — your initials in a sign-off, a
 team codename, a customer. Put one per line in `tools/forbidden.local.txt` and they become hard
-failures. That file is gitignored and never published; it is also excluded from installer
-payloads, which are built from `git ls-files` rather than from the working tree. Two GUIDs are allowed and documented: the fixed public Azure DevOps resource ID, and
+failures. That file is gitignored and excluded from the current installer/packager paths; never include it
+in an attachment or hand-built archive. Do not assume all untracked files are excluded:
+native packagers enumerate tracked **and non-ignored untracked** files, and local skill installs
+walk their source trees with explicit exclusions. Build only from a sanitized checkout and inspect
+the payload. Two GUIDs are allowed and documented: the fixed public Azure DevOps resource ID, and
 the Windows installer's own AppId.
 
 If you touched the installers or packaging, see **[packaging/README.md](packaging/README.md)** —
@@ -137,10 +155,14 @@ Do not send a message or change a calendar merely to demonstrate a test.
 
 ## Pull requests
 
-Small and focused. One routine, one fix, one doc page.
+Small and focused: one user outcome, with all the files needed to make it complete. A routine
+change may legitimately touch procedure, core, help and a scenario in the same PR.
 
 In the description: what changed, why, and — for behavioural changes — what the output looked like
 before and after. Then confirm the checklist in the PR template, including the no-real-data box.
+Report targeted commands, skipped optional tests, evidence class and compatibility/migration
+impact. A fixture contract is not a completed model evaluation. Commits, publishing, live-account
+exercises and personal installation are separate actions, not implied by a documentation task.
 
 ---
 

@@ -3,6 +3,10 @@
 An assistant with write access to your mailbox and calendar is a different proposition from one
 that only reads. This document is the whole safety model in one place.
 
+Read this before connecting a real account in [Getting started](getting-started.md).
+The [user journey](user-guide.md) shows these decisions in context; the
+[architecture map](development/architecture.md) identifies the runtime owners behind them.
+
 ---
 
 ## 1. Propose, never act unilaterally
@@ -36,9 +40,11 @@ See [task progress and recovery](how-to/task-progress-and-recovery.md).
 
 ### Why the gate is this strict
 
-Work IQ writes **execute immediately**. There is no staging, no preview, no undo. A send, a
-decline, a reaction or a `permanentDelete` is instantly visible to other people or permanently
-gone. There is no layer underneath to catch a mistake, so the gate is the only control.
+Work IQ writes **execute when called**; the tool does not turn them into proposals for Margo
+to approve afterwards. Some operations are reversible and an Outlook draft can be created
+explicitly, but neither supplies a universal undo or approval layer. A send, a decline, a
+reaction, or a `permanentDelete` can become visible or irreversible immediately. Review happens
+before the call, not after it.
 
 ---
 
@@ -74,7 +80,9 @@ Calendar cascades have a middle level, defined in `preferences.md`:
 | **Always per-action** | Anything that sends or is irreversible | Every time |
 
 The middle row is **not** a standing grant. One yes covers one named set of moves that you have
-already seen in full. A new request needs a new plan and a new yes.
+already seen in full, with exact targets, payloads, account, and revisions bound for each action.
+Approval of the plan's goal is insufficient. Changed actions need renewed approval; a new
+request needs a new plan and a new yes.
 
 ---
 
@@ -92,9 +100,10 @@ person can see. A skill may still write to its own **local** state: the proactiv
 the account-scoped SQLite store records source coverage, proposals and output receipts so a
 scheduled run does not repeat itself. Nothing in this repo writes to a shared location unattended.
 
-If you add a skill that does, this is the sentence to revisit — and `tools/margo-scheduled.sh` is
-where to enforce it, since the `--deny-tool` rules there stop outbound actions at the CLI rather
-than trusting an instruction.
+Adding a shared-write skill is an authority change, not an extension of this exception.
+It needs separate design and review. The wrappers' `--deny-tool` rules cover specific Work IQ
+tools, not arbitrary outbound mechanisms; changing a sentence or adding a wrapper flag does
+not create a general security boundary.
 
 ### What is enforced, and what is asked
 
@@ -165,8 +174,9 @@ name" is what that gate was built to prevent. If you are considering it, read
 
 ## 5. Ground everything; never fill a gap
 
-- **Never invent** a meeting, sender, quote, number, date, link or commitment. Every claim in a
-  brief comes from Work IQ.
+- **Never invent** a meeting, sender, quote, number, date, link or commitment. Ground claims in
+  the relevant current source: Work IQ for Microsoft 365, the configured integration for
+  GitHub/ADO, or attributed private work records and user-provided context.
 - **Cite sources.** Sender + subject, meeting title + time, chat or channel name, doc title —
   plus the `webLink`, so every line is one click from what it's based on.
 - **Incomplete evidence is `unknown`, not `zero`.** A failed page, a rate limit, or a parser warning
@@ -214,11 +224,20 @@ Files that hold real data, and how they're handled:
 | `config.md` (decision-log) | Repo paths, team names | Template only |
 
 The Keychain entry written by `m365_files.py` (service `margo-m365-files`) holds a refresh token.
-Remove it with `m365_files.py logout`.
+Request local credential removal with `m365_files.py --account you@example.com logout`,
+substituting the actual credential label. Confirm removal without exposing the credential:
+the command's zero exit status alone does not establish deletion, and it does not revoke
+remote grants or sign the Work IQ connection out.
 
 The database is not application-encrypted. Protect the OS account, disk and backups. POSIX
 ownership/mode checks do not establish equivalent Windows ACL isolation; Windows installations
 also depend on the user's private profile permissions.
+
+The optional [large-file bridge](how-to/documents-and-files.md) is a separate authenticated
+Graph client, not a Work IQ tool call. Its local credentials and direct file operations have
+their own documented limits; the scheduled wrappers' Work IQ deny list does not sandbox it.
+Copy, upload, and sharing still require the applicable exact approval and must not be used
+to route around a denied source or policy.
 
 Approval and history records remain private. Do-not-learn suppresses the stored correction for
 that feedback event; it is not a global deletion command. Retention/erasure beyond the documented
