@@ -6,7 +6,7 @@ from pathlib import Path
 import sqlite3
 import sys
 
-from margo_store import NotInitialized, StateError, add_state_arguments, canonical_json, parse_json, resolve_account
+from margo_store import StateError, add_state_arguments, canonical_json, error_code, parse_json, resolve_account
 from task_runs import TaskStore, task_identity
 
 
@@ -100,8 +100,8 @@ def main(argv=None):
         return 0
     except (StateError, OSError, sqlite3.Error, TypeError, KeyError, ValueError) as exc:
         result = {"error": str(exc), "command": args.command}
-        if isinstance(exc, NotInitialized):
-            result["code"] = "not_initialized"
+        if error_code(exc):
+            result["code"] = error_code(exc)
         print(canonical_json(result), file=sys.stderr)
         return 2
     finally:

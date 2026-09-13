@@ -266,7 +266,7 @@ def _render_item(row, batch=None):
     return item
 
 
-def queue_drain(conn, owner=None, lease_seconds=900, limit=100):
+def queue_drain(conn, owner=None, lease_seconds=900, limit=100, family=None):
     integer(lease_seconds, "lease_seconds", 1, 86400)
     integer(limit, "limit", 1, 10000)
     batch_id = uuid.uuid4().hex
@@ -275,8 +275,11 @@ def queue_drain(conn, owner=None, lease_seconds=900, limit=100):
     expires = (datetime.fromisoformat(now) + timedelta(seconds=lease_seconds)).isoformat(timespec="microseconds")
     with transaction(conn):
         _release_expired(conn, now)
+        if family is not None:
+            _family(family)
         rows = list(conn.execute("SELECT * FROM proactive_items WHERE status='pending' "
-                                 "ORDER BY created_at,item_key LIMIT ?", (limit,)))
+                                 + ("AND family=? " if family is not None else "")
+                                 + "ORDER BY created_at,item_key LIMIT ?", (family, limit) if family is not None else (limit,)))
         if not rows:
             return []
         conn.execute("INSERT INTO proactive_batches VALUES (?,?,?,?,'leased')",

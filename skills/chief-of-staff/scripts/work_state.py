@@ -34,6 +34,21 @@ def parser():
     command = commands.add_parser("list", help="portable review views; JSON is also the optional canvas contract")
     command.add_argument("--view", choices=["decisions", "approval", "waiting", "problems", "all"], default="decisions")
     command.add_argument("--json", action="store_true")
+    commands.add_parser("desk", help="read bounded decision workspace, time preferences, source coverage and request progress")
+    commands.add_parser("profile", help="read display name and work-root settings without opening runtime state")
+    command = commands.add_parser("profile-save", help="conditional UI save of assistant display name/work root only; no state relocation")
+    command.add_argument("--input", required=True)
+    for name in ("desk-request", "desk-dispatched"):
+        command = commands.add_parser(name, help="journal bounded private canvas request dispatch; never approves or sends externally")
+        command.add_argument("--input", required=True)
+    command = commands.add_parser("desk-start", help="claim local preparation after rechecking the exact requested revision")
+    command.add_argument("id")
+    command.add_argument("--host", required=True, help="actual invoking SDK host identity; an audit binding, not a credential")
+    command = commands.add_parser("artifact-export", help="explicit no-overwrite Markdown export to the configured work root; never moves runtime state")
+    command.add_argument("id")
+    command.add_argument("--revision", type=int, required=True)
+    command.add_argument("--path", required=True, help="relative Markdown filename beneath the configured work root")
+    command.add_argument("--profile-revision", required=True)
     for name in ("show", "history"):
         command = commands.add_parser(name)
         command.add_argument("id")
@@ -119,10 +134,22 @@ def dispatch(ledger, args):
         return ledger.ingest(data["data"], data["claim_key"])
     if command == "list":
         return ledger.list(args.view)
+    if command in {"desk", "desk-request", "desk-dispatched", "desk-start"}:
+        import decision_workspace
+
+        if command == "desk":
+            return decision_workspace.snapshot(ledger)
+        if command == "desk-start":
+            return decision_workspace.start(ledger, args.id, args.host)
+        return (decision_workspace.request if command == "desk-request"
+                else decision_workspace.dispatched)(ledger, data)
     if command == "show":
         return ledger.show(args.id)
     if command == "history":
         return ledger.history(args.id)
+    if command == "artifact-export":
+        from margo_profile import export_artifact
+        return export_artifact(ledger, args.id, args.revision, args.path, args.profile_revision)
     if command == "item-update":
         return ledger.update_item(args.id, args.revision, **data)
     if command == "relate":
@@ -179,12 +206,36 @@ def main(argv=None):
         return 2
     ledger = None
     try:
-        ledger = Ledger(account=args.account, state_root=args.state_root)
+        if args.command in {"profile", "profile-save"}:
+            from margo_profile import show
+            if args.command == "profile-save":
+                from margo_profile import configure
+                data = load(args.input)
+                if set(data) != {"expected_revision", "assistant_name", "work_root"} or (
+                        data["work_root"] is not None and not isinstance(data["work_root"], str)):
+                    raise StateError("Only exact profile revision, assistant name and work root may be saved.")
+                result = configure(args.account, None, data["expected_revision"], data["assistant_name"],
+                                   data["work_root"], data["work_root"] is None)
+            else:
+                result = show(args.account)
+            print(json.dumps(result, ensure_ascii=False, allow_nan=False))
+            return 0
+        if args.command in {"desk-request", "desk-dispatched", "desk-start"}:
+            # Verify existing namespaces before opening any writable connection.
+            from task_runs import TaskStore
+            check = TaskStore(args.account, args.state_root, read_only=True)
+            check.close()
+        ledger = Ledger(account=args.account, state_root=args.state_root,
+                        read_only=args.command in {"list", "show", "history", "desk", "artifact-export"})
         result = dispatch(ledger, args)
         print(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False))
         return 0
     except (StateError, sqlite3.Error, OSError, ValueError, KeyError, TypeError) as exc:
-        print(json.dumps({"error": str(exc), "command": args.command}, ensure_ascii=False), file=sys.stderr)
+        from margo_store import error_code
+        result = {"error": str(exc), "command": args.command}
+        if error_code(exc):
+            result["code"] = error_code(exc)
+        print(json.dumps(result, ensure_ascii=False), file=sys.stderr)
         return 2
     finally:
         if ledger is not None:

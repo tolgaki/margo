@@ -4,6 +4,11 @@ Use `scripts/task_state.py` for substantive multi-step work that must survive a 
 It tracks the attempt to help, not a second obligation or approval. Work, actions, memory,
 coverage and output receipts keep their existing owners.
 
+For requested visual progress, use **Tasks** inside the current `margo-action-desk` workspace,
+or open that canonical canvas with `{"section":"tasks"}` if needed. The legacy
+`margo-task-progress` ID remains compatible; prefer one workspace over another host panel.
+Navigation is read-only and does not start, pause, cancel or approve a task.
+
 ## Start from the actual request
 
 1. Confirm the configured account against the invoking Work IQ binding. Read current

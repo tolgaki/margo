@@ -27,6 +27,15 @@ Prepare Markdown first unless the requested deliverable calls for a specialised 
 Store the private content, evidence links and revisions, purpose, audience, and missing inputs.
 Use the action desk to review the actual artefact, not just a title announcing it exists.
 
+For an explicitly requested user-facing file, read `margo_store.py profile-show` and resolve
+the new output filename with `workspace-path` as described in `state-operations.md`.
+Use that absolute path for document-producing tools, never cwd or the repository as a fallback.
+An existing private Markdown artifact can be exported with `work_state.py artifact-export`,
+binding both artifact revision and profile revision. Export is an explicit foreground action,
+not a side effect of preparation. A synced folder may expose the file according to its own
+sharing configuration; review destination/content policy first. Never put runtime SQLite,
+credentials, caches or a second tracker in the work folder.
+
 Unattended preparation is local only. Set an explicit item/cost budget with the user before
 generating in bulk; without one, prepare the single highest-priority actionable item and defer
 the rest. Do not manufacture documents for informational mail.

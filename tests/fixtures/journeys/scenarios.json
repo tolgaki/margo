@@ -22,7 +22,7 @@
       "coverage_kind": "runtime", "source_fixture": "sources.json#setup-v1",
       "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
       "expected": {"user_visible_invariants": ["Setup remains account-scoped and explicit."], "forbidden_effects": ["Do not access or modify an installed copy."], "evidence_limitations": ["Installer tests do not prove a live account connection."]},
-      "evidence": {"selectors": ["test_install_manifest.ManifestTests.test_opt_in_install_record_and_safe_remove"], "proves": ["Opt-in install records and safe removal are enforced."], "does_not_prove": ["A model explains setup correctly."]}
+      "evidence": {"selectors": ["test_install_manifest.ManifestTests.test_opt_in_install_record_and_safe_remove", "test_margo_locations.LocationTests.test_copied_installed_cli_finds_binding_from_nonrepo_cwd_with_no_environment", "test_margo_locations.LocationTests.test_bound_root_without_margo_environment_preserves_identity_and_creates_no_old_database"], "proves": ["Opt-in install records and safe removal are enforced.", "An explicitly bound copied installation finds existing private config/state without inherited root variables or another database."], "does_not_prove": ["A model explains setup correctly.", "Local owner configuration establishes M365 authentication."]}
     },
     {
       "id": "account-storage", "feature_id": "account-storage", "title": "Keep fictional account state isolated",
@@ -36,7 +36,7 @@
       "coverage_kind": "runtime", "source_fixture": "sources.json#memory-v1",
       "routing": {"expected_skills": ["chief-of-staff", "memory"], "forbidden_skills": ["mail"]},
       "expected": {"user_visible_invariants": ["Preference import is bounded and exactly reviewed."], "forbidden_effects": ["Do not turn template examples into preferences."], "evidence_limitations": ["A stored preference does not authorize an action."]},
-      "evidence": {"selectors": ["test_memory_learning.LearningStoreTests.test_preference_import_preserves_exact_review_and_stale_replay_protection"], "proves": ["Production preference import review and replay protections are exercised."], "does_not_prove": ["A model applies the preference appropriately."]}
+      "evidence": {"selectors": ["test_memory_learning.LearningStoreTests.test_preference_import_preserves_exact_review_and_stale_replay_protection", "test_margo_profile.ProfileTests.test_default_name_rename_and_work_root_survive_restart_without_identity_changes", "test_margo_profile.ProfileTests.test_names_are_bounded_plain_text_never_instructions", "test_margo_profile.ProfileTests.test_profile_commands_work_from_non_repository_directory_with_spaces"], "proves": ["Production preference import review and replay protections are exercised.", "Display names persist independently of account identity; dedicated work-root routing works outside a repository."], "does_not_prove": ["A model applies the preference appropriately.", "OneDrive sync or organizational deployment approval."]}
     },
     {
       "id": "daily-brief", "feature_id": "daily-brief", "title": "Prepare a useful partial fictional brief",
@@ -260,7 +260,7 @@
       "coverage_kind": "runtime", "source_fixture": "sources.json#commitment-v1",
       "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["files"]},
       "expected": {"user_visible_invariants": ["Artifact content, sources, sensitivity and open questions are versioned."], "forbidden_effects": ["Do not call a prepared artifact shared."], "evidence_limitations": ["Artifact usefulness is not model-evaluated here."]},
-      "evidence": {"selectors": ["test_work_state.WorkLedgerTests.test_artifact_private_versioning_approval_delivery_and_staleness"], "proves": ["Production artifact versioning and stale-source handling are exercised."], "does_not_prove": ["Generated prose quality."]}
+      "evidence": {"selectors": ["test_work_state.WorkLedgerTests.test_artifact_private_versioning_approval_delivery_and_staleness", "test_margo_profile.ProfileTests.test_markdown_export_is_explicit_no_overwrite_and_never_relocates_live_state"], "proves": ["Production artifact versioning and stale-source handling are exercised.", "Explicit exports route to a configured work root without overwriting files or relocating runtime state."], "does_not_prove": ["Generated prose quality.", "OneDrive synchronization or remote sharing status."]}
     },
     {
       "id": "artifact-delivery", "feature_id": "artifact-delivery", "title": "Deliver only an exact approved synthetic artifact",
@@ -398,11 +398,11 @@
       "canvas_refs": [{"id": "margo-task-progress", "actions": ["health"]}]
     },
     {
-      "id": "action-desk-canvas", "feature_id": "action-desk-canvas", "title": "Render synthetic action review without a hidden send route",
-      "coverage_kind": "procedure-contract", "source_fixture": "sources.json#commitment-v1",
+      "id": "action-desk-canvas", "feature_id": "action-desk-canvas", "title": "Track bounded local decision requests without hidden approval",
+      "coverage_kind": "runtime", "source_fixture": "sources.json#commitment-v1",
       "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
-      "expected": {"user_visible_invariants": ["The renderer shows exact revisions, errors and approval state from the core."], "forbidden_effects": ["Do not add an independent approve or send path."], "evidence_limitations": ["This mapping is a UI contract, not executable canvas evidence."]},
-      "evidence": {"selectors": [], "proves": ["Core parity and forbidden hidden actions are explicit requirements."], "does_not_prove": ["Canvas accessibility or rendering correctness."]}
+      "expected": {"user_visible_invariants": ["Accepted, working and ready reflect the existing task journal.", "Repeated exact requests do not dispatch twice.", "Candidates remain unconfirmed and reads do not initialize state.", "One canonical Work/Memory/Tasks/Automations/Config workspace preserves section-local queries, filters, selections, focus and drafts without document reload.", "Config saves only profile name/work root with CAS; managed scenarios use one registered Markdown store and never register native workflows.", "Narrow reading navigation preserves the local draft; simple edits and exact JSON use the same revision contract.", "Legacy canvas IDs retain read actions and open the same workspace at their section without automatically closing existing instances."], "forbidden_effects": ["Do not add an independent approve or send path.", "Do not treat unknown dispatch as no effect.", "Do not use nested app iframes or silently mix cached sections across accounts."], "evidence_limitations": ["Synthetic core and UI tests are not observed model compliance or live M365 integration.", "Run browser.test.mjs and ux-browser.test.mjs separately for one-panel/history/renderer/keyboard evidence."]},
+      "evidence": {"selectors": ["test_decision_workspace.DecisionWorkspaceTests.test_request_lifecycle_is_durable_bounded_and_never_approval", "test_decision_workspace.DecisionWorkspaceTests.test_concurrent_panels_claim_dispatch_only_once", "test_decision_workspace.DecisionWorkspaceTests.test_unknown_dispatch_is_persisted_and_never_resent", "test_decision_workspace.DecisionWorkspaceTests.test_read_only_snapshot_does_not_initialize_optional_namespaces"], "proves": ["Durable exact-revision request lifecycle, deduplication and read-only boundaries."], "does_not_prove": ["Model adherence to preparation instructions.", "Live M365 data access or employer deployment approval."]}
     },
     {
       "id": "upgrade-migration", "feature_id": "upgrade-migration", "title": "Preserve synthetic state through upgrade",
@@ -437,7 +437,7 @@
       "coverage_kind": "runtime", "source_fixture": "sources.json#memory-v1",
       "routing": {"expected_skills": ["chief-of-staff", "memory"], "forbidden_skills": ["mail"]},
       "expected": {"user_visible_invariants": ["Mandatory preferences, stale records and lexical fallback remain explicit."], "forbidden_effects": ["Do not retrieve forgotten, stale or ineligible content as authority."], "evidence_limitations": ["Synthetic ranking does not prove relevance on real corpora."]},
-      "evidence": {"selectors": ["test_memory_search.SearchTests.test_lexical_fallback_explicit_and_unindexed_memories_visible"], "proves": ["Production retrieval fallback and visibility rules are exercised."], "does_not_prove": ["Optional semantic quality."]}
+      "evidence": {"selectors": ["test_memory_search.SearchTests.test_lexical_fallback_explicit_and_unindexed_memories_visible", "test_margo_locations.LocationTests.test_basic_memory_init_and_keyword_read_need_no_model_capture_or_network"], "proves": ["Production retrieval fallback and visibility rules are exercised.", "Explicit basic memory initialization and lexical recall do not encode, download, access network or enable capture."], "does_not_prove": ["Optional semantic quality."]}
     },
     {
       "id": "memory-control", "feature_id": "memory-control", "title": "Correct and forget synthetic memory safely",
@@ -471,14 +471,14 @@
       "id": "memory-canvas", "feature_id": "memory-canvas", "title": "Render synthetic memory as a read-safe optional surface",
       "coverage_kind": "procedure-contract", "source_fixture": "sources.json#memory-v1",
       "routing": {"expected_skills": ["chief-of-staff", "memory"], "forbidden_skills": ["mail"]},
-      "expected": {"user_visible_invariants": ["Canvas status reflects core authority, freshness and optional runtime gaps."], "forbidden_effects": ["Do not add hidden capture, confirm or forget semantics."], "evidence_limitations": ["This scenario is a parity contract, not renderer execution evidence."]},
+      "expected": {"user_visible_invariants": ["Canvas status reflects core authority, freshness and optional runtime gaps.", "Readable context leads detail; optional correction and other review requests are available under Assistance without changing eligibility or approval.", "Provenance, forgetting scope and exact records remain available.", "Failed searches retain loaded context and never silently select a fallback.", "Memory section switches preserve query/results and cannot steal focus when a read completes in a hidden section."], "forbidden_effects": ["Do not add hidden capture, confirm or forget semantics."], "evidence_limitations": ["This scenario is a parity contract, not renderer execution evidence.", "Run ux-browser.test.mjs and quiet-browser.test.mjs for synthetic unified-navigation/neutral-default/theme/search/recovery evidence."]},
       "evidence": {"selectors": [], "proves": ["Canvas parity and forbidden hidden mutations are explicit."], "does_not_prove": ["Canvas accessibility or model behavior."]}
     },
     {
       "id": "task-progress", "feature_id": "task-progress", "title": "Show durable synthetic task progress",
       "coverage_kind": "runtime", "source_fixture": "sources.json#task-recovery-v1",
       "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
-      "expected": {"user_visible_invariants": ["Pause, completed steps, budgets and safe remaining work stay visible.", "List returns compact summaries while show retains the full plan and steps.", "Record-id resolves a stable task identity without initializing private state."], "forbidden_effects": ["Do not repeat completed work or resume with stale binding.", "Read-only CLI and canvas views must not initialize task state."], "evidence_limitations": ["Task state does not prove model planning quality.", "Canvas declarations prove read-action parity, not renderer behavior."]},
+      "expected": {"user_visible_invariants": ["Pause, completed steps, budgets and safe remaining work stay visible.", "List returns compact summaries while show retains the full plan and steps.", "Record-id resolves a stable task identity without initializing private state.", "Named step cards and recorded progress do not imply delivery; refreshed conflicting details require a reread before review."], "forbidden_effects": ["Do not repeat completed work or resume with stale binding.", "Read-only CLI and canvas views must not initialize task state."], "evidence_limitations": ["Task state does not prove model planning quality.", "Canvas declarations prove read-action parity, not renderer behavior; run ux-browser.test.mjs for synthetic renderer evidence."]},
       "evidence": {"selectors": ["test_user_journeys.UserJourneyTests.test_task_pause_cancel_expiry_retry_unknown_write_and_resume", "test_task_cli.TaskCLITests.test_read_setup_and_full_local_workflow_across_processes"], "proves": ["Production TaskStore pause, resume and status transitions are exercised.", "CLI record-id/list/show/history/health use pure, compact and full read contracts without exposing claim tokens."], "does_not_prove": ["A model creates an optimal task plan.", "The canvas UI renders every state accessibly."]},
       "cli_refs": [{"path": "skills/chief-of-staff/scripts/task_state.py", "commands": ["record-id", "list", "show", "history", "health"]}],
       "canvas_refs": [{"id": "margo-task-progress", "actions": ["list", "show", "history", "health"]}]

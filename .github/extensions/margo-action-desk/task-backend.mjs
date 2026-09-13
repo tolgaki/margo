@@ -3,7 +3,7 @@
 // replan/recover/reconcile are exposed only as foreground REVIEW REQUESTS from server.mjs,
 // never as executable commands here.
 import { dirname, join } from "node:path";
-import { executeWithInput, resolveCore, BackendError } from "./backend.mjs";
+import { executeWithInput, resolveCore, BackendError, localSetupFailure } from "./backend.mjs";
 
 const operations = new Set(["list", "show", "history", "health"]);
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/;
@@ -143,6 +143,8 @@ export function createTaskBackend({ resolveScript = resolveCore, execute = execu
                     encoding: "utf8",
                 });
             } catch (error) {
+                const setup = localSetupFailure(error);
+                if (setup) throw setup;
                 if (error instanceof BackendError) throw error;
                 if (error.code === "ENOENT") throw new BackendError("setup_needed", "Python is not available on the extension's PATH.", 503);
                 if (error.killed) throw new BackendError("backend_timeout", "The task journal did not respond within 10 seconds.", 504);

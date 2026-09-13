@@ -1,0 +1,20 @@
+<header class="section-header page-header">
+  <div class="topline"><h2>Config</h2><button id="reload" class="quiet" type="button">Read current settings</button></div>
+  <p class="subtitle">Assistant display name and everyday workspace.</p>
+</header>
+<div class="overview">
+  <div id="notice" class="notice" role="status" aria-live="polite">Loading settings...</div>
+  <div class="card settings-form" id="form" aria-busy="false">
+    <label for="name">Assistant name</label>
+    <input id="name" maxlength="60" autocomplete="off" disabled>
+    <p class="meta">Default: Margo. A display label, not your sender identity. Technical agent/tool IDs stay unchanged.</p>
+    <label for="root">Workspace</label>
+    <input id="root" maxlength="4000" autocomplete="off" spellcheck="false" disabled placeholder="Existing absolute folder path">
+    <label><input id="clear" type="checkbox" disabled> No output workspace configured</label>
+    <p id="availability" class="meta">Workspace availability not checked.</p>
+    <p class="meta">Applies only to future explicitly requested outputs and workspace management. Does not move existing files, config, database/memory, automation playbooks or scheduler project bindings. It does not authorize OneDrive upload or sharing.</p>
+    <div id="conflict" class="warn" hidden></div>
+    <button id="review" type="button" hidden>I reviewed current settings; keep my edits</button>
+    <div class="actions"><button id="save" type="button" disabled>Save changes</button><button id="cancel" type="button" disabled>Cancel edits</button></div>
+  </div>
+</div>

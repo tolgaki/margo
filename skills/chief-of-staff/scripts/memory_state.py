@@ -6,7 +6,7 @@ from pathlib import Path
 import sqlite3
 import sys
 
-from margo_store import NotInitialized, StateError, add_state_arguments, canonical_json, parse_json, resolve_account
+from margo_store import StateError, add_state_arguments, canonical_json, error_code, parse_json, resolve_account
 
 
 def load(path, maximum=None):
@@ -27,7 +27,7 @@ def parser():
     root = argparse.ArgumentParser(description=__doc__)
     add_state_arguments(root)
     sub = root.add_subparsers(dest="command", required=True)
-    sub.add_parser("init", help="initialise private memory schema; does not collect sources")
+    sub.add_parser("init", help="initialize basic memory and local index metadata; no source capture, model download or encoding")
     sub.add_parser("migrate", help="explicitly migrate memory schema v1 to v2 after pausing writers and backing up")
     sub.add_parser("status", help="memory lifecycle and semantic index health")
     command = sub.add_parser("record-id")
@@ -211,7 +211,12 @@ def main(argv=None):
             except EmbeddingError as exc:
                 encoder = {"status": "unavailable", "error": str(exc)}
             result = {"account": memory.account, "memory": memory.health(), "index": search.health(),
-                      "embedding_runtime": encoder, "policy": memory.policy()}
+                      "embedding_runtime": encoder, "policy": memory.policy(),
+                      "basic_memory": {"status": "available", "operations": ["list", "inspect", "lexical_search"],
+                                       "model_required": False},
+                      "semantic_search": {"status": "available" if encoder.get("status") == "available" else "unavailable",
+                                          "reason": encoder.get("status"), "optional": True},
+                      "m365_authentication": "not_checked"}
         elif args.command == "put":
             result = memory.put(args.key, revision=args.revision, **load(args.input))
         elif args.command == "capture":
@@ -332,8 +337,8 @@ def main(argv=None):
         return 0
     except (StateError, OSError, sqlite3.Error, ValueError, TypeError, KeyError) as exc:
         result = {"error": str(exc), "command": args.command}
-        if isinstance(exc, NotInitialized):
-            result["code"] = "not_initialized"
+        if error_code(exc):
+            result["code"] = error_code(exc)
         print(canonical_json(result), file=sys.stderr)
         return 2
     except ImportError as exc:

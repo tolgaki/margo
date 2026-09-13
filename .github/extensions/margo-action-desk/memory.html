@@ -1,106 +1,44 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Margo memory</title>
-<script nonce="__NONCE__">
-(() => {
-  const param = new URLSearchParams(window.location.search).get("scoutTheme");
-  const theme =
-    param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-  document.documentElement.setAttribute("data-theme", theme);
-})();
-</script>
-<style nonce="__NONCE__">
-__THEME__
-body { margin:0; padding:20px; background:var(--cp-bg); color:var(--cp-text); font:14px/1.5 "Segoe UI",Aptos,Calibri,-apple-system,BlinkMacSystemFont,sans-serif; }
-h1 { margin:0 0 8px; font-size:24px; }
-h2 { margin-top:0; font-size:19px; } h3 { font-size:16px; }
-p { color:var(--cp-text-muted); }
-button,input,select { font:inherit; padding:8px 12px; border:1px solid var(--cp-border); border-radius:0.625rem; color:var(--cp-text); background:var(--cp-surface); }
-button { cursor:pointer; } button:disabled { cursor:default; opacity:.6; }
-button:hover,button[aria-pressed="true"],button[aria-current="true"] { border-color:var(--cp-accent); }
-:focus-visible { outline:2px solid var(--cp-accent); outline-offset:3px; }
-input { width:min(550px,85%); }
-section { margin:16px 0; } article { border:1px solid var(--cp-border); background:var(--cp-surface); padding:16px; border-radius:16px; margin:12px 0; }
-pre { white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.5 Consolas,"Courier New",Courier,monospace; }
-.meta,.hint { font-size:12px; color:var(--cp-text-muted); }
-.controls,.actions { display:flex; flex-wrap:wrap; gap:8px; align-items:end; margin:12px 0; }
-.field { display:flex; flex-direction:column; gap:4px; }
-.workspace { display:grid; grid-template-columns:minmax(240px,1fr) minmax(0,2fr); gap:20px; }
-#results button { text-align:left; width:100%; margin-bottom:8px; }
-#results strong,#results span { display:block; }
-#detail { min-width:0; overflow-wrap:anywhere; }
-#notice { border-left:3px solid var(--cp-accent); padding:8px; }
-#notice.error { border-color:var(--cp-danger); }
-details { border-top:1px solid var(--cp-border); padding:12px 0; }
-summary { cursor:pointer; font-weight:600; }
-table { width:100%; border-collapse:collapse; margin:12px 0; }
-th,td { text-align:left; padding:8px; border-bottom:1px solid var(--cp-border); vertical-align:top; overflow-wrap:anywhere; }
-caption { text-align:left; font-weight:600; } .table-scroll { overflow-x:auto; }
-@media (max-width:760px) { .workspace { grid-template-columns:1fr; } body { padding:12px; } }
-</style>
-</head>
-<body>
-<h1>Margo memory</h1>
-<p>User context and agent learning. Similarity finds evidence; it does not establish truth or approval.</p>
-<section aria-label="Current account and memory policy">
-<strong id="account">Current account: not yet verified</strong>
-<div id="policy-summary">Capture and retention: not yet verified</div>
-<div id="runtime-summary">Local model: not yet checked</div>
-<details><summary>Capture, retention and health details (read-only)</summary><div id="health-detail"></div></details>
-<button id="health" type="button">Refresh account and policy</button>
+<header class="section-header page-header">
+  <div class="topline"><h2>Memory</h2><button id="health" class="quiet" type="button">Refresh account and policy</button></div>
+  <p class="subtitle">Stored context and its sources.</p>
+  <details class="page-status">
+    <summary>Privacy, capture &amp; search health</summary>
+    <div class="status-content"><strong id="account" class="meta">Current account: not yet verified</strong>
+      <p id="policy-summary" class="meta">Capture and retention: not yet verified</p>
+      <p id="runtime-summary" class="meta">Local model: not yet checked</p>
+      <div id="health-detail"></div>
+    </div>
+  </details>
+</header>
+<section class="overview" aria-label="Memory search">
+  <div class="card search-panel">
+    <div class="search-row">
+      <div class="field"><label for="query">Search private memory</label><input id="query" type="search" maxlength="4000" placeholder="What helps me avoid a rushed review?"></div>
+      <button id="search" class="primary" type="button">Search</button>
+    </div>
+    <div class="controls">
+      <label class="field" for="mode">Search method<select id="mode"><option value="hybrid">Meaning + keywords</option><option value="lexical">Keyword only</option></select></label>
+      <button id="list" class="quiet" type="button">Browse / refresh memories</button>
+    </div>
+    <p id="capability-summary" class="meta">Checking local memory availability...</p>
+    <button id="keyword-mode" class="quiet" type="button" hidden>Use keyword search</button>
+    <details id="search-options"><summary>Scope, purpose &amp; filters</summary>
+      <div class="filter-grid">
+        <label class="field" for="domain">Domain<select id="domain"><option value="">Both domains</option><option value="user">User context</option><option value="agent">Agent learning</option></select></label>
+        <label class="field" for="routine">Routine scope<select id="routine"><option value="">General context</option><option value="calendar">Calendar</option><option value="drafting">Drafting</option><option value="meeting-prep">Meeting preparation</option><option value="outcomes">Outcomes</option><option value="follow-through">Follow-through</option><option value="work-products">Work products</option></select></label>
+        <label class="field" for="purpose">Use purpose<select id="purpose"><option value="reasoning">Reasoning context</option><option value="drafting">Recipient text (permitted only)</option></select></label>
+        <label class="field" for="status">Status<select id="status"><option value="">All statuses</option><option value="candidate">Candidate</option><option value="active">Active</option><option value="disputed">Disputed</option><option value="stale">Stale</option><option value="suppressed">Do-not-use</option><option value="superseded">Superseded</option><option value="rejected">Rejected</option><option value="forgotten">Forgotten</option></select></label>
+        <label class="field" for="kind">Kind<select id="kind"><option value="">All kinds</option><option value="profile">Profile</option><option value="preference">Preference</option><option value="person">Person</option><option value="project">Project</option><option value="decision">Decision</option><option value="episode">Episode</option><option value="lesson">Lesson</option><option value="capability">Capability</option><option value="trend">Trend</option></select></label>
+      </div>
+      <p class="hint">Search returns at most 8 eligible results. Meaning search requires the local model; keyword search needs an explicit domain or routine scope. No silent fallback. Purpose limits use of content, not approval to send.</p>
+    </details>
+  </div>
 </section>
-<section aria-label="Memory search">
-<label for="query">Search private memory</label><br>
-<input id="query" maxlength="4000" placeholder="What helps me avoid a rushed review?">
-<div class="controls">
-<label class="field" for="mode">Search method
-<select id="mode">
-<option value="hybrid">Meaning + keywords (local model required)</option>
-<option value="lexical">Keyword only (explicit fallback, no model)</option>
-</select></label>
-<label class="field" for="purpose">Use purpose
-<select id="purpose">
-<option value="reasoning">Reasoning context (not permission to copy)</option>
-<option value="drafting">Recipient text (drafting-permitted only)</option>
-</select></label>
-<label class="field" for="routine">Routine scope
-<select id="routine">
-<option value="">General context</option>
-<option value="calendar">Calendar</option>
-<option value="drafting">Drafting</option>
-<option value="meeting-prep">Meeting preparation</option>
-<option value="outcomes">Outcomes</option>
-<option value="follow-through">Follow-through</option>
-<option value="work-products">Work products</option>
-</select></label>
-<button id="search" type="button">Search</button>
-<button id="list" type="button">Browse / refresh memories</button>
+<div id="notice" class="notice" role="status" aria-live="polite" aria-atomic="true">Loading private memory...</div>
+<div id="workspace" class="workspace" aria-busy="false" tabindex="-1">
+  <section class="list-pane" aria-label="Memory results">
+    <div class="list-tools"><h2 class="list-heading">Your context</h2><nav id="views" class="view-tabs" aria-label="Memory views"></nav><p id="count" class="meta"></p></div>
+    <div id="results"></div>
+  </section>
+  <section id="detail" class="detail-pane" aria-label="Selected memory"><div class="empty"><strong>Select a memory</strong><p>Read its content, source and history.</p></div></section>
 </div>
-<p class="hint">Search is bounded to 8 eligible results. Keyword-only search must be explicitly selected with a domain or routine scope; it is not semantic search. Use purpose filters content permissions, not approval to send. This panel never initializes storage or installs models.</p>
-</section>
-<nav id="views" class="actions" aria-label="Memory views"></nav>
-<div class="controls" aria-label="Local memory filters">
-<label class="field" for="domain">Domain<select id="domain">
-<option value="">Both domains</option><option value="user">User context</option><option value="agent">Agent learning</option>
-</select></label>
-<label class="field" for="status">Status<select id="status">
-<option value="">All statuses</option><option>candidate</option><option>active</option><option>disputed</option>
-<option>stale</option><option value="suppressed">suppressed (do-not-use)</option><option>superseded</option><option>rejected</option><option>forgotten</option>
-</select></label>
-<label class="field" for="kind">Kind<select id="kind">
-<option value="">All kinds</option><option>profile</option><option>preference</option><option>person</option>
-<option>project</option><option>decision</option><option>episode</option><option>lesson</option><option>capability</option><option>trend</option>
-</select></label>
-</div>
-<div id="notice" role="status" aria-live="polite" aria-atomic="true">Loading private memory...</div>
-<main id="workspace" class="workspace" aria-busy="false">
-<section aria-label="Memory results"><div id="count" class="meta"></div><div id="results"></div></section>
-<section id="detail" aria-label="Selected memory"><p>Select a memory to inspect its evidence, history, dependencies and forgetting preview.</p></section>
-</main>
-<p>Review-only surface. Buttons request a foreground conversation, never approval. Correction, do-not-use, supersession, forgetting and sanitized lesson export require a separate exact decision. No source or work item is changed.</p>
-<script nonce="__NONCE__" src="/memory.js"></script>
-</body>
-</html>

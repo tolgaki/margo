@@ -43,10 +43,12 @@ class WorkLedgerTests(unittest.TestCase):
         self.path = ROOT / (".work-state-test-" + uuid.uuid4().hex)
         self.path.mkdir(mode=0o700)
 
-        def connect(account=None, state_root=None):
+        def connect(account=None, state_root=None, *, read_only=False):
             if not account:
                 raise work.StateError("explicit configured account required")
-            connection = sqlite3.connect(str(self.path / (work.digest(account) + ".sqlite")), timeout=3)
+            database = self.path / (work.digest(account) + ".sqlite")
+            connection = sqlite3.connect(database.as_uri() + "?mode=ro" if read_only else str(database),
+                                         uri=read_only, timeout=3)
             connection.row_factory = sqlite3.Row
             connection.execute("PRAGMA foreign_keys=ON")
             return connection

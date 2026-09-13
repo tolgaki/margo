@@ -17,6 +17,14 @@ Installing a model does not populate memory or enable passive capture. Initializ
 not install a model. Keep these choices separate; start with lexical inspection if you want to
 understand the records before adding the optional download.
 
+If account reads fail despite an existing private configuration, first inspect the installed
+`margo_store.py locations` and explicitly [bind the approved root](setup-and-migration.md#durable-private-location-binding).
+Work, Memory and Tasks use the same resolver without depending on inherited root variables.
+Task initialization is not memory initialization. `memory_state.py init` alone enables basic
+memory and creates index metadata without loading a model; capture stays off. The Memory view
+separately reports basic availability and the optional encoder, with an explicit **Use keyword
+search** control that still requires scope and does not run a query or download anything.
+
 ## Start with what you want to do
 
 > What do you remember about my review preferences? Show the sources and anything that is
@@ -200,8 +208,11 @@ as partial; missing/broken runtimes remain retryable errors, not discarded jobs.
 
 ## 6. Use the optional panel
 
-Install the action-desk extension as before, reload it, and ask to open **Margo Memory**.
-The memory canvas uses the same private CLI, supports semantic search and record inspection,
+Install the action-desk extension as before, reload it, and ask to open **Margo Workspace**
+on its **Memory** section. The canonical canvas is `margo-action-desk`, optionally opened with
+`{"section":"memory"}`. The legacy `margo-memory` entry still opens the same workspace at Memory;
+there is no need for a separate panel. Switching sections preserves the local query and selection.
+The Memory section uses the same private CLI, supports semantic search and record inspection,
 and can request a foreground correction or forgetting discussion. It cannot alter memory, approve
 an action, install models, or send anything.
 

@@ -345,6 +345,29 @@ class TaskStore:
             self._event(run_id, "created", {"request_ref": plan["request_ref"], "mode": plan["mode"]})
             return self.show(run_id)
 
+    def find(self, key):
+        """Look up a stable request identity without creating a run."""
+        run_id = task_identity(self.account, key)
+        row = self.conn.execute("SELECT id FROM task_runs WHERE id=? AND account=?",
+                                (run_id, self.account)).fetchone()
+        return self.show(run_id) if row else None
+
+    def inspect_claim(self, attempt_id, token):
+        """Inspect one owned claim without extending its lease or returning its token."""
+        attempt = self._attempt(attempt_id)
+        self._token(attempt, token)
+        return {"run": self.show(attempt["run_id"]), "step_key": attempt["step_key"],
+                "state": attempt["state"], "lease_expires": attempt["lease_expires"]}
+
+    def has_live_claim(self, routine):
+        rows = self.conn.execute(
+            "SELECT DISTINCT r.plan FROM task_runs r JOIN task_attempts a ON a.run_id=r.id "
+            "WHERE r.account=? AND a.state='running' AND a.lease_expires>? LIMIT 101",
+            (self.account, utc_now())).fetchall()
+        if len(rows) > 100:
+            raise StateError("Too many live claims to establish non-overlap safely.")
+        return any(parse_json(row["plan"])["routine"] == routine for row in rows)
+
     def _binding(self, plan, supplied):
         actual = environment(supplied, self.account, fresh=True)
         if binding_hash(actual) != binding_hash(plan["environment"]):

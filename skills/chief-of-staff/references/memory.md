@@ -10,6 +10,11 @@ For opted-in session checkpoints and manual daily reflection, use `dream.md` and
 `dream-inspect` commands. Dream uses this same memory owner and review workflow; session
 listing is not history/content access. Do not checkpoint Dream's own reflection session.
 
+For a requested visual memory review, prefer the **Memory** section of the existing
+`margo-action-desk` workspace. If no workspace is open, use that canonical canvas with
+`{"section":"memory"}`. The legacy `margo-memory` ID remains compatible but is not a separate
+experience to open alongside Work/Tasks. Section navigation never captures or confirms memory.
+
 ## Initialise and migrate without collecting
 
 `init` creates a new version-2 memory schema. Existing version-1 memory requires the explicit

@@ -41,6 +41,73 @@ payload, sources, revision and hash—not merely “send follow-up.” Without a
 interaction bridge, its buttons are review/edit requests and final approval stays in the
 foreground conversation. Do not manufacture a human click by calling an approval tool.
 
+## Decision workspace requests
+
+For an interactive day/decision-workspace request, discover and open `margo-action-desk`
+with `{}` and a stable instance handle. This is **Margo Workspace**, with Work/Memory/Tasks
+inside one panel; optional `{"section":"memory"}` or `{"section":"tasks"}` selects the initial
+view. Reuse the current workspace rather than opening a legacy panel for each section.
+Its `snapshot` action reads the bounded desk;
+`list`, `show`, and `refresh` remain read-only. After persisting preparation or receipts,
+invoke `refresh` on that handle; the visible panel also polls local state every 15 seconds.
+Do not open this surface for unrelated conversations or unattended routines.
+
+Legacy `margo-memory` and `margo-task-progress` entries retain their existing read actions and
+open this same UI at their respective initial section. They do not merge existing host instances.
+Before a deployment/reload, save local edits; then the user can keep one workspace and close
+redundant panels. Never invent a host alias/automatic-close capability or treat a section switch
+as approval, initialization, or an external refresh.
+
+The panel projects **Now**, **Needs your decision**, and **Next** from actual records.
+It uses unresolved executions, overdue work, then meetings/deadlines within 60 minutes,
+followed by other decisions and next steps. These are display rules, not model confidence.
+Do not create urgency, dates, blocked people, meetings or working hours to fill the screen.
+Candidates remain unconfirmed. Elapsed meeting time does not prove attendance/completion.
+
+`work_state.py desk` reads up to the newest 50 records of each type, with explicit truncation,
+source coverage, time preferences and task-backed request progress. Reads never initialize
+state. Use `list --view all` for the full ledger. The clock ticks locally; it does **not**
+refresh M365. Keep coverage failure, cadence-based staleness and source-revision changes visible.
+
+Only the browser can dispatch **Prepare for me**, **Recommend a response**, or **Review in
+conversation** through the SDK, from the selected record's optional **Assistance** disclosure.
+The default workspace is for manual browsing, inspection and editing; do not promote or
+automatically invoke assistance merely because its controls exist. These requests create a bounded private task attempt, not an
+obligation or approval. Each exact account/item/revision/hash/intent has one durable request.
+Dispatch is claimed before messaging; an unknown outcome is retained, never blindly resent.
+The request's `host-interaction:` locator is provenance, not proof of human approval.
+
+When processing one of these structured requests:
+
+1. Read its exact account-scoped task and item. Run
+   `work_state.py --account ACCOUNT desk-start RUN_ID --host SDK_HOST` to atomically recheck
+   the item revision/hash and claim local preparation. `SDK_HOST` is `sdk:` plus the actual
+   current session ID; compare it with the recorded host. Never copy an old host observation
+   and label it fresh. This is an audit binding, not caller authentication or consent.
+   Use the returned token privately; never include it in output.
+   If dispatch is unsettled, the claim is expired, the subject changed, or a step was already
+   claimed, stop and report the limitation. Do not manufacture a new request or retry the claim.
+2. Work only from that item and its linked **stored** evidence. Reserve/charge through
+   `task_state.py charge` before each tool/model call. The prepare step is bounded to 8 tool
+   calls, 1 model call, 20 stored sources and 8,000 output characters; the run expires after
+   30 minutes and a claim after at most 15. These limits cover the tracked path, not arbitrary
+   host tools. No network/M365 reads, unrelated files, implicit model setup, or external writes.
+3. For `prepare`, create one useful local proposal/artifact via the existing ledger API if
+   evidence suffices; do not create an Outlook draft. For `recommend`, explain the key ask,
+   recommendation, recorded blocker and missing evidence. For `review`, display the exact
+   current target/payload and request a **subsequent** explicit foreground decision.
+4. Finish the claimed prepare step through `task_state.py finish` with a `local_result`
+   receipt, an actual conversation/result reference, concise `summary` (at most 4,000
+   characters), `source_refs`, and any canonical `work_ids`. Use `failed`/`partial` for missing
+   evidence or incomplete preparation; do not report a missing output as ready.
+   Refresh the open canvas. **Ready is private preparation, not approval, delivery or closure.**
+
+Source refresh, confirming candidates, work-item transitions, execution/reconciliation, and
+recovery/replanning require the normal foreground procedure; this request grants none of them.
+Only explicit separate user approval can authorize external actions. If the task journal is
+not initialized, the UI disables requests and names the limitation. Initialize it only after
+an explicit setup request using `task_state.py init`, not as a side effect of opening a panel.
+
 ## Prepare and edit
 
 ```sh

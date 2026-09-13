@@ -4,18 +4,41 @@ import { readFile } from "node:fs/promises";
 import { BackendError, validateInput } from "./backend.mjs";
 import { createMemoryBackend, validateMemoryInput, validateMemoryResult } from "./memory-backend.mjs";
 import { createTaskBackend, validateTaskInput, validateTaskResult } from "./task-backend.mjs";
+import { dispatchDecision } from "./decision-requests.mjs";
+import { createAutomationBackend } from "./automation-backend.mjs";
 
 const htmlSource = await readFile(new URL("./index.html", import.meta.url), "utf8");
+const workSource = await readFile(new URL("./work.html", import.meta.url), "utf8");
+const workspaceApp = await readFile(new URL("./workspace.js", import.meta.url), "utf8");
+const configSource = await readFile(new URL("./config.html", import.meta.url), "utf8");
+const configApp = await readFile(new URL("./config-app.js", import.meta.url), "utf8");
+const automationsSource = await readFile(new URL("./automations.html", import.meta.url), "utf8");
+const automationsApp = await readFile(new URL("./automations-app.js", import.meta.url), "utf8");
 const appSource = await readFile(new URL("./app.js", import.meta.url), "utf8");
+const decisionModel = await readFile(new URL("./decision-model.js", import.meta.url), "utf8");
+const profileApp = await readFile(new URL("./profile.js", import.meta.url), "utf8");
+const uiApp = await readFile(new URL("./ui.js", import.meta.url), "utf8");
+const uiStyles = await readFile(new URL("./ui.css", import.meta.url), "utf8");
 const memorySource = await readFile(new URL("./memory.html", import.meta.url), "utf8");
 const memoryApp = await readFile(new URL("./memory-app.js", import.meta.url), "utf8");
 const tasksSource = await readFile(new URL("./tasks.html", import.meta.url), "utf8");
 const taskApp = await readFile(new URL("./task-app.js", import.meta.url), "utf8");
-const themeSource = htmlSource.slice(htmlSource.indexOf(":root {"), htmlSource.indexOf("/* The app's"));
 const taskIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/;
 const taskReviewFields = ["id", "revision", "plan_hash", "intent"];
 const taskReviewIntents = ["pause", "cancel", "resume", "replan", "recover", "reconcile"];
 const MAX_BODY = 128 * 1024;
+
+export function renderWorkspace(initialSection, nonce) {
+    if (!["work", "memory", "tasks", "automations", "config"].includes(initialSection)) throw new BackendError("invalid_input", "Unknown workspace section.", 400);
+    const scope = (name, source) => source.replace(/\b(id|for|aria-controls|aria-labelledby|aria-describedby)="([^"]+)"/g,
+        (_match, attribute, value) => `${attribute}="${value.split(" ").map(id => `${name}-${id}`).join(" ")}"`);
+    return htmlSource.replace("__STYLES__", uiStyles).replace("__INITIAL_SECTION__", initialSection)
+        .replace("__WORK_SECTION__", scope("work", workSource))
+        .replace("__MEMORY_SECTION__", scope("memory", memorySource))
+        .replace("__TASKS_SECTION__", scope("tasks", tasksSource))
+        .replace("__CONFIG_SECTION__", scope("config", configSource))
+        .replace("__AUTOMATIONS_SECTION__", scope("automations", automationsSource)).replaceAll("__NONCE__", nonce);
+}
 
 function json(res, status, value) {
     res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
@@ -86,7 +109,7 @@ export function taskReviewPrompt(run, intent) {
     ].join("\n");
 }
 
-export async function startServer({ backend, sendReview, memoryBackend = createMemoryBackend(), taskBackend = createTaskBackend() }) {
+export async function startServer({ backend, sendReview, host, memoryBackend = createMemoryBackend(), taskBackend = createTaskBackend(), automationBackend = createAutomationBackend() }) {
     const token = randomBytes(32).toString("hex");
     const nonce = randomBytes(24).toString("base64");
     let origin;
@@ -111,27 +134,42 @@ export async function startServer({ backend, sendReview, memoryBackend = createM
             }
             const url = new URL(req.url, origin);
             if (url.origin !== origin) throw new BackendError("forbidden", "Unexpected request origin.", 403);
-            if (url.pathname === "/" && req.method === "GET" && !url.search) {
+            if (["/", "/memory", "/tasks", "/automations", "/config"].includes(url.pathname) && req.method === "GET"
+                && (!url.search || (url.searchParams.size === 1 && ["light", "dark"].includes(url.searchParams.get("scoutTheme"))))) {
                 res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-                return res.end(htmlSource.replaceAll("__NONCE__", nonce));
+                return res.end(renderWorkspace(url.pathname === "/" ? "work" : url.pathname.slice(1), nonce));
             }
             if (url.pathname === "/app.js" && req.method === "GET" && !url.search) {
                 res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
                 return res.end(appSource);
             }
-            if (url.pathname === "/memory" && req.method === "GET"
-                && (!url.search || (url.searchParams.size === 1 && ["light", "dark"].includes(url.searchParams.get("scoutTheme"))))) {
-                res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-                return res.end(memorySource.replace("__THEME__", themeSource).replaceAll("__NONCE__", nonce));
+            if (url.pathname === "/decision-model.js" && req.method === "GET" && !url.search) {
+                res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+                return res.end(decisionModel);
+            }
+            if (url.pathname === "/profile.js" && req.method === "GET" && !url.search) {
+                res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+                return res.end(profileApp);
+            }
+            if (url.pathname === "/ui.js" && req.method === "GET" && !url.search) {
+                res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+                return res.end(uiApp);
+            }
+            if (url.pathname === "/workspace.js" && req.method === "GET" && !url.search) {
+                res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+                return res.end(workspaceApp);
+            }
+            if (url.pathname === "/config.js" && req.method === "GET" && !url.search) {
+                res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+                return res.end(configApp);
+            }
+            if (url.pathname === "/automations.js" && req.method === "GET" && !url.search) {
+                res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+                return res.end(automationsApp);
             }
             if (url.pathname === "/memory.js" && req.method === "GET" && !url.search) {
                 res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
                 return res.end(memoryApp);
-            }
-            if (url.pathname === "/tasks" && req.method === "GET"
-                && (!url.search || (url.searchParams.size === 1 && ["light", "dark"].includes(url.searchParams.get("scoutTheme"))))) {
-                res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-                return res.end(tasksSource.replace("__THEME__", themeSource).replaceAll("__NONCE__", nonce));
             }
             if (url.pathname === "/tasks.js" && req.method === "GET" && !url.search) {
                 res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
@@ -147,6 +185,27 @@ export async function startServer({ backend, sendReview, memoryBackend = createM
                 throw new BackendError("forbidden", "Only same-origin canvas requests are allowed.", 403);
             }
             if (url.search) throw new BackendError("invalid_input", "Query parameters are not accepted.", 400);
+            const automationsMatch = /^\/api\/automations\/(list|show|preview|commit)$/.exec(url.pathname);
+            if (automationsMatch) {
+                if (req.method !== "POST") throw new BackendError("method_not_allowed", "Use POST.", 405);
+                return json(res, 200, await automationBackend.run(automationsMatch[1], await body(req)));
+            }
+            if (req.method === "GET" && url.pathname === "/api/profile") {
+                return json(res, 200, await backend.run("profile"));
+            }
+            if (req.method === "POST" && url.pathname === "/api/profile") {
+                return json(res, 200, await backend.run("profile-save", await body(req)));
+            }
+            if (req.method === "GET" && url.pathname === "/api/desk") {
+                const snapshot = await backend.run("desk");
+                if (!host || typeof sendReview !== "function") snapshot.request_capability = {
+                    available: false, reason: "Session messaging is unavailable; use the foreground conversation.",
+                };
+                return json(res, 200, snapshot);
+            }
+            if (req.method === "POST" && url.pathname === "/api/decision-request") {
+                return json(res, 200, await dispatchDecision({ backend, sendReview, host }, await body(req)));
+            }
             const memoryMatch = /^\/api\/memory\/(list|show|search|status|inspect|graph|policy|review)$/.exec(url.pathname);
             if (memoryMatch) {
                 if (req.method !== "POST") throw new BackendError("method_not_allowed", "Use POST.", 405);

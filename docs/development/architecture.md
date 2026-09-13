@@ -26,7 +26,9 @@ User request / scheduled manifest
 | Persona | Who speaks; never the user's draft voice | `agents/margo.agent.md` |
 | Routine selection | Trigger-to-procedure routing | `skills/*/SKILL.md` |
 | Preferences | Human-readable private settings; imported memory is attributed to the file revision | `preferences.md`, `references/memory.md` |
+| Display identity / output workspace | Explicit per-account profile in existing private config; work root never relocates runtime state | `margo_profile.py`, `margo_store.py profile-show/profile-set/workspace-path` |
 | Storage identity | Explicit configured principal and private per-account SQLite path | `margo_store.py` |
+| Private location discovery | Explicit installation locator, invocation/env overrides first; no identity or data copied | `margo_locations.py`, `margo_store.py locations/locations-bind` |
 | Evidence and obligations | Source revisions, candidate/confirmed work and canonical tracker links | `work_ledger.py`, `work_state.py` |
 | External-action consent/results | Exact proposal revisions, approval invalidation and execution receipts | `work_ledger.py` |
 | Productivity | Outcomes, meeting lifecycle, feedback/rules and private artifacts | `work_productivity.py` |
@@ -38,7 +40,7 @@ User request / scheduled manifest
 | Rolling agendas / relationships | Human-editable private discussion surfaces, not duplicate obligation stores | `references/one-on-ones.md`, `references/relationships.md` |
 | Team decisions | Approved shared-log records and supersession chain | `skills/decision-log/` |
 | Schedules | Names, cadence and unattended prompts | `automations/*.md` |
-| Optional UI | Thin review/read surface, no independent credentials or database | `.github/extensions/margo-action-desk/` |
+| Optional UI | One Work/Memory/Tasks workspace, no independent credentials or database; legacy IDs remain compatibility entries | `.github/extensions/margo-action-desk/` |
 | User feature inventory | User outcomes, availability, guide and scenario mapping | `docs/feature-catalog.json` |
 
 Python filenames above live in `skills/chief-of-staff/scripts/`. Reference filenames are under
@@ -61,6 +63,24 @@ invoke those CLIs with fixed arguments; they do not choose databases or own sche
 An installed copy is another distribution of the same implementation, not a separate data owner.
 `COPILOT_HOME` selects the bundled helpers' installation root; explicit account/config/state
 overrides retain the same private-path checks.
+
+The daily operating folder can be a dedicated locally available OneDrive directory outside the
+repository. Only explicitly requested user-facing outputs go there. Profile edits do not
+migrate files, change account hashes or place SQLite/WAL/credentials in synchronized storage.
+`work_state.py artifact-export` writes a no-overwrite snapshot, not another writable ledger.
+
+`margo-action-desk` is the canonical canvas. One loopback server/document mounts scoped
+Work, Memory, Tasks, Automations and Config controllers lazily, preserving only ephemeral UI state on navigation.
+Domain records remain with their existing account-scoped owners. Legacy canvas IDs open the
+same shell at their initial section; no unsupported SDK alias/hide/auto-close behavior is assumed.
+
+Config saves through the existing private profile CAS API, not a canvas-owned store.
+Automation authoring uses one registry in the configured workspace's `AUTOMATIONS.md`, plus
+its explicitly registered version-1 scenario files. UI and interactive authoring share that
+API. Descriptor review/enablement is not private execution approval or native registration.
+The separate restricted app profile prepares only bounded local records through existing
+task/coverage/work/publication APIs. Its allowlist and scoped pre-tool denial do not turn
+the CLI into an OS sandbox or establish future desktop scheduling behavior.
 
 ## Task runs do not replace work
 

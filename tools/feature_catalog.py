@@ -89,6 +89,7 @@ DYNAMIC_CLI_MODULES = {
 STATIC_CLI_MODULES = [
     "skills/chief-of-staff/scripts/m365_files.py",
     "skills/chief-of-staff/scripts/margo_store.py",
+    "skills/chief-of-staff/scripts/app_proactive.py",
 ]
 
 

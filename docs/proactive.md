@@ -262,6 +262,12 @@ change saved app prompts. Review custom prompt differences and leave unrelated w
 > unattended contract in each prompt is doing the work. If that distinction matters to you, use
 > the wrapper — or [a container](container.md).
 
+For the separately restricted **morning / sweep / EOD app path**, use
+[restricted app preparation](how-to/restricted-app-proactivity.md), not the unrestricted
+`margo` profile. It adds an exact tool allowlist, scoped denial hook and narrow local
+preparation tools. Keep native entries disabled until effective permissions, sign-in and
+actual firing times are verified. The existing wrapper flags still do not transfer to the app.
+
 ### Either way
 
 Start with **one anchor** — the morning brief — and run it for a week before adding sweeps.

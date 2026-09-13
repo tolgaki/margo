@@ -155,6 +155,8 @@ class StateTests(unittest.TestCase):
     def test_no_account_status_is_setup_needed_and_writes_fail(self):
         env = dict(os.environ)
         env.pop("MARGO_ACCOUNT", None)
+        env.pop("MARGO_CONFIG", None)
+        env["COPILOT_HOME"] = str(self.root / "legacy-unconfigured-install")
         with patch.dict(os.environ, env, clear=True):
             output = io.StringIO()
             with contextlib.redirect_stdout(output):

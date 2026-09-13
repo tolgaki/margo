@@ -80,6 +80,28 @@ These are task-journal states, not a guarantee that the host has delivered a not
 that you have read it. The optional panel shows the same records, including unknown effects
 on a cancelled run.
 
+Open **Margo Workspace → Tasks** in the same panel as Work and Memory; canonical canvas
+`margo-action-desk` accepts optional initial `{"section":"tasks"}`. Section switches retain
+task search, filters, selected progress and loaded history without reloading the document.
+The legacy `margo-task-progress` entry still opens the unified workspace at Tasks and keeps its
+existing read actions. Extra already-open host panels are not automatically closed.
+
+The Tasks section leads with task goals, local search and named steps rather than raw plan
+fields. **Refresh tasks** reloads the first page; **Load next page** keeps pagination explicit.
+The selected task shows completed-step counts, results and blockers first. All optional
+foreground review requests are grouped under the closed **Assistance** disclosure rather than
+promoted as primary buttons. Refresh, browsing and history inspection remain manual controls;
+budgets and exact plan/identity stay expandable. Neutral status labels keep the record readable.
+Counts are recorded completed attempts, not predicted progress or
+proof of delivery.
+
+On narrow panels the detail becomes a reading view: **Back to list** or **Escape** returns to
+the current row without clearing the search. A failed read retains prior context when possible;
+uninitialized state is a setup error, not an empty task list. If refresh sees a changed selected
+run (or cannot find it in that page), review controls are disabled until **Reload this run**
+reads the exact current version. Theme, contrast, labelled fields and keyboard focus match the
+Action Desk and Memory canvases.
+
 ## What needs your decision
 
 Task creation and private preparation are not outward-action consent. Sending, posting, RSVP,

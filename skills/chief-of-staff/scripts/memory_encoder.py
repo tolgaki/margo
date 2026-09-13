@@ -126,7 +126,8 @@ def _expected_manifest():
 
 
 def _copilot_home():
-    return Path(os.environ.get("COPILOT_HOME", "~/.copilot")).expanduser().absolute()
+    from margo_store import copilot_home
+    return copilot_home()
 
 
 def default_model_dir():

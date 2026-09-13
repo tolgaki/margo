@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { normalize, resolve } from "node:path";
 import vm from "node:vm";
 import {
     createTaskBackend, resolveTaskScript, validateTaskInput, validateTaskResult,
@@ -63,7 +63,7 @@ function listRow(run) {
 
 test("task script resolves adjacent to the resolved work_state.py core", async () => {
     const script = await resolveTaskScript(async () => "/project/skills/chief-of-staff/scripts/work_state.py");
-    assert.equal(script, "/project/skills/chief-of-staff/scripts/task_state.py");
+    assert.equal(script, normalize("/project/skills/chief-of-staff/scripts/task_state.py"));
 });
 
 test("task command argv is fixed, shell-free and bounded for every read", async () => {
@@ -80,7 +80,7 @@ test("task command argv is fixed, shell-free and bounded for every read", async 
         },
     });
     await backend.run("list", {});
-    assert.deepEqual(calls.at(-1)[1], ["-B", "/project/skills/chief-of-staff/scripts/task_state.py", "list", "--limit", "20"]);
+    assert.deepEqual(calls.at(-1)[1], ["-B", normalize("/project/skills/chief-of-staff/scripts/task_state.py"), "list", "--limit", "20"]);
     assert.equal(calls.at(-1)[2].shell, false);
     assert.equal(calls.at(-1)[2].timeout, 10_000);
     assert.equal(calls.at(-1)[2].windowsHide, true);
@@ -343,7 +343,7 @@ function domFixture() {
     const text = [];
     const byId = new Map();
     class Node {
-        constructor(tag) { this.tag = tag; this.children = []; this.attrs = {}; this.listeners = {}; this._hidden = false; }
+        constructor(tag) { this.tag = tag; this.children = []; this.attrs = {}; this.listeners = {}; this._hidden = false; this.value = ""; }
         set textContent(value) { this.text = value; text.push(value); }
         get textContent() { return this.text; }
         set id(value) { byId.set(value, this); }
@@ -368,7 +368,7 @@ function domFixture() {
         }
         hasAttribute(name) { return name in this.attrs; }
     }
-    for (const id of ["account", "health-summary", "health-detail", "health", "views", "notice", "workspace", "count", "runs", "more", "detail"]) {
+    for (const id of ["account", "health-summary", "health-detail", "health", "views", "notice", "workspace", "count", "runs", "more", "detail", "refresh-runs", "task-query"]) {
         byId.set(id, new Node(id === "health" || id === "more" ? "button" : "div"));
     }
     const document = {
@@ -384,7 +384,8 @@ function domFixture() {
 
 async function loadTaskApp({ document, text }, fetchImpl) {
     const source = await readFile(new URL("./task-app.js", import.meta.url), "utf8");
-    vm.runInNewContext(source, {
+    vm.runInNewContext(await readFile(new URL("./ui.js", import.meta.url), "utf8") + "\n" + source
+        + "\nMargoSections.tasks(document, MargoUI.forSection(document));", {
         document, location: { hash: "#token=test-token" }, URL, URLSearchParams, AbortSignal,
         MutationObserver: class { observe() {} }, setInterval() {}, fetch: fetchImpl, console,
     });

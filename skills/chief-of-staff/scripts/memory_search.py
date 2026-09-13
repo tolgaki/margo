@@ -187,7 +187,9 @@ class MemorySearch:
             try:
                 result = encode_local(texts)
             except EmbeddingError as exc:
-                raise StateError("Local semantic embeddings unavailable: " + str(exc)) from exc
+                error = StateError("Local semantic embeddings unavailable: " + str(exc))
+                error.code = "semantic_unavailable"
+                raise error from exc
         else:
             result = self.encoder(texts)
         if not isinstance(result, dict) or not isinstance(result.get("model_fingerprint"), str):

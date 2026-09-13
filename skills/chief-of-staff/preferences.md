@@ -20,6 +20,13 @@
 - **Time zone & working hours:** {e.g. 9:00–18:00, PT}
 - **Focus-time blocks to protect:** {e.g. no meetings before 10am; heads-down 2–4pm}
 
+For the optional decision canvas, an unambiguous value in that same private time field is
+`America/Los_Angeles; Mon-Fri; 09:00-18:00` (or explicit comma-separated days such as
+`Sun,Mon,Tue`). Use your actual IANA timezone and hours, not this example. The canvas can
+recognize an IANA timezone alone, but does not guess working days/hours from free text or
+abbreviations such as `PT`. Unsupported/overnight schedules remain unknown; the clock is
+labelled as device time if the account timezone is missing.
+
 ## Scheduling defaults
 
 - **Meeting start times:** {e.g. always start at :05 or :35 past the hour, never :00 or :30, so

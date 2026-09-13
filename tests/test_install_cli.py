@@ -279,11 +279,17 @@ class InstallCLITests(unittest.TestCase):
             runtime = dest / "margo/state/example/margo.db"
             runtime.parent.mkdir(parents=True)
             runtime.write_bytes(b"private runtime fixture")
+            locator = dest / "margo/locations.json"
+            locator.write_text('{"schema_version":1,"config_path":"synthetic-config","state_root":"synthetic-state"}\n')
+            locator_bytes = locator.read_bytes()
             run("install", dest_args + all_args)
             self.assertIn("Example User", personal.read_text())
+            self.assertEqual(locator.read_bytes(), locator_bytes)
+            self.assertNotIn("margo/locations.json", json.loads((dest / ".margo-files.json").read_text()))
             self.assertIn("personalized", run("status", dest_args))
             run("uninstall", dest_args + (["-Yes"] if is_ps else ["--yes"]))
             self.assertEqual(runtime.read_bytes(), b"private runtime fixture")
+            self.assertEqual(locator.read_bytes(), locator_bytes, "Unmanaged explicit location binding survives reinstall/uninstall")
             self.assertFalse((dest / ".margo-files.json").exists())
 
     @unittest.skipUnless(shutil.which("bash") and not sys.platform.startswith("win"),

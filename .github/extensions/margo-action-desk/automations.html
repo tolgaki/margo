@@ -1,0 +1,16 @@
+<header class="section-header page-header">
+  <div class="topline"><h2>Automations</h2><button id="refresh" class="quiet" type="button">Refresh definitions</button></div>
+  <p id="master" class="meta">Reading the managed workspace registry...</p>
+  <p class="meta">Rows are scenarios for one future native controller, not separate app workflows. The Margo starter suite remains separate. Enabling a descriptor never enables the controller or grants external-action permission.</p>
+</header>
+<div id="notice" class="notice" role="status" aria-live="polite"></div>
+<div id="workspace" class="workspace">
+  <aside class="list-pane">
+    <div class="list-tools"><label for="query">Find scenarios</label><input id="query" type="search" maxlength="300">
+      <label for="filter">View</label><select id="filter"><option value="all">All managed scenarios</option><option value="enabled">Enabled descriptors</option><option value="disabled">Disabled descriptors</option><option value="review_required">Needs review</option></select>
+      <div class="actions"><button id="new" type="button">Add scenario</button></div>
+    </div>
+    <div id="items"></div>
+  </aside>
+  <section id="detail" class="detail-pane"><div class="empty"><strong>Select a scenario</strong><p>Edit a registered definition without running it.</p></div></section>
+</div>

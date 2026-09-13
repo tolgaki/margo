@@ -2,9 +2,9 @@
 """Private, account-scoped SQLite storage shared by Margo's local CLIs.
 
 ``state_root``/MARGO_STATE_DIR is a *base* directory; an account hash is always
-appended. The default is ~/.copilot/margo/state. Account selection is explicit:
---account, MARGO_ACCOUNT, then the private ~/.copilot/margo/config.json object's
-``account`` field (MARGO_CONFIG may select another private configuration file).
+appended. Explicit paths/environment override the installation's margo/locations.json
+binding, then the legacy ~/.copilot/margo defaults. Account selection is explicit:
+--account, MARGO_ACCOUNT, then the selected private configuration's ``account`` field.
 Repository/synchronised directories are rejected. Synthetic tests may opt in
 with MARGO_ALLOW_UNSAFE_STATE_DIR=1 and an explicit state-root override.
 
@@ -40,9 +40,23 @@ class StateError(ValueError):
 class SetupRequired(StateError):
     """No account is configured."""
 
+    code = "account_setup_required"
+
+
+class LocationError(StateError):
+    """An explicitly selected private location is invalid or unavailable."""
+
+    code = "location_unavailable"
+
 
 class NotInitialized(StateError):
     """Explicit initialization is required; a read must not create storage."""
+
+    code = "not_initialized"
+
+
+def error_code(error):
+    return getattr(error, "code", None)
 
 
 def utc_now():
@@ -132,14 +146,37 @@ def add_state_arguments(parser):
 
 
 def copilot_home():
-    """Resolve the explicitly configured installation root once, not arbitrary state links."""
+    """Use an override, this managed installation, or the legacy default; never cwd."""
+    if "COPILOT_HOME" not in os.environ:
+        installed = Path(__file__).absolute().parents[3]
+        if (installed / ".margo-install").is_file():
+            _no_symlinks(installed / ".margo-install")
+            return installed
     return Path(os.environ.get("COPILOT_HOME", "~/.copilot")).expanduser().resolve()
+
+
+def configuration_path(override=None):
+    """Locate private configuration independently of the current working directory."""
+    from margo_locations import resolve_location
+
+    return resolve_location("config_path", override)
+
+
+def private_state_root(override=None):
+    from margo_locations import resolve_location
+
+    return resolve_location("state_root", override)
 
 
 def _no_symlinks(path):
     for part in (path,) + tuple(path.parents):
         if part.is_symlink():
             raise StateError("symlinked state/config paths are not supported")
+        try:
+            if getattr(part.lstat(), "st_reparse_tag", 0) in {0xA0000003, 0xA000000C}:
+                raise StateError("redirected state/config paths are not supported")
+        except FileNotFoundError:
+            pass
 
 
 def _private(path, directory=False):
@@ -157,16 +194,26 @@ def _private(path, directory=False):
 def resolve_account(account=None):
     candidate = account if account is not None else os.environ.get("MARGO_ACCOUNT")
     if candidate is None:
-        config = Path(os.environ.get("MARGO_CONFIG", str(copilot_home() / "margo/config.json"))).expanduser().absolute()
-        _no_symlinks(config)
-        if config.exists():
-            _private(config)
-            data = read_json(config)
-            if not isinstance(data, dict):
-                raise StateError("installation config must be a JSON object")
-            candidate = data.get("account")
+        config = configuration_path()
+        try:
+            _no_symlinks(config)
+            _safe_directory(config.parent, explicit_override=True)
+            if config.exists():
+                _private(config)
+                with config.open(encoding="utf-8") as stream:
+                    raw = stream.read(262145)
+                if len(raw) > 262144:
+                    raise StateError("private account configuration exceeds 256 KiB")
+                data = parse_json(raw)
+                if not isinstance(data, dict):
+                    raise StateError("installation config must be a JSON object")
+                candidate = data.get("account")
+            elif "MARGO_CONFIG" in os.environ:
+                raise StateError("explicit MARGO_CONFIG file is missing")
+        except (StateError, OSError, UnicodeError) as exc:
+            raise LocationError("Private account configuration unavailable: %s. Inspect margo_store.py locations; no fallback used." % exc) from exc
     if candidate is None:
-        raise SetupRequired("Set MARGO_ACCOUNT or account in private ~/.copilot/margo/config.json")
+        raise SetupRequired("No local owner is configured at %s. Inspect margo_store.py locations; bind the approved existing private root or explicitly configure an owner. M365 authentication has not been checked." % configuration_path())
     if (not isinstance(candidate, str) or not candidate.strip() or len(candidate) > 512
             or re.search(r"[\x00-\x20\x7f{}]", candidate)):
         raise StateError("account must be an explicit, non-placeholder principal without whitespace")
@@ -197,9 +244,7 @@ def _safe_directory(root, explicit_override=False):
 
 def state_path(account=None, state_root=None):
     principal = resolve_account(account)
-    override = state_root if state_root is not None else os.environ.get("MARGO_STATE_DIR")
-    root = _safe_directory(override if override is not None else copilot_home() / "margo/state",
-                           explicit_override=override is not None)
+    root = private_state_root(state_root)
     key = hashlib.sha256(principal.encode("utf-8")).hexdigest()
     return principal, root / key / "margo.sqlite3"
 
@@ -291,7 +336,7 @@ def initialize_config(account, config_path=None):
         raise StateError("init requires an explicit --account owner principal")
     principal = resolve_account(account)
     override = config_path if config_path is not None else os.environ.get("MARGO_CONFIG")
-    path = Path(override if override is not None else copilot_home() / "margo/config.json").expanduser().absolute()
+    path = configuration_path(override)
     staging = None
     try:
         _no_symlinks(path)
@@ -349,10 +394,56 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="command", required=True)
     init = commands.add_parser("init", help="explicitly save the ledger owner in private config; no network calls")
     init.add_argument("--account", required=True, help="explicit ledger owner principal")
-    init.add_argument("--config", help="private config path; otherwise MARGO_CONFIG or ~/.copilot/margo/config.json")
+    init.add_argument("--config", help="explicit private config path; otherwise MARGO_CONFIG, installation binding, then legacy default")
+    commands.add_parser("locations", help="inspect explicit installation binding and effective config/state locations; no state initialization")
+    bind = commands.add_parser("locations-bind", help="bind this installation to approved existing private config/state directories; never moves or initializes data")
+    bind.add_argument("--config-path", required=True)
+    bind.add_argument("--state-dir", required=True)
+    bind.add_argument("--account", required=True, help="explicit confirmed owner; must match the existing config")
+    bind.add_argument("--expected-revision", required=True, help="binding hash from locations, or missing for first binding")
+    clear = commands.add_parser("locations-clear", help="explicitly remove a binding by revision; no private data removed")
+    clear.add_argument("--expected-revision", required=True)
+    show = commands.add_parser("profile-show", help="read assistant display name and output workspace; never initializes")
+    show.add_argument("--account")
+    show.add_argument("--config")
+    configure = commands.add_parser("profile-set", help="explicit conditional name/work-root update; no files or runtime state moved")
+    configure.add_argument("--account")
+    configure.add_argument("--config")
+    configure.add_argument("--expected-revision", required=True, help="config revision from profile-show")
+    configure.add_argument("--assistant-name", help="plain-text display label, not a technical ID or sender identity")
+    group = configure.add_mutually_exclusive_group()
+    group.add_argument("--work-root", help="existing absolute local directory for explicitly requested work outputs")
+    group.add_argument("--clear-work-root", action="store_true", help="disable output routing; never deletes files")
+    path = commands.add_parser("workspace-path", help="resolve an output path without creating directories or writing files")
+    path.add_argument("relative_path")
+    path.add_argument("--account")
+    path.add_argument("--config")
+    path.add_argument("--expected-revision", required=True)
     args = parser.parse_args(argv)
     try:
-        print(canonical_json(initialize_config(args.account, args.config)))
+        if args.command == "init":
+            result = initialize_config(args.account, args.config)
+        elif args.command in {"locations", "locations-bind", "locations-clear"}:
+            import margo_locations
+
+            if args.command == "locations":
+                result = margo_locations.inspect()
+            elif args.command == "locations-bind":
+                result = margo_locations.bind(args.config_path, args.state_dir, args.account, args.expected_revision)
+            else:
+                result = margo_locations.clear(args.expected_revision)
+        else:
+            import margo_profile
+
+            if args.command == "profile-show":
+                result = margo_profile.show(args.account, args.config)
+            elif args.command == "profile-set":
+                result = margo_profile.configure(args.account, args.config, args.expected_revision,
+                                                args.assistant_name, args.work_root, args.clear_work_root)
+            else:
+                result = {"path": str(margo_profile.output_path(args.relative_path, args.expected_revision,
+                                                                args.account, args.config)), "written": False}
+        print(canonical_json(result))
         return 0
     except StateError as exc:
         print("ERROR: " + str(exc), file=sys.stderr)

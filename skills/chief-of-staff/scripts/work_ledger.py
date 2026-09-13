@@ -168,13 +168,13 @@ def check_revision(row, revision):
 
 
 class Ledger:
-    def __init__(self, account=None, state_root=None):
+    def __init__(self, account=None, state_root=None, read_only=False):
         self.account = margo_store.resolve_account(account)
-        self.conn = margo_store.connect(account=self.account, state_root=state_root)
+        self.conn = margo_store.connect(account=self.account, state_root=state_root, read_only=read_only)
         self._owns_connection = True
         try:
             self.conn.execute("PRAGMA foreign_keys=ON")
-            self._initialize_schema()
+            self._initialize_schema(read_only=read_only)
         except Exception:
             self.conn.close()
             raise
@@ -231,6 +231,8 @@ class Ledger:
                 finally:
                     reference.close()
             if read_only:
+                if existing != expected or global_marker is None and "margo_meta" in all_tables:
+                    raise margo_store.NotInitialized("Work ledger needs explicit initialization or migration.")
                 return
             for statement in statements:
                 self.conn.execute(statement)
@@ -807,10 +809,14 @@ class Ledger:
                 revisions.append(row)
         return {"id": entity_id, "events": events, "revisions": revisions}
 
-    def list(self, view="decisions"):
+    def list(self, view="decisions", limit=None):
         if view not in {"all", "decisions", "approval", "waiting", "problems"}:
             raise StateError("unknown view")
+        if limit is not None and (type(limit) is not int or not 1 <= limit <= 150):
+            raise StateError("list limit must be between 1 and 150 per type")
         result = {"schema_version": 1, "account": self.account, "items": [], "actions": [], "records": []}
+        if limit is not None:
+            result.update(limit_per_type=limit, truncated=[])
         states = {
             "decisions": {"candidate", "ready", "stale", "proposed", "debrief_proposed"},
             "approval": {"ready", "approved", "prepared", "proposed"},
@@ -818,7 +824,16 @@ class Ledger:
             "problems": {"failed", "partial", "outcome_unknown", "executing", "blocked", "stale"},
         }
         for table, key in (("work_items", "items"), ("work_actions", "actions"), ("work_records", "records")):
-            for row in self.conn.execute("SELECT id FROM %s WHERE account=? ORDER BY created_at,id" % table, (self.account,)):
+            query = "SELECT id FROM %s WHERE account=? ORDER BY created_at,id" % table
+            params = (self.account,)
+            if limit is not None:
+                query = "SELECT id FROM %s WHERE account=? ORDER BY created_at DESC,id LIMIT ?" % table
+                params += (limit + 1,)
+            rows = self.conn.execute(query, params).fetchall()
+            if limit is not None and len(rows) > limit:
+                result["truncated"].append(key)
+                rows = rows[:limit]
+            for row in rows:
                 obj = self.show(row["id"])
                 until = obj.get("deferred_until") or obj.get("data", {}).get("deferred_until")
                 due = obj["state"] == "deferred" and until and timestamp(until) <= now()

@@ -24,6 +24,67 @@ not authentication and the Markdown view is not a second writable task database.
 
 ---
 
+## Assistant name and everyday workspace
+
+**The product repository is not your daily work folder.** Install a private copy using the
+existing setup procedure, then work from an explicitly configured dedicated local directory.
+A OneDrive-synced folder can hold user-requested deliverables, but **not** the live runtime
+database, WAL, credentials or caches. No file migration or scan happens when you configure it.
+
+The editable assistant display name defaults to **Margo**. It is stored per explicitly selected
+account in private `config.json`, separately from your own name and drafting identity.
+Renaming to (for example) **Rowan** changes greetings/commentary and canvas headings after the
+next profile read. It never renames technical agent/tool/canvas IDs or moves any data.
+The agent picker/command remains `margo`, and addressing Margo still works. User edits win over
+inference; names are never learned from mail or documents.
+
+From any folder, use the **installed** helper path. On Windows:
+
+```powershell
+$copilotHome = if ($env:COPILOT_HOME) { $env:COPILOT_HOME } else { Join-Path $HOME '.copilot' }
+$store = Join-Path $copilotHome 'skills\chief-of-staff\scripts\margo_store.py'
+$settings = python $store profile-show | ConvertFrom-Json
+python $store profile-set --expected-revision $settings.revision --assistant-name "Rowan"
+$settings = python $store profile-show | ConvertFrom-Json
+# Set $workRoot to the exact existing absolute directory you chose, not a source checkout.
+python $store profile-set --expected-revision $settings.revision --work-root $workRoot
+Set-Location -LiteralPath $workRoot
+copilot --agent margo
+```
+
+If account config does not yet exist, initialize it explicitly first with the confirmed owner
+as described in [setup](how-to/setup-and-migration.md). Neither `profile-show` nor canvas
+opening initializes/migrates a database. Omit the name-change command to retain Margo.
+You can also ask **"rename my assistant"** or **"set my work area"**; the agent must confirm the
+exact requested value and use these same conditional APIs. No personal path belongs in the
+source checkout. The Action Desk's **Assistant name and work area** disclosure shows the
+current name, path and availability.
+
+Configuration precedence is `--account`, `MARGO_ACCOUNT`, then config `account`; name/work-root
+settings are looked up for that exact account only. `--config`/`MARGO_CONFIG` select a private
+config before the explicit installation locator; absent overrides/binding retain legacy defaults.
+Use [durable binding](how-to/setup-and-migration.md#durable-private-location-binding) when an
+already configured alternate private root must work without inherited host environment.
+`COPILOT_HOME` selects the installed code/private base, **not** the work folder. Keep the
+installation and runtime state outside OneDrive. The display name is portable preference data;
+an absolute work-root path is machine-local and must be configured separately on each machine.
+
+**Safe outputs:** new deliverables use the configured work root, never cwd as a fallback.
+Resolve a relative filename with `margo_store.py workspace-path` and the current config revision;
+it refuses traversal, redirects, missing directories and existing files. The portable
+`work_state.py artifact-export` explicitly exports an exact private Markdown artifact to that
+root without overwrite, approval changes, or database relocation. See the
+[setup procedure](../skills/chief-of-staff/references/state-operations.md#assistant-name-and-dedicated-work-area)
+for exact commands. Other document-producing tools must use the resolved output path too;
+these helpers are not a sandbox around arbitrary host tools.
+
+An unavailable/offline folder blocks outputs instead of falling back to the repository.
+`--clear-work-root` disables output routing without deleting files. A config revision conflict
+requires rereading/reviewing settings. Never retry an uncertain file write without inspecting
+the exact destination. OneDrive sync/shared-folder access is not observed or guaranteed by
+the local exporter; review content, destination and applicable policy before exporting.
+No local setting implies organizational approval of the host/model/processing path.
+
 ## The four sections that earn their keep
 
 `preferences.md` has ten sections. Four of them change Margo's behaviour immediately; the rest

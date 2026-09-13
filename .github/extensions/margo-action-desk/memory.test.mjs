@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
+import { basename } from "node:path";
 import { request as httpRequest } from "node:http";
 import { createMemoryBackend } from "./memory-backend.mjs";
 import { BackendError } from "./backend.mjs";
@@ -15,7 +16,7 @@ test("memory backend fixes command paths, sends queries on stdin and has no writ
     });
     const query = 'review "$(touch nope)"';
     await backend.run("search", { query });
-    assert.ok(call[1][1].endsWith("/memory_state.py"));
+    assert.equal(basename(call[1][1]), "memory_state.py");
     assert.deepEqual(call[1].slice(2), ["search", "--input", "-"]);
     assert.equal(call[2].shell, false);
     assert.equal(JSON.parse(call[2].input).query, query);
@@ -225,7 +226,8 @@ test("malformed and failed backend responses never become successful reads or ex
     output = Object.assign(new Error("private stderr with credentials"), { stderr: "private stderr" });
     await assert.rejects(backend.run("search", { query: "q" }), error => {
         assert.equal(error.code, "memory_unavailable");
-        assert.match(error.message, /explicitly select Keyword only/);
+        assert.match(error.message, /specific storage\/index error/);
+        assert.doesNotMatch(error.message, /select Keyword only/);
         assert.doesNotMatch(error.message, /private stderr|credentials/);
         return true;
     });
@@ -439,12 +441,15 @@ async function browserFixture(options = {}) {
     const document = {
         getElementById: id => byId.get(id),
         createElement: tag => new Element(tag),
+        documentElement: new Element("html"),
         querySelectorAll: () => elements.filter(element => ["button", "input", "select"].includes(element.tag)),
     };
     const requests = [];
     if (options.prepare) options.prepare(data);
-    vm.runInNewContext(source, {
+    vm.runInNewContext(await readFile(new URL("./ui.js", import.meta.url), "utf8") + "\n" + source
+        + "\nMargoSections.memory(document, MargoUI.forSection(document));", {
         document, location: { hash: "#token=synthetic-test-token" }, URLSearchParams, AbortSignal,
+        MutationObserver: class { observe() {} },
         fetch: async (path, init) => {
             const operation = path.split("/").at(-1);
             const input = JSON.parse(init.body);
@@ -542,7 +547,7 @@ test("UI filters facts, people, projects, lessons, conflicts and historical stat
     });
     const { byId, requests, findButton } = browser;
     const reads = requests.length;
-    for (const [name, count] of [["Facts", 1], ["People", 1], ["Projects", 1], ["Lessons", 2], ["Conflicts", 1], ["History", 5]]) {
+    for (const [name, count] of [["Facts", 1], ["People", 1], ["Projects", 1], ["Lessons", 2], ["Conflicts", 1], ["History", 1]]) {
         await findButton("views", name).click();
         assert.match(byId.get("count").textContent, new RegExp(`^${count} of 5`));
         assert.equal(findButton("views", name).getAttribute("aria-pressed"), "true");
@@ -632,7 +637,7 @@ test("account changes clear prior results and selected contents instead of mixin
     await byId.get("list").click();
     assert.match(byId.get("notice").textContent, /configured account changed/);
     assert.equal(byId.get("detail").children.length, 0);
-    assert.equal(byId.get("results").children.length, 0);
+    assert.equal(byId.get("results").children.filter(element => element.tag === "button").length, 0);
     assert.match(byId.get("policy-summary").textContent, /must be refreshed/);
 });
 
@@ -718,7 +723,7 @@ test("keyboard search and in-flight reads expose busy state, then recover withou
     assert.equal(byId.get("workspace").getAttribute("aria-busy"), "false");
     assert.equal(byId.get("search").disabled, false);
     const html = await readFile(new URL("./memory.html", import.meta.url), "utf8");
-    assert.match(html, /id="notice" role="status" aria-live="polite" aria-atomic="true"/);
+    assert.match(html, /id="notice"[^>]*role="status" aria-live="polite" aria-atomic="true"/);
     for (const id of ["query", "mode", "purpose", "routine", "domain", "status", "kind"]) {
         assert.ok(html.includes(`for="${id}"`), `${id} has an explicit label`);
     }
@@ -771,13 +776,57 @@ test("uninitialized reads explain explicit setup without leaking stderr or creat
             stderr: JSON.stringify({ code: "not_initialized", error: "private detail", command: "list" }),
         }); },
     });
+
     await assert.rejects(backend.run("list"), error => {
-        assert.equal(error.code, "setup_needed");
+        assert.equal(error.code, "not_initialized");
         assert.equal(error.status, 503);
         assert.match(error.message, /memory_state.py init/);
         assert.doesNotMatch(error.message, /private detail/);
         return true;
     });
+});
+
+test("local account location, basic schema and optional semantics have distinct failures", async () => {
+    for (const [code, expected] of [
+        ["account_setup_required", /No local owner/],
+        ["location_unavailable", /private-location binding/],
+        ["not_initialized", /Basic local memory is not initialized/],
+        ["semantic_unavailable", /Optional semantic search/],
+    ]) {
+        const backend = createMemoryBackend({ resolveScript: async () => "/fixture/work_state.py",
+            execute: async () => { throw { stderr: JSON.stringify({ code, error: "private diagnostic content" }) }; } });
+        await assert.rejects(backend.run("list"), error => {
+            assert.equal(error.code, code);
+            assert.match(error.message, expected);
+            assert.doesNotMatch(error.message, /private diagnostic content/);
+            return true;
+        });
+    }
+});
+
+test("basic memory offers explicit keyword selection without model download or automatic search", async () => {
+    const browser = await browserFixture({
+        prepare: data => {
+            data.status.basic_memory = { status: "available", model_required: false };
+            data.status.embedding_runtime = { status: "missing_model", configured: false };
+        },
+    });
+    const { byId, requests } = browser;
+    assert.match(byId.get("capability-summary").textContent, /Basic local memory is available/);
+    assert.match(byId.get("capability-summary").textContent, /missing_model/);
+    assert.equal(byId.get("keyword-mode").hidden, false);
+    assert.equal(byId.get("mode").value, "hybrid");
+    const count = requests.length;
+    await byId.get("keyword-mode").click();
+    assert.equal(byId.get("mode").value, "lexical");
+    assert.equal(byId.get("search-options").open, true);
+    assert.equal(requests.length, count);
+    byId.get("domain").value = "user";
+    byId.get("query").value = "bounded";
+    await byId.get("search").click();
+    assert.equal(requests.at(-1).input.mode, "lexical");
+    assert.equal(requests.at(-1).input.domain, "user");
+    assert.ok(requests.every(request => !/init|download|capture/.test(request.operation)));
 });
 
 test("UI explains non-copyable context and preference recovery and forwards the chosen purpose", async () => {

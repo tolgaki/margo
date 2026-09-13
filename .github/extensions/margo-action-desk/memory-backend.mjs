@@ -1,5 +1,5 @@
 import { dirname, join } from "node:path";
-import { executeWithInput, resolveCore, BackendError } from "./backend.mjs";
+import { executeWithInput, resolveCore, BackendError, localSetupFailure } from "./backend.mjs";
 
 const fields = {
     list: ["domain", "status"], show: ["id"], inspect: ["id"],
@@ -54,6 +54,7 @@ function commandFailureCode(error) {
         if (value?.error === "memory schema marker mismatch; explicit migration required"
             || value?.error?.code === "migration_required" || value?.code === "migration_required") return "migration_required";
         if (value?.code === "not_initialized") return "not_initialized";
+        if (value?.code === "semantic_unavailable") return "semantic_unavailable";
     } catch { return undefined; }
     return undefined;
 }
@@ -115,17 +116,23 @@ export function createMemoryBackend({ resolveScript = resolveCore, execute = exe
                     input: operation === "search" ? JSON.stringify({ query: input.query }) : undefined,
                 });
             } catch (error) {
+                const setup = localSetupFailure(error);
+                if (setup) throw setup;
                 const code = commandFailureCode(error);
                 if (code === "migration_required") {
                     throw new BackendError("migration_required",
                         "Memory schema migration is required. In the foreground conversation, pause memory writers, review a private backup, and explicitly run memory_state.py migrate before retrying. This panel never migrates or repairs the database.", 409);
                 }
                 if (code === "not_initialized") {
-                    throw new BackendError("setup_needed",
-                        "Memory is not initialized. Confirm the account and explicitly run memory_state.py init in the foreground. This panel did not create storage.", 503);
+                    throw new BackendError("not_initialized",
+                        "Basic local memory is not initialized for the configured owner. With explicit setup approval, run memory_state.py init in the bound private root. Task initialization does not initialize memory. No capture, import or model download is required; this panel created nothing.", 503);
+                }
+                if (code === "semantic_unavailable") {
+                    throw new BackendError("semantic_unavailable",
+                        "Optional semantic search is unavailable. Basic local memory remains usable: explicitly choose Keyword only with a domain or routine scope. No fallback or model download was performed.", 503);
                 }
                 throw new BackendError("memory_unavailable",
-                    "Memory command failed. Check memory_state.py status in the conversation, then retry. If the local model is unavailable, explicitly select Keyword only and a routine/domain scope. No automatic keyword or cloud fallback was used.", 503);
+                    "The local memory command failed. Inspect memory_state.py status for the specific storage/index error before retrying. No automatic initialization, reset or search fallback was used.", 503);
             }
             let data;
             try {

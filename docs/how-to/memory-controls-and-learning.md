@@ -448,9 +448,28 @@ approving. Optional, runtime (deterministic export-preview/approval code with te
 
 Inspect, search and request a foreground correction or forgetting decision from an optional app
 panel instead of the CLI — see [semantic memory § Use the optional panel](semantic-memory.md#6-use-the-optional-panel).
-Try it: enable the action-desk extension, reload it, and open **Margo Memory**. What you'll see:
+Try it: enable the action-desk extension, reload it, and open **Margo Workspace → Memory**.
+Work, Memory and Tasks share one panel; switching retains each section's search, filters,
+selected record and focus. The canonical open is `margo-action-desk` with optional initial
+`{"section":"memory"}`. The legacy `margo-memory` ID still opens the same unified UI at Memory;
+existing extra panels are not automatically closed. What you'll see:
 the same facts, people, projects, lessons and history the CLI shows, with search and record
-inspection. What needs your decision: the panel has **no approval or erasure endpoint** — it can
+inspection. Search and readable previews lead the page; account/capture policy, provenance,
+relationships, forgetting scope and history are expandable rather than a wall of diagnostic
+JSON. **History** filters historical/retired loaded records; any record's revisions remain in
+its detail. Keyword-only search stays an explicit choice and exposes the required scope.
+
+Select a memory to read it. Optional correction, do-not-use, supersession, forgetting and
+eligible export review requests are grouped under the closed **Assistance** disclosure;
+none is promoted as a default action. Search, browse and reload stay directly available.
+Neutral surfaces and text labels replace colorful capability/status treatments.
+At narrow widths, **Back to list** or **Escape** (outside a
+text field) restores the list and focus without resetting the search. Failed reads retain
+previous context when possible; unavailable setup is not shown as empty memory. Reload a stale
+detail before requesting another review. Shared light/dark and host-theme styling, labelled
+fields and visible keyboard focus match the Action Desk and Task Progress.
+
+What needs your decision: the panel has **no approval or erasure endpoint** — it can
 only request a foreground conversation; correcting or forgetting a memory still happens there.
 Change your mind: close the panel any time; viewing it changes nothing. Your data: the panel reads
 the same private account-scoped database as the CLI, over a local server the extension starts for

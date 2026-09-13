@@ -1,7 +1,7 @@
-(() => {
+globalThis.MargoSections.memory = (section, ui) => {
     "use strict";
     const token = new URLSearchParams(location.hash.slice(1)).get("token");
-    const $ = id => document.getElementById(id);
+    const $ = ui.get;
     let rows = [];
     let conflictedIds = new Set();
     let selected = null;
@@ -32,30 +32,35 @@
     }
     function notice(message, error = false) {
         $("notice").textContent = message;
-        $("notice").className = error ? "error" : "";
+        $("notice").className = error ? "notice error" : "notice";
+        $("notice").setAttribute("data-busy", String(busy));
     }
     function controls() {
         $("workspace").setAttribute("aria-busy", String(busy));
-        for (const control of document.querySelectorAll("button,input,select")) {
+        for (const control of section.querySelectorAll("button,input,select")) {
             control.disabled = busy || (control.hasAttribute("data-review") && selectedStale);
         }
     }
-    async function work(message, action) {
+    async function work(message, action, review = false) {
         if (busy) return;
         busy = true;
         controls();
         notice(message);
         try { await action(); }
         catch (error) {
-            if (error.code === "conflict") selectedStale = true;
+            if (error.code === "conflict" || review || !error.code || /unavailable|not_initialized|timeout/.test(error.code)) selectedStale = true;
             const hint = error.code === "conflict" ? " Reload the selected memory before requesting another review."
-                : " Retry using the same control. Nothing was approved or changed.";
+                : review ? " Check the conversation before requesting review again; delivery may be unknown. No approval was granted."
+                : " Previously loaded context is retained when available. Retry the read; nothing was approved or changed.";
             notice((error.name === "TimeoutError" || error.name === "AbortError"
                 ? "The request timed out; its delivery is unknown. Check the foreground conversation before retrying a review."
                 : error.message) + hint, true);
+            if (!rows.length) $("results").replaceChildren(ui.empty("Memory is unavailable",
+                "Review the setup or read error above, then browse again. No empty-memory claim, automatic setup or model installation was made."));
         } finally {
             busy = false;
             controls();
+            $("notice").setAttribute("data-busy", "false");
         }
     }
     async function api(operation, input = {}) {
@@ -76,6 +81,7 @@
         return result;
     }
     function account(value) {
+        ui.observeAccount(value);
         if (typeof value !== "string" || !value) return;
         if (currentAccount && currentAccount !== value) {
             rows = [];
@@ -88,6 +94,7 @@
             $("policy-summary").textContent = "Account changed. Capture and retention must be refreshed.";
             $("runtime-summary").textContent = "Local model: not yet checked for this account";
             $("health-detail").replaceChildren();
+            $("keyword-mode").hidden = true;
             $("account").textContent = `Current account: ${value}`;
             throw new Error("The configured account changed. Refresh account/policy and browse again; previous records were cleared.");
         }
@@ -131,12 +138,19 @@
         $("policy-summary").textContent = "Capture and retention: checking...";
         $("runtime-summary").textContent = "Local model: checking...";
         $("health-detail").replaceChildren();
+        $("keyword-mode").hidden = true;
         const [health, policy] = await Promise.allSettled([api("status"), api("policy")]);
         for (const result of [health, policy]) {
             if (result.status === "fulfilled") account(result.value.account);
         }
         if (health.status === "fulfilled") {
             const value = health.value;
+            const basic = value.basic_memory?.status === "available";
+            const semantic = value.embedding_runtime?.status === "available";
+            $("capability-summary").textContent = basic
+                ? `Basic local memory is available: browse, inspect and scoped keyword search. ${semantic ? "Optional meaning search is available." : `Optional meaning search is unavailable (${value.embedding_runtime?.status || "not checked"}). No model download is required for basic memory.`}`
+                : "Local memory health returned; basic availability is not reported by this core version.";
+            $("keyword-mode").hidden = !basic || semantic;
             $("runtime-summary").textContent = `Local embedding runtime: ${value.embedding_runtime?.status || "unknown"}. Meaning search never silently switches to keywords.`;
             if (Array.isArray(value.memory?.recovery_actions)) {
                 $("runtime-summary").textContent += " " + value.memory.recovery_actions.join(" ");
@@ -144,6 +158,7 @@
             $("health-detail").append(details("Index and memory health", value));
         } else {
             $("runtime-summary").textContent = `Health unavailable: ${health.reason.message}`;
+            $("capability-summary").textContent = health.reason.message;
         }
         if (policy.status === "fulfilled") {
             const value = policy.value;
@@ -165,6 +180,7 @@
         if (view === "Projects") return memory.kind === "project";
         if (view === "Lessons") return memory.kind === "lesson";
         if (view === "Conflicts") return memory.status === "disputed" || conflictedIds.has(memory.id);
+        if (view === "History") return ["rejected", "stale", "superseded", "suppressed", "forgotten"].includes(memory.status);
         return true;
     }
     function renderList(focusView = false) {
@@ -176,7 +192,7 @@
                 $("kind").value = "";
                 $("status").value = "";
                 renderList(true);
-                notice(name === "History" ? "Select a memory for up to 30 recorded revisions, including retired states." : `${name} view; filters apply locally to the loaded results.`);
+                notice(name === "History" ? "Historical and retired memories. Every selected memory also has its own revision history." : `${name} view; filters apply locally to the loaded results.`);
             });
             tab.setAttribute("aria-pressed", String(view === name));
             $("views").append(tab);
@@ -189,31 +205,58 @@
             const memory = match.memory;
             const item = button("", () => select(memory.id, match));
             item.setAttribute("aria-current", String(selected?.memory.id === memory.id));
+            item.className = "item";
             item.append(node("strong", memory.title || "Forgotten memory"),
-                node("span", `${memory.domain} / ${memory.kind} / ${statusLabel(memory.status)} · revision ${memory.revision}`, "meta"),
-                node("span", memory.id, "meta"));
+                node("span", `${ui.label(memory.kind)} · ${statusLabel(memory.status)} · ${memory.domain === "agent" ? "Agent learning" : "User context"}`, "meta"));
+            if (memory.text) item.append(node("span", memory.text, "preview"));
             $("results").append(item);
         }
-        if (!filtered.length) $("results").append(node("p", rows.length ? "No matches in these local filters. Change filters or rerun a scoped search." : "No records loaded. Browse or search; the panel does not manufacture memory."));
-        if (focusView) currentTab.focus();
+        if (!filtered.length) $("results").append(ui.empty(rows.length ? "No memories match these filters" : "No memories loaded",
+            rows.length ? "Change the view or filters, or run a new scoped search." : "Browse stored context or search when ready. This panel never creates memory or installs a model."));
+        if (focusView) ui.focus(currentTab);
     }
     function why(match) {
         if (!match) return "Opened by exact ID. No search relevance or semantic match is claimed.";
         const reasons = [...(match.matched_by || []), ...(match.selection_reasons || [])];
         return reasons.length ? reasons.join(", ") : "Selected from the stored-memory list, not a relevance recommendation.";
     }
+    function reviewActions(memory) {
+        const actions = node("div", undefined, "actions");
+        if (memory.status !== "forgotten") {
+            for (const [intent, label] of Object.entries(intents)) {
+                if (intent === "export" && !(memory.kind === "lesson" && memory.status === "active"
+                    && memory.authority === "user_confirmed")) continue;
+                const request = button(label, () => work("Requesting foreground discussion, not approval...", async () => {
+                    if (selectedStale) throw new Error("Reload this memory first.");
+                    const result = await api("review", { id: memory.id, revision: memory.revision, intent });
+                    notice(result.message);
+                }, true));
+                request.setAttribute("data-review", intent);
+                actions.append(request);
+            }
+        }
+        const assistance = ui.disclosure("Assistance", node("p", "Request a conversation about this memory. No correction, export or deletion happens here.", "meta"), actions);
+        assistance.className = "assistance";
+        assistance.hidden = memory.status === "forgotten";
+        return assistance;
+    }
     function renderDetail(match) {
         const { memory, history, links, forget_preview: preview, usage } = selected;
         const root = node("article");
         const title = node("h2", memory.title || "Forgotten memory");
         title.tabIndex = -1;
-        root.append(title, node("div", `${memory.id} · revision ${memory.revision} · ${memory.domain} / ${memory.kind} / ${statusLabel(memory.status)}`, "meta"));
-        root.append(node("p", `Why selected: ${why(match)}`));
-        if (memory.text) root.append(node("pre", memory.text));
-        root.append(node("p", `Authority: ${memory.authority || "not retained"} · Scope: ${memory.scope || "not retained"}. Stored observations are not instructions or consent.`));
+        const toolbar = node("div", undefined, "detail-toolbar");
+        toolbar.append(ui.backButton(), button("Reload selected memory", () => select(memory.id)));
+        root.append(toolbar, node("p", `${ui.label(memory.kind)} · ${statusLabel(memory.status)}`, "badge"), title,
+            node("div", `${memory.domain === "agent" ? "Agent learning" : "User context"} · revision ${memory.revision}`, "meta"));
+        if (memory.text) root.append(node("div", memory.text, "reading"));
+        else root.append(ui.empty("Content is not retained", "This historical record does not contain recallable text."));
+        root.append(node("p", `Authority: ${ui.label(memory.authority || "not retained")} · Scope: ${memory.scope || "not retained"}.`, "meta"));
+        root.append(reviewActions(memory));
         root.append(node("p", (memory.allowed_uses || []).includes("drafting")
             ? "Permitted for recipient-draft text; audience, sensitivity and exact send approval still apply."
-            : "Reasoning context only: do not copy this text into a recipient-facing draft."));
+            : "Reasoning context only: do not copy this text into a recipient-facing draft.", "meta"));
+        root.append(ui.disclosure("Why this memory", node("p", `Why selected: ${why(match)}`)));
         root.append(details("Provenance, confidence, permission and validity", {
             source_refs: memory.source_refs, confidence_basis: memory.confidence_basis ?? memory.metadata?.confidence_basis,
             validation_level: memory.metadata?.validation,
@@ -222,11 +265,18 @@
             valid_from: memory.valid_from, valid_to: memory.valid_to, observed_at: memory.observed_at,
             last_verified_at: memory.last_verified_at, review_after: memory.review_after,
         }));
-        root.append(details("Complete current record (untrusted data)", memory));
-        root.append(node("h3", "Relationships and dependencies"));
-        root.append(table("Stored links (not proof of current eligibility)", ["From", "Relationship", "To", "Evidence / validity"], links.map(link => [
-            link.source_id, link.relation, link.target_id, pretty(link.data),
-        ])));
+        const relationshipSection = ui.disclosure(`Relationships & dependencies (${links.length})`);
+        root.append(relationshipSection);
+        {
+        const root = relationshipSection;
+        const titleFor = id => rows.find(row => row.memory.id === id)?.memory.title || (id === memory.id ? memory.title : "Unloaded record");
+        for (const link of links) {
+            const card = node("div", undefined, "context-card");
+            card.append(node("strong", `${titleFor(link.source_id)} · ${ui.label(link.relation)} · ${titleFor(link.target_id)}`),
+                details("Link identity and evidence", link));
+            root.append(card);
+        }
+        if (!links.length) root.append(node("p", "No stored links were returned. This does not establish that no relationships exist.", "meta"));
         const graph = node("div");
         root.append(node("p", "The graph uses the currently selected routine and domain filters."));
         root.append(button("Inspect current relationship graph (2 hops, at most 20 nodes)", () => work("Reading bounded relationships...", async () => {
@@ -257,7 +307,11 @@
             }), details("Complete bounded graph", result));
             notice("Read-only relationship graph. Missing or withheld nodes are gaps, not evidence of absence.");
         })), graph);
-        root.append(node("h3", "Forgetting preview — nothing erased"));
+        }
+        const forgetting = ui.disclosure("Forgetting preview — nothing erased");
+        root.append(forgetting);
+        {
+        const root = forgetting;
         root.append(node("p", `Exact subject ${preview.subject_id}, revision ${preview.revision}. Scope must be checked again during foreground review.`));
         root.append(table("Affected memories and derived records", ["ID", "Revision", "Kind", "Domain"], preview.affected.map(value => [
             value.id, value.revision, value.kind, value.domain,
@@ -265,39 +319,29 @@
         const retained = node("ul");
         for (const note of preview.retained) retained.append(node("li", note));
         root.append(node("strong", "Retained / not recalled:"), retained);
-        root.append(node("h3", "History and recorded use"));
+        }
+        const historySection = ui.disclosure(`History and recorded use (${history.length} revisions)`);
+        root.append(historySection);
+        {
+        const root = historySection;
         root.append(table("Recent revisions (up to 30; not a full archive)", ["Revision", "Status", "Recorded at", "Record and evidence"], history.map(value => [
             value.revision, statusLabel(value.status), value.created_at, details("Inspect revision", value),
         ])));
         root.append(details("Why used: recorded usage events (up to 30)", usage));
         if (!usage.length) root.append(node("p", "No usage events returned. Recording may be disabled; absence is not proof this memory was never used."));
-        const actions = node("div", undefined, "actions");
-        actions.append(button("Reload selected memory", () => select(memory.id)));
-        if (memory.status !== "forgotten") {
-            for (const [intent, label] of Object.entries(intents)) {
-                if (intent === "export" && !(memory.kind === "lesson" && memory.status === "active"
-                    && memory.authority === "user_confirmed")) continue;
-                const request = button(label, () => work("Requesting foreground discussion, not approval...", async () => {
-                    if (selectedStale) throw new Error("Reload this memory first.");
-                    const result = await api("review", { id: memory.id, revision: memory.revision, intent });
-                    notice(result.message);
-                }));
-                request.setAttribute("data-review", intent);
-                actions.append(request);
-            }
         }
-        root.append(node("p", "Do-not-use suppresses recall; it does not erase memory or change capture policy. Review requests contain only account, ID, revision and intent. No edit, suppression, deletion, export file or publication happens here."), actions);
+        root.append(details("Complete current record (untrusted data)", memory));
+        root.append(node("p", "Do-not-use suppresses recall; it does not erase memory or change capture policy. No edit, export or deletion happens here.", "meta"));
         $("detail").replaceChildren(root);
-        title.focus();
+        ui.focus(title);
     }
     function select(id, match) {
+        ui.openDetail();
         return work("Reading provenance, revisions and forgetting scope...", async () => {
-            selected = null;
-            selectedStale = false;
-            $("detail").replaceChildren();
             const result = await api("inspect", { id });
             account(result.memory.account);
             selected = result;
+            selectedStale = false;
             const changed = match && match.memory.revision !== result.memory.revision;
             renderDetail(changed ? null : match);
             renderList();
@@ -309,21 +353,25 @@
         const input = {};
         if (operation === "search") {
             input.query = $("query").value;
+            if (!input.query.trim()) {
+                ui.focus($("query"));
+                throw new Error("Enter a question or phrase to search private memory.");
+            }
             input.mode = $("mode").value;
             if ($("routine").value) input.routine = $("routine").value;
             if ($("domain").value) input.domain = $("domain").value;
             if ($("purpose").value === "drafting") input.usage = "drafting";
             if (input.mode === "lexical" && !input.routine && !input.domain) {
+                $("search-options").open = true;
+                ui.focus($("domain"));
                 throw new Error("Choose a domain or routine scope for explicitly keyword-only search.");
             }
         }
-        rows = [];
-        conflictedIds = new Set();
-        selected = null;
-        $("detail").replaceChildren();
-        renderList();
         const result = await api(operation, input);
         account(result.account);
+        selected = null;
+        selectedStale = false;
+        ui.initialDetail("Select a memory to read its context, sources and available review choices.");
         rows = result.results || result.memories.map(memory => ({ memory }));
         conflictedIds = new Set(result.conflicted_ids || []);
         resultLabel = operation === "search" ? (input.mode === "lexical" ? "Keyword only · no semantic matching" : "Meaning + keywords · see per-result match reasons") : "Stored memories · local filters";
@@ -331,16 +379,31 @@
         notice(`${rows.length} records loaded. ${resultLabel}. ${(result.warnings || []).join(" ")}`);
     }
     $("search").onclick = () => work("Searching the selected local method...", () => load("search"));
+    $("keyword-mode").onclick = () => {
+        $("mode").value = "lexical";
+        $("search-options").open = true;
+        ui.focus($("domain"));
+        notice("Keyword search selected explicitly. Choose a domain or routine scope, then Search. No model was downloaded and no search has run yet.");
+    };
     $("list").onclick = () => work("Reading stored memory...", () => load("list"));
     $("health").onclick = () => work("Checking current account, capture and retention...", async () => {
         const complete = await refreshContext();
         notice(complete ? "Account and policy refreshed. All controls here are read-only." : "Some account/policy checks failed. Unknown status is shown above; retry refresh.", !complete);
     });
     for (const id of ["domain", "status", "kind"]) $(id).addEventListener("change", () => renderList());
+    $("mode").addEventListener("change", () => {
+        if ($("mode").value === "lexical" && !$("domain").value && !$("routine").value) {
+            $("search-options").open = true;
+            notice("Keyword search needs a domain or routine scope. Choose one below; the method never switches automatically.");
+        }
+    });
     $("query").addEventListener("keydown", event => { if (event.key === "Enter") $("search").onclick(); });
-    work("Loading private memory and policy...", async () => {
+    if (!token) {
+        notice("This panel has no access token. Reopen Memory from the app.", true);
+    } else work("Loading private memory and policy...", async () => {
         const complete = await refreshContext();
         await load("list");
         if (!complete) notice("Memories loaded, but some account/policy checks failed. See unknown status above and retry refresh.", true);
     });
-})();
+    return {};
+};

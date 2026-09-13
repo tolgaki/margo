@@ -343,7 +343,7 @@ test("frontend renders hostile stored content only through textContent and form 
     const text = [];
     const byId = new Map();
     class Node {
-        constructor(tag) { this.tag = tag; this.children = []; this.dataset = {}; this.listeners = {}; this.attrs = {}; }
+        constructor(tag) { this.tag = tag; this.children = []; this.dataset = {}; this.listeners = {}; this.attrs = {}; this.value = ""; }
         set textContent(value) { this.text = value; text.push(value); }
         set id(value) { byId.set(value, this); }
         set innerHTML(_) { throw new Error("HTML injection"); }
@@ -352,9 +352,15 @@ test("frontend renders hostile stored content only through textContent and form 
         addEventListener(name, callback) { this.listeners[name] = callback; }
         setAttribute(name, value) { this.attrs[name] = value; }
         getAttribute(name) { return this.attrs[name]; }
-        querySelectorAll() { return this.children.flatMap((child) => child instanceof Node ? [child, ...child.querySelectorAll()] : []).filter((node) => node.dataset.mutation); }
+        focus() {}
+        querySelectorAll(selector) {
+            const descendants = node => node.children.flatMap(child => child instanceof Node ? [child, ...descendants(child)] : []);
+            return descendants(this).filter(node => selector === "button" ? node.tag === "button"
+                : selector === "[data-request]" ? node.dataset.request : node.dataset.mutation);
+        }
     }
-    for (const id of ["refresh", "notice", "account", "filters", "items", "detail"]) byId.set(id, new Node("div"));
+    for (const id of ["refresh", "notice", "account", "filters", "items", "detail", "clock", "day", "timezone",
+        "working-context", "time-settings", "focus", "coverage-label", "freshness", "coverage-details", "scope", "work-query", "workspace"]) byId.set(id, new Node("div"));
     const malicious = '<img src=x onerror="alert(1)"><script>bad()</script>';
     const item = { ...sample(), title: malicious, why_now: malicious, payload: { body: malicious }, evidence: [malicious, { source_id: "src_123", revision: "1" }], provenance: malicious };
     const sourceRecord = {
@@ -376,19 +382,24 @@ test("frontend renders hostile stored content only through textContent and form 
         createElement: (tag) => new Node(tag),
         createTextNode: (value) => { text.push(value); return new Node("text"); },
         documentElement: new Node("html"),
+        addEventListener() {},
+        querySelectorAll: selector => [...byId.values()].flatMap(node => node.querySelectorAll(selector)),
     };
-    vm.runInNewContext(source, {
+    vm.runInNewContext(await readFile(new URL("./ui.js", import.meta.url), "utf8") + "\n"
+        + await readFile(new URL("./decision-model.js", import.meta.url), "utf8") + "\n" + source
+        + "\nMargoSections.work(document, MargoUI.forSection(document));", {
         document, location: { hash: "#token=token" }, URL, URLSearchParams, AbortSignal,
         MutationObserver: class { observe() {} }, setInterval() {},
         fetch: async (path) => {
             requests.push(path);
-            return { ok: true, json: async () => path === "/api/items" ? { account: malicious, items: [item] }
+            return { ok: true, json: async () => path === "/api/desk" ? { account: malicious, items: [item],
+                time_preferences: {}, coverage: { status: "unavailable" }, request_capability: { available: false }, requests: {} }
                 : { item: path === "/api/items/src_123" ? sourceRecord : item } };
         },
     });
     await new Promise(setImmediate);
     assert.ok(text.includes(malicious));
-    await byId.get("items").children[0].listeners.click();
+    await byId.get("items").children.find(node => node.tag === "button").listeners.click();
     await new Promise(setImmediate);
     assert.ok(text.includes(JSON.stringify(item.payload, null, 2)));
     assert.equal(byId.get("payload").value, JSON.stringify(item.payload, null, 2));
@@ -407,6 +418,6 @@ test("frontend renders hostile stored content only through textContent and form 
 test("agent-facing work, memory and task actions are read-only", async () => {
     const source = await readFile(new URL("./extension.mjs", import.meta.url), "utf8");
     const names = [...source.matchAll(/name: "([^"]+)"/g)].map((match) => match[1]);
-    assert.deepEqual(names, ["list", "show", "refresh", "list", "search", "status", "list", "show", "history", "health"]);
+    assert.deepEqual(names, ["snapshot", "list", "show", "refresh", "list", "search", "status", "list", "show", "history", "health"]);
     assert.doesNotMatch(source, /onPermissionRequest|systemMessage|console\.log/);
 });

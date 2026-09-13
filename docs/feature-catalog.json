@@ -26,7 +26,7 @@
       "name": "Get a first useful brief",
       "user_goal": "Install Margo and confirm the Work IQ connection works",
       "availability": "implemented",
-      "implementation_kind": "procedure",
+      "implementation_kind": "runtime",
       "since_version": "1.0.0",
       "prerequisites": [
         "GitHub Copilot CLI",
@@ -42,6 +42,7 @@
       },
       "sources": [
         "skills/chief-of-staff/scripts/margo_store.py",
+        "skills/chief-of-staff/scripts/margo_locations.py",
         "install.sh",
         "install.ps1"
       ],
@@ -56,7 +57,10 @@
         {
           "path": "skills/chief-of-staff/scripts/margo_store.py",
           "commands": [
-            "init"
+            "init",
+            "locations",
+            "locations-bind",
+            "locations-clear"
           ]
         }
       ],
@@ -117,9 +121,9 @@
     {
       "id": "personalization",
       "name": "Make Margo work the way you do",
-      "user_goal": "Teach preferences, VIPs, working hours and drafting voice so recommendations and drafts match how you actually work",
+      "user_goal": "Configure the assistant display name and dedicated work area, plus preferences, VIPs, working hours and drafting voice",
       "availability": "implemented",
-      "implementation_kind": "procedure",
+      "implementation_kind": "runtime",
       "since_version": "1.0.0",
       "prerequisites": [
         "setup complete"
@@ -134,12 +138,18 @@
       },
       "sources": [
         "skills/chief-of-staff/preferences.md",
-        "skills/chief-of-staff/references/memory.md"
+        "skills/chief-of-staff/references/memory.md",
+        "skills/chief-of-staff/scripts/margo_profile.py",
+        "skills/chief-of-staff/references/state-operations.md"
       ],
       "router_refs": [
         {
           "path": "skills/chief-of-staff/SKILL.md",
           "label": "Memory and context"
+        },
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Health and setup"
         }
       ],
       "automation_refs": [],
@@ -150,6 +160,14 @@
             "preferences-preview",
             "preferences-import"
           ]
+        },
+        {
+          "path": "skills/chief-of-staff/scripts/margo_store.py",
+          "commands": ["profile-show", "profile-set", "workspace-path"]
+        },
+        {
+          "path": "skills/chief-of-staff/scripts/work_state.py",
+          "commands": ["profile", "profile-save"]
         }
       ],
       "canvas_refs": [],
@@ -158,7 +176,9 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "An unfilled preferences file falls back to generic defaults, not a personalized voice"
+        "An unfilled preferences file falls back to generic defaults, not a personalized voice",
+        "The name is a display label; technical IDs, account identity and draft sender identity stay unchanged",
+        "Work roots must exist and cannot contain runtime SQLite; missing roots never fall back to the repository"
       ]
     },
     {
@@ -305,7 +325,9 @@
       "automation_refs": [
         "automations/morning-brief.md"
       ],
-      "cli_refs": [],
+      "cli_refs": [
+        {"path": "skills/chief-of-staff/scripts/app_proactive.py", "commands": ["policy-show", "policy-set", "tool"]}
+      ],
       "canvas_refs": [],
       "scenario_ids": [
         "daily-brief"
@@ -1378,8 +1400,8 @@
     },
     {
       "id": "action-desk-canvas",
-      "name": "Review proposals without a second CLI window",
-      "user_goal": "Inspect and edit durable Margo proposals in an optional app panel instead of the CLI",
+      "name": "Bring work, context and progress together",
+      "user_goal": "Use Work, Memory, Tasks, managed Automations and Config in one workspace while preserving local drafts and keeping execution authority separate",
       "availability": "optional",
       "implementation_kind": "runtime",
       "since_version": "1.1.0",
@@ -1397,15 +1419,30 @@
       },
       "sources": [
         ".github/extensions/margo-action-desk/extension.mjs",
-        ".github/extensions/margo-action-desk/README.md"
+        ".github/extensions/margo-action-desk/README.md",
+        ".github/extensions/margo-action-desk/decision-model.js",
+        ".github/extensions/margo-action-desk/ui.css",
+        ".github/extensions/margo-action-desk/ui.js",
+        ".github/extensions/margo-action-desk/workspace.js",
+        ".github/extensions/margo-action-desk/config-app.js",
+        ".github/extensions/margo-action-desk/automations-app.js",
+        "skills/chief-of-staff/scripts/automation_definitions.py",
+        "docs/how-to/workspace-settings-and-automations.md",
+        ".github/extensions/margo-action-desk/work.html",
+        "skills/chief-of-staff/scripts/decision_workspace.py"
       ],
-      "router_refs": [],
+      "router_refs": [
+        {"path": "skills/chief-of-staff/SKILL.md", "label": "Action desk"}
+      ],
       "automation_refs": [],
-      "cli_refs": [],
+      "cli_refs": [
+        {"path": "skills/chief-of-staff/scripts/work_state.py", "commands": ["desk", "desk-request", "desk-dispatched", "desk-start"]}
+      ],
       "canvas_refs": [
         {
           "id": "margo-action-desk",
           "actions": [
+            "snapshot",
             "list",
             "show",
             "refresh"
@@ -1417,7 +1454,12 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Candidate work records and typed records are read-only in the canvas"
+        "Candidate work records and typed records are read-only in the canvas",
+        "The live clock and local ledger polling do not refresh Microsoft 365",
+        "Preparation requests require initialized task state and SDK messaging; they never approve or deliver",
+        "The newest 50 records per type are shown with explicit truncation; use the CLI for all records",
+        "Unsaved renderer drafts survive section switches, not reloads; legacy open panels must be closed manually",
+        "Optional preparation and review controls live under Assistance; manual browsing/editing remain the default"
       ]
     },
     {
@@ -1672,7 +1714,8 @@
           "commands": [
             "record",
             "record-id",
-            "show"
+            "show",
+            "artifact-export"
           ]
         }
       ],
@@ -2104,7 +2147,10 @@
       },
       "sources": [
         "automations/morning-brief.md",
-        "skills/chief-of-staff/references/proactive.md"
+        "skills/chief-of-staff/references/proactive.md",
+        "agents/margo-proactive.agent.md",
+        "skills/chief-of-staff/scripts/app_proactive.py",
+        "docs/how-to/restricted-app-proactivity.md"
       ],
       "router_refs": [
         {
@@ -2123,7 +2169,8 @@
       "maintainer_role": "Margo maintainers",
       "limitations": [
         "Requires autopilot mode and the app running and awake at the scheduled time",
-        "The schedule itself lives only in automations/*.md front matter"
+        "Wrapper schedules live in manifests; restricted app slots use explicit private policy and require verified host firing behavior",
+        "Restricted app support must remain disabled until the effective tool grant, scoped deny hook, sign-in and timing are verified"
       ]
     },
     {
@@ -2831,7 +2878,7 @@
     },
     {
       "id": "memory-canvas",
-      "name": "Inspect memory without a CLI window",
+      "name": "Inspect memory inside the workspace",
       "user_goal": "Inspect, search and request a foreground correction or forgetting decision from an optional app panel",
       "availability": "optional",
       "implementation_kind": "runtime",
@@ -2850,7 +2897,10 @@
       },
       "sources": [
         ".github/extensions/margo-action-desk/extension.mjs",
-        ".github/extensions/margo-action-desk/memory-backend.mjs"
+        ".github/extensions/margo-action-desk/memory-backend.mjs",
+        ".github/extensions/margo-action-desk/memory-app.js",
+        ".github/extensions/margo-action-desk/ui.css",
+        ".github/extensions/margo-action-desk/ui.js"
       ],
       "router_refs": [],
       "automation_refs": [],
@@ -2870,7 +2920,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Read-only backend; correcting or forgetting a memory still requires the foreground conversation"
+        "Read-only backend; correcting or forgetting a memory still requires the foreground conversation",
+        "Prefer Margo Workspace section memory; the legacy canvas ID remains a compatibility entry"
       ]
     },
     {
@@ -2896,7 +2947,10 @@
       "sources": [
         "skills/chief-of-staff/references/task-runs.md",
         "skills/chief-of-staff/scripts/task_runs.py",
-        "skills/chief-of-staff/scripts/task_state.py"
+        "skills/chief-of-staff/scripts/task_state.py",
+        ".github/extensions/margo-action-desk/task-app.js",
+        ".github/extensions/margo-action-desk/ui.css",
+        ".github/extensions/margo-action-desk/ui.js"
       ],
       "router_refs": [
         {
@@ -2937,7 +2991,8 @@
       "maintainer_role": "Margo maintainers (task runtime owned by the agentic-development-plan integrator)",
       "limitations": [
         "A task-journal state is not a guarantee the host delivered or you read a notification",
-        "The optional canvas is read-only; pause/resume/cancel/replan/recover/reconcile only request foreground review"
+        "The optional canvas is read-only; pause/resume/cancel/replan/recover/reconcile only request foreground review",
+        "Prefer Margo Workspace section tasks; the legacy canvas ID remains a compatibility entry"
       ]
     },
     {

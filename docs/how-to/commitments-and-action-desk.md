@@ -320,17 +320,94 @@ execution pipeline with tests). Since 1.1.0.
 
 ### Action desk canvas
 
-Review the same durable proposals in an optional app panel instead of the CLI. Try it: enable it
+Open **Margo Workspace**: a single panel with **Work**, **Memory** and **Tasks** navigation.
+Its stable technical canvas ID remains `margo-action-desk`. The Work section is the
+time-aware decision workspace over the same durable work, meetings and proposals. Try:
+**"Open my decision workspace; help me decide what needs me now."** Enable the optional extension
 with `./install.sh --all --action-desk` (or `.\install.ps1 -All -ActionDesk`), reload extensions
-in a Copilot host supporting canvas extensions, then open the Margo Action Desk panel. What
-you'll see: the same work items, evidence links, and action payloads as the CLI. Action proposals
-can be edited, deferred or dismissed; work items and typed records are read-only in the panel.
+in a Copilot host supporting canvas extensions, then open Margo Workspace. What
+you'll see: **Now**, **Needs your decision**, **Next**, and a suggested next focus with the actual
+ask, why-now, recorded blocker/affected people, evidence links and action readiness. The All
+view and exact JSON payload editor remain available. Action proposals can be edited, snoozed
+for an hour or until a chosen local time, or dismissed; work items and typed records cannot
+be changed directly in the panel. Snooze/dismiss applies only to that proposal and invalidates
+old approval. Snoozes survive panels/restarts and resurface as their time elapses without
+changing the stored lifecycle or closing the obligation.
+
+**Read, then decide:** search within loaded asks by title, people or next step. Selecting an
+item opens a reading pane with its prepared response and manual reload/edit controls; impact,
+evidence, exact payload and execution history are expandable. Plain-text subject/body fields
+can be edited without writing JSON; advanced exact-payload editing remains available. Both save
+the same conditional revision and invalidate old approval. In narrow panels use **Back to list**
+or **Escape** (outside an editor) to return to the current row. Search and unsaved edits remain
+in the panel; returning to the dirty item does not reload over your draft.
+
+**One workspace:** switch to Memory to inspect context, then Tasks to inspect progress,
+without opening another host panel or losing the Work draft. Each section retains its search,
+filters, selection, disclosure state, reading position and focus. Tabs support arrow-key
+focus plus Enter/Space activation; browser Back/Forward changes sections in the same document.
+Only a section's first visit performs its initial reads. Work resumes its local polling when
+visible; Memory/Tasks keep their explicit refresh controls. Navigation never initializes state.
+Unavailable setup in one section remains visible without pretending the section is empty.
+A detected account change hides cached sections and requires an explicit workspace reload.
+
+**Compatibility:** old `margo-memory` and `margo-task-progress` opens now show this same unified
+workspace initially on Memory/Tasks, and their read actions remain supported. Already-open
+legacy panels are independent host instances: save drafts before deployment/reload, keep one
+workspace, and close extra panels manually. They are not automatically merged or closed.
+New opens may use `{"section":"memory"}` or `{"section":"tasks"}` on the canonical ID.
+Saved records survive reload; unsaved renderer drafts/search do not. Old loopback links can
+expire on extension restart; use the stable canvas entrypoint to reopen.
+
+**Time and freshness:** the clock follows an explicit IANA timezone in the existing private
+`Time zone & working hours` preference; otherwise it says **device clock**, not account time.
+For working-day context use a value such as
+`America/Los_Angeles; Mon-Fri; 09:00-18:00` in the installed private preference field.
+Comma-separated days are also supported. Free-text or overnight schedules are not guessed.
+Weekends/out-of-hours are context, not a claim of availability or permission to move meetings.
+Date-only deadlines get no invented time. Past/cancelled meetings never become upcoming prep.
+
+Ranking updates while the panel stays open: unresolved effects, overdue work, meetings and
+deadlines within 60 minutes, then other decisions and next steps. This is a documented display
+rule, not AI confidence or live intelligence. The clock updates every second; local ledger
+polling runs every 15 seconds while visible. **Neither refreshes M365.** Source coverage shows
+actual recorded scopes, successful collection time, cadence-based staleness and failures.
+Missing/denied coverage never means an empty inbox/calendar.
+
+**Optional assistance:** open the selected item's closed **Assistance** disclosure to choose
+**Prepare for me**, **Recommend a response**, or **Review in conversation**. These are not
+default-page buttons; the normal view is for reading and editing work. The SDK queues a
+bounded local-only request for the exact account, item,
+revision/hash and intent. Its existing task-journal record distinguishes dispatching, accepted,
+working, ready, blocked, failed, partial and unknown/interrupted outcomes. Accepted is not
+started; ready is private preparation, never delivery. Prepared result links open their exact
+ledger detail. Every candidate remains unconfirmed until an actual foreground decision.
+No email text is inserted as an executable request; stored content remains untrusted data.
+
+These buttons require an already initialized task journal and SDK messaging. Missing capability
+is explained and disabled, not simulated. A repeated click for the same identity reuses its
+durable request rather than dispatching twice, including after reload. Continue that request
+in the conversation; a new item revision allows a new request. Closing the panel does not cancel
+a queued task. An unknown dispatch is retained: inspect the conversation/task journal and use
+the normal foreground recovery procedure, never blindly resend.
+
+Preparation uses only linked stored evidence: up to 8 tool calls, 1 model call, 20 sources and
+8,000 output characters, within a 30-minute task window and at most a 15-minute claim. Limits
+govern tracked work, not all tools a host exposes. Missing evidence may block preparation; a
+fresh M365 read is a separate foreground step. `work_state.py desk` provides the same bounded
+snapshot on the CLI. The desk shows the newest 50 items, actions and typed records per type;
+truncation is explicit. Use `list --view all` for the complete ledger.
+
 What needs your decision: the canvas has **no approve/send endpoint** — a review request sent from
 the panel is not consent; approval still happens in the foreground conversation as described
 above. Change your mind: close the panel any time; nothing it shows is mutated by viewing it.
 Your data: the canvas reads and writes the same private account-scoped ledger as the CLI, over a
 local server the extension starts for you. If something goes wrong: a stale revision or changed
 source fails an edit the same way the CLI does — reload and re-propose rather than reusing a
-stale payload. Optional (requires the extension enabled with `--action-desk`/`-ActionDesk` and an
+stale payload. Read-only opening never initializes/migrates the private database. On an offline
+poll, cached content and the clock remain visible, but mutation/request controls are disabled.
+Unsaved edits are preserved on conflicts. Local storage, SDK messaging and Work IQ do not by
+themselves establish organizational approval or inherited governance; deployments need their
+own organizational review. Optional (requires the extension enabled with `--action-desk`/`-ActionDesk` and an
 extension reload), runtime (real Node.js code, tested against a real local account fixture). Since
 1.1.0.

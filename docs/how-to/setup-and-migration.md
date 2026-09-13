@@ -12,6 +12,7 @@ app workflow prompts.
 | Existing copy installation | Inspect status; pause writers; set the same environment; back up in section 3 **before** updating |
 | Legacy JSON queue or handwritten commitments | Back up, then use sections 4-5 only for the legacy data you actually have |
 | Existing memory schema v1 | Back up and explicitly migrate memory in section 6; copying new files is not migration |
+| Existing private account works only with manually injected environment | [Bind the approved private location](#durable-private-location-binding) once; do not create another account/database |
 | Remove the installation | [Uninstall deliberately](#7-uninstall-deliberately), including scheduler cleanup |
 
 You do not need to create fictional commitments, import an empty legacy queue, enable memory
@@ -86,8 +87,56 @@ Roots must not be in a repository, shared directory, or cloud-sync folder. State
 cannot be symlinked. On POSIX, directories must be private (0700), files private (0600), owned by
 the current user, with no group/world-writable ancestors. Do not disable these checks.
 
-For a custom install, pass `--dest` to the installer and set the matching `COPILOT_HOME` for
-runtime processes. The installer does not select its destination from `COPILOT_HOME` alone.
+For a custom install, pass `--dest` to the installer. Copied helpers discover that installation
+from its `.margo-install` marker when `COPILOT_HOME` is absent; an explicit `COPILOT_HOME` still
+wins. The installer does not select its destination from `COPILOT_HOME` alone.
+
+### Durable private-location binding
+
+A running host may not have environment variables saved after it started. A loaded workspace
+can therefore be healthy as a provider while looking at the wrong default account location.
+Use an explicit locator, not another restart or an automatic search for account files.
+
+`margo_store.py locations` reports the binding file, content revision and effective config/state
+paths with their sources. The one supported locator is
+`INSTALLATION_ROOT/margo/locations.json`. An existing private root is bound with:
+
+```text
+python INSTALLED_SCRIPTS/margo_store.py locations-bind --config-path EXISTING_PRIVATE_CONFIG --state-dir EXISTING_PRIVATE_STATE_BASE --account CONFIRMED_OWNER --expected-revision missing
+```
+
+Use `missing` only when the prior `locations` read returned that revision. Updates require its
+exact SHA256 revision. The named owner must match the **existing** config; the command writes
+only the locator, never copies a profile/identity or moves/initializes data. Config and state
+directories must already exist and satisfy private non-repo/non-synced path checks. No real
+path/account belongs in this repository. Verify `locations` and `profile-show` afterward.
+
+Explicit invocation path overrides win, then process `MARGO_CONFIG`/`MARGO_STATE_DIR`, then the
+binding, then legacy defaults when **no binding exists**. The resolver rereads the locator;
+it does not need user-registry environment values or a fresh host process. Malformed,
+inaccessible or missing bound targets fail rather than creating an old-root database. No
+arbitrary `~/.margo` discovery occurs. Unrelated config/profile settings and account hashing are
+unchanged. Copy reinstall/update/uninstall preserve the private locator outside managed files.
+
+On conflict, reread `locations`. An explicit `locations-clear --expected-revision HASH` can
+remove a reviewed unwanted/broken locator without deleting private data; it restores legacy
+defaults for unoverridden calls, so do not use it as a blind retry. Local owner configuration
+does not sign in to Microsoft 365: the profile and Memory health report authentication as
+not checked. See the [repair procedure](../../skills/chief-of-staff/references/state-operations.md#durable-private-location-binding).
+
+### Initialize basic memory, not an optional model
+
+Work/task state does not imply a memory schema. After the correct location is resolved,
+`memory_state.py status` may return `not_initialized` even when task health is available.
+With explicit setup approval, run **`memory_state.py init`**, then `status` and `policy`.
+This creates memory/index metadata with no captured records, no model download and capture
+still off. Existing schema v1 requires reviewed migration instead.
+
+Basic browsing, details and explicit scoped keyword search do not require embeddings.
+`missing_model`/`missing_runtime` describes **optional meaning search**, not failed basic
+memory. In the workspace choose **Use keyword search**, a domain/routine scope, and then
+Search. Failed meaning searches never fall back automatically. Do not run imports, automatic
+capture or semantic `index` to make basic setup look complete.
 
 ## 3. Back up before migration
 

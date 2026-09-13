@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdir, realpath, rm, stat } from "node:fs/promises";
+import { mkdir, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -23,7 +23,7 @@ for (const path of coreFiles) {
     }
 }
 
-test("real unconfigured CLI surfaces setup needed without creating user state", { skip: !corePresent }, async () => {
+test("real CLI rejects an unsafe explicit config without creating user state", { skip: !corePresent }, async () => {
     const env = { ...process.env, MARGO_CONFIG: join(directory, `not-configured-${randomUUID()}.json`) };
     delete env.MARGO_ACCOUNT;
     delete env.MARGO_ALLOW_UNSAFE_STATE_DIR;
@@ -32,7 +32,7 @@ test("real unconfigured CLI surfaces setup needed without creating user state", 
         python,
         execute: (command, args, options) => executeWithInput(command, args, { ...options, env }),
     });
-    await assert.rejects(backend.run("list"), { code: "setup_needed", status: 503 });
+    await assert.rejects(backend.run("list"), { code: "location_unavailable", status: 503 });
 });
 
 const skip = !corePresent ? "Portable core modules are not installed."
@@ -239,4 +239,75 @@ test("real task canvas reads bounded progress without creating state or executin
     await cli(["pause", run.id, "--reason", "Fixture pause"]);
     assert.equal((await backend.run("list")).runs[0].status, "paused");
     assert.ok((await backend.run("history", { id: run.id })).events.some(event => event.event === "paused"));
+});
+
+test("real decision HTTP requests persist once across panels and show actual preparation receipts", { skip }, async t => {
+    const fixture = join(await realpath(testParent), `decision-canvas-test-${randomUUID()}`);
+    await mkdir(fixture, { mode: 0o700 });
+    t.after(() => rm(fixture, { recursive: true, force: true }));
+    const account = "decision-canvas-fixture";
+    await writeFile(join(fixture, "config.json"), JSON.stringify({ account }), { mode: 0o600 });
+    const env = { ...process.env, MARGO_CONFIG: join(fixture, "config.json"),
+        COPILOT_HOME: join(fixture, "private-install") };
+    delete env.MARGO_ALLOW_UNSAFE_STATE_DIR;
+    const execute = (command, args, options = {}) => executeWithInput(command,
+        [...args.slice(0, 2), "--account", account, "--state-dir", fixture, ...args.slice(2)],
+        { ...options, env, shell: false, encoding: "utf8", cwd: fixture });
+    const cli = async (file, args, input) => JSON.parse((await execute(python,
+        ["-B", join(dirname(script), file), ...args],
+        { input: input === undefined ? undefined : JSON.stringify(input) })).stdout);
+    const backend = createBackend({ resolveScript: async () => script, execute });
+    await assert.rejects(backend.run("desk"), { code: "not_initialized", status: 503 });
+    await cli("task_state.py", ["init"]);
+    const ref = await cli("work_state.py", ["source", "--input", "-"], {
+        family: "mail", scope: "fixture", external_id: "synthetic-ask", revision: "1",
+        evidence: { quote: "Choose an approach." }, web_link: "https://example.com/design",
+    });
+    const item = await cli("work_state.py", ["ingest", "--input", "-"], {
+        claim_key: "decision", data: { title: "Choose an approach", direction: "owe",
+            owner: null, due: null, next_step: "Review A versus B", source_refs: [ref] },
+    });
+    let messages = 0;
+    const options = { backend, host: "sdk:synthetic-integration", sendReview: async message => {
+        messages++;
+        assert.equal(message.mode, "enqueue");
+        assert.match(message.prompt, /NOT approval/);
+        return "synthetic-message";
+    } };
+    const first = await startServer(options), second = await startServer(options);
+    t.after(async () => { await first.close(); await second.close(); });
+    const api = async (panel, path, input, expected = 200) => {
+        const base = new URL(panel.url);
+        const response = await fetch(new URL(path, base), {
+            method: input ? "POST" : "GET", headers: {
+                Origin: base.origin, Authorization: `Bearer ${new URLSearchParams(base.hash.slice(1)).get("token")}`,
+                ...(input ? { "Content-Type": "application/json" } : {}),
+            }, ...(input ? { body: JSON.stringify(input) } : {}),
+        });
+        const value = await response.json();
+        assert.equal(response.status, expected, JSON.stringify(value));
+        return value;
+    };
+    const snapshot = await api(first, "/api/desk");
+    assert.equal(snapshot.request_capability.available, true);
+    assert.equal(snapshot.profile.assistant_name, "Margo");
+    const input = { id: item.id, expected_revision: item.revision, intent: "recommend" };
+    await api(first, "/api/decision-request", { ...input, prompt: "arbitrary instructions" }, 400);
+    const results = await Promise.all([api(first, "/api/decision-request", input), api(second, "/api/decision-request", input)]);
+    assert.equal(messages, 1);
+    assert.equal(JSON.stringify(results).includes('"token"'), false);
+    assert.equal((await api(second, "/api/desk")).requests[item.id].recommend.phase, "accepted");
+    const claim = await cli("work_state.py", ["desk-start", results[0].request.run_id, "--host", "sdk:synthetic-integration"]);
+    assert.equal((await api(first, "/api/desk")).requests[item.id].recommend.phase, "working");
+    await cli("task_state.py", ["finish", "--input", "-"], {
+        attempt_id: claim.attempt_id, token: claim.token, outcome: "succeeded",
+        result: { kind: "local_result", reference: "conversation:synthetic-result",
+            summary: "Review the recorded comparison before deciding.", work_ids: [item.id], source_refs: [ref] },
+    });
+    const ready = (await api(second, "/api/desk")).requests[item.id].recommend;
+    assert.equal(ready.phase, "ready");
+    assert.equal(ready.approved, false);
+    await api(first, "/api/decision-request", input);
+    assert.equal(messages, 1);
+    assert.equal((await api(first, `/api/items/${item.id}`)).item.confirmed, false);
 });

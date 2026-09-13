@@ -56,6 +56,22 @@ class ManifestTests(unittest.TestCase):
         manifest.record(self.source, self.dest, ["chief-of-staff"], {})
         self.assertEqual(set(manifest.read_manifest(self.dest)), {"skills/chief-of-staff/SKILL.md"})
 
+    def test_restricted_agent_installs_with_canvas_and_custom_grants_are_preserved(self):
+        source = self.source / manifest.SCHEDULED_AGENT
+        source.parent.mkdir()
+        source.write_text("tools: [margo_proactive_context]\n", encoding="utf-8")
+        manifest.install_canvas(self.source, self.dest, {})
+        manifest.record(self.source, self.dest, [], {})
+        saved = manifest.read_manifest(self.dest)
+        self.assertIn(manifest.SCHEDULED_AGENT.as_posix(), saved)
+        installed = self.dest / manifest.SCHEDULED_AGENT
+        self.assertEqual(installed.read_text(), source.read_text())
+        installed.write_text("custom reviewed grant\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "modified scheduled agent"):
+            manifest.install_canvas(self.source, self.dest, saved)
+        manifest.remove_canvas(self.dest, saved)
+        self.assertEqual(installed.read_text(), "custom reviewed grant\n")
+
     def test_manifest_path_traversal_is_rejected(self):
         (self.dest / ".margo-files.json").write_text(json.dumps({"../unrelated": "abc"}))
         with self.assertRaises(ValueError):

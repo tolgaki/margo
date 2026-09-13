@@ -57,6 +57,8 @@ what matters, what's coming, and what needs them.
 6. **Prepare next steps:** persist the useful draft or work product in the action desk, with
    evidence and the exact proposed action. In a foreground session ask for the one decision that
    matters; unattended, finish without a question or offer. Never send without explicit approval.
+   For a requested integrated day experience, open/update the optional decision workspace per
+   `action-desk.md`. Preserve coverage gaps; its clock is not a source refresh.
 
 ## Depth control
 - **Quick brief:** top priorities + calendar + needs-response only.

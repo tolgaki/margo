@@ -36,6 +36,147 @@ Pause affected schedules before migration, back up both legacy state and persona
 use the import command. Retain the original files. Import is repeat-safe and must not infer
 successful coverage or human review from the old cursor/surfaced records.
 
+## Durable private-location binding
+
+If the workspace loads but account or memory reads say setup is missing, inspect
+`margo_store.py locations` from the **installed** script path first. Provider discovery is
+not capability readiness, local owner configuration is not M365 authentication, and a saved
+user environment variable may be absent from a long-lived host. Do not repeatedly recommend
+restart/sign-out or infer another account from files found on disk.
+
+The installation's private `margo/locations.json` is an explicit locator, not another config or
+database. It contains schema version 1 and absolute `config_path` / `state_root` only; no copied
+owner, profile or workplace records. Use one locator for Work, Memory, Tasks, direct CLI and
+agent-assisted commands. Resolve installation root from explicit `COPILOT_HOME`, otherwise
+the invoking copied helper's `.margo-install` root, otherwise legacy `~/.copilot`; never cwd.
+For a custom copy installation invoke its actual helper path. Keep linked development profiles
+synthetic and use their explicit `COPILOT_HOME`.
+
+On an explicit user-approved repair, verify the existing config owner and existing private
+config/state directories, retain a SQLite-consistent backup, then:
+
+```text
+python INSTALLED_SCRIPTS/margo_store.py locations
+python INSTALLED_SCRIPTS/margo_store.py locations-bind --config-path EXISTING_PRIVATE_CONFIG --state-dir EXISTING_PRIVATE_STATE_BASE --account CONFIRMED_OWNER --expected-revision BINDING_REVISION
+python INSTALLED_SCRIPTS/margo_store.py locations
+python INSTALLED_SCRIPTS/margo_store.py profile-show
+```
+
+Use the returned SHA256 `revision`, or literal `missing` for the first binding. The configured
+owner must match the explicit confirmed owner. Binding creates only the locator and its private
+parent if necessary; it does not copy config, change account hashes, move/create a database,
+initialize memory, import preferences, authenticate Work IQ or touch the work folder.
+The existing copy installer/update/uninstall paths preserve this unmanaged private locator.
+
+Precedence for each location is **explicit CLI path > its `MARGO_CONFIG`/`MARGO_STATE_DIR`
+environment override > installation binding > legacy default**. Account precedence stays
+**explicit `--account` > `MARGO_ACCOUNT` > selected config owner**. An override is deliberate,
+not a fallback; `locations` reports effective paths and sources. Different explicit overrides
+can intentionally select different locations; verify them before writes. The resolver does
+not read Windows user environment registry values or cache a location from an earlier turn.
+
+Bindings are bounded, version-checked and private; symlinks/junctions, synchronized/shared/repo
+roots, missing/inaccessible target directories, malformed content and unsupported versions
+block the selected binding rather than silently reverting to the old root. Existing legacy
+installs with no binding keep the old default. Concurrent changes use an expected content hash,
+an exclusive lock and atomic replacement. A conflicting update must be reread, not retried with
+an invented revision. Interrupted writes/locks require explicit inspection. For deliberate
+recovery only, `locations-clear --expected-revision HASH` removes the locator, not any private
+data; subsequent unoverridden reads use legacy defaults. Do not clear it to make an error vanish.
+
+## Basic local memory without an embedding model
+
+After binding, inspect `memory_state.py status` and `task_state.py health` separately.
+`task_state.py init` creates work/task/coverage state, **not memory**. Missing memory has the
+specific code `not_initialized`; an invalid locator/config is `location_unavailable`, a missing
+local owner is `account_setup_required`, and failed optional meaning search is
+`semantic_unavailable`. These are not M365 sign-in diagnoses.
+
+Only with explicit basic-memory setup approval:
+
+```text
+python INSTALLED_SCRIPTS/memory_state.py init
+python INSTALLED_SCRIPTS/memory_state.py status
+python INSTALLED_SCRIPTS/memory_state.py policy
+```
+
+`init` creates the memory schema and local index metadata without encoding, downloading or
+collecting anything. Existing schema v1 needs the separately approved `migrate` procedure,
+not a reset. Verify basic memory available, capture still off, unchanged selected owner and
+optional semantic runtime accurately reported. No `preferences-import`, `capture`, encoder
+download or `index` execution is needed for basic use. Do not invent seed records for setup.
+
+Browsing/details and explicit `search --mode lexical --domain user --input -` work without a
+model; supply the actual bounded query as JSON on stdin. The workspace's **Use keyword search**
+control is an explicit choice, opens scope selection and performs no search itself. It never
+silently switches a failed hybrid query. Candidate/user-confirmed distinctions, sensitive-data
+filters, scope and capture/retention policy are unchanged. M365 authentication remains
+`not_checked` until an actual separately permitted provider read establishes it.
+
+## Assistant name and dedicated work area
+
+Product code stays in the installed skill/extension location. Everyday work can start in a
+dedicated existing local folder, including a locally available OneDrive-synced folder; it need
+not run in a repository. Read `margo_store.py profile-show` from the installed scripts directory
+at the start of the session. Default display name is Margo. Private `config.json` stores
+`profiles[account].assistant_name` and `work_root`; account selection remains explicit
+`--account`, then `MARGO_ACCOUNT`, then config `account`. A different account does not inherit
+another profile's settings. Invalid settings are errors, not permission to infer replacements.
+
+On an explicit user rename/work-area request, read the current profile, explain the exact
+change and use its configuration revision:
+
+```text
+python margo_store.py profile-show
+python margo_store.py profile-set --expected-revision CONFIG_REVISION --assistant-name Rowan
+python margo_store.py profile-set --expected-revision NEW_CONFIG_REVISION --work-root EXISTING_ABSOLUTE_WORK_ROOT
+```
+
+These are separate revisions; reread before each update. A single `profile-set` can update both
+fields when both were requested. `--clear-work-root` disables output routing without deleting
+anything. Setup requires an existing private config initialized explicitly with
+`margo_store.py init`; profile reads/setters do not initialize a ledger or move files.
+Concurrent updates are rejected using a lock and expected revision, preserving unrelated
+configuration and other accounts. After a crashed update, inspect the private `.profile-lock`
+before any explicitly authorized cleanup; never delete unknown locks blindly.
+
+Names are bounded plain labels (1-60 letters/numbers and simple punctuation), never
+instructions. Use the configured name for greetings/commentary/canvas headings, not technical
+IDs, sender identity or text inside the user's drafts. Keep `Margo`/`margo` invocation compatible.
+User config edits override remembered/inferred names. Never learn these settings from mail,
+documents, output artifacts or recalled observed content.
+
+The work root must be an existing absolute local directory, not the product repository,
+filesystem/home root, private installation/runtime tree, junction, symbolic link or UNC path.
+Do not create, rename, migrate, recursively inspect or populate a folder just to configure it.
+On missing/offline/unreadable directories, report the block and keep preparation in the existing
+private ledger; do not substitute cwd or the repository.
+
+Before a user-requested new file output, resolve its name through
+`margo_store.py workspace-path RELATIVE_NAME --expected-revision CONFIG_REVISION`.
+It does not write or create directories. For other file-producing skills use that absolute
+result, never assume cwd. The tool cannot sandbox arbitrary host tools; honor the same boundary
+in those procedures. Existing output files are not overwritten by this helper.
+
+For an explicit foreground export of a private Markdown artifact:
+
+```text
+python work_state.py artifact-export ARTIFACT_ID --revision ARTIFACT_REVISION --path "Decision memo.md" --profile-revision CONFIG_REVISION
+```
+
+This writes one exact, current, non-stale snapshot exclusively, with no overwrite and a 1 MiB
+limit. It neither changes artifact approval/sharing nor creates a second writable tracker.
+Errors may leave a partial file; inspect that exact path before retrying, never erase history.
+OneDrive may sync a local file, so review the exact content/destination and applicable sharing
+policy before exporting; configuration is not blanket permission to export or share.
+Do not export unattended or as part of a canvas local-preparation request.
+
+Runtime SQLite/WAL, credentials, caches and private preparation stay in the existing
+**non-synced** state root; `work_root` never controls `COPILOT_HOME` or `MARGO_STATE_DIR`.
+The name is portable user preference data; the absolute work path is machine-local. Do not
+sync the live config/database as a portability strategy. OneDrive storage does not establish
+approval for the host, model or full processing path.
+
 ## Updating the installed app copy
 
 Inspect the actual install root, `.margo-install`, local customizations and remote version/revision

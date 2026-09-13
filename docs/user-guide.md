@@ -197,7 +197,7 @@ are the next destinations once the daily loop is useful.
 | Recall across sessions | [Semantic memory](how-to/semantic-memory.md) | Explicit memory setup; semantic search also needs an explicitly installed local encoder |
 | Control over remembered context | [Memory controls and learning](how-to/memory-controls-and-learning.md) | Capture is opt-in; correction, suppression, forgetting, retention, and export have distinct effects |
 | Reflection on selected sessions | [Dream](how-to/dream.md) | Limited to authorized current-session checkpoints and manual bounded pages; no history importer or schedule |
-| A visual review surface | [Action desk](how-to/commitments-and-action-desk.md#action-desk-canvas), [memory](how-to/memory-controls-and-learning.md#memory-canvas), and [task progress](how-to/task-progress-and-recovery.md) panels | Optional compatible app host; review requests are not approvals, and the CLI remains sufficient |
+| One chief-of-staff workspace | [Margo Workspace](how-to/commitments-and-action-desk.md#action-desk-canvas) combines Work decisions, [Memory](how-to/memory-controls-and-learning.md#memory-canvas), [Tasks](how-to/task-progress-and-recovery.md), and [Automations / Config](how-to/workspace-settings-and-automations.md) with state-preserving navigation in one panel | Optional compatible app host; live clock is not refreshed M365 data, requests and scenario descriptors are not execution approvals, and the CLI remains sufficient |
 
 Memory and Dream are not required to get value from briefs. If you opt in, review the exact
 capture scope before collecting anything. Similarity means relevance, not truth; a Dream

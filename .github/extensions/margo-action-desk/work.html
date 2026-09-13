@@ -1,0 +1,31 @@
+<header class="section-header page-header">
+  <div class="topline"><h2>Work</h2><button id="refresh" type="button" class="quiet">Refresh local state</button></div>
+  <div class="clockline"><time id="clock" class="day-clock"></time><span id="day" class="meta"></span></div>
+  <details class="page-status">
+    <summary><span id="coverage-label">Checking source coverage</span> · Work context</summary>
+    <div class="status-content">
+      <strong id="account" class="meta">Reading the configured account</strong>
+      <p id="freshness" class="meta">Clock time is not source freshness.</p>
+      <div id="timezone" class="meta"></div><div id="working-context" class="meta"></div>
+      <details><summary>Sources and freshness</summary><div id="coverage-details"></div></details>
+      <details><summary>How priority works</summary><p class="meta">Unresolved effects, overdue work, then meetings and deadlines within 60 minutes. Other decisions precede next steps. Display rules, not AI urgency scores.</p><p id="scope" class="meta"></p></details>
+      <details><summary>Time settings</summary><p id="time-settings" class="meta"></p></details>
+    </div>
+  </details>
+</header>
+<section class="overview" aria-label="Suggested next focus">
+  <div id="focus" class="card hero"><p>Finding your next decision...</p></div>
+</section>
+<div id="notice" class="notice" role="status" aria-live="polite">Loading local work...</div>
+<div id="workspace" class="layout" aria-busy="false" tabindex="-1">
+  <aside class="list-pane" aria-label="Work items">
+    <div class="list-tools">
+      <h2 class="list-heading">Your work</h2>
+      <label for="work-query">Find in loaded work</label>
+      <input id="work-query" type="search" placeholder="Search asks, people or next steps" maxlength="300">
+      <nav id="filters" class="filters" aria-label="Work item status"></nav>
+    </div>
+    <div id="items"></div>
+  </aside>
+  <article id="detail" class="detail-pane" aria-label="Selected work item"><div class="empty"><strong>Select a work item</strong><p>Read its details, evidence and any saved response.</p></div></article>
+</div>

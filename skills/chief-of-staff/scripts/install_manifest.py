@@ -13,6 +13,7 @@ import tempfile
 
 PERSONAL = {"preferences.md", "commitments.md", "config.md"}
 EXTENSION = Path("extensions/margo-action-desk")
+SCHEDULED_AGENT = Path("agents/margo-proactive.agent.md")
 
 
 def digest(path):
@@ -68,6 +69,14 @@ def install_canvas(source, dest, previous):
         if target.exists() and digest(target) not in (digest(path), previous.get(relative.as_posix())):
             raise ValueError("modified extension file preserved; review before installing: " + str(relative))
         planned.append((path, target))
+    scheduled = source / SCHEDULED_AGENT
+    if scheduled.is_file():
+        target = dest / SCHEDULED_AGENT
+        if scheduled.is_symlink() or any(path.is_symlink() for path in (target, *target.parents)):
+            raise ValueError("refusing a symlink in scheduled agent installation")
+        if target.exists() and digest(target) not in (digest(scheduled), previous.get(SCHEDULED_AGENT.as_posix())):
+            raise ValueError("modified scheduled agent preserved; review its tool grant before installing")
+        planned.append((scheduled, target))
     for source_file, target in planned:
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_file, target)
@@ -76,6 +85,8 @@ def install_canvas(source, dest, previous):
 def record(source, dest, skills, previous):
     result = dict(previous)
     roots = [(source / "agents/margo.agent.md", Path("agents/margo.agent.md"))]
+    if (dest / SCHEDULED_AGENT).is_file():
+        roots.append((source / SCHEDULED_AGENT, SCHEDULED_AGENT))
     for skill in skills:
         if skill not in {"chief-of-staff", "decision-log"}:
             raise ValueError("unknown skill: " + skill)
@@ -108,7 +119,7 @@ def remove_canvas(dest, previous):
         raise ValueError("refusing to remove a linked extension")
     for relative, expected in previous.items():
         path = Path(relative)
-        if path.parts[:2] != EXTENSION.parts:
+        if path.parts[:2] != EXTENSION.parts and path != SCHEDULED_AGENT:
             continue
         target = dest / path
         if any(parent.is_symlink() for parent in (target, *target.parents)):
