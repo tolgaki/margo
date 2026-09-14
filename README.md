@@ -1,11 +1,13 @@
 # Margo
 
-**An AI chief of staff for Microsoft 365, built on [Work IQ](docs/work-iq.md).**
+**MARGO — Managing Actions, Relationships, Goals and Obligations.**
 
-Margo reads your mail, calendar, Teams chats, meeting recaps and documents through the Work IQ
-MCP server, works out what actually needs you, and puts every send one approval away. She prepares
-the meeting plan, accounts for what it displaces, and drafts the note to the people affected.
-She waits for your approval before making those changes.
+*Your AI chief of staff, powered by [Work IQ](docs/work-iq.md).*
+
+Margo reads your Microsoft 365 mail, calendar, Teams chats, meeting recaps and documents through
+the Work IQ MCP server, works out what actually needs you, and puts every send one approval away.
+She prepares the meeting plan, accounts for what it displaces, and drafts the note to the people
+affected. She waits for your approval before making those changes.
 
 This repo is the **reference implementation**: one agent persona, two skills, and the
 documentation to build your own.
