@@ -1,5 +1,9 @@
 # Margo documentation
 
+**MARGO — Managing Actions, Relationships, Goals and Obligations.**
+
+*Your AI chief of staff, powered by [Work IQ](work-iq.md).*
+
 Margo is a Work IQ reference implementation that you can run in a supported Copilot host.
 It combines an assistant persona, procedural skills, private local state, and optional review
 panels. It is not a hosted service: you supply the host, connected accounts, and permissions.
