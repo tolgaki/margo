@@ -63,7 +63,7 @@ Re-resolve and retry — never report the data as unavailable because the first 
 |---|---|---|
 | `workiq-fetch` | Literal structured reads: today's `calendarView`, unread `messages`, chat lists, a known event/message by ID. Use to enumerate and to resolve exact IDs. | Sub-second |
 | `workiq-retrieve` | Grounded search returning raw hits **with `webLink` and sensitivity labels**. Best when you need citable sources fast, or need to know whether content is labeled before quoting it. | Seconds |
-| `workiq-ask` | Semantic synthesis: "what's top of mind", "summarize the thread", "what was decided", "what's the status of X". Reasons across sources. Pass `timeZone`. | Slow (10–60s) |
+| `workiq-ask` | Semantic synthesis: "what's top of mind", "summarize the thread", "what was decided", "what's the status of X". Reasons across sources. Pass `timeZone`. | Slow (10s) |
 | `workiq-call_function` | **delta** endpoints for "what changed / what's new since …". | Fast |
 | `workiq-do_action` / `workiq-create_entity` / `workiq-update_entity` / `workiq-delete_entity` | Sending, replying, scheduling, marking read. **Only after explicit approval.** | — |
 | `workiq-get_schema` / `workiq-search_paths` | Discover required fields and valid paths before any create/update. | Fast |
