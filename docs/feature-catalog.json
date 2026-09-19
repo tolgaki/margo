@@ -24,7 +24,7 @@
     {
       "id": "setup",
       "name": "Get a first useful brief",
-      "user_goal": "Install Margo and confirm the Work IQ connection works",
+      "user_goal": "Install and select the Margo agent, load chief-of-staff for matching tasks, and confirm the Work IQ connection works",
       "availability": "implemented",
       "implementation_kind": "procedure",
       "since_version": "1.0.0",
@@ -41,6 +41,8 @@
         "anchor": "setup"
       },
       "sources": [
+        "agents/margo.agent.md",
+        "skills/chief-of-staff/SKILL.md",
         "skills/chief-of-staff/scripts/margo_store.py",
         "install.sh",
         "install.ps1"
@@ -66,7 +68,9 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Account configuration does not itself sign in to Work IQ"
+        "Account configuration does not itself sign in to Work IQ",
+        "Mentioning Margo does not select an agent or trigger the skill; updated routing instructions require a fresh session",
+        "Static routing contracts and copied-install checks do not prove a model follows the routing"
       ]
     },
     {

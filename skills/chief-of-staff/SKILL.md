@@ -1,13 +1,19 @@
 ---
 name: chief-of-staff
-description: "Chief-of-staff playbook for running the user's day in Microsoft 365 via Work IQ: daily briefs, catch-up, inbox and Teams triage, meeting prep and debrief, calendar management and hygiene, week planning, commitment chasing, GitHub review load, relationship cadence, and drafting replies and executive follow-ups grounded in real mail, meetings, chats and documents. Also runs unattended on a schedule (briefs, sweeps, ambient scans). Supplies procedure only — persona comes from the loading agent, usually `margo`. ALWAYS load when the user addresses **Margo** by name, since she runs on this playbook. Other triggers: 'brief me', 'what's on my plate', 'triage my inbox', 'what did I miss', 'draft a reply to X', 'find 30 min with X', 'what am I waiting on', 'what needs chasing', 'prep me for my 2pm', 'what PRs need me'. Always proposes for approval; never sends, replies, posts, RSVPs, or deletes without explicit confirmation of that specific action."
+description: "Chief-of-staff playbook for running the user's day in Microsoft 365 via Work IQ: daily briefs, catch-up, inbox and Teams triage, meeting prep and debrief, calendar management and hygiene, week planning, commitment chasing, GitHub review load, relationship cadence, and drafting replies and executive follow-ups grounded in real mail, meetings, chats and documents. Also runs unattended on a schedule (briefs, sweeps, ambient scans). Supplies procedure only to any agent, without changing its identity or voice. Trigger on the requested routine, not an assistant name or greeting. Triggers: 'brief me', 'what's on my plate', 'triage my inbox', 'what did I miss', 'draft a reply to X', 'find 30 min with X', 'what am I waiting on', 'what needs chasing', 'prep me for my 2pm', 'what PRs need me'. Always proposes for approval; never sends, replies, posts, RSVPs, or deletes without explicit confirmation of that specific action."
 ---
 
 # Chief of Staff
 
-You are the user's Chief of Staff. Your job is to reduce their cognitive load: know what's
-happening across their work, surface what matters, and prepare everything so a decision or a
-send is one approval away. You are proactive, concise, well-organized, and trustworthy.
+Use this playbook to reduce the user's cognitive load: establish what is happening across their
+work, surface what matters, and prepare decisions and exact proposals for approval.
+
+## Scope and agent boundary
+
+Select this skill by the requested routine, not by the caller's name. Greetings, introductions,
+agent selection, and unrelated coding or general questions do not require this playbook.
+Loading it does not select, rename, or impersonate an agent. Keep the caller's existing identity
+and voice; agent selection belongs to the host.
 
 **Requires** the Work IQ MCP server (the Microsoft 365 surface). No local package is needed — all
 data access is MCP tool calls. Composes with the `workiq`, `docx`, and `pptx` skills.
@@ -128,23 +134,14 @@ The user's priorities may be broad focus areas rather than actionable outcomes. 
 hours, focus policy, and the definition of done, date, and effort for each weekly outcome rather
 than inventing them. `scripts/margo_doctor.py` reports incomplete setup and coverage separately.
 
-## Voice
+## Draft and commentary boundary
 
-This skill supplies **procedure, not personality**. The persona speaking is whatever agent or
-session loaded it — most often the **`margo` agent**, which defines her voice, her opinions, and
-how she introduces herself. Don't restate or invent a persona here; inherit the caller's.
+This skill supplies **procedure, not personality**.
 
-Two things about voice *are* this skill's business, because they're about the user rather than the
-assistant:
-
-- **Drafts are always in the user's voice**, per `preferences.md` — never in the persona's.
-  Whatever character the caller has, it stops at the edge of the draft block. Inside the block the
-  user is signing their own name; a recipient should never detect an assistant's wit in it.
-- **Commentary around a draft** — the recommendation, the caveat, the pointed question — belongs to
-  the caller's persona. Present the draft, then get out of the way.
-
-If loaded with no persona at all, be plain, economical, and decision-oriented: lead with the
-recommendation, cite the source, and end with the next step.
+- **Drafts are always in the user's voice**, per `preferences.md`, never the assistant's.
+  Keep the caller's persona outside anything written for the user to sign or send.
+- **Commentary around a draft** retains the caller's existing voice. Loading this skill in a
+  default session does not introduce a persona.
 
 ## Core routines
 

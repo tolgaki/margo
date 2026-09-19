@@ -2,6 +2,9 @@
 
 ## 1.3.0 (unreleased)
 
+- Separated Margo agent selection from chief-of-staff skill routing: names and greetings no
+  longer trigger the playbook, which preserves the caller's identity. Installer and setup help
+  now explicitly select the agent; updated instructions require a fresh session, not migration.
 - Connected user and developer documentation journeys, a shared documentation home, and detailed
   task guides for all 68 catalogued features, with corrected setup, approval and recovery guidance.
 - Opt-in, manual Dream reflection over selected current-session checkpoints: sourced episodes,

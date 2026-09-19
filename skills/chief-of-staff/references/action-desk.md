@@ -1,8 +1,8 @@
 # Portable action desk
 
-The desk is a local review and execution journal, not a mail client or a new feed. Margo prepares
-the exact proposal, obtains a real human decision in the foreground, performs Work IQ preflight
-and execution, then records the actual result. **The CLI never makes an outbound API call.**
+The desk is a local review and execution journal, not a mail client or a new feed. Prepare
+the exact proposal, obtain a real human decision in the foreground, perform Work IQ preflight
+and execution, then record the actual result. **The CLI never makes an outbound API call.**
 An unavailable or unauthenticated invoking host binding blocks external mutation from that
 session; it does not establish a tenant-wide Work IQ outage. Keep proposals local and report
 the scope actually observed. Another authenticated session may operate through its own verified
@@ -151,7 +151,7 @@ python3 scripts/work_state.py --account fictional-account begin ACTION_ID --revi
 Preflight must be no older than five minutes, and its complete source/target snapshot must
 match the approved revision. `begin` transactionally changes `approved -> executing`, creates
 one attempt, and returns `{account,action_id,revision,attempt_id,action_hash,kind,target,payload}`.
-Only then does foreground Margo call the discovered Work IQ API with the exact gated payload.
+Only then may the foreground agent call the discovered Work IQ API with the exact gated payload.
 Use provider idempotency/conditional-write fields only where that API supports them.
 
 `begin` is not a send receipt. Losing its output or crashing before the Work IQ write leaves

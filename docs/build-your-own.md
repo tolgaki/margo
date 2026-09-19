@@ -22,16 +22,23 @@ skills/chief-of-staff/         →  HOW. Procedures, contracts, and local tools.
 looks like, or how to page through Teams messages. It says who you are and where to find the
 playbook.
 
-`chief-of-staff/` contains **no personality**. Not one line about tone. It says what to do, in
-what order, with what payload, and what the output must contain — and then, explicitly:
+`chief-of-staff/` contains **no assistant personality**. User-draft voice rules belong here,
+but the caller's identity and commentary voice do not change. It says what to do, in what order,
+with what payload, and what the output must contain:
 
-> Supplies procedure only — persona comes from the loading agent.
+> This skill supplies **procedure, not personality**.
 
-The two meet at one line in the agent file:
+The agent loads the playbook for matching tasks, not whenever someone uses its name:
 
-> For any Microsoft 365 or chief-of-staff routine — daily brief, catch-up, inbox or Teams triage,
-> meeting prep, calendar work, drafting, exec follow-up, wrap-up — invoke the `skill` tool with
-> `chief-of-staff` **first**.
+| Request / host selection | Agent | Skill |
+| --- | --- | --- |
+| `copilot --agent margo`, then "Brief me" | Margo | `chief-of-staff`, for the brief |
+| Default agent, then "Brief me" | Unchanged | `chief-of-staff`, with no new persona |
+| "Hello, Margo" in an existing session | Unchanged | No chief-of-staff routine requested |
+| "Margo, fix this unit test" | Unchanged | No chief-of-staff routine requested |
+
+Host selection chooses who speaks. Skill selection chooses the procedure. Neither a name in a
+prompt nor a skill load switches agents.
 
 ### Why bother
 
@@ -103,7 +110,9 @@ needs fencing, and the fence in `margo.agent.md` is worth copying:
 ### One SKILL.md as a router
 
 Frontmatter `description` is the trigger surface — write it as the phrases a user actually says,
-not a summary. It's what decides whether the skill loads at all.
+not a summary. Match tasks, not agent names, greetings, or persona requests. It's what decides
+whether the skill loads at all. Do not open the skill with an identity assignment such as
+"You are the user's chief of staff"; describe the work instead.
 
 Then keep `SKILL.md` to the things every routine needs: operating rules, tool discipline,
 personalization contract, and a trigger→file table. Push each procedure into `references/`, loaded

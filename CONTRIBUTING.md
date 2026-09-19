@@ -49,7 +49,9 @@ not remove it from history; coordinate history repair and rotate exposed credent
 ### Skills carry no voice
 
 `skills/` is procedure only. Personality lives in `agents/`. A PR that adds tone to a skill file
-will be asked to move it.
+will be asked to move it. Route skills by the requested task, never an agent's name or greeting.
+Loading a skill must not select an agent or change the caller's identity; user-draft voice rules
+remain part of the procedure.
 
 ### Every rule needs its reason
 

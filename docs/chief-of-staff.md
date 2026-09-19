@@ -18,6 +18,11 @@ steps and limits, use the [how-to guides](how-to/README.md).
 contract and a trigger→reference map. The individual procedure is loaded from `references/` only
 when the matching routine fires, which keeps the resident cost low.
 
+**Margo is the agent; chief-of-staff is the skill.** Select the agent through the host
+(`copilot --agent margo` or the agent picker). The name "Margo" alone is not a skill trigger.
+"Brief me" loads the playbook in any agent; "Margo, fix this test" does not. Loading the skill
+preserves the caller's identity and commentary voice; drafts still use the user's voice.
+
 | Routine | Fires on | Reference |
 |---|---|---|
 | **Daily brief** | "brief me", "prep me for my day", "what's my day look like" | `daily-brief.md` |

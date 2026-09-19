@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -11,15 +12,33 @@ REPO = Path(__file__).resolve().parents[1]
 
 
 class AutomationContractTests(unittest.TestCase):
-    def commands(self):
+    def commands(self, verb="brief", print_command=False):
         result = []
         if shutil.which("bash") and sys.platform != "win32":
             result.append([shutil.which("bash"), str(REPO / "tools/margo-scheduled.sh"),
-                           "brief", "--show-prompt"])
+                           verb, "--print" if print_command else "--show-prompt"])
         if shutil.which("pwsh"):
             result.append([shutil.which("pwsh"), "-NoProfile", "-NonInteractive", "-File",
-                           str(REPO / "tools/margo-scheduled.ps1"), "brief", "-ShowPrompt"])
+                           str(REPO / "tools/margo-scheduled.ps1"), verb,
+                           "-Print" if print_command else "-ShowPrompt"])
         return result
+
+    def test_schedules_select_agent_and_load_skill_separately(self):
+        manifests = sorted(path for path in (REPO / "automations").glob("*.md")
+                           if path.name != "README.md")
+        self.assertTrue(manifests)
+        for path in manifests:
+            text = path.read_text(encoding="utf-8")
+            verb = re.search(r"(?m)^verb: (.+)$", text).group(1)
+            with self.subTest(automation=path.name):
+                self.assertIn("Load the `chief-of-staff` skill", text)
+                for command in self.commands(verb, print_command=True):
+                    result = subprocess.run(
+                        command, cwd=REPO, env=dict(os.environ, MARGO_AGENT="margo"),
+                        capture_output=True, text=True, timeout=30)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertRegex(result.stdout, r"""--agent\s+['"]?margo\b""")
+                    self.assertIn("chief-of-staff", result.stdout)
 
     def test_prompts_match_and_carry_state_contract(self):
         outputs = []
