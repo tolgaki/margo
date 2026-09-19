@@ -151,7 +151,8 @@ uninstall through **Settings → Apps** as usual.
 
 ## 2. Check Work IQ is connected
 
-In Copilot CLI, confirm the tools are present and prefixed:
+Start Copilot CLI with the agent selected (`copilot --agent margo`), or select Margo in the
+host's agent picker. Then confirm the tools are present and prefixed:
 
 ```
 > list my tools
@@ -227,6 +228,9 @@ In the interactive session, ask:
 
 In a compatible app, select the Margo agent through the host's agent picker. Mentioning a name
 is not a substitute for confirming which agent and installed instructions the host loaded.
+`chief-of-staff` is a skill, not an agent alias: it loads for the requested routine and preserves
+the caller's identity. "Margo, brief me" matches because of "brief me", not "Margo".
+Greetings and unrelated coding requests do not load the playbook merely because they name Margo.
 
 Then try, in rough order of how much they'll tell you:
 
@@ -333,7 +337,7 @@ or scopes to bypass a policy denial.
 | Brief has stale items | `$filter` without `$orderby` returns oldest-first | See [payload discipline](work-iq.md#payload-discipline) |
 | `400 InefficientFilter` | No index backs that filter+sort pair | Drop the `$filter`, keep `$orderby`, narrow locally |
 | `Access denied for path: X` | Tenant has disabled that path family | Not retryable — report it |
-| Persona doesn't appear | Agent not loaded | Confirm `~/.copilot/agents/margo.agent.md` exists, then address her by name |
+| Persona doesn't appear | Agent not loaded | Confirm `~/.copilot/agents/margo.agent.md` exists, then select it with `copilot --agent margo` or the host's agent picker; saying the name is not agent selection |
 | Scheduled runs repeat themselves | State ledger reset | Run `proactive_state.py status`; check for `WARNING` output |
 | Installer says "unidentified developer" | Build may be unsigned | Confirm the release source and follow your organization's software policy; use a reviewed source checkout if appropriate |
 | Windows SmartScreen warning | Build may be unsigned or unrecognized | Confirm the release source and follow your organization's software policy rather than treating the warning as a setup step |

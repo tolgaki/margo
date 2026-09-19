@@ -11,6 +11,7 @@ not a state owner or a route around provider policy.
 
 ```text
 User request / scheduled manifest
+  -> host-selected agent (Margo or another caller; a name mention does not switch agents)
   -> skill router and selected procedure
   -> bounded task plan, scoped memory and current source evidence
   -> private work / proposed action
@@ -24,7 +25,7 @@ User request / scheduled manifest
 | Surface | Authority | Code / procedure |
 | --- | --- | --- |
 | Persona | Who speaks; never the user's draft voice | `agents/margo.agent.md` |
-| Routine selection | Trigger-to-procedure routing | `skills/*/SKILL.md` |
+| Routine selection | Task-to-procedure routing, never agent selection or name-only triggers | `skills/*/SKILL.md` |
 | Preferences | Human-readable private settings; imported memory is attributed to the file revision | `preferences.md`, `references/memory.md` |
 | Storage identity | Explicit configured principal and private per-account SQLite path | `margo_store.py` |
 | Evidence and obligations | Source revisions, candidate/confirmed work and canonical tracker links | `work_ledger.py`, `work_state.py` |

@@ -20,13 +20,17 @@ outside the repository; a contributor's linked checkout is not the place for you
 
 Follow [Getting started](getting-started.md) to complete three distinct steps:
 
-1. Install the persona and chief-of-staff skill. Extra skills and review panels are optional.
+1. Install the Margo agent and chief-of-staff skill, then select Margo with
+   `copilot --agent margo` or the host's agent picker. Extra skills and review panels are optional.
 2. Confirm which account Work IQ is signed into with a bounded read.
 3. Configure that confirmed account as the owner of the private local ledger.
 
 Configuring an email address in the ledger does not sign in to Microsoft 365. If you are updating
 an existing installation, use [setup and migration](how-to/setup-and-migration.md) rather than
 starting a second empty tracker.
+
+Margo is the agent; chief-of-staff is its task playbook, also usable by other agents.
+Saying "Margo" does not switch agents or load the skill by itself. The requested routine does.
 
 Fill in the private `preferences.md` with your time zone, working hours, protected focus time,
 current priorities, and drafting voice. Start with a small set of important people. You can

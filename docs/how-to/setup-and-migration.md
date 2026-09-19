@@ -28,6 +28,10 @@ Pause affected schedules and other Margo writers before upgrading an existing in
 Installation paths are not version-suffixed: the agent stays `margo`, the skill stays
 `chief-of-staff`, and the default root stays `$HOME/.copilot`. The installer records version
 metadata separately. Do not create a parallel `margo1.1` skill.
+Select the agent with `copilot --agent margo` or the host's agent picker. The chief-of-staff
+skill loads for matching routines, not name mentions, and remains usable by other agents.
+After updating these instructions, start a fresh session; no state migration is needed for
+this routing change, and an already-running session may still hold the old trigger.
 If an older installation has no version manifest, use a normal install rather than `update`.
 
 From your checkout, preview and then install:

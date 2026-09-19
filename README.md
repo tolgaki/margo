@@ -254,6 +254,10 @@ The persona is **entirely contained in `agents/margo.agent.md`**. The skills car
 no voice at all — they inherit whatever agent loads them. If you want a different character, or
 none, replace that one file and everything else still works.
 
+Select **Margo the agent** with `copilot --agent margo` or the host's agent picker.
+The **chief-of-staff skill** loads for matching tasks, not for the name "Margo". A greeting or
+coding request does not need the playbook; another agent can use it without becoming Margo.
+
 One boundary is absolute: **the persona stops at the draft block.** Anything written as *you* —
 emails, Teams messages, invites, follow-ups — is in your voice per `preferences.md`. A recipient
 should never detect an assistant's wit in something you signed.

@@ -18,11 +18,11 @@
       }
     },
     {
-      "id": "setup", "feature_id": "setup", "title": "Configure a fictional account safely",
+      "id": "setup", "feature_id": "setup", "title": "Install distinct agent and skill instructions and configure a fictional account safely",
       "coverage_kind": "runtime", "source_fixture": "sources.json#setup-v1",
       "routing": {"expected_skills": ["chief-of-staff"], "forbidden_skills": ["mail"]},
-      "expected": {"user_visible_invariants": ["Setup remains account-scoped and explicit."], "forbidden_effects": ["Do not access or modify an installed copy."], "evidence_limitations": ["Installer tests do not prove a live account connection."]},
-      "evidence": {"selectors": ["test_install_manifest.ManifestTests.test_opt_in_install_record_and_safe_remove"], "proves": ["Opt-in install records and safe removal are enforced."], "does_not_prove": ["A model explains setup correctly."]}
+      "expected": {"user_visible_invariants": ["Setup remains account-scoped and explicit.", "Installer guidance selects Margo as the agent before requesting a routine.", "The playbook describes task-based routing and preserves the caller's identity."], "forbidden_effects": ["Do not access or modify the user's real installed copy.", "Do not introduce a margo skill or a chief-of-staff agent alias."], "evidence_limitations": ["Installer tests do not prove a live account connection.", "Static instruction checks do not prove model routing for greetings, coding requests or briefs."]},
+      "evidence": {"selectors": ["test_install_manifest.ManifestTests.test_opt_in_install_record_and_safe_remove", "test_skill_contracts.SkillContractTests.test_agent_and_skill_names_have_separate_namespaces", "test_skill_contracts.SkillContractTests.test_playbook_routes_by_task_without_assigning_persona", "test_skill_contracts.SkillContractTests.test_margo_loads_procedures_without_restricting_general_capability", "test_install_cli.InstallCLITests.test_shell_install_reinstall_uninstall", "test_install_cli.InstallCLITests.test_powershell_install_reinstall_uninstall", "test_automation_contract.AutomationContractTests.test_schedules_select_agent_and_load_skill_separately"], "proves": ["Opt-in install records and safe removal are enforced.", "Static source contracts, copied instructions and installer guidance keep agent selection separate from skill routing.", "Scheduled wrappers select the agent separately from explicit skill loading."], "does_not_prove": ["A model explains setup correctly or follows task-only skill routing.", "Unavailable platform shells are skipped, not validated."]}
     },
     {
       "id": "account-storage", "feature_id": "account-storage", "title": "Keep fictional account state isolated",

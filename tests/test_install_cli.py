@@ -269,7 +269,14 @@ class InstallCLITests(unittest.TestCase):
             is_ps = command[0].endswith(("pwsh", "pwsh.exe"))
             dest_args = ["-Dest" if is_ps else "--dest", str(dest)]
             all_args = ["-All" if is_ps else "--all"]
-            run("install", dest_args + all_args)
+            output = run("install", dest_args + all_args)
+            self.assertIn("copilot --agent margo", output)
+            self.assertIn("Then ask:", output)
+            self.assertLess(output.index("copilot --agent margo"), output.index("Then ask:"))
+            for relative in ("agents/margo.agent.md", "skills/chief-of-staff/SKILL.md"):
+                self.assertEqual((dest / relative).read_bytes(), (REPO / relative).read_bytes())
+            self.assertFalse((dest / "skills/margo").exists())
+            self.assertFalse((dest / "agents/chief-of-staff.agent.md").exists())
             self.assertTrue((dest / ".margo-install").is_file())
             manifest = json.loads((dest / ".margo-files.json").read_text())
             self.assertIn("skills/chief-of-staff/scripts/capacity.py", manifest)
