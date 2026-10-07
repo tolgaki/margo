@@ -28,7 +28,7 @@ Getting this choice wrong is the single most common failure, and it's not a two-
 |---|---|---|
 | **`retrieve`** | **Semantic find across M365.** The user describes what they want and you have no exact path — "emails about launch risk", "recent PDFs", "what's been shared with me". Returns ranked hits **with `webLink` and sensitivity labels**. One call is usually the whole answer. | Fast |
 | **`fetch`** | **Literal lookup** of structured data with a knowable path and filter — today's `calendarView`, unread `messages`, a message by ID, channels in a team. Also the only way to resolve an exact ID before acting. | Sub-second |
-| **`ask`** | **Synthesis and reasoning** across many sources — "what was decided and why", "summarize the thread", "what's top of mind". Pass `timeZone`. | 10–60s, minutes when broad |
+| **`ask`** | **Synthesis and reasoning** across many sources — "what was decided and why", "summarize the thread", "what's top of mind". Pass `timeZone`. | 10–30s |
 
 Three rules that follow from the table:
 
