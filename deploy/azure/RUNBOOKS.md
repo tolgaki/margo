@@ -45,6 +45,14 @@ Never copy token files from a laptop or another host: Margo would act as whoever
 
 ## Rotation
 
+**Approval key.** The gate's signing key lives at `gate.approval_key_path` (default
+`/var/lib/margo-gate/approval.key`, readable only through the `margo-gate` group). To rotate it:
+`systemctl stop margo-harness margo-gate`, remove the file, `systemctl start margo-gate
+margo-harness`; the gate creates a new key on start. Every approval and directive recorded under
+the old key stops being executable: pending approvals must be given again, and standing rules must
+be re-sent by the manager. Rotate it whenever the token directory may have been read.
+
+
 | What | How | Then |
 | --- | --- | --- |
 | Copilot credential | Update the secret: `az keyvault secret set --vault-name {vault} --name margo-copilot-env --file copilot.local.env` | `sudo /opt/margo/deploy/azure/scripts/bootstrap.sh` (re-installs `/etc/margo/copilot.env`), `sudo systemctl restart margo-harness` |

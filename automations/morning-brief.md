@@ -25,3 +25,6 @@ offers. Never confirm commitments or approve external actions unattended.
 Record successful coverage independently for each source, only after complete paging and
 durable ingestion. Failed or partial sources keep their last successful checkpoint. Report
 missing coverage; never advance a global cursor as a substitute.
+
+On the remote-host profile, include the active standing rules from `margo_control.py rules`
+as a Standing rules line, so the manager sees what runs unattended.

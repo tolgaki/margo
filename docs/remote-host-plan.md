@@ -30,6 +30,7 @@ first.
 | Instruction channels | The manager may instruct Margo through **Teams, email and the CLI**, each verified as described in [§4](#4-manager-authority) |
 | Approval policy | Only **destructive** actions and **communicating** actions (sending mail, messages, RSVPs, invitations, sharing) need exact approval. Other reversible, private writes may run on the manager's instruction. See [§5](#5-action-tiers) |
 | Tenant details | Supplied by the owner at deployment. Tenant, subscription, object IDs and host names **never enter the checkout**; see [§9](#9-deployment-configuration-outside-the-repository) |
+| Process identity (revisited during implementation) | The gate, the harness and every Copilot session run as one service user. The model must be able to propose into the ledger, so the ledger cannot belong to another user; instead the gate keeps a signing key in the token directory that only its supplementary group can read and executes only approvals and directives carrying its seal. The earlier "separate OS user" wording is superseded |
 
 ### What this changes compared with the current policy
 
@@ -62,7 +63,7 @@ Azure VM (managed identity, no public IP, Entra SSH login for the manager only)
       launches: copilot --agent margo -p <prompt>  (Work IQ write tools denied directly)
                         |
                         v  MCP over a local socket
-  systemd: margo-gate.service (user margo-gate, owns tokens)
+  systemd: margo-gate.service (user margo + group margo-gate: tokens and signing key)
     Work IQ action gate
       reads -> forwarded
       writes -> classified (T1/T2/T3) -> manager directive or exact approval checked
@@ -113,7 +114,7 @@ data under [§4 of trust and safety](safety.md#4-observed-content-is-data-never-
 | --- | --- | --- |
 | **CLI** (`margo-control`) | The session arrives through Entra SSH login to the VM, Azure RBAC grants VM login only to the manager and break-glass, and the local login maps to the bound manager | Any other local user, a cron job, or Margo's own runs invoking the CLI |
 | **Teams** | The message is in the 1:1 chat between Margo and the manager, and Graph reports `from.user.id` equal to the bound manager object ID | Group chats, channels, meeting chats, edited messages after Margo acted, quoted or forwarded content, attachments, links |
-| **Email** | The message is addressed to Margo's mailbox, the sender resolves to the bound manager, authentication results pass, **and** the same `internetMessageId` exists in the manager's Sent Items (checked through delegated access, which defeats a spoofed `From`) | Forwarded or quoted text, attachments, messages the manager merely received, auto-forwards, replies from anyone else in the thread |
+| **Email** | The message is addressed to Margo's mailbox, the sender resolves to the bound manager, the tenant's own authentication server reports it as authenticated (`dmarc=pass` for the manager's domain, `compauth=pass`, or SPF and DKIM both passing; a foreign `Authentication-Results` header is ignored), **and** the manager's Sent Items holds the same send (`internetMessageId`, Margo as recipient, same subject, sent within minutes). The instruction is read from the Sent Items copy, never from the inbox copy | Forwarded or quoted text, attachments, messages the manager merely received, auto-forwards, replies from anyone else in the thread, a reused Message-ID |
 
 Rules that hold on every channel:
 
@@ -137,8 +138,8 @@ identity used and a short reference bound to action ID, revision and hash. The m
 through:
 
 - `margo-control approve <ref>` on the CLI, or
-- a reply in the Teams 1:1 or by email whose whole message is the decision (`approve MA-xxxxxxxx`
-  or `reject MA-xxxxxxxx`, at most a closing thanks), verified as above. Wording that merely
+- a reply in the Teams 1:1 or by email whose whole message is the decision (`approve MA-xxxxxxxxxxxx`
+  or `reject MA-xxxxxxxxxxxx`, at most a closing thanks), verified as above. Wording that merely
   mentions a reference is an instruction, never an approval.
 
 The approval is recorded in the existing ledger with a new evidence reference prefix
@@ -165,8 +166,8 @@ Every other recipient is T2.
 | --- | --- | --- |
 | **T0 read** | `fetch`, `retrieve`, `ask`, `call_function`, `get_schema`, `search_paths`, `fetch_blob` | None |
 | **T1 private, reversible** | Mark read or unread, flag, categorize, move to a folder other than Deleted Items, create or edit a draft without sending, a private calendar hold with no attendees, private notes in Margo's own storage | A verified directive or standing rule. The prior state is journaled so the change can be undone |
-| **T2 communicating** | Send, reply, forward, Teams post, reply or reaction, RSVP, creating or changing a meeting with attendees, automatic replies, sharing a file or link | Exact manager approval |
-| **T3 destructive or security-relevant** | Delete or move to Deleted Items, cancel a meeting, purge, overwrite or remove a document, change permissions or membership, create or change inbox rules or forwarding | Exact manager approval |
+| **T2 communicating** | Send, reply, forward, Teams post, reply or reaction, RSVP, creating or changing a meeting with attendees, sharing a file or link | Exact manager approval |
+| **T3 destructive or security-relevant** | Delete or move to Deleted Items (by name or by folder id), cancel a meeting, purge, overwrite or remove a document, change permissions or membership, create or change inbox rules, forwarding, automatic replies or other mailbox settings | Exact manager approval |
 | **Unclassified** | Anything the gate cannot place | Treated as T3 |
 
 Inbox rules and forwarding are T3 because they can silently exfiltrate mail. A meeting change that
@@ -179,9 +180,11 @@ notifies attendees is T2 even if it looks like an edit.
 Copilot CLI tool denial works per tool, not per payload, so it cannot express the tiers above. The
 gate is a local MCP server in this repository that stands in front of Work IQ:
 
-- It runs as a **separate OS user** (`margo-gate`) that alone can read Margo's Work IQ token
-  state. Copilot runs as `margo`, so the model's shell cannot read the tokens and route around
-  the gate.
+- It runs as the service user with a **supplementary group** (`margo-gate`) that alone can
+  read Margo's Work IQ token state and the gate's signing key. Copilot runs as the same user
+  without that group, so the model's shell cannot read the tokens, cannot route around the gate,
+  and cannot forge the seal the gate puts on every approval and directive it verified. A ledger
+  row the model writes itself is refused at execution.
 - Copilot is configured with the gate as its Work IQ server, and the direct Work IQ write tools
   stay denied.
 - Reads are forwarded unchanged within budget. Writes are classified from tool, path, method and
@@ -202,12 +205,13 @@ Whether Work IQ's MCP server can run as a child process of the gate, and how it 
 
 **Boot preflight**, in order, stopping at the first failure:
 
-1. Read deployment config and confirm the manager binding exists.
-2. Obtain secrets through the managed identity.
+1. Read the deployment file and confirm the profile is `remote-host`.
+2. Confirm the private config binds the same manager as the deployment file.
 3. Confirm Copilot CLI is signed in.
-4. Start the gate and confirm Work IQ is signed in as Margo.
+4. Reach the gate and confirm it reports Work IQ signed in as Margo (an unreachable or slow
+   gate is retried with backoff; only an answer of `blocked` blocks).
 5. Confirm delegated read access to the manager's mailbox and calendar.
-6. Run `margo_doctor.py` and the schema checks without repairing anything.
+6. Run `margo_doctor.py` and read its binding report without repairing anything.
 
 **Startup sweep:** a new read-only automation checks Margo's inbox and Teams 1:1 for manager
 instructions, then the manager's mail, calendar and Teams mentions, and records source coverage.
@@ -240,7 +244,7 @@ Delivered as Bicep, cloud-init and systemd units under `deploy/azure/`:
   break-glass account. The managed identity gets Key Vault secret read and nothing else.
 - Key Vault with RBAC, purge protection, and no secrets in templates.
 - Egress through an allow-list (firewall or NSG with service tags and FQDN rules).
-- Encrypted data disk for `/var/lib/margo`, mode 0700, owned by the service users; SQLite backups
+- Encrypted data disk for `/var/lib/margo`, mode 0750, owned by the service user; SQLite backups
   through the backup API.
 - Pinned versions of Node, Copilot CLI and Python. Margo installed with `install.sh`. Rebuild to
   update rather than editing in place.
@@ -261,7 +265,7 @@ must keep passing.
 | Tenant ID, subscription, resource group, region | Private Bicep parameters file |
 | Margo's principal and the manager's object ID | VM deployment config and `margo_store.py init` |
 | GitHub credential for Copilot | Key Vault |
-| Work IQ token state | The gate user's private directory on the encrypted disk |
+| Work IQ token state and the gate's signing key | The token directory on the encrypted disk, readable only by the gate's supplementary group |
 
 ---
 
@@ -310,7 +314,7 @@ copying a human's tokens.
 
 ### Phase 4: Work IQ action gate
 
-- The gate, tier classifier, separate OS user and Copilot configuration.
+- The gate, tier classifier, gate-signed approvals and directives, and Copilot configuration.
 - Only now is the [policy change](#what-this-changes-compared-with-the-current-policy) enabled,
   and only for the remote-host profile. `safety.md`, `proactive.md` and the skill's approval rules
   are updated in the same change.
@@ -343,7 +347,7 @@ Update this table in the same change that delivers or alters a phase.
 | 1. Manager binding | Delivered: `margo_store.py init --manager`, `migrate-config`, `rebind-manager`, doctor `binding` | this change |
 | 2. Harness supervisor | Delivered: `remote_harness.py`, `automations/startup.md`, health states, cron slots, tests with fake Copilot and gate | this change |
 | 3. Manager channels and directives | Delivered: `manager_directives.py` verification matrix and store, `margo_control.py`, `manager-channel:` evidence, `manager-directive:` task requests | this change |
-| 4. Work IQ action gate | Delivered: `workiq_gate.py` tiers, directive checks, exact approvals, receipts, peer-credential roles; policy change scoped to the profile | this change |
+| 4. Work IQ action gate | Delivered: `workiq_gate.py` tiers, directive checks, exact approvals, receipts, peer-credential roles, gate-signed approvals and directives after adversarial review; policy change scoped to the profile | this change |
 | 5. Azure deployment | Delivered as templates and units under `deploy/azure/`; compiled in CI, not yet deployed to a tenant | this change |
 | 6. Operations | Delivered as runbooks and alert templates; not yet exercised | this change |
 | 7. Pilot | Not started; needs Phase 0 evidence first | — |
@@ -367,6 +371,9 @@ Each phase updates, in the same change:
   Scope it to what the routines need where Exchange allows.
 - **Prompt injection gets a direct line.** Anyone in the tenant can email Margo. The verification
   rules and the gate are the defence; the persona's judgement is not.
+- **One service user.** Copilot sessions share the gate's uid and can write the ledger. The gate's
+  seal, kept behind the token-group boundary, is what separates a verified approval from a row a
+  session wrote; rotate the key whenever that directory may have been read.
 - **T1 actions can still surprise.** Filing a message the manager was about to read is reversible
   but noticeable. Standing rules are listed in every brief so the manager sees what runs.
 - **Platform availability.** Agent identities and Work IQ identity modes may change. Phase 0

@@ -3080,7 +3080,7 @@
       "canvas_refs": [],
       "scenario_ids": ["workiq-action-gate"],
       "maintainer_role": "Margo maintainers",
-      "limitations": ["Tested against a scripted Work IQ server; live tool and argument shapes must be confirmed in Phase 0 and are configurable in the deployment file", "The gate governs calls that pass through it; a shell can still reach the network without Margo's tokens", "Peer-credential roles need Linux SO_PEERCRED"]
+      "limitations": ["Tested against a scripted Work IQ server; live tool and argument shapes must be confirmed in Phase 0 and are configurable in the deployment file", "The ledger is shared with the service user that runs Copilot; only approvals and directives carrying the gate's seal are executed, and a shell without Margo's tokens cannot act as her", "Peer-credential roles need Linux SO_PEERCRED"]
     },
     {
       "id": "azure-deployment",

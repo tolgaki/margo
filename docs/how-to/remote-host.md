@@ -16,7 +16,7 @@ bound and the gate is installed.
 | --- | --- |
 | A startup sweep and scheduled routines that keep running while your laptop is closed | Every send, reply, post, RSVP, invite, share, delete or cancellation, per exact proposal |
 | Private, reversible tidying (flag, file, draft, private hold) on your instruction or standing rule | Which standing rules exist; each is listed in every brief and can be revoked |
-| Approval by replying `approve MA-xxxxxxxx` in your 1:1 chat, by email, or on the host | Who the manager is: one Entra object ID, changed only on the host |
+| Approval by replying `approve MA-xxxxxxxxxxxx` in your 1:1 chat, by email, or on the host | Who the manager is: one Entra object ID, changed only on the host |
 
 ## Before you start
 
@@ -83,8 +83,8 @@ authentication results, and the same message in your Sent Items), records it, an
 runs it. "always ..." or "rule: ..." creates a standing rule; `revoke rule rule_...` ends it.
 Quoted or forwarded text is never read as an instruction; anyone else's message is just mail.
 
-The phrases the gate understands: a decision is the whole message, `approve MA-xxxxxxxx` (or
-`ok`/`yes`) or `reject MA-xxxxxxxx`, with at most a closing thanks; a message starting `always ...`
+The phrases the gate understands: a decision is the whole message, `approve MA-xxxxxxxxxxxx` (or
+`ok`/`yes`) or `reject MA-xxxxxxxxxxxx`, with at most a closing thanks; a message starting `always ...`
 or `rule: ...` is a standing rule; `revoke rule rule_...`; and `pause` / `resume` on their own.
 Anything else is an instruction, including "ok MA-... looks wrong". The approval request names
 every address the send would reach; the gate refuses anything beyond that list.
@@ -104,10 +104,10 @@ Every Work IQ call from Copilot goes through the gate (`workiq-gate` MCP server)
 Private reversible writes need the directive or rule that asked for them. Communicating and
 destructive writes need an approved action desk proposal:
 
-> Margo: "Reply to Rafa confirming Thursday — approval reference MA-1a2b3c4d, recipient
+> Margo: "Reply to Rafa confirming Thursday — approval reference MA-1a2b3c4d5e6f, recipient
 > rafa@example.com, text as drafted."
 >
-> You: `approve MA-1a2b3c4d`
+> You: `approve MA-1a2b3c4d5e6f`
 
 The gate re-reads the target, claims one execution, forwards the exact call, and records the
 receipt. A second attempt is refused. A timeout is recorded as `outcome_unknown` and never
@@ -115,7 +115,7 @@ retried blindly; the manager is told to check the Sent Items before approving ag
 
 ```sh
 python3 skills/chief-of-staff/scripts/margo_control.py pending
-python3 skills/chief-of-staff/scripts/margo_control.py approve MA-1a2b3c4d
+python3 skills/chief-of-staff/scripts/margo_control.py approve MA-1a2b3c4d5e6f
 python3 skills/chief-of-staff/scripts/workiq_gate.py classify --tool do_action \
   --arguments '{"path": "/users/dana@example.com/messages/ID/move", "method": "POST", "body": {"destinationId": "deleteditems"}}'
 ```
@@ -146,7 +146,7 @@ decommission) and the pilot checklist are in [its README](../../deploy/azure/REA
 
 ## Change your mind
 
-`reject MA-xxxxxxxx` dismisses a proposal. `revoke rule rule_...` stops a rule. `pause` stops the
+`reject MA-xxxxxxxxxxxx` dismisses a proposal. `revoke rule rule_...` stops a rule. `pause` stops the
 harness from starting new work; `resume` continues. None of these undo an effect already
 recorded; the effects journal shows what a rule changed so you can reverse it deliberately.
 
@@ -168,6 +168,7 @@ off-host copy). Tokens are never backed up.
 | Health says `reauth_required` | Follow the re-authentication runbook on the host; do not copy tokens from a laptop |
 | Health says `blocked` with an identity mismatch | Stop. Confirm which identity Work IQ is signed in as before anything else runs |
 | A message you sent was listed as "could not verify" | Check it came from your own account to Margo's address, not forwarded; re-send rather than relaxing verification |
+| Margo never reacted to a message you sent | Mail from an address other than your configured principal is treated as ordinary correspondence and never listed; send from the bound account |
 | The gate refused a write as T3 | That is the design. Propose it; approve it by reference if you really want it |
 | An execution is `outcome_unknown` | Check the target (Sent Items, the event) before approving a new attempt |
 | You need a different manager | Update `/etc/margo/deployment.json` as an operator, then `rebind-manager` with the current id |
@@ -182,8 +183,12 @@ off-host copy). Tokens are never backed up.
   reach the network, but without the gate's tokens it cannot act as Margo. Copilot sessions and
   the gate share the service user; the token directory's group is the boundary, and a tampered
   MCP configuration is detected by the verification script, not prevented.
-- A dead Work IQ child is not respawned: health reports `blocked` until systemd restarts the
-  gate. Peer-credential roles need Linux.
+- When the Work IQ child dies the gate exits so systemd restarts it; the harness treats the gap as
+  retryable and resumes when the gate answers again. Peer-credential roles need Linux.
+- The ledger is writable by the service user that runs Copilot sessions. Only approvals and
+  directives carrying the gate's seal (a key in the token directory) are honoured; a session that
+  writes its own approval is refused. `require_authentication_results` ships on and should stay on;
+  `check-config` and health report it when it is off.
 - Delegated mailbox access is broad. Scope it where Exchange allows.
 - No unattended run ever sends to anyone but the manager, and only through the control channel.
 

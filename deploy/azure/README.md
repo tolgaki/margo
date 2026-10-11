@@ -91,7 +91,13 @@ a real result goes.
 3. **Deployment anchor.** Copy `deployment.example.json` to `deployment.local.json`, fill the
    placeholders (both object ids, the Teams chat id, `control.cli_logins` with the manager's VM
    login names, the Work IQ package version) and upload it as a secret. The host validates it with
-   the shipped loader before installing it; a leftover placeholder is refused.
+   the shipped loader before installing it; a leftover placeholder is refused. Keep
+   `control.require_authentication_results` true and set `control.authserv_id` to your tenant's
+   authentication server (the `authserv-id` at the start of its `Authentication-Results` header,
+   usually `<tenant>.mail.protection.outlook.com`), so foreign headers never count. The manager's
+   login must not be the service user `margo`; the gate refuses to serve such a configuration.
+   `gate.approval_key_path` (default `/var/lib/margo-gate/approval.key`) is created by the gate on
+   first start; it is the key the gate signs approvals and directives with.
 
    ```sh
    az keyvault secret set --vault-name kv-margo-example --name margo-deployment \
@@ -229,12 +235,14 @@ exercised, if at all, on a disposable mailbox after the pilot report.
 
 ## Security notes and limits
 
-- **Same uid for gate and Copilot.** Per the design, both the gate and the harness (and so every
-  Copilot session) run as `margo`; the token directory is the boundary, enforced by the
-  supplementary group only the gate unit has. Processes of one uid can signal each other, so a
-  model-driven shell could stop the gate; it cannot read its tokens, and Ubuntu's default
-  `ptrace_scope` keeps it out of the gate's memory. The gate and harness code runs from the
-  root-owned checkout, not from the writable install tree.
+- **Same uid for gate and Copilot.** Both the gate and the harness (and so every Copilot
+  session) run as `margo`; the token directory is the boundary, enforced by the supplementary
+  group only the gate unit has. It also holds the gate's signing key: every approval and directive
+  the gate verified carries a seal computed with that key, and the gate executes nothing without
+  it, so the shared ledger a session can write into grants no authority. Processes of one uid can
+  signal each other, so a model-driven shell could stop the gate (systemd restarts it); it cannot
+  read its tokens or key, and Ubuntu's default `ptrace_scope` keeps it out of the gate's memory.
+  The gate and harness code runs from the root-owned checkout, not from the writable install tree.
 - **`mcp-config.json` is in a directory the service user owns.** It is root-owned so it cannot be
   edited in place, and `verify-phase0.sh` fails if it is replaced, but a shell as `margo` could
   rename it. A direct Work IQ server registered that way has no tokens and cannot act as Margo; the

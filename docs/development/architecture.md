@@ -41,7 +41,7 @@ User request / scheduled manifest
 | Schedules | Names, cadence and unattended prompts | `automations/*.md` |
 | Manager binding | One bound manager object ID and the deployment profile in the private config; an audit binding, not authentication | `margo_store.py` |
 | Manager directives | Verified-channel instructions, standing rules, effects journal and control replies; verification is pure over fetched Graph data | `manager_directives.py`, `margo_control.py` |
-| Work IQ action gate | The only holder of Work IQ tokens on a remote host; tier classification, directive checks, exact approval claims and receipts for every Work IQ call | `workiq_gate.py`, `workiq_gate_client.py` |
+| Work IQ action gate | The only holder of Work IQ tokens and of the signing key on a remote host; tier classification, directive checks, exact approval claims and receipts for every Work IQ call; executes only approvals and directives it sealed | `workiq_gate.py`, `workiq_gate_client.py` |
 | Remote harness | Boot preflight, startup sweep, directive runs, cron slots and the health file; never an outward actor beyond the control channel | `remote_harness.py`, `automations/startup.md` |
 | Host deployment | Templates, units and runbooks for the Azure VM; never tenant values | `deploy/azure/` |
 | Optional UI | Thin review/read surface, no independent credentials or database | `.github/extensions/margo-action-desk/` |

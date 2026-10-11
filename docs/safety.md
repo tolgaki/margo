@@ -168,9 +168,11 @@ with her own mailbox can be emailed directly by anyone in the tenant, by people 
 reason to reach you at all. This rule stops being a secondary defence and becomes the primary one,
 at exactly the moment the approval gate in §1 loses its footing, because "she sends under her own
 name" is what that gate was built to prevent. If you are considering it, read
-**[Margo as an autopilot](autopilot.md)** before you provision anything. The approved but
-unimplemented [remote-host plan](remote-host-plan.md) describes how a manager binding, verified
-instruction channels and an action gate would carry these rules to her own identity.
+**[Margo as an autopilot](autopilot.md)** before you provision anything. The
+[remote-host profile](#8-the-remote-host-profile) is how this repository carries these rules to
+her own identity: a manager binding, verified instruction channels and an action gate, implemented
+and tested against synthetic data, with tenant verification and the pilot still pending
+([plan and tracker](remote-host-plan.md)).
 
 ---
 
@@ -264,18 +266,24 @@ owner's decision; the [operator guide](how-to/remote-host.md) explains the mecha
 **Who may approve narrows.** A local install accepts the person in the foreground session. The
 remote host accepts exactly one manager, bound by immutable Entra object ID at `init`, and only
 through a channel the gate verified from live Graph data: the CLI behind an Entra sign-in to the
-host, the 1:1 Teams chat between Margo and the manager, or an email the gate found in the
-manager's own Sent Items with passing authentication results. The approval journal records the
-decision with `manager-channel:<channel>:<message-id>` evidence; the gate, not the model and not
-the message text, decided that the channel was genuine. Quoted and forwarded text is never an
-instruction. Anyone else who writes to Margo is a correspondent.
+host, the 1:1 Teams chat between Margo and the manager, or an email whose copy the gate found in
+the manager's own Sent Items (same recipient, subject and send time; the instruction is read from
+that copy) with authentication results that pass for the tenant's own authentication server.
+The authentication-results requirement is a deployment setting that ships on; turning it off is
+reported by `check-config` and health as a weakening, and the Sent Items match is then the only
+check. The approval journal records the decision with `manager-channel:<channel>:<message-id>`
+evidence and a seal only the gate can produce; the gate, not the model and not the message text,
+decided that the channel was genuine. A decision is the whole message (`approve MA-...`), never a
+mention of a reference. Quoted and forwarded text is never an instruction. Mail or chat from
+anyone else is correspondence: it is counted, never verified, never acted on.
 
 **What may run without a per-item approval widens, slightly.** Private, reversible writes —
 mark read or unread, flag, categorize, file into a folder other than Deleted Items, create or
 edit a draft without sending, a private calendar hold with no attendees — may run on the
 manager's verified directive or standing rule. The gate re-reads the item first and journals the
-prior state so the change can be undone, and refuses when that read fails. Standing rules are
-listed in every brief and revoked by the manager at will.
+prior state so the change can be undone, and refuses when that read fails. A directive expires
+after a bounded time (24 hours by default); standing rules last until revoked, are listed in every
+brief by the brief procedure, and can be revoked by the manager at will.
 
 **Nothing else moves.** Sending, replying, forwarding, posting, reacting, RSVPs, invitations,
 sharing, deletion, cancellation, permission and rule changes still need the manager's exact
@@ -285,9 +293,14 @@ Margo may message only the manager without approval, only through the control ch
 through the gate's rate-limited reply method. Unattended runs gain nothing beyond standing rules.
 
 The widening is enforced by the gate, which alone holds the Work IQ tokens; it is not a prompt
-the model is asked to honour. A local install never enters this profile by accident: it needs the
-manager binding, the gate as the only registered Work IQ server, and the root-owned deployment
-file on the host. Where those are absent, §1–§3 apply exactly as written.
+the model is asked to honour. Because the model proposes actions, the ledger it proposes into is
+writable by the same service user that runs Copilot sessions; a row's existence therefore proves
+nothing. The gate signs every approval and directive it verified with a key kept in the token
+directory that only the gate can read, and executes only what carries its seal. An approval a
+session writes for itself, however well formed, is refused. A local install never enters this
+profile by accident: it needs the manager binding, the gate as the only registered Work IQ server,
+and the root-owned deployment file on the host. Where those are absent, §1–§3 apply exactly as
+written.
 
 ---
 

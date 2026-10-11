@@ -21,3 +21,6 @@ hours quantified and flag prep-heavy days.
 Put proposed schedule changes and local work products in the action desk. Persist the actual
 output and publication receipt before acknowledging its included items. Update successful
 coverage independently per source only after complete paging and durable ingestion.
+
+On the remote-host profile, include the active standing rules from `margo_control.py rules`
+as a Standing rules line, so the manager sees what runs unattended.

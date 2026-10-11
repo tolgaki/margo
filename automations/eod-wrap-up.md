@@ -25,3 +25,6 @@ compatibility export. Carry unresolved meeting items forward and retain recap-pe
 Record successful coverage independently per source after complete paging and durable ingestion.
 Failed or partial reads do not advance successful checkpoints. Include health changes without
 repeating unchanged failure notices on every run.
+
+On the remote-host profile, include the active standing rules from `margo_control.py rules`
+as a Standing rules line, so the manager sees what runs unattended.

@@ -51,6 +51,9 @@ what matters, what's coming, and what needs them.
 
 5. **Render** in the Standard Daily Brief format (see SKILL.md). Trim empty sections. Every
    actionable line ends in a recommended action (reply / delegate / decline / schedule / read).
+   On the remote-host profile (`remote-host.md`) add a **Standing rules** line listing the active
+   rules from `python3 scripts/margo_control.py rules` (id and text), so what runs unattended is
+   visible in every brief; write "none" when there are none.
    Render confirmed work separately from new candidates; recheck resolution before recommending
    a nudge. Include material coverage gaps and execution problems, not just the host run status.
 

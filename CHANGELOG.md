@@ -9,8 +9,13 @@
   need a directive or standing rule, communicating and destructive writes need an exact approved
   proposal and produce a receipt); `remote_harness.py` supervises boot preflight, the new startup
   sweep, directive runs and cron slots; `deploy/azure/` ships Bicep, cloud-init, systemd units,
-  verification and runbooks. Local installs keep the unchanged approval policy; the profile needs
-  the manager binding, the gate as the only Work IQ server and tenant verification (Phase 0).
+  verification and runbooks. Review hardening: the gate signs every approval and directive it
+  verified with a key behind the token-group boundary and executes nothing else; email instructions
+  are read from the manager's Sent Items copy of the same send and authenticated against the
+  tenant's own authentication server; decisions are whole messages with twelve-character
+  references; approved sends may reach only addresses the approved target names. Local installs
+  keep the unchanged approval policy; the profile needs the manager binding, the gate as the only
+  Work IQ server and tenant verification (Phase 0).
 - Documented the approved remote-host plan: Margo on an always-on Azure VM in Copilot CLI with
   her own Entra identity, delegated access to one bound manager, verified Teams/email/CLI
   instructions and an action gate.
