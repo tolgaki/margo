@@ -54,6 +54,7 @@ the deeper questions along the way.
 | What ships in an install or package? | [Contributing](../CONTRIBUTING.md) and [packaging](../packaging/README.md) |
 | How are schedules authored? | [Automation manifests](../automations/README.md) |
 | How does the local embedding adapter work? | [Embedding model](embedding-model.md) |
+| How will Margo run on a remote VM with her own identity? | [Remote-host plan](remote-host-plan.md) (planned) |
 
 Coding agents start at [AGENTS.md](../AGENTS.md). Human contributors should also read the
 [contribution rules](../CONTRIBUTING.md): fictional fixtures only, no real account state in the

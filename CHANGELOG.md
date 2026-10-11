@@ -2,6 +2,9 @@
 
 ## 1.3.0 (unreleased)
 
+- Documented the approved remote-host plan: Margo on an always-on Azure VM in Copilot CLI with
+  her own Entra identity, delegated access to one bound manager, verified Teams/email/CLI
+  instructions and an action gate. Planned only; current approval policy is unchanged.
 - Separated Margo agent selection from chief-of-staff skill routing: names and greetings no
   longer trigger the playbook, which preserves the caller's identity. Installer and setup help
   now explicitly select the agent; updated instructions require a fresh session, not migration.

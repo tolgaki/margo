@@ -142,6 +142,7 @@ the synthetic core without connecting a real mailbox or installing into your nor
 | **[The chief-of-staff playbook](docs/chief-of-staff.md)** | The routines and when each fires |
 | **[Running in a container](docs/container.md)** | Reproducible unattended runs, and the two-sign-in problem |
 | **[Margo as an autopilot](docs/autopilot.md)** | Design note: her own identity via Entra Agent ID — and what it breaks |
+| **[Remote-host plan](docs/remote-host-plan.md)** | Planned: an always-on Azure VM, her own identity, one bound manager and an action gate |
 | **[The agentic development plan](docs/agentic-development-plan.md)** | The contribution contract, state ownership, and delivery sequencing for coding agents |
 | **[Contributing](CONTRIBUTING.md)** | Ground rules, testing, and the one hard rule about real data |
 

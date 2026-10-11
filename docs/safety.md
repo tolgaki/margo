@@ -168,7 +168,9 @@ with her own mailbox can be emailed directly by anyone in the tenant, by people 
 reason to reach you at all. This rule stops being a secondary defence and becomes the primary one,
 at exactly the moment the approval gate in §1 loses its footing, because "she sends under her own
 name" is what that gate was built to prevent. If you are considering it, read
-**[Margo as an autopilot](autopilot.md)** before you provision anything.
+**[Margo as an autopilot](autopilot.md)** before you provision anything. The approved but
+unimplemented [remote-host plan](remote-host-plan.md) describes how a manager binding, verified
+instruction channels and an action gate would carry these rules to her own identity.
 
 ---
 
