@@ -34,20 +34,24 @@ snapshot or corrupt/unavailable state. --strict also exits 1 for nonhealthy repo
 import argparse
 import hashlib
 import importlib.util
+import os
 import re
 import sqlite3
 import sys
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 
-from margo_store import (SetupRequired, StateError, add_state_arguments, canonical_json,
-                         connect, copilot_home, read_json, state_path, utc_now, validate_timestamp)
+from margo_store import (CONFIG_VERSION, ConfigMismatch, SetupRequired, StateError, add_state_arguments,
+                         canonical_json, connect, copilot_home, load_config, read_json, state_path,
+                         utc_now, validate_timestamp)
 
 
 REQUIRED_PREFERENCES = ("Name / preferred name", "Role / team", "Time zone & working hours",
                         "Focus-time blocks to protect",
                         "Current top priorities (this week/quarter)")
 REQUIRED_DECISION_CONFIG = ("Repo", "Local clone", "Team", "ID prefix")
+# A deployment anchor marks a remote host; its contents belong to the harness, not the doctor.
+DEFAULT_DEPLOYMENT = "/etc/margo/deployment.json"
 HASH = re.compile(r"[0-9a-fA-F]{64}")
 SAFE_ERRORS = {"workspace_configuration", "access_denied", "timeout", "network",
                "throttled", "unavailable", "invalid_response", "authentication_required",
@@ -306,6 +310,46 @@ def memory_health(account=None, state_root=None):
             "note": "Memory relevance does not establish source truth, permissions or action approval."}
 
 
+def _remote_host_deployed():
+    try:
+        return Path(os.environ.get("MARGO_DEPLOYMENT", DEFAULT_DEPLOYMENT)).expanduser().is_file()
+    except (OSError, RuntimeError):
+        return False
+
+
+def binding_health(config_path=None):
+    """Report the manager binding from the private config alone; identifiers are never included."""
+    result = {"status": "unbound", "config_version": None, "manager_configured": False,
+              "profile": "local", "remote_harness_ready": False, "action": None}
+    try:
+        config = load_config(config_path)
+    except ConfigMismatch as exc:
+        result.update(status="migration-required", config_version=exc.version,
+                      action="This installation cannot read the config's version; upgrade Margo or restore "
+                             "the config from a verified backup. Nothing was rewritten.")
+        return result
+    if config is None:
+        result["action"] = ("Run margo_store.py init --account explicitly; add --manager and --profile "
+                            "remote-host only on a remote host.")
+        return result
+    if config.get("manager") is None:
+        result["config_version"] = 1
+        if _remote_host_deployed():
+            result.update(status="migration-required",
+                          action="A remote host needs a bound manager: run margo_store.py migrate-config "
+                                 "--account ... --manager ... explicitly; the harness stays blocked until then.")
+        else:
+            result["action"] = ("Local profile needs no manager. For a remote host run margo_store.py "
+                                "migrate-config --manager explicitly.")
+        return result
+    ready = config["profile"] == "remote-host"
+    result.update(status="bound", config_version=CONFIG_VERSION, manager_configured=True,
+                  profile=config["profile"], remote_harness_ready=ready,
+                  action=None if ready else "Profile is local; the remote harness needs profile remote-host "
+                                            "(margo_store.py rebind-manager --profile remote-host).")
+    return result
+
+
 def task_health(account=None, state_root=None):
     principal, path = state_path(account, state_root)
     if not path.exists():
@@ -346,6 +390,7 @@ def main(argv=None):
         installation = inspect_installation_manifest(args.install_root)
         snapshot = inspect_snapshot(read_json(args.snapshot) if args.snapshot else {},
                                     args.snapshot_max_age_seconds, installation["status"])
+        binding = binding_health()
         try:
             state = state_health(args.account, args.state_dir)
             memory = memory_health(args.account, args.state_dir)
@@ -354,19 +399,26 @@ def main(argv=None):
             state = {"status": "setup-needed", "account_configured": False, "all_clear": False, "action": str(exc)}
             memory = {"status": "setup-needed"}
             tasks = {"status": "setup-needed"}
+            # Without an account nothing is ready for the harness; an unbound config is plain setup.
+            binding.update(status="setup-needed" if binding["status"] == "unbound" else binding["status"],
+                           remote_harness_ready=False, action=str(exc))
+        # An unbound manager keeps local behaviour healthy; only a config this version cannot
+        # read, or one a remote host still has to migrate, needs attention.
         healthy = (state.get("all_clear", False) and snapshot["status"] == "healthy"
                    and memory["status"] in ("available", "not-initialized", "semantic-unavailable")
                    and tasks["status"] in ("available", "not-initialized")
+                   and binding["status"] in ("bound", "unbound")
                    and all(group["status"] == "complete" for group in config.values()))
         status = "healthy" if healthy else "setup-needed" if not state["account_configured"] else "attention-needed"
         report = {"status": status, "checked_at": utc_now(), "configuration": config,
-                  "state": state, "memory": memory, "tasks": tasks,
+                  "state": state, "memory": memory, "tasks": tasks, "binding": binding,
                   "host_snapshot": snapshot, "managed_installation": installation,
                   "limitations": ["No host API/database inspected.",
                                   "Host completed does not establish source coverage or human review.",
                                   "Configured priority labels do not establish outcome definitions, deadlines or capacity feasibility.",
                                   "No notification can run while the machine is asleep.",
-                                  "SQLite permissions are not encryption; use protected backups."]}
+                                  "SQLite permissions are not encryption; use protected backups.",
+                                  "A bound manager is configuration; it does not establish the manager's identity, delegated access or a working deployment."]}
         print(canonical_json(report))
         return 1 if args.strict and not healthy else 0
     except (StateError, OSError, sqlite3.Error, ValueError, TypeError, KeyError) as exc:

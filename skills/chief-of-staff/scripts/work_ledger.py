@@ -150,8 +150,14 @@ def human(evidence, subject_id, revision, decision=None):
         raise StateError("explicit human_confirmation evidence is required")
     for key in ("actor", "statement", "evidence_ref", "decision"):
         text(evidence.get(key), key)
-    if not evidence["evidence_ref"].startswith(("conversation:", "host-interaction:", "legacy-review:")):
-        raise StateError("human evidence must reference a conversation, host interaction, or legacy review")
+    ref = evidence["evidence_ref"]
+    if ref.startswith("manager-channel:"):
+        # Shape only: the remote harness and gate verify the channel before writing this prefix.
+        parts = ref.split(":", 2)
+        if len(parts) != 3 or parts[1] not in {"cli", "teams", "email"} or not parts[2].strip():
+            raise StateError("manager-channel evidence must be manager-channel:<cli|teams|email>:<message-id>")
+    elif not ref.startswith(("conversation:", "host-interaction:", "legacy-review:")):
+        raise StateError("human evidence must reference a conversation, host interaction, legacy review, or verified manager channel")
     if (evidence.get("subject_id") != subject_id or type(evidence.get("revision")) is not int
             or evidence.get("revision") != revision):
         raise StateError("human evidence must name the exact subject and revision")

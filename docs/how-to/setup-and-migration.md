@@ -81,6 +81,11 @@ An existing configuration for a different owner is refused, not replaced.
 create populated state. Connected runs must read the current identity through Work IQ and compare
 it with this owner before ingestion. Stop on mismatch.
 
+A [remote host](remote-host.md) adds `--manager OBJECT_ID --manager-principal UPN --profile
+remote-host` to bind one manager; that writes a version-2 config. An existing version-1 config is
+upgraded only by an explicit `migrate-config`, and `rebind-manager` changes the manager when the
+current one is named. Doctor reports the binding without printing identifiers.
+
 Account precedence is explicit `--account`, then `MARGO_ACCOUNT`, then private configuration.
 `MARGO_CONFIG` can select another private config file. `MARGO_STATE_DIR` and the CLI state override
 select a **base**; an account hash and `margo.sqlite3` are appended automatically. Use the same

@@ -57,7 +57,8 @@ Before a release, the feature catalog, generated guide navigation and synthetic 
 must agree, and installed-copy scenarios must preserve existing memory and customized preferences.
 Native packagers currently enumerate `git ls-files --cached --others --exclude-standard`:
 **tracked files and non-ignored untracked files are candidates**, using their working-tree
-contents. They then apply explicit infrastructure/runtime exclusions. This is not a
+contents. They then apply explicit infrastructure/runtime exclusions, including the remote-host
+deployment tree `deploy/`, which provisions a VM and never belongs in a Copilot profile. This is not a
 tracked-only or committed-only payload guarantee. Build from a clean, sanitized clone; inspect
 both the source list and resulting payload, including filenames and modified templates.
 

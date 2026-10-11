@@ -58,6 +58,12 @@ jobs:
           bash -n tools/gen-automations-docs.sh
           bash -n packaging/macos/build-pkg.sh
           bash -n packaging/macos/scripts/postinstall
+          bash -n deploy/azure/scripts/lib.sh
+          bash -n deploy/azure/scripts/bootstrap.sh
+          bash -n deploy/azure/scripts/verify-phase0.sh
+          bash -n deploy/azure/scripts/backup-state.sh
+          bash -n deploy/azure/scripts/reauth.sh
+          bash -n deploy/azure/scripts/decommission.sh
 
       - name: ShellCheck
         uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # 2.0.0
@@ -345,6 +351,93 @@ jobs:
               sys.exit(1)
           print("all internal links and anchors resolve")
           EOF
+
+  # Phase 5 ships Bicep, cloud-init and systemd units. A template that does not
+  # compile, a unit systemd rejects, or an example file that quietly stopped
+  # being a template would otherwise reach a tenant before anything in CI
+  # noticed. Nothing here deploys: a template that compiles is not a tenant
+  # that accepted it, and the job says so in its names.
+  deploy-templates:
+    name: Azure deployment templates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Every Bicep template and the example parameters compile
+        run: |
+          set -euo pipefail
+          az bicep install --version v0.36.1
+          az bicep version
+          for f in deploy/azure/main.bicep deploy/azure/modules/*.bicep; do
+            az bicep build --file "$f" --stdout >/dev/null \
+              || { echo "::error file=$f::bicep build failed"; exit 1; }
+            echo "  ok: $f"
+          done
+          az bicep build-params --file deploy/azure/main.example.bicepparam --stdout >/dev/null \
+            || { echo "::error file=deploy/azure/main.example.bicepparam::bicep build-params failed"; exit 1; }
+          echo "  ok: deploy/azure/main.example.bicepparam"
+          echo "every Bicep template compiles (compiled, not deployed)"
+
+      # systemd-analyze verify exits 0 on an unknown key or a bad value and only
+      # logs it, so any output at all is a failure. The units name executables
+      # under /opt/margo, where the host keeps the pinned checkout; staging the
+      # tree there first makes the check cover the real paths.
+      - name: systemd accepts every unit without a warning
+        run: |
+          set -euo pipefail
+          sudo mkdir -p /opt/margo
+          sudo cp -a deploy /opt/margo/
+          out=$(systemd-analyze verify --man=no deploy/azure/systemd/*.service deploy/azure/systemd/*.timer 2>&1) || true
+          if [ -n "$out" ]; then
+            printf '%s\n' "$out"
+            echo "::error::systemd-analyze verify reported problems"; exit 1
+          fi
+          for u in margo-gate.service margo-harness.service; do
+            grep -q '^User=margo$' "deploy/azure/systemd/$u" || { echo "::error::$u does not run as margo"; exit 1; }
+            grep -q '^ProtectSystem=strict$' "deploy/azure/systemd/$u" || { echo "::error::$u is not ProtectSystem=strict"; exit 1; }
+            echo "  ok: $u"
+          done
+          echo "every unit verifies cleanly"
+
+      # check-clean.sh already rejects GUIDs and real addresses repo-wide. This
+      # is the narrower claim: the example files are still templates, with a
+      # placeholder in every identity field, so copying one into a tenant
+      # without editing fails loudly instead of binding the wrong person.
+      - name: Example files hold placeholders only
+        run: |
+          set -euo pipefail
+          python3 - <<'EOF'
+          import json, re, sys
+          placeholder = re.compile(r"^\{[a-z0-9-]+\}$")
+          guid = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+          bad = []
+          example = json.load(open("deploy/azure/deployment.example.json"))
+          for section in ("margo", "manager"):
+              if not placeholder.match(example[section]["object_id"]):
+                  bad.append("deployment.example.json: %s.object_id is not a placeholder" % section)
+          for login in example["control"]["cli_logins"]:
+              if not placeholder.match(login):
+                  bad.append("deployment.example.json: cli_logins holds a real login")
+          params = open("deploy/azure/main.example.bicepparam").read()
+          for name in ("adminObjectId", "repoRevision", "copilotVersion"):
+              match = re.search(r"(?m)^param %s = '([^']*)'" % name, params)
+              if not match or not placeholder.match(match.group(1)):
+                  bad.append("main.example.bicepparam: %s is not a placeholder" % name)
+          if params.count("'{role-definition-id}'") != 3:
+              bad.append("main.example.bicepparam: role definition ids must be placeholders")
+          import pathlib
+          for path in pathlib.Path("deploy").rglob("*"):
+              if path.is_file() and guid.search(path.read_text(encoding="utf-8")):
+                  bad.append("%s: GUID-shaped literal" % path)
+          for problem in bad:
+              print("::error::" + problem)
+          if bad:
+              sys.exit(1)
+          print("example files are templates: placeholders only")
+          EOF
+
+      - name: Deployment template contract tests
+        run: python3 -m unittest discover -s tests -p test_deploy_templates.py
 
   # Proves the installer works from a clean machine, on both platforms.
   install:

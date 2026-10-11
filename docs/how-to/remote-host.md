@@ -44,6 +44,9 @@ python3 skills/chief-of-staff/scripts/margo_doctor.py | python3 -c 'import json,
 Doctor reports `bound`, `unbound` or `migration-required` and never prints the identifiers. An
 existing version-1 config is upgraded only by an explicit `migrate-config`; `init` refuses to
 rewrite it. A different manager is refused; use `rebind-manager` with the current manager's id.
+A config newer than this Margo understands reports `migration-required`; invalid JSON or a file
+that is not private is an error (exit 2) and is never rewritten. `init --manager` without
+`--profile` defaults to `remote-host`.
 
 ### Remote harness
 
@@ -60,8 +63,11 @@ The harness runs as a systemd service. Its boot preflight stops at the first fai
 | Doctor reports the binding | `blocked` |
 
 Then it runs the startup sweep (`automations/startup.md`), and every few minutes syncs manager
-directives, runs each new instruction as a bounded Copilot session, and runs the scheduled
-automations on their cron slots. `reauth_required` is waited out, never retried in a loop.
+directives, runs each new instruction as a bounded Copilot session (one hour limit; a timeout is
+reported to you as unknown), and runs the scheduled automations on their cron slots.
+`reauth_required` is waited out, never retried in a loop. While you have paused Margo, no session
+starts; a new instruction is answered with a note asking you to re-send it after `resume`. The
+health file lives at the deployment's `harness.health_path` (default `/var/lib/margo/health.json`).
 
 > "What did you check at startup?" — the sweep's publication receipt and per-source coverage
 > answer this; `python3 skills/chief-of-staff/scripts/remote_harness.py health` prints the file.
@@ -77,7 +83,12 @@ authentication results, and the same message in your Sent Items), records it, an
 runs it. "always ..." or "rule: ..." creates a standing rule; `revoke rule rule_...` ends it.
 Quoted or forwarded text is never read as an instruction; anyone else's message is just mail.
 
-On the host, with your Entra SSH sign-in:
+The phrases the gate understands, at the start of your message: `approve MA-xxxxxxxx` (or
+`ok`/`yes`), `reject MA-xxxxxxxx`, `always ...` or `rule: ...`, `revoke rule rule_...`, and
+`pause` / `resume` on their own. Anything else is an instruction.
+
+On the host, with your Entra SSH sign-in (`--socket` goes before the subcommand when
+`MARGO_GATE_SOCKET` is not set):
 
 ```sh
 python3 skills/chief-of-staff/scripts/margo_control.py directives --state active
@@ -140,9 +151,13 @@ recorded; the effects journal shows what a rule changed so you can reverse it de
 ## Your data
 
 Margo's private state (ledger, directives, coverage, receipts) lives on the encrypted data disk
-under `/var/lib/margo`. Work IQ tokens live under `/var/lib/margo-gate`, readable only by the
-gate service. The audit log records decisions and digests, never message bodies. Backups use the
-SQLite backup API with writers stopped (`deploy/azure/scripts/backup-state.sh`).
+under `/var/lib/margo` (`COPILOT_HOME` is `/var/lib/margo/copilot`). Work IQ tokens live under
+`/var/lib/margo-gate`, readable only by the gate service through its supplementary group. The
+gate and harness run from the root-owned pinned checkout at `/opt/margo`; the deployment anchor
+is `/etc/margo/deployment.json`; the socket is `/run/margo/gate.sock`. The audit log records
+decisions and digests, never message bodies. Backups use the SQLite backup API with writers
+stopped (`deploy/azure/scripts/backup-state.sh`, daily timer, kept on the host unless you add an
+off-host copy). Tokens are never backed up.
 
 ## If something goes wrong
 
@@ -162,7 +177,11 @@ SQLite backup API with writers stopped (`deploy/azure/scripts/backup-state.sh`).
   delegated coverage must be confirmed per tenant in Phase 0. The deployment config carries the
   call templates so they can be corrected without code changes.
 - The gate enforces policy for every call that goes through it. `curl` from a shell can still
-  reach the network, but without the gate's tokens it cannot act as Margo.
+  reach the network, but without the gate's tokens it cannot act as Margo. Copilot sessions and
+  the gate share the service user; the token directory's group is the boundary, and a tampered
+  MCP configuration is detected by the verification script, not prevented.
+- A dead Work IQ child is not respawned: health reports `blocked` until systemd restarts the
+  gate. Peer-credential roles need Linux.
 - Delegated mailbox access is broad. Scope it where Exchange allows.
 - No unattended run ever sends to anyone but the manager, and only through the control channel.
 

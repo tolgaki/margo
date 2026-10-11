@@ -94,7 +94,8 @@ if (-not (Test-Path (Join-Path $Repo '.git'))) {
 $tracked = & git -C $Repo ls-files --cached --others --exclude-standard
 if ($LASTEXITCODE -ne 0 -or -not $tracked) { Die "git listed no files to package" }
 
-$excludeDirs = @('.github', 'packaging')
+# deploy/ is the remote-host VM recipe; it never belongs in a desktop profile.
+$excludeDirs = @('.github', 'packaging', 'deploy')
 $count = 0
 
 foreach ($rel in $tracked) {

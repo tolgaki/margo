@@ -41,6 +41,9 @@
   .\margo-scheduled.ps1 brief -ShowPrompt # show just the prompt
 
 .EXAMPLE
+  .\margo-scheduled.ps1 startup           # startup sweep (remote host; cron @reboot, no schtasks line)
+
+.EXAMPLE
   .\margo-scheduled.ps1 schtasks          # register-task commands for every automation
 
 .EXAMPLE

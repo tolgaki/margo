@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "profile": "remote-host",
+  "margo": {"principal": "margo@example.com", "object_id": "{margo-object-id}"},
+  "manager": {"principal": "dana@example.com", "object_id": "{manager-object-id}", "display_name": "Dana"},
+  "control": {
+    "cli_logins": ["{manager-vm-login}"],
+    "teams_chat_id": "{chat-id}",
+    "teams_enabled": true,
+    "email_enabled": true,
+    "require_authentication_results": true,
+    "max_replies_per_hour": 12,
+    "approval_ttl_hours": 24
+  },
+  "workiq": {
+    "command": ["npx", "-y", "@microsoft/workiq-mcp@{workiq-mcp-version}"],
+    "env": {},
+    "server_name": "workiq-gate",
+    "read_tools": ["fetch", "retrieve", "ask", "call_function", "get_schema", "search_paths", "fetch_blob"],
+    "write_tools": ["do_action", "create_entity", "update_entity", "delete_entity"],
+    "argument_keys": {
+      "path": ["path", "url", "endpoint", "resource", "entityPath", "entity_path"],
+      "method": ["method", "httpMethod", "verb"],
+      "body": ["body", "payload", "data", "entity", "properties"],
+      "action": ["action", "actionName", "operation"]
+    },
+    "call_templates": {
+      "teams_message": {
+        "tool": "create_entity",
+        "arguments": {
+          "path": "/chats/{chat_id}/messages",
+          "method": "POST",
+          "body": {"body": {"contentType": "text", "content": "{text}"}}
+        }
+      },
+      "email_message": {
+        "tool": "do_action",
+        "arguments": {
+          "path": "/me/sendMail",
+          "method": "POST",
+          "body": {
+            "message": {
+              "subject": "{subject}",
+              "body": {"contentType": "text", "content": "{text}"},
+              "toRecipients": [{"emailAddress": {"address": "{address}"}}]
+            }
+          }
+        }
+      }
+    }
+  },
+  "harness": {
+    "poll_seconds": 180,
+    "copilot_command": ["copilot"],
+    "copilot_check": ["copilot", "--version"],
+    "max_backoff_seconds": 900,
+    "startup_verb": "startup",
+    "health_path": "/var/lib/margo/health.json",
+    "automations_dir": null,
+    "scheduled_wrapper": null
+  },
+  "gate": {
+    "socket": "/run/margo/gate.sock",
+    "audit_log": "/var/lib/margo/gate-audit.jsonl",
+    "margo_root_paths": ["/me/", "/users/{margo-object-id}/", "/users/margo@example.com/"],
+    "manager_root_paths": ["/users/{manager-object-id}/", "/users/dana@example.com/"]
+  }
+}

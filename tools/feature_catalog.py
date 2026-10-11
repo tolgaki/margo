@@ -80,6 +80,9 @@ REQUIRED_LIST_FIELDS = (
 # Scripts whose parser() (or equivalent builder) can be called directly with no side effects:
 # constructing an argparse.ArgumentParser touches no file, network or Work IQ tool.
 DYNAMIC_CLI_MODULES = {
+    "skills/chief-of-staff/scripts/margo_control.py": "parser",
+    "skills/chief-of-staff/scripts/remote_harness.py": "parser",
+    "skills/chief-of-staff/scripts/workiq_gate.py": "parser",
     "skills/chief-of-staff/scripts/work_state.py": "parser",
     "skills/chief-of-staff/scripts/proactive_state.py": "parser",
     "skills/chief-of-staff/scripts/memory_state.py": "parser",

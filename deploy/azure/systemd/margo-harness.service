@@ -1,0 +1,60 @@
+# Margo's remote harness: boot preflight, startup sweep, watch loop and the
+# scheduled automations. It launches Copilot CLI through tools/margo-scheduled.sh
+# (which keeps the four direct Work IQ write tools denied) and talks to the gate
+# over /run/margo/gate.sock for health, directives and the one permitted outward
+# path, control-channel replies to the manager.
+#
+# Exit status 3 means "blocked" (identity mismatch, missing manager binding,
+# schema problem or gate failure). systemd must NOT restart that: an operator has
+# to look, and a restart loop would hide the reason under a start limit.
+[Unit]
+Description=Margo remote harness (preflight, startup sweep, watch loop, schedules)
+Documentation=file:///opt/margo/deploy/azure/README.md
+After=network-online.target margo-gate.service
+Wants=network-online.target
+Requires=margo-gate.service
+ConditionPathExists=/etc/margo/deployment.json
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=margo
+Group=margo
+WorkingDirectory=/var/lib/margo
+Environment=COPILOT_HOME=/var/lib/margo/copilot MARGO_DEPLOYMENT=/etc/margo/deployment.json MARGO_GATE_SOCKET=/run/margo/gate.sock
+Environment=HOME=/var/lib/margo
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+# Optional Copilot credential written by bootstrap.sh from Key Vault
+# (root:margo 0640). Absent file: the harness preflight reports Copilot as not
+# signed in and blocks, which is the truthful outcome.
+EnvironmentFile=-/etc/margo/copilot.env
+# Runs from the root-owned pinned checkout (same reason as the gate). The
+# wrapper and automations resolve relative to it: /opt/margo/tools and
+# /opt/margo/automations. Copilot itself loads the agent and skill from
+# COPILOT_HOME, where install.sh placed them.
+ExecStart=/usr/bin/python3 /opt/margo/skills/chief-of-staff/scripts/remote_harness.py run
+Restart=on-failure
+RestartSec=30
+RestartPreventExitStatus=3
+TimeoutStopSec=60
+KillMode=mixed
+SyslogIdentifier=margo-harness
+
+# Hardening. The harness needs its private state and the gate socket; nothing
+# else on the host is writable from here or from the Copilot sessions it starts.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/margo /run/margo
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

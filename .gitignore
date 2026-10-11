@@ -69,3 +69,11 @@ tmp/
 # Private denylist for tools/check-clean.sh — your own name, initials,
 # employer, customers, codenames. Never published.
 tools/forbidden.local.txt
+
+# Private remote-host deployment inputs: tenant, subscription and object ids,
+# vault and host names. deploy/azure/main.example.bicepparam and
+# deployment.example.json are the tracked templates; a filled copy named
+# *.local.* stays out of git, out of check-clean's scan and out of the
+# native packagers (which enumerate non-ignored files).
+deploy/**/*.local.*
+*.bicepparam.local

@@ -1,0 +1,13 @@
+# Daily backup window for margo-backup.service. Persistent=true runs a missed
+# backup after the VM was down at the scheduled time instead of skipping a day.
+[Unit]
+Description=Daily Margo private state backup
+
+[Timer]
+OnCalendar=*-*-* 03:15:00
+RandomizedDelaySec=15min
+Persistent=true
+Unit=margo-backup.service
+
+[Install]
+WantedBy=timers.target

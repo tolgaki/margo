@@ -5,9 +5,10 @@ host where Margo signs in to Work IQ as her own identity, has delegated access t
 manager's mailbox and calendar, and every Work IQ call passes through the local action gate.
 Local installs do not have this profile; for them every rule in `SKILL.md` applies unchanged.
 
-The profile is detected, never assumed: `python3 scripts/margo_store.py` configuration reports
-`profile: remote-host` with a bound manager, and the Work IQ server registered in the host is
-`workiq-gate`. If either is missing, you are on a local install. Treat this file as not loaded.
+The profile is detected, never assumed: `python3 scripts/margo_doctor.py` reports a `binding`
+section with `status: bound`, `profile: remote-host` and `remote_harness_ready: true`, and the
+Work IQ server registered in the host is `workiq-gate`. If either is missing, you are on a local
+install. Treat this file as not loaded.
 
 ## Who is who
 
@@ -76,6 +77,13 @@ for authority it does not have.
    `margo_control.py approve MA-xxxxxxxx` on the host. The gate records the approval with evidence
    `manager-channel:<channel>:<message id>`. Only then does the tool call with `margo_action`
    succeed, exactly once per approved revision.
+
+   The grammar the gate reads, at the start of the message once quotes and forwards are removed
+   and case-insensitively: `approve MA-xxxxxxxx` (also `approved`, `ok`, `yes`), `reject MA-xxxxxxxx`
+   (also `rejected`, `decline`, `declined`, `deny`, `denied`), `always ...` or `rule: ...` for a
+   standing rule, `revoke rule rule_...`, and the single words `pause` / `resume`. Anything else is
+   an instruction; "I would not approve MA-..." is an instruction, not an approval. Tell the manager
+   the exact phrase when you ask.
 5. If you edit the proposal, the approval is invalidated and the reference changes. Say so.
 
 Approvals expire (24 hours by default). An expired reference needs a fresh "approve", not a
@@ -113,8 +121,11 @@ message, lookup timed out). Report them to the manager through the control chann
 | `blocked` | Identity mismatch, missing manager binding, schema problem or gate failure | nothing runs until an operator fixes it |
 
 `python3 scripts/margo_control.py health` prints the gate's view; the harness writes the same
-to its health file. `python3 scripts/margo_doctor.py` reports the manager binding without
-printing identifiers.
+to its health file (`remote_harness.py health` prints it). `python3 scripts/margo_doctor.py`
+reports the manager binding without printing identifiers. While the manager has paused Margo,
+the harness starts no sessions and the gate refuses T1 writes; a `pause` or `resume` is itself a
+verified directive. The gate stops only on SIGTERM from systemd; its socket `margo/shutdown`
+method is disabled outside tests.
 
 ## Commands
 
@@ -123,7 +134,8 @@ printing identifiers.
 python3 scripts/margo_store.py init --account MARGO_PRINCIPAL --manager MANAGER_OBJECT_ID \
   --manager-principal MANAGER_PRINCIPAL --profile remote-host
 
-# manager-only, on the host through an Entra sign-in
+# manager-only, on the host through an Entra sign-in (--socket goes before the subcommand;
+# MARGO_GATE_SOCKET or the deployment file supplies it otherwise)
 python3 scripts/margo_control.py pending
 python3 scripts/margo_control.py approve MA-xxxxxxxx
 python3 scripts/margo_control.py rules
@@ -133,6 +145,7 @@ python3 scripts/margo_control.py pause
 # anyone on the host
 python3 scripts/margo_control.py health
 python3 scripts/margo_control.py directives --state active
+python3 scripts/margo_control.py --socket /run/margo/gate.sock status
 python3 scripts/workiq_gate.py classify --tool do_action --arguments '{"path": "/me/sendMail", "method": "POST"}'
 ```
 

@@ -1,0 +1,63 @@
+# Margo's Work IQ action gate: the only process that may talk to the Work IQ
+# MCP server. Copilot reaches Work IQ through this socket and nothing else, so
+# every write is classified and checked here rather than in a prompt.
+#
+# The gate runs as the service user `margo` with the supplementary group
+# `margo-gate`. That group alone can enter /var/lib/margo-gate, where the Work IQ
+# child keeps its token state (HOME points there). The harness and every Copilot
+# session run as `margo` WITHOUT that group, so a model-driven shell cannot read
+# the tokens and route around the policy. Never add `margo` to the group in
+# /etc/group; that would silently remove the boundary.
+[Unit]
+Description=Margo Work IQ action gate (tiered policy in front of the Work IQ MCP server)
+Documentation=file:///opt/margo/deploy/azure/README.md
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/margo/deployment.json
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=margo
+Group=margo
+SupplementaryGroups=margo-gate
+WorkingDirectory=/var/lib/margo
+Environment=COPILOT_HOME=/var/lib/margo/copilot MARGO_DEPLOYMENT=/etc/margo/deployment.json MARGO_GATE_SOCKET=/run/margo/gate.sock
+# HOME is the token directory so the Work IQ child's default credential store
+# lands behind the group boundary. Phase 0 confirms where the child really
+# stores tokens; if it is elsewhere, move that path here, not the other way.
+Environment=HOME=/var/lib/margo-gate
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+# The gate runs from the root-owned pinned checkout, not from COPILOT_HOME: the
+# installed copy under /var/lib/margo is writable by the same uid that runs the
+# model's shell, and the enforcement code must not be.
+ExecStart=/usr/bin/python3 /opt/margo/skills/chief-of-staff/scripts/workiq_gate.py serve
+# /run/margo is created for the socket on every start and removed on stop, so a
+# stale socket from a crash never survives a reboot.
+RuntimeDirectory=margo
+RuntimeDirectoryMode=0755
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillMode=mixed
+SyslogIdentifier=margo-gate
+
+# Hardening. ProtectSystem=strict makes the whole file system read-only except
+# the paths listed, which is why private state, the socket directory and the
+# token directory are named explicitly.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/margo /run/margo /var/lib/margo-gate
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

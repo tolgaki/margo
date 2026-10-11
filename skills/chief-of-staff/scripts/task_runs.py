@@ -224,12 +224,12 @@ class TaskStore:
         text(value["goal"], "goal")
         text(value["routine"], "routine", 100)
         request = text(value["request_ref"], "request_ref", 1000)
-        if not request.startswith(("conversation:", "host-interaction:", "automation:")):
-            raise StateError("task request must reference a user interaction or automation, not observed source instructions")
+        if not request.startswith(("conversation:", "host-interaction:", "automation:", "manager-directive:")):
+            raise StateError("task request must reference a user interaction, automation or manager directive, not observed source instructions")
         if value["mode"] not in {"foreground", "unattended"}:
             raise StateError("task mode must be foreground or unattended")
-        if value["mode"] == "unattended" and not request.startswith("automation:"):
-            raise StateError("unattended task requires its automation request reference")
+        if value["mode"] == "unattended" and not request.startswith(("automation:", "manager-directive:")):
+            raise StateError("unattended task requires its automation or manager directive request reference")
         env = environment(value["environment"], self.account)
         window = value["window"]
         if not isinstance(window, dict) or set(window) != {"start", "end"} or when(window["start"]) >= when(window["end"]):

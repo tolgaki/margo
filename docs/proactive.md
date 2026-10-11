@@ -82,6 +82,7 @@ matter and run `./tools/gen-automations-docs.sh --write`.
 | Morning brief | anchor | Weekdays 06:00 | `daily-brief.md (full)` | `brief` |
 | Week ahead | anchor | Sunday 17:00 | `daily-brief.md § Week ahead` | `week` |
 | Hourly sweep | sweep | Weekdays hourly 09:00–17:00 | `proactive.md § Tier 2` | `sweep` |
+| Startup sweep | sweep | @reboot | `proactive.md § Tier 2 (startup)` | `startup` |
 | Ambient scan | ambient | Weekdays 05:15 | `proactive.md § Tier 3` | `ambient` |
 
 <!-- END GENERATED: automations -->

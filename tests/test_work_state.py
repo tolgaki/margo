@@ -694,6 +694,43 @@ class WorkLedgerTests(unittest.TestCase):
         self.assertEqual(len(listed["actions"]), 1)
         self.assertEqual(listed["items"][0]["state"], "candidate")
 
+    def test_manager_channel_evidence_is_shape_checked_and_still_invalidated_by_edit(self):
+        """The prefix widens who may be named as approver; it never softens any approval rule."""
+        action = self.ledger.propose(self.action_data())
+        valid = dict(evidence(action["id"], decision="approve", action_hash=action["action_hash"]),
+                     evidence_ref="manager-channel:teams:fictional-message-1", channel="teams",
+                     directive_id="dir_fictional")
+        for ref in ("manager-channel:", "manager-channel:teams", "manager-channel:teams:", "manager-channel:teams:   ",
+                    "manager-channel:sms:fictional-message-1", "manager-channel::fictional-message-1",
+                    "manager:teams:fictional-message-1", "Manager-Channel:teams:fictional-message-1",
+                    "manager-channel:Teams:fictional-message-1", "mail:message-1"):
+            with self.assertRaises(work.StateError):
+                self.ledger.approve(action["id"], 1, action["action_hash"], dict(valid, evidence_ref=ref), stamp(30))
+        for change in ({"kind": "observed_mail"}, {"decision": "confirm"}, {"subject_id": "other-id"}, {"revision": 2},
+                       {"action_hash": "other"}, {"decided_at": stamp(5)}):
+            with self.assertRaises(work.StateError):
+                self.ledger.approve(action["id"], 1, action["action_hash"], dict(valid, **change), stamp(30))
+        with self.assertRaises(work.StateError):
+            self.ledger.approve(action["id"], 1, action["action_hash"], valid, stamp(8 * 24 * 60))
+        self.assertEqual(self.ledger.show(action["id"])["state"], "ready")
+        for channel, message_id in (("cli", "fictional-uuid"), ("email", "<fictional:id@example.com>")):
+            self.assertIs(work.human(dict(valid, evidence_ref="manager-channel:%s:%s" % (channel, message_id)),
+                                     action["id"], 1, "approve")["kind"], "human_confirmation")
+        approved = self.ledger.approve(action["id"], 1, action["action_hash"], valid, stamp(60))
+        self.assertEqual(approved["state"], "approved")
+        recorded = [event for event in self.ledger.history(action["id"])["events"] if event["event"] == "approved"]
+        self.assertEqual(recorded[0]["data"]["evidence"]["evidence_ref"], "manager-channel:teams:fictional-message-1")
+        self.assertEqual(recorded[0]["data"]["evidence"]["directive_id"], "dir_fictional")
+        data = self.action_data()
+        data["target"]["recipients"] = ["casey@example.com"]
+        changed = self.ledger.edit_action(action["id"], 1, data)
+        self.assertIsNotNone(changed["approvals"][0]["invalidated_at"])
+        with self.assertRaises(work.StateError):
+            self.ledger.begin(action["id"], 2, self.fresh())
+        with self.assertRaises(work.StateError):
+            self.ledger.approve(action["id"], 2, changed["action_hash"], valid, stamp(30))
+        self.assertEqual(self.ledger.show(action["id"])["state"], "ready")
+
 
 if __name__ == "__main__":
     unittest.main()

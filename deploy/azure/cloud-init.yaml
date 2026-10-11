@@ -1,0 +1,44 @@
+#cloud-config
+# Margo remote host, first boot. Rendered by main.bicep (every double-underscore
+# token is replaced from a parameter) and passed as the VM's customData.
+#
+# Nothing here is secret: vault and secret NAMES, the repository URL and pinned
+# revision, and pinned tool versions. Secrets reach the host only through the
+# managed identity inside bootstrap.sh. Shell is kept to a minimum; the real
+# work is deploy/azure/scripts/bootstrap.sh from the pinned checkout, which is
+# shellchecked and idempotent.
+package_update: true
+package_upgrade: false
+packages:
+  - ca-certificates
+  - curl
+  - git
+  - python3
+  - rsyslog
+  - xz-utils
+
+write_files:
+  - path: /etc/margo/bootstrap.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # Written by cloud-init from the Bicep parameters. Names and versions only.
+      MARGO_KEY_VAULT_NAME=__KEY_VAULT_NAME__
+      MARGO_VAULT_SUFFIX=__VAULT_SUFFIX__
+      MARGO_DEPLOYMENT_SECRET=__DEPLOYMENT_SECRET_NAME__
+      MARGO_COPILOT_ENV_SECRET=__COPILOT_ENV_SECRET_NAME__
+      MARGO_REPO_URL=__REPO_URL__
+      MARGO_REPO_REVISION=__REPO_REVISION__
+      MARGO_NODE_VERSION=__NODE_VERSION__
+      MARGO_NODE_SHA256=__NODE_SHA256__
+      MARGO_COPILOT_VERSION=__COPILOT_VERSION__
+      MARGO_DATA_DISK_LUN=__DATA_DISK_LUN__
+
+runcmd:
+  # Clone at the pinned revision into a root-owned tree, then hand over to
+  # bootstrap.sh. A re-run after fixing a parameter is `sudo
+  # /opt/margo/deploy/azure/scripts/bootstrap.sh`; a new revision is a new host.
+  - [bash, -c, "set -euo pipefail; umask 022; url=$(sed -n 's/^MARGO_REPO_URL=//p' /etc/margo/bootstrap.env); rev=$(sed -n 's/^MARGO_REPO_REVISION=//p' /etc/margo/bootstrap.env); if [ ! -d /opt/margo/.git ]; then git clone --quiet --no-checkout \"$url\" /opt/margo; fi; git -C /opt/margo fetch --quiet origin \"$rev\"; git -C /opt/margo checkout --quiet --detach FETCH_HEAD; chown -R root:root /opt/margo; chmod -R go-w /opt/margo"]
+  - [/opt/margo/deploy/azure/scripts/bootstrap.sh]
+
+final_message: "margo host: first boot finished after $UPTIME seconds; read /var/log/cloud-init-output.log and the newest file in /var/lib/margo/evidence"

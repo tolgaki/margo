@@ -437,6 +437,39 @@ class TaskRunTests(unittest.TestCase):
         self.assertEqual(restored["status"], "succeeded")
         self.assertEqual(restored["steps"][0]["attempts"], 1)
 
+    def test_manager_directive_request_ref_is_accepted_but_never_widens_execution(self):
+        plan = self.plan()
+        plan["request_ref"] = "manager-directive:dir_synthetic"
+        run = self.store.create("directive-foreground", plan)
+        self.assertEqual(run["plan"]["request_ref"], "manager-directive:dir_synthetic")
+        unattended = self.plan()
+        unattended.update(mode="unattended", request_ref="manager-directive:dir_synthetic")
+        self.assertEqual(self.store.create("directive-unattended", unattended)["state"], "planned")
+        _, definition, _ = self.action()
+        with_action = self.plan([definition])
+        with_action.update(mode="unattended", request_ref="manager-directive:dir_synthetic")
+        with self.assertRaisesRegex(StateError, "never execute"):
+            self.store.create("directive-unattended-action", with_action)
+        reauth = self.read_step()
+        reauth["source"]["reauthenticated"] = True
+        with_action["steps"] = [reauth]
+        with self.assertRaisesRegex(StateError, "foreground"):
+            self.store.create("directive-unattended-reauth", with_action)
+        for ref in ("manager-directive", "managerdirective:dir_synthetic", "directive:dir_synthetic",
+                    "Manager-Directive:dir_synthetic", "manager-channel:teams:synthetic", "mail:synthetic-message"):
+            invalid = self.plan()
+            invalid["request_ref"] = ref
+            with self.assertRaisesRegex(StateError, "not observed source instructions"):
+                self.store.create("directive-" + ref, invalid)
+            invalid["mode"] = "unattended"
+            with self.assertRaises(StateError):
+                self.store.create("directive-unattended-" + ref, invalid)
+        conversation = self.plan()
+        conversation["mode"] = "unattended"
+        with self.assertRaisesRegex(StateError, "automation or manager directive"):
+            self.store.create("directive-unattended-conversation", conversation)
+        self.assertEqual(len(self.store.list()["runs"]), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

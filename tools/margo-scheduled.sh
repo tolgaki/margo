@@ -9,6 +9,7 @@
 #   ./tools/margo-scheduled.sh commitments    # commitment ageing
 #   ./tools/margo-scheduled.sh sweep          # hourly sweep
 #   ./tools/margo-scheduled.sh ambient        # ambient scan
+#   ./tools/margo-scheduled.sh startup        # startup sweep (remote host, @reboot)
 #   ./tools/margo-scheduled.sh "any prompt"   # anything else (must be a phrase)
 #   ./tools/margo-scheduled.sh word --prompt  # force a single word as a prompt
 #
@@ -70,7 +71,7 @@ fi
 die() { printf '%serror:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
 
 usage() {
-  sed -n '3,22p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '3,23p' "$0" | sed 's/^# \{0,1\}//'
   exit 0
 }
 
@@ -341,6 +342,9 @@ for a in "$@"; do
   case "$a" in
     --print|--dry-run) PRINT_ONLY=1 ;;
     --show-prompt)     SHOW_PROMPT=1 ;;
+    # Consumed above as the forced-prompt switch. Forwarding it would hand copilot
+    # a flag it does not know, so every `word --prompt` run would fail at 06:00.
+    --prompt)          ;;
     *) ARGS="${ARGS:+$ARGS }$a" ;;
   esac
 done

@@ -3036,7 +3036,7 @@
       "sources": ["skills/chief-of-staff/scripts/remote_harness.py", "automations/startup.md", "skills/chief-of-staff/references/remote-host.md"],
       "router_refs": [{"path": "skills/chief-of-staff/SKILL.md", "label": "Proactive / scheduled"}, {"path": "skills/chief-of-staff/SKILL.md", "label": "Remote host"}],
       "automation_refs": ["automations/startup.md"],
-      "cli_refs": [],
+      "cli_refs": [{"path": "skills/chief-of-staff/scripts/remote_harness.py", "commands": ["run", "preflight", "health", "schedule"]}],
       "canvas_refs": [],
       "scenario_ids": ["remote-harness"],
       "maintainer_role": "Margo maintainers",
@@ -3056,11 +3056,11 @@
       "sources": ["skills/chief-of-staff/scripts/manager_directives.py", "skills/chief-of-staff/scripts/margo_control.py", "skills/chief-of-staff/scripts/work_ledger.py", "skills/chief-of-staff/scripts/task_runs.py", "skills/chief-of-staff/references/remote-host.md"],
       "router_refs": [{"path": "skills/chief-of-staff/SKILL.md", "label": "Remote host"}],
       "automation_refs": [],
-      "cli_refs": [],
+      "cli_refs": [{"path": "skills/chief-of-staff/scripts/margo_control.py", "commands": ["status", "pending", "approve", "reject", "directives", "rules", "revoke-rule", "pause", "resume", "health"]}],
       "canvas_refs": [],
       "scenario_ids": ["manager-directives"],
       "maintainer_role": "Margo maintainers",
-      "limitations": ["Quoted, forwarded and attached text is never an instruction; unverifiable messages are reported, not acted on", "Delegated access does not expose the manager's private Teams chats; only chats Margo belongs to are visible", "margo_control.py is not an introspected CLI module; its subcommands are documented in the guide"]
+      "limitations": ["Quoted, forwarded and attached text is never an instruction; unverifiable messages are reported, not acted on", "Delegated access does not expose the manager's private Teams chats; only chats Margo belongs to are visible", "margo_control.py authenticates nothing itself; the gate decides by peer credentials"]
     },
     {
       "id": "workiq-action-gate",
@@ -3076,7 +3076,7 @@
       "sources": ["skills/chief-of-staff/scripts/workiq_gate.py", "skills/chief-of-staff/scripts/workiq_gate_client.py", "skills/chief-of-staff/scripts/work_ledger.py", "skills/chief-of-staff/references/remote-host.md"],
       "router_refs": [{"path": "skills/chief-of-staff/SKILL.md", "label": "Action desk"}, {"path": "skills/chief-of-staff/SKILL.md", "label": "Remote host"}],
       "automation_refs": [],
-      "cli_refs": [],
+      "cli_refs": [{"path": "skills/chief-of-staff/scripts/workiq_gate.py", "commands": ["serve", "classify", "check-config"]}],
       "canvas_refs": [],
       "scenario_ids": ["workiq-action-gate"],
       "maintainer_role": "Margo maintainers",

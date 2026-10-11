@@ -7,3 +7,7 @@
 # files from being converted in the first place.
 *.sh              text eol=lf
 automations/*.md  text eol=lf
+
+# cloud-init, systemd units, Bicep and the operator scripts are consumed on a
+# Linux host and by tooling that does not tolerate CRLF.
+deploy/**         text eol=lf

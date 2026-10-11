@@ -1,0 +1,20 @@
+# Consistent copy of Margo's private SQLite state, config and audit log through
+# the SQLite online backup API, with the harness stopped while it runs. Started
+# by margo-backup.timer; `systemctl start margo-backup.service` runs it now.
+#
+# It runs as root because it stops and restarts margo-harness and writes to a
+# root-only backup directory that the service user (and so any Copilot session)
+# cannot read, rename or delete.
+[Unit]
+Description=Margo private state backup (SQLite backup API, writers stopped)
+Documentation=file:///opt/margo/deploy/azure/RUNBOOKS.md
+After=margo-gate.service
+ConditionPathExists=/etc/margo/deployment.json
+
+[Service]
+Type=oneshot
+ExecStart=/opt/margo/deploy/azure/scripts/backup-state.sh
+SyslogIdentifier=margo-backup
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
