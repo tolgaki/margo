@@ -131,18 +131,57 @@ def _first(arguments, keys):
     return None
 
 
+def normalize_path(value):
+    """A Graph path as the classifier sees it: host and version prefix removed, lowercased, rooted."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    path = re.sub(r"^https?://[^/]+(?:/v1\.0|/beta)?", "", value.strip()).casefold()
+    return path if path.startswith("/") else "/" + path
+
+
+def payload_addresses(value):
+    """Every address a payload could reach: recipients, attendees and emailAddress objects, casefolded."""
+    found = set()
+    stack = [(None, value)]
+    while stack:
+        key, node = stack.pop()
+        if isinstance(node, dict):
+            for child_key, child in node.items():
+                name = child_key.casefold() if isinstance(child_key, str) else ""
+                if name in {"address", "emailaddress"} and isinstance(child, str) and "@" in child:
+                    found.add(child.strip().casefold())
+                else:
+                    stack.append((name, child))
+        elif isinstance(node, list):
+            for child in node:
+                if isinstance(child, str) and "@" in child and key and (key.endswith("recipients") or key == "attendees"):
+                    found.add(child.strip().casefold())
+                else:
+                    stack.append((key, child))
+    return found
+
+
+def declared_addresses(target):
+    """Every address the approved target names, anywhere in its structure."""
+    found = set()
+    stack = [target]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            stack.extend(node.values())
+        elif isinstance(node, list):
+            stack.extend(node)
+        elif isinstance(node, str) and "@" in node:
+            found.add(node.strip().casefold())
+    return found
+
+
 def extract_call(arguments, deployment):
     """Return (path, method, body, action) using the deployment's argument keys; path is lowercased."""
     if not isinstance(arguments, dict):
         return None, None, None, None
     keys = deployment["workiq"]["argument_keys"]
-    path = _first(arguments, keys["path"])
-    if isinstance(path, str) and path.strip():
-        path = re.sub(r"^https?://[^/]+(?:/v1\.0|/beta)?", "", path.strip()).casefold()
-        if not path.startswith("/"):
-            path = "/" + path
-    else:
-        path = None
+    path = normalize_path(_first(arguments, keys["path"]))
     method = _first(arguments, keys["method"])
     method = method.strip().upper() if isinstance(method, str) and method.strip() else None
     action = _first(arguments, keys["action"])
@@ -837,9 +876,15 @@ class Gate:
                 raise GateError("margo_action names a stale revision or hash; reload the current action")
             if action["payload"] != payload:
                 raise GateError("tool call differs from the approved payload; propose a new revision")
-            target_path = action.get("target", {}).get("path") if isinstance(action.get("target"), dict) else None
-            if not isinstance(target_path, str) or target_path.casefold() != decision["path"]:
+            target = action.get("target") if isinstance(action.get("target"), dict) else {}
+            if normalize_path(target.get("path")) != decision["path"]:
                 raise GateError("tool call path differs from the approved target path")
+            # The manager approved what the target names. A recipient hidden in the body that the
+            # target never mentioned was never shown to them, so it is never sent to.
+            unseen = payload_addresses(clean) - declared_addresses(target)
+            if unseen:
+                raise GateError("payload reaches %d address(es) the approved target does not name; "
+                                "propose a revision whose target lists every recipient" % len(unseen))
             if action["state"] != "approved":
                 raise GateError("action is %s, not approved; it needs an unused exact manager approval" % action["state"])
             return action
@@ -1096,7 +1141,8 @@ class Gate:
     def _sent_items_lookup(self, manager):
         def lookup(message_id):
             escaped = message_id.replace("'", "''")
-            path = ("/users/%s/mailFolders/sentitems/messages?$filter=internetMessageId eq '%s'&$select=id,internetMessageId"
+            path = ("/users/%s/mailFolders/sentitems/messages?$filter=internetMessageId eq '%s'"
+                    "&$select=id,internetMessageId,subject,toRecipients,ccRecipients,bccRecipients,sentDateTime"
                     % (manager, escaped))
             try:
                 return self.graph_fetch(path)
@@ -1113,7 +1159,8 @@ class Gate:
             return verified
         try:
             listed = self.graph_fetch("/me/messages?$top=50&$orderby=receivedDateTime desc&$select=id,internetMessageHeaders,"
-                                      "internetMessageId,from,sender,toRecipients,body,subject,receivedDateTime")
+                                      "internetMessageId,from,sender,toRecipients,ccRecipients,body,subject,"
+                                      "receivedDateTime,sentDateTime")
         except StateError as exc:
             report["errors"].append({"channel": "email", "reason": "inbox fetch failed: " + str(exc)[:200]})
             report["sources"]["email"] = "error"

@@ -83,9 +83,11 @@ authentication results, and the same message in your Sent Items), records it, an
 runs it. "always ..." or "rule: ..." creates a standing rule; `revoke rule rule_...` ends it.
 Quoted or forwarded text is never read as an instruction; anyone else's message is just mail.
 
-The phrases the gate understands, at the start of your message: `approve MA-xxxxxxxx` (or
-`ok`/`yes`), `reject MA-xxxxxxxx`, `always ...` or `rule: ...`, `revoke rule rule_...`, and
-`pause` / `resume` on their own. Anything else is an instruction.
+The phrases the gate understands: a decision is the whole message, `approve MA-xxxxxxxx` (or
+`ok`/`yes`) or `reject MA-xxxxxxxx`, with at most a closing thanks; a message starting `always ...`
+or `rule: ...` is a standing rule; `revoke rule rule_...`; and `pause` / `resume` on their own.
+Anything else is an instruction, including "ok MA-... looks wrong". The approval request names
+every address the send would reach; the gate refuses anything beyond that list.
 
 On the host, with your Entra SSH sign-in (`--socket` goes before the subcommand when
 `MARGO_GATE_SOCKET` is not set):

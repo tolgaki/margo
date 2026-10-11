@@ -63,7 +63,7 @@ def chat():
 
 def email(content, message_id, **overrides):
     message = {"id": "mail-" + uuid.uuid4().hex[:8], "internetMessageId": message_id, "receivedDateTime": graph_stamp(),
-               "subject": "For Margo", "from": {"emailAddress": {"address": MANAGER_PRINCIPAL}},
+               "sentDateTime": graph_stamp(-5), "subject": "For Margo", "from": {"emailAddress": {"address": MANAGER_PRINCIPAL}},
                "sender": {"emailAddress": {"address": MANAGER_PRINCIPAL}},
                "toRecipients": [{"emailAddress": {"address": MARGO_PRINCIPAL}}],
                "internetMessageHeaders": list(PASSING_HEADERS), "body": {"contentType": "text", "content": content}}
@@ -743,6 +743,31 @@ class GateServerTests(unittest.TestCase):
         # The gate is still healthy after a hung upstream call.
         self.assertFalse(self.client.tool("fetch", {"path": "/me?$select=id"}).get("isError"))
 
+    def test_approved_payload_may_only_reach_addresses_the_target_names(self):
+        # The manager approves what the target shows. A recipient hidden in the body that the target
+        # never named was never shown to them, so the gate refuses the send even though it is approved.
+        arguments = {"path": "/me/sendMail", "method": "POST", "body": {"message": {
+            "subject": "fictional", "toRecipients": [{"emailAddress": {"address": "bob@example.com"}}],
+            "bccRecipients": [{"emailAddress": {"address": "eve@example.org"}}]}}}
+        target = {"path": "https://graph.microsoft.com/v1.0/me/sendMail", "recipients": ["bob@example.com"]}
+        action = self.propose("do_action", arguments, target, gate.fingerprint(target, None))
+        self.approve_via_teams(action, extra=[{"tool": "do_action", "path": "^/me/sendmail", "result": {}}])
+        mark = self.harness.log_size()
+        grant = {"action_id": action["id"], "revision": 1, "action_hash": action["action_hash"]}
+        result = self.client.tool("do_action", dict(arguments, margo_action=grant))
+        self.assertTrue(self.refused(result), result)
+        self.assertIn("does not name", result["content"][0]["text"])
+        self.assertEqual(self.harness.calls(mark), [])
+        self.assertEqual(self.show(action["id"])["state"], "approved", "a refused call claims nothing")
+        # Naming every address in the target (and a host-prefixed path) is accepted.
+        named = {"path": "/me/sendMail", "recipients": ["bob@example.com", "eve@example.org"]}
+        action = self.propose("do_action", arguments, named, gate.fingerprint(named, None))
+        self.approve_via_teams(action, extra=[{"tool": "do_action", "path": "^/me/sendmail", "result": {}}])
+        result = self.client.tool("do_action", dict(arguments, margo_action={
+            "action_id": action["id"], "revision": 1, "action_hash": action["action_hash"]}))
+        self.assertFalse(result.get("isError"), result)
+        self.assertEqual(self.show(action["id"])["state"], "succeeded")
+
     def test_t3_needs_the_same_exact_approval(self):
         arguments = {"path": "/me/messages/m3", "method": "DELETE"}
         mark = self.harness.log_size()
@@ -793,7 +818,8 @@ class GateServerTests(unittest.TestCase):
         lookup = r"sentitems/messages\?\$filter=internetmessageid eq '"
         self.harness.write_script(base_rules(messages=[edited, own], inbox=[good, spoofed, slow, outsider], extra=[
             {"tool": "fetch", "path": lookup + re.escape(good["internetMessageId"]),
-             "result": {"value": [{"id": "s1", "internetMessageId": good["internetMessageId"]}]}},
+             "result": {"value": [{"id": "s1", "internetMessageId": good["internetMessageId"], "subject": good["subject"],
+                                   "toRecipients": good["toRecipients"], "sentDateTime": good["sentDateTime"]}]}},
             {"tool": "fetch", "path": lookup + re.escape(slow["internetMessageId"]), "hang": True},
             {"tool": "fetch", "path": "sentitems/messages", "result": {"value": []}}]))
         report = self.client.result("margo/directives/sync")

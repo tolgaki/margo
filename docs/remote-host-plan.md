@@ -131,12 +131,15 @@ Rules that hold on every channel:
 
 ### Approvals
 
-A T2 or T3 action is shown to the manager with its exact payload, target, identity used and a
-short reference bound to action ID, revision and hash. The manager approves through:
+A T2 or T3 action is shown to the manager with its target (which must name every address the
+payload reaches; the gate refuses a payload that reaches an address the target does not name), the
+identity used and a short reference bound to action ID, revision and hash. The manager approves
+through:
 
 - `margo-control approve <ref>` on the CLI, or
-- a reply in the Teams 1:1 or by email containing the reference and an approval word, verified as
-  above.
+- a reply in the Teams 1:1 or by email whose whole message is the decision (`approve MA-xxxxxxxx`
+  or `reject MA-xxxxxxxx`, at most a closing thanks), verified as above. Wording that merely
+  mentions a reference is an instruction, never an approval.
 
 The approval is recorded in the existing ledger with a new evidence reference prefix
 (`manager-channel:<channel>:<message-id>`) that the harness writes only after verification.

@@ -73,7 +73,7 @@ class DirectiveFixture(unittest.TestCase):
     @staticmethod
     def email(content, content_type="text", **overrides):
         message = {"internetMessageId": MESSAGE_ID, "receivedDateTime": "2026-10-11T09:05:00Z",
-                   "subject": "For Margo", "hasAttachments": False,
+                   "sentDateTime": "2026-10-11T09:04:50.1234567Z", "subject": "Re: For Margo", "hasAttachments": False,
                    "from": {"emailAddress": {"address": MANAGER_PRINCIPAL.upper()}},
                    "sender": {"emailAddress": {"address": MANAGER_PRINCIPAL}},
                    "toRecipients": [{"emailAddress": {"address": MARGO_PRINCIPAL}}],
@@ -83,13 +83,21 @@ class DirectiveFixture(unittest.TestCase):
         return message
 
     @staticmethod
-    def sent_items(found=True, message_id=MESSAGE_ID, calls=None):
+    def sent_copy(message_id=MESSAGE_ID, **overrides):
+        copy = {"id": "sent-1", "internetMessageId": message_id, "subject": "For Margo",
+                "toRecipients": [{"emailAddress": {"address": MARGO_PRINCIPAL.upper()}}],
+                "sentDateTime": "2026-10-11T09:04:50Z"}
+        copy.update(overrides)
+        return copy
+
+    @classmethod
+    def sent_items(cls, found=True, message_id=MESSAGE_ID, calls=None, **overrides):
         def lookup(requested):
             if calls is not None:
                 calls.append(requested)
             if not found:
                 return {"value": []}
-            return {"value": [{"id": "sent-1", "internetMessageId": message_id}]}
+            return {"value": [cls.sent_copy(message_id, **overrides)]}
         return lookup
 
     def store(self, account=MARGO_PRINCIPAL, read_only=False):
@@ -189,9 +197,37 @@ class EmailVerificationTests(DirectiveFixture):
             md.verify_email(spoofed, self.sent_items(message_id="<other@example.com>"), self.deployment)
         with self.assertRaisesRegex(StateError, "not in the manager's sent items"):
             md.verify_email(spoofed, lambda _: None, self.deployment)
-        # A single message object (not a collection) is accepted only when the id matches exactly.
-        verified = md.verify_email(spoofed, lambda _: {"internetMessageId": MESSAGE_ID}, self.deployment)
+        # A single message object (not a collection) is accepted only when it is the same send.
+        verified = md.verify_email(spoofed, lambda _: self.sent_copy(), self.deployment)
         self.assertEqual(verified["kind"], "approval")
+
+    def test_reused_message_id_does_not_inherit_the_real_sent_copy(self):
+        # Message-IDs are not secret: anyone the manager ever mailed has seen one. A spoofed message
+        # that reuses a real id must not be verified by the real message's Sent Items copy.
+        spoofed = self.email("approve MA-1a2b3c4d")
+        cases = [
+            dict(subject="Quarterly numbers"),
+            dict(toRecipients=[{"emailAddress": {"address": "bob@example.com"}}]),
+            dict(sentDateTime="2026-10-11T07:00:00Z"),
+            dict(sentDateTime=None),
+            dict(subject=None),
+        ]
+        for change in cases:
+            with self.subTest(change=change):
+                with self.assertRaisesRegex(StateError, "differs from the manager's sent copy"):
+                    md.verify_email(spoofed, self.sent_items(**change), self.deployment)
+        # The same send with a reply prefix, a cc copy and a clock a few minutes apart still matches.
+        verified = md.verify_email(self.email("approve MA-1a2b3c4d", subject="FW: Re: for margo"),
+                                   self.sent_items(toRecipients=[], ccRecipients=[{"emailAddress": {"address": MARGO_PRINCIPAL}}],
+                                                   sentDateTime="2026-10-11T09:14:00Z"), self.deployment)
+        self.assertEqual(verified["kind"], "approval")
+        # An inbox copy that cannot be compared is refused before any lookup happens.
+        calls = []
+        with self.assertRaisesRegex(StateError, "sentDateTime"):
+            md.verify_email(self.email("pause", sentDateTime=None), self.sent_items(calls=calls), self.deployment)
+        with self.assertRaisesRegex(StateError, "no subject"):
+            md.verify_email(self.email("pause", subject=None), self.sent_items(calls=calls), self.deployment)
+        self.assertEqual(calls, [])
 
     def test_sender_recipient_and_authentication_checks(self):
         cases = [
@@ -332,6 +368,9 @@ class InstructionGrammarTests(unittest.TestCase):
             ("PAUSE.", "pause", {}),
             ("please pause the newsletter filing", "instruction", {}),
             ("I would not approve MA-1a2b3c4d yet", "instruction", {}),
+            ("ok MA-1a2b3c4d looks wrong, do not send", "instruction", {}),
+            ("approve MA-1a2b3c4d and also MA-9f9f9f9f", "instruction", {}),
+            ("approve MA-1a2b3c4d, thanks!", "approval", {"ref": "MA-1a2b3c4d"}),
             ("approve MA-1a2b", "instruction", {}),
             ("approve", "instruction", {}),
             ("rule:", "instruction", {}),

@@ -280,8 +280,10 @@ def parse_instruction(value):
     if control:
         result["kind"] = control.group(1).casefold()
         return result
-    decision = re.match(r"(approve|approved|ok|yes|reject|rejected|decline|declined|deny|denied)\b"
-                        r"[\s,:.-]*(?:with\s+)?(MA-[0-9A-Fa-f]{8})\b", stripped, re.IGNORECASE)
+    # A decision is the whole message: "ok MA-1a2b3c4d looks wrong, do not send" must never approve.
+    decision = re.fullmatch(r"(approve|approved|ok|yes|reject|rejected|decline|declined|deny|denied)\b"
+                            r"[\s,:.-]*(?:with\s+)?(MA-[0-9A-Fa-f]{8})\b[\s,.!-]*"
+                            r"(?:thanks|thank you|please|cheers|ta)?[\s.!]*", stripped, re.IGNORECASE)
     if decision:
         word = decision.group(1).casefold()
         result["kind"] = "approval" if word in {"approve", "approved", "ok", "yes"} else "rejection"
@@ -519,7 +521,30 @@ def _authentication_passed(headers):
     return dmarc or (spf and dkim)
 
 
-def _sent_items_match(lookup, message_id):
+def _subject(message):
+    subject = message.get("subject")
+    if not isinstance(subject, str):
+        return None
+    return re.sub(r"^(?:(?:re|fw|fwd|aw|wg)\s*:\s*)+", "", subject.strip(), flags=re.IGNORECASE).casefold()
+
+
+def _recipient_addresses(message):
+    addresses = set()
+    for key in ("toRecipients", "ccRecipients", "bccRecipients"):
+        for item in message.get(key) or []:
+            address = _address(item)
+            if address:
+                addresses.add(address)
+    return addresses
+
+
+def _sent_items_match(lookup, message, margo):
+    """True only when the manager's Sent Items holds the same send: id, recipient, subject and time.
+
+    A Message-ID is not secret (everyone the manager ever mailed has seen some), so an attacker who
+    reuses one on a spoofed message must not inherit the real message's Sent Items copy.
+    """
+    message_id = message["internetMessageId"].strip()
     try:
         found = lookup(message_id)
     except (TimeoutError, socket.timeout):
@@ -529,7 +554,23 @@ def _sent_items_match(lookup, message_id):
     except Exception as exc:  # The lookup is remote; any failure leaves verification unknown.
         raise StateError("sent items lookup failed; verification unknown (" + type(exc).__name__ + ")") from exc
     candidates = found.get("value") if isinstance(found, dict) and isinstance(found.get("value"), list) else [found]
-    return any(isinstance(item, dict) and item.get("internetMessageId") == message_id for item in candidates)
+    same_id = [item for item in candidates if isinstance(item, dict) and item.get("internetMessageId") == message_id]
+    if not same_id:
+        return False
+    sent_at = graph_timestamp(message.get("sentDateTime"), "email sentDateTime")
+    for item in same_id:
+        if margo not in _recipient_addresses(item):
+            continue
+        if _subject(item) is None or _subject(item) != _subject(message):
+            continue
+        try:
+            copy_sent_at = graph_timestamp(item.get("sentDateTime"), "sent copy sentDateTime")
+        except StateError:
+            continue
+        delta = abs(datetime.fromisoformat(copy_sent_at) - datetime.fromisoformat(sent_at))
+        if delta <= timedelta(minutes=15):
+            return True
+    raise StateError("email differs from the manager's sent copy with the same message id")
 
 
 def verify_email(message, sent_items_lookup, deployment, now=None):
@@ -563,11 +604,14 @@ def verify_email(message, sent_items_lookup, deployment, now=None):
             raise StateError("email authentication results did not pass")
         authentication = "pass"
     received_at = graph_timestamp(message.get("receivedDateTime"), "email receivedDateTime")
+    graph_timestamp(message.get("sentDateTime"), "email sentDateTime")
+    if _subject(message) is None:
+        raise StateError("email has no subject to compare with the sent copy")
     content = body_text(message.get("body"))
     if not content:
         raise StateError("email has no instruction text")
     # The remote lookup comes last so a message that fails locally never costs a Graph call.
-    if not _sent_items_match(sent_items_lookup, message_id):
+    if not _sent_items_match(sent_items_lookup, dict(message, internetMessageId=message_id), margo):
         raise StateError("email is not in the manager's sent items")
     verification = {"method": "email-sent-items", "authentication_results": authentication,
                     "sent_items_match": True, "attachments_ignored": bool(message.get("hasAttachments"))}

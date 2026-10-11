@@ -38,6 +38,7 @@ object ids or message bodies.
 
 import argparse
 import contextlib
+import json
 import os
 import re
 import shutil
@@ -696,8 +697,10 @@ class Harness:
             for ref in new_refs:
                 item = after[ref]
                 target = item.get("target") if isinstance(item.get("target"), dict) else {}
-                lines.append("- %s (%s; target %s): %s" % (ref, item.get("kind"), target.get("path") or "n/a",
-                                                          str(item.get("why") or "")[:200]))
+                # The whole target, not just its path: the gate refuses any recipient the target
+                # does not name, so this line is exactly what an approval would reach.
+                shown = json.dumps(target, sort_keys=True, ensure_ascii=False)[:400]
+                lines.append("- %s (%s) target %s: %s" % (ref, item.get("kind"), shown, str(item.get("why") or "")[:200]))
             lines.append("Reply 'approve <ref>' or 'reject <ref>'; approvals expire after %d hours."
                          % self.deployment["control"]["approval_ttl_hours"])
             self.notify("\n".join(lines), "approval_request")

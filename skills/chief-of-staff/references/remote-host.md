@@ -66,8 +66,10 @@ for authority it does not have.
 
 1. Prepare the exact Work IQ call as an action desk proposal (`references/action-desk.md`), with
    `payload` set to `{"tool": "<write tool>", "arguments": {...}}` and `target.path` equal to the
-   path in those arguments. Put the Graph path of the thing being acted on in `target.resource`
-   when there is one (the message being replied to, the event being cancelled).
+   path in those arguments. `target` must name **every address the payload reaches** (to, cc, bcc,
+   attendees); the manager approves what the target shows, and the gate refuses a payload that
+   reaches an address the target does not name. Put the Graph path of the thing being acted on in
+   `target.resource` when there is one (the message being replied to, the event being cancelled).
 2. Obtain `target_fingerprint` from the gate (`margo/preflight` with the target) rather than
    computing one yourself; the gate recomputes it at execution and refuses if the target moved.
 3. Tell the manager the approval reference `MA-xxxxxxxx` (the first eight characters of the
@@ -78,12 +80,13 @@ for authority it does not have.
    `manager-channel:<channel>:<message id>`. Only then does the tool call with `margo_action`
    succeed, exactly once per approved revision.
 
-   The grammar the gate reads, at the start of the message once quotes and forwards are removed
-   and case-insensitively: `approve MA-xxxxxxxx` (also `approved`, `ok`, `yes`), `reject MA-xxxxxxxx`
-   (also `rejected`, `decline`, `declined`, `deny`, `denied`), `always ...` or `rule: ...` for a
-   standing rule, `revoke rule rule_...`, and the single words `pause` / `resume`. Anything else is
-   an instruction; "I would not approve MA-..." is an instruction, not an approval. Tell the manager
-   the exact phrase when you ask.
+   The grammar the gate reads, once quotes and forwards are removed and case-insensitively: a
+   decision is the **whole message** (a closing "thanks" may follow): `approve MA-xxxxxxxx` (also
+   `approved`, `ok`, `yes`), `reject MA-xxxxxxxx` (also `rejected`, `decline`, `declined`, `deny`,
+   `denied`). A message that starts `always ...` or `rule: ...` is a standing rule; `revoke rule
+   rule_...` revokes one; the single words `pause` / `resume` pause and resume. Anything else is an
+   instruction: "I would not approve MA-..." and "ok MA-... looks wrong, do not send" are
+   instructions, never approvals. Tell the manager the exact phrase when you ask.
 5. If you edit the proposal, the approval is invalidated and the reference changes. Say so.
 
 Approvals expire (24 hours by default). An expired reference needs a fresh "approve", not a
