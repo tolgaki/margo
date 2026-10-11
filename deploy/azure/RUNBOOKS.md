@@ -12,9 +12,9 @@ by design. Scripts live in `/opt/margo/deploy/azure/scripts/`; each prints its o
 | State (`margo_control.py health`, `health.json`) | Meaning | First response |
 | --- | --- | --- |
 | `connected` | Identity confirmed as Margo, delegated reads work, gate, ledger and directives healthy | None |
-| `degraded` | Delegated reads partially failing; coverage records which source | Check Exchange delegation on the manager's mailbox; wait one cycle; do not relax anything |
+| `degraded` | Delegated reads partially failing, or the gate not answering (restarting, slow Work IQ); coverage records which source; the harness retries with backoff | Check Exchange delegation on the manager's mailbox and `systemctl status margo-gate`; wait one cycle; do not relax anything |
 | `reauth_required` | A token cannot be renewed; the harness waits and never retries sign-in | [Re-authentication](#re-authentication) |
-| `blocked` | Identity mismatch, missing manager binding, schema problem or gate failure; harness exits 3 and stays down | Read `journalctl -u margo-harness -u margo-gate`; an identity mismatch means stop and confirm who Work IQ is signed in as before anything else runs |
+| `blocked` | Identity mismatch, missing manager binding, schema problem, or the gate answering `blocked`; harness exits 3 and stays down | Read `journalctl -u margo-harness -u margo-gate`; an identity mismatch means stop and confirm who Work IQ is signed in as before anything else runs |
 
 Useful commands, as the manager:
 

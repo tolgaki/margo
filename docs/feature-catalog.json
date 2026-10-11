@@ -3040,7 +3040,7 @@
       "canvas_refs": [],
       "scenario_ids": ["remote-harness"],
       "maintainer_role": "Margo maintainers",
-      "limitations": ["Copilot CLI runs one prompt per invocation; staying connected means renewing and re-checking tokens each cycle", "reauth_required is waited out, never retried in a loop; blocked exits with code 3", "Deterministic tests use a fake Copilot and gate; the sign-in flows need tenant verification"]
+      "limitations": ["Copilot CLI runs one prompt per invocation; staying connected means renewing and re-checking tokens each cycle", "reauth_required is waited out, never retried in a loop; a gate that answers blocked exits with code 3, a gate that does not answer is degraded and retried with backoff", "Deterministic tests use a fake Copilot and gate; the sign-in flows need tenant verification"]
     },
     {
       "id": "manager-directives",

@@ -39,11 +39,11 @@ CLOUD_INIT_TOKEN = re.compile(r"__[A-Z0-9_]+__")
 CONTRACT = {
     "root": {"schema_version", "profile", "margo", "manager", "control", "workiq", "harness", "gate"},
     "control": {"cli_logins", "teams_chat_id", "teams_enabled", "email_enabled", "require_authentication_results",
-                "max_replies_per_hour", "approval_ttl_hours"},
+                "max_replies_per_hour", "approval_ttl_hours", "authserv_id", "directive_ttl_hours"},
     "workiq": {"command", "env", "server_name", "read_tools", "write_tools", "argument_keys", "call_templates"},
     "harness": {"poll_seconds", "copilot_command", "copilot_check", "max_backoff_seconds", "startup_verb", "health_path",
                 "automations_dir", "scheduled_wrapper"},
-    "gate": {"socket", "audit_log", "margo_root_paths", "manager_root_paths"},
+    "gate": {"socket", "audit_log", "margo_root_paths", "manager_root_paths", "approval_key_path"},
 }
 READ_TOOLS = ["fetch", "retrieve", "ask", "call_function", "get_schema", "search_paths", "fetch_blob"]
 WRITE_TOOLS = ["do_action", "create_entity", "update_entity", "delete_entity"]
@@ -109,10 +109,17 @@ class DeploymentExampleTests(unittest.TestCase):
         self.assertEqual(set(self.document["workiq"]["call_templates"]), {"teams_message", "email_message"})
         self.assertEqual(self.document["harness"]["startup_verb"], "startup")
         self.assertEqual(self.document["gate"]["socket"], "/run/margo/gate.sock")
+        # The optional keys ship as their literal defaults, so an operator sees what the loader assumes.
+        self.assertEqual(self.document["control"]["authserv_id"], None)
+        self.assertEqual(self.document["control"]["directive_ttl_hours"], md.DEFAULT_DIRECTIVE_TTL_HOURS)
+        self.assertEqual(self.document["gate"]["approval_key_path"], md.DEFAULT_APPROVAL_KEY)
+        self.assertTrue(self.document["gate"]["approval_key_path"].startswith("/var/lib/margo-gate/"))
 
     def test_example_loads_with_placeholders_and_is_refused_strictly(self):
         loaded = md.load_deployment(DEPLOY / "deployment.example.json", allow_placeholders=True)
         self.assertEqual(loaded["margo"]["object_id"], "{margo-object-id}")
+        self.assertEqual((loaded["control"]["authserv_id"], loaded["control"]["directive_ttl_hours"],
+                          loaded["gate"]["approval_key_path"]), (None, 24, "/var/lib/margo-gate/approval.key"))
         # The failure that would look like success: an example that passes the strict loader holds
         # a real-looking object id, which is exactly what must never be in the repository.
         with self.assertRaises(StateError):

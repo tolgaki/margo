@@ -169,6 +169,7 @@ off-host copy). Tokens are never backed up.
 | Health says `blocked` with an identity mismatch | Stop. Confirm which identity Work IQ is signed in as before anything else runs |
 | A message you sent was listed as "could not verify" | Check it came from your own account to Margo's address, not forwarded; re-send rather than relaxing verification |
 | Margo never reacted to a message you sent | Mail from an address other than your configured principal is treated as ordinary correspondence and never listed; send from the bound account |
+| A forwarded mail with your note on top was "could not verify" | Under a forward subject (FW, WG, TR, ...) a first line shaped `Word: ...` is read as the forwarded header; put your instruction in its own message or remove the forward prefix |
 | The gate refused a write as T3 | That is the design. Propose it; approve it by reference if you really want it |
 | An execution is `outcome_unknown` | Check the target (Sent Items, the event) before approving a new attempt |
 | You need a different manager | Update `/etc/margo/deployment.json` as an operator, then `rebind-manager` with the current id |

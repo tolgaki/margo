@@ -22,14 +22,23 @@ gate's ``margo/health`` is reachable and not blocked; delegated access to the ma
 and calendar is ok; ``margo_doctor.py`` reports the binding as bound. Then the startup sweep
 (``automations/startup.md``) runs once through the wrapper, and every ``poll_seconds`` the harness
 re-reads gate health, syncs manager directives, runs each new instruction as one bounded Copilot
-session, and runs the automations whose cron slot came due, at most once per minute slot.
+session, reconciles the gate's list of active instructions (one never started is started and
+run; one whose run was lost is closed and reported), and runs the automations whose cron slot
+came due, at most once per minute slot. Cron slots are UTC instants read on the host's clock, so
+a DST change neither skips a slot that exists nor runs a repeated wall-clock minute twice.
+
+Every wrapper run, whatever started it, is followed by one ``approval_request`` note listing the
+references that appeared in ``margo/pending`` while it ran, with what each payload reaches and
+says, read from the gate's summary and never from the model's own ``why``.
 
 Health states, written atomically to ``harness.health_path``: ``connected`` (every check passed),
-``degraded`` (delegated access or another source is missing; coverage says which),
+``degraded`` (delegated access or another source is missing, or the gate did not answer: a
+socket that is absent, closed early or slow is retried with backoff, never treated as proof),
 ``reauth_required`` (a token cannot be renewed; the harness waits at the maximum backoff and never
-retries a sign-in) and ``blocked`` (identity mismatch, missing or mismatched binding, Copilot or
-gate failure, doctor error; the harness writes health and exits with code 3 so systemd does not
-restart it into a loop). Other failures double the sleep up to ``max_backoff_seconds``.
+retries a sign-in) and ``blocked`` (the gate answered blocked or with an unreadable status, an
+identity mismatch, a missing or mismatched binding, a Copilot or doctor failure; the harness
+writes health and exits with code 3 so systemd does not restart it into a loop). Other failures
+double the sleep up to ``max_backoff_seconds``.
 
 Exit codes: 0 finished; 1 ``preflight`` failed but is retryable; 2 usage or state error;
 3 blocked. Errors print ``{"error", "command"}`` on stderr; nothing here prints principals,
@@ -61,14 +70,16 @@ EXIT_BLOCKED = 3
 EXIT_RETRY = 1
 GATE_TIMEOUT = 30.0
 GATE_TIMEOUTS = {"margo/directives/sync": 300.0, "margo/notify": 60.0}
-GATE_GRACE_SECONDS = 60       # bounded wait for the gate socket at boot or while the gate restarts
+GATE_GRACE_SECONDS = 150      # bounded wait for the gate socket: longer than the gate's 120 s startup budget
 GATE_GRACE_STEP = 2.0
 CHECK_TIMEOUT_SECONDS = 60     # copilot_check
 DOCTOR_TIMEOUT_SECONDS = 120
 RUN_TIMEOUT_SECONDS = 3600     # one Copilot session through the wrapper; longer is a hung run
+LOST_RUN_GRACE_SECONDS = 900   # a started directive older than RUN_TIMEOUT + this, with no session here, was lost
 CATCH_UP_MINUTES = 180         # a slot missed by more than this is skipped, not run late
 MAX_RESPONSE = 4 * 1024 * 1024
 MAX_NOTIFY = 3500
+MAX_REPORTED_ACTIONS = 8       # per approval_request note; the rest are counted and left to margo_control.py pending
 PRIORITY = {"error": "<3>", "warning": "<4>", "info": "<6>"}  # sd-daemon prefixes journald understands
 CRON_ALIASES = {"@yearly": "0 0 1 1 *", "@annually": "0 0 1 1 *", "@monthly": "0 0 1 * *",
                 "@weekly": "0 0 * * 0", "@daily": "0 0 * * *", "@midnight": "0 0 * * *", "@hourly": "0 * * * *"}
@@ -92,6 +103,31 @@ def local_now():
     return datetime.now().astimezone()
 
 
+def local_time(instant):
+    """The host's wall-clock reading of one instant, through the C library's DST-aware localtime.
+
+    An aware datetime carries one fixed offset, so adding minutes to it never crosses a DST change;
+    reading each instant afresh does. Tests patch this to simulate a transition.
+    """
+    return datetime.fromtimestamp(instant.timestamp()).astimezone()
+
+
+def parse_stamp(value):
+    """An ISO 8601 stamp as an aware UTC datetime, or None when it is not one."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def pause(seconds):
     time.sleep(seconds)
 
@@ -109,6 +145,34 @@ def backoff_delay(poll_seconds, max_backoff_seconds, failures):
     if failures <= 0:
         return poll_seconds
     return min(poll_seconds * (2 ** min(failures, 30)), max_backoff_seconds)
+
+
+def describe_action(ref, item):
+    """Lines for one waiting action: what its payload reaches and says, then the model's why, marked as such.
+
+    The manager approves by reference, so the reference must carry the tool, path, method, every
+    address the payload names, the subject and the start of the text, all read from the gate's
+    ``payload_summary``. A pending entry without that summary is said to be unread, never dressed up.
+    """
+    target = item.get("target") if isinstance(item.get("target"), dict) else {}
+    summary = item.get("payload_summary") if isinstance(item.get("payload_summary"), dict) else None
+    # The whole target, not just its path: the gate refuses any recipient the target does not name.
+    shown = json.dumps(target, sort_keys=True, ensure_ascii=False)[:400]
+    lines = ["- %s (%s) target %s" % (ref, item.get("kind"), shown)]
+    if summary is None:
+        lines.append("  payload: not summarized by the gate; read it with margo_control.py pending before approving")
+    else:
+        lines.append("  does: %s %s %s" % (summary.get("tool") or "?", summary.get("method") or "?",
+                                           summary.get("path") or "?"))
+        addresses = summary.get("addresses") if isinstance(summary.get("addresses"), list) else []
+        lines.append("  reaches: %s" % (", ".join(str(address) for address in addresses)[:600]
+                                        if addresses else "no address found in the payload"))
+        if summary.get("subject") is not None:
+            lines.append("  subject: %s" % str(summary["subject"])[:200])
+        if summary.get("preview") is not None:
+            lines.append("  text: %s" % str(summary["preview"])[:200])
+    lines.append("  why (the model's words, unverified): %s" % str(item.get("why") or "")[:200])
+    return lines
 
 
 # ---------------------------------------------------------------------------
@@ -430,8 +494,10 @@ class Harness:
         self.failures = 0
         self.last_cycle_at = None
         self.last_checked = None
-        self.last_slot = {}
+        self.last_slot = {}      # verb -> UTC instant of the slot last run
+        self.last_wall = {}      # verb -> that slot's naive local wall-clock, so a fall-back repeat is one slot
         self.last_runs = {}
+        self.finished = {}       # directive id -> completion summary this process still owes the gate
         self.automations = []
         self.errors = []
 
@@ -523,6 +589,10 @@ class Harness:
         if state is None:
             try:
                 health = self.gate_health()
+            except GateUnreachable as exc:
+                # No answer is not an answer: the gate may still be starting its Work IQ child or
+                # restarting under systemd. Retry with backoff; only a gate that answers can block.
+                state = failed("gate_health", str(exc), "degraded")
             except StateError as exc:
                 state = failed("gate_health", str(exc), "blocked")
             else:
@@ -585,13 +655,19 @@ class Harness:
 
     # -- running Copilot through the wrapper ---------------------------------
 
-    def run_wrapper(self, arguments, label):
-        """One Copilot session via tools/margo-scheduled.sh; the deny flags are the wrapper's, not ours."""
+    def run_wrapper(self, arguments, label, origin=None):
+        """One Copilot session via tools/margo-scheduled.sh; the deny flags are the wrapper's, not ours.
+
+        ``margo/pending`` is read before and after the session, whatever started it, and every
+        reference that appeared is reported to the manager once; ``origin`` names the run in that note.
+        """
         wrapper = self.wrapper_path()
         bash = shutil.which("bash")
         if bash is None:
             raise StateError("bash is required to run the scheduled wrapper")
-        record = {"label": label, "started_at": utc_now(), "finished_at": None, "exit_code": None, "timed_out": False}
+        record = {"label": label, "started_at": utc_now(), "finished_at": None, "exit_code": None, "timed_out": False,
+                  "new_refs": []}
+        before = self.pending_actions()
         log("info", "running %s through the scheduled wrapper" % label)
         try:
             result = subprocess.run([bash, str(wrapper)] + list(arguments), env=self.environment(),
@@ -612,11 +688,27 @@ class Harness:
             self.note("%s exited %d: %s" % (label, record["exit_code"], _tail(output)))
         else:
             log("info", "%s finished" % label)
+        after = self.pending_actions()
+        # When the earlier count is unknown every waiting action is reported rather than none.
+        record["new_refs"] = sorted(ref for ref in (after or {}) if before is None or ref not in before)
         self.last_runs[label] = record
+        if record["new_refs"]:
+            self.request_approval(origin or label, record["new_refs"], after)
         return record
 
+    def request_approval(self, origin, refs, actions):
+        """One approval_request note for a run: each new reference with what its payload would do."""
+        lines = ["%s prepared %d action(s) that need your approval:" % (origin, len(refs))]
+        for ref in refs[:MAX_REPORTED_ACTIONS]:
+            lines.extend(describe_action(ref, actions[ref]))
+        if len(refs) > MAX_REPORTED_ACTIONS:
+            lines.append("- and %d more; margo_control.py pending lists them all" % (len(refs) - MAX_REPORTED_ACTIONS))
+        lines.append("Reply 'approve <ref>' or 'reject <ref>'; approvals expire after %d hours."
+                     % self.deployment["control"]["approval_ttl_hours"])
+        self.notify("\n".join(lines), "approval_request")
+
     def run_verb(self, verb):
-        return self.run_wrapper([verb], verb)
+        return self.run_wrapper([verb], verb, "The unattended '%s' run" % verb)
 
     def boot_runs(self):
         """The startup sweep, then every other @reboot automation, each once per boot."""
@@ -642,10 +734,14 @@ class Harness:
         return {item["ref"]: item for item in actions if isinstance(item, dict) and isinstance(item.get("ref"), str)}
 
     def complete(self, directive_id, summary):
+        """Close a directive at the gate; False when the gate did not record it (the next cycle retries)."""
         try:
             self.gate.call("margo/directives/complete", {"id": directive_id, "summary": summary[:4000]})
         except StateError as exc:
             self.note("could not complete directive %s: %s" % (directive_id, exc))
+            return False
+        self.finished.pop(directive_id, None)
+        return True
 
     def notify(self, text, kind):
         """The one outward action: a control-channel note to the manager, through the gate's rate limit."""
@@ -679,36 +775,40 @@ class Harness:
             return
         prompt = DIRECTIVE_PROMPT.format(id=directive_id, channel=directive["channel"],
                                          received_at=directive["received_at"], text=directive["text"])
-        before = self.pending_actions()
-        # Free-form wrapper mode: the prompt is a phrase, so the wrapper never mistakes it for a verb.
-        run = self.run_wrapper([prompt], "directive:" + directive_id)
-        after = self.pending_actions()
-        # When the earlier count is unknown every waiting action is reported rather than none.
-        new_refs = sorted(ref for ref in (after or {}) if before is None or ref not in before)
+        # The gate records the start before any session exists, so a crash between here and
+        # completion leaves a directive that reads as started and is later closed as lost, never
+        # as one that is still waiting to be run (and run twice).
+        try:
+            self.gate.call("margo/directives/start", {"id": directive_id})
+        except StateError as exc:
+            raise StateError("directive %s not started: %s" % (directive_id, exc)) from exc
+        try:
+            # Free-form wrapper mode: the prompt is a phrase, so the wrapper never mistakes it for a verb.
+            run = self.run_wrapper([prompt], "directive:" + directive_id, "Directive %s" % directive_id)
+        except StateError as exc:
+            # The wrapper itself could not run. The grant must not outlive the attempt, so the
+            # directive is closed with the reason and the manager hears it once.
+            self.complete(directive_id, "not run: %s; re-send the instruction once the host is repaired" % exc)
+            self.notify("Directive %s was not run: the unattended session could not start. Nothing was sent; "
+                        "re-send the instruction once the host is repaired." % directive_id, "status")
+            raise StateError("directive %s not run: %s" % (directive_id, exc)) from exc
         if run["timed_out"]:
             summary = "copilot session timed out after %ds; outcome unknown" % RUN_TIMEOUT_SECONDS
         else:
             summary = "copilot session exited %d" % run["exit_code"]
-        if new_refs:
-            summary += "; %d action(s) await approval: %s" % (len(new_refs), ", ".join(new_refs))
+        if run["new_refs"]:
+            summary += "; %d action(s) await approval: %s" % (len(run["new_refs"]), ", ".join(run["new_refs"]))
+        # Remembered until the gate records it: a completion the gate missed is retried on the next
+        # reconcile instead of the finished run being declared lost.
+        self.finished[directive_id] = summary
+        self.finished = dict(list(self.finished.items())[-50:])
         self.complete(directive_id, summary)
-        if new_refs:
-            lines = ["Directive %s prepared %d action(s) that need your approval:" % (directive_id, len(new_refs))]
-            for ref in new_refs:
-                item = after[ref]
-                target = item.get("target") if isinstance(item.get("target"), dict) else {}
-                # The whole target, not just its path: the gate refuses any recipient the target
-                # does not name, so this line is exactly what an approval would reach.
-                shown = json.dumps(target, sort_keys=True, ensure_ascii=False)[:400]
-                lines.append("- %s (%s) target %s: %s" % (ref, item.get("kind"), shown, str(item.get("why") or "")[:200]))
-            lines.append("Reply 'approve <ref>' or 'reject <ref>'; approvals expire after %d hours."
-                         % self.deployment["control"]["approval_ttl_hours"])
-            self.notify("\n".join(lines), "approval_request")
         if run["timed_out"] or run["exit_code"] != 0:
             self.notify("Directive %s: the unattended session %s. Nothing was sent; the host journal has details."
                         % (directive_id, "timed out" if run["timed_out"] else "exited %d" % run["exit_code"]), "status")
 
     def sync_directives(self, paused):
+        """Sync the gate's channels and run each new instruction; returns the ids this pass attempted."""
         result = self.gate.call("margo/directives/sync")
         if not isinstance(result, dict):
             raise StateError("directive sync returned no object")
@@ -716,39 +816,100 @@ class Harness:
         if errors:
             log("warning", "%d message(s) could not be verified as manager instructions" % len(errors))
         new = result.get("new") if isinstance(result.get("new"), list) else []
+        attempted = set()
         for directive in new:
             if not isinstance(directive, dict) or directive.get("kind") != "instruction":
                 continue  # rules, approvals, pause and resume are applied by the gate itself
+            if isinstance(directive.get("id"), str):
+                attempted.add(directive["id"])
             try:
                 self.handle_directive(directive, paused)
             except StateError as exc:
                 self.note("directive skipped: %s" % exc)
-        return len(new)
+        return attempted
+
+    def reconcile_directives(self, paused, attempted=()):
+        """Every active instruction the gate still holds is either run now or closed as lost.
+
+        The gate reports a directive as new exactly once, so one that was recorded but not run
+        (a sync timeout, a restart, a wrapper failure) would otherwise stay an open T1 grant for
+        every later session. Unstarted -> start and run it. Started longer ago than a session may
+        live, with no session of this process behind it -> complete it as lost and tell the
+        manager once. A completion this process still owes is retried before anything is called lost.
+        """
+        result = self.gate.call("margo/directives/list", {"state": "active"})
+        directives = result.get("directives") if isinstance(result, dict) else None
+        if not isinstance(directives, list):
+            raise StateError("directive list returned no list")
+        handled = []
+        for directive in directives:
+            if not isinstance(directive, dict) or directive.get("kind") != "instruction":
+                continue
+            directive_id = directive.get("id")
+            if not isinstance(directive_id, str) or not DIRECTIVE_ID.fullmatch(directive_id):
+                self.note("active directive with an unusable id was left to the gate's expiry")
+                continue
+            if directive_id in attempted:
+                continue  # this cycle's sync already ran or reported it
+            if directive_id in self.finished:
+                if self.complete(directive_id, self.finished[directive_id]):
+                    handled.append(directive_id)
+                continue
+            started_at = directive.get("started_at")
+            if started_at is None:
+                try:
+                    self.handle_directive(directive, paused)
+                except StateError as exc:
+                    self.note("directive skipped: %s" % exc)
+                handled.append(directive_id)
+                continue
+            started = parse_stamp(started_at)
+            if started is None:
+                self.note("directive %s has an unreadable started_at; left to the gate's expiry" % directive_id)
+                continue
+            if (clock() - started).total_seconds() <= RUN_TIMEOUT_SECONDS + LOST_RUN_GRACE_SECONDS:
+                continue  # a session elsewhere may still be inside its budget
+            summary = "lost run: the session that started it did not finish; re-send the instruction"
+            if self.complete(directive_id, summary):
+                self.notify("Directive %s: lost run: the session that started it did not finish. Nothing was "
+                            "sent; re-send the instruction." % directive_id, "status")
+                handled.append(directive_id)
+        return handled
 
     # -- cron slots ----------------------------------------------------------
 
     def run_due(self, now):
-        """Run each automation whose slot came due since the last check, at most once per minute slot."""
+        """Run each automation whose slot came due since the last check, at most once per minute slot.
+
+        Slots are UTC instants, each read on the host's clock before the cron match, so a DST
+        change is seen: a spring-forward minute that never happens has no slot, and a fall-back
+        minute that happens twice runs once (``last_wall`` remembers the wall-clock of the last run).
+        """
+        instant = now.astimezone(timezone.utc)
         if self.last_checked is None:
-            self.last_checked = now
-        start = max(self.last_checked, now - timedelta(minutes=CATCH_UP_MINUTES)).replace(second=0, microsecond=0)
-        end = now.replace(second=0, microsecond=0)
+            self.last_checked = instant
+        start = max(self.last_checked.astimezone(timezone.utc),
+                    instant - timedelta(minutes=CATCH_UP_MINUTES)).replace(second=0, microsecond=0)
+        end = instant.replace(second=0, microsecond=0)
         ran = []
         for automation in self.automations:
             parsed = parse_cron(automation["cron"])
             if parsed["reboot"]:
                 continue
             slot = start + timedelta(minutes=1)
-            due = None
+            due, wall = None, None
             while slot <= end:
-                if cron_due(parsed, slot):
-                    due = slot
+                local = local_time(slot)
+                if cron_due(parsed, local):
+                    due, wall = slot, local.replace(tzinfo=None)
                 slot += timedelta(minutes=1)
-            if due is not None and self.last_slot.get(automation["verb"]) != due:
-                self.last_slot[automation["verb"]] = due
-                self.run_verb(automation["verb"])
-                ran.append(automation["verb"])
-        self.last_checked = now
+            verb = automation["verb"]
+            if due is None or self.last_slot.get(verb) == due or self.last_wall.get(verb) == wall:
+                continue
+            self.last_slot[verb], self.last_wall[verb] = due, wall
+            self.run_verb(verb)
+            ran.append(verb)
+        self.last_checked = instant
         return ran
 
     def next_runs(self):
@@ -775,7 +936,9 @@ class Harness:
                 self.health = self.gate_health()
             except StateError as exc:
                 self.health = None
-                self.state = "blocked"
+                # A gate that does not answer (restarting, slow upstream) is retried with backoff;
+                # a gate that answers with an error or garbage blocks, as in preflight.
+                self.state = "degraded" if isinstance(exc, GateUnreachable) else "blocked"
                 self.replace_checks([check("gate_health", "failed", str(exc)), check("delegated_access", "skipped", "")])
                 self.note("gate health: %s" % exc)
                 return False
@@ -791,10 +954,15 @@ class Harness:
             self.note("schedule unavailable: %s" % exc)
         if not paused and not self.sweep_done:
             self.boot_runs()
+        attempted = set()
         try:
-            self.sync_directives(paused)
+            attempted = self.sync_directives(paused)
         except StateError as exc:
             self.note("directive sync failed: %s" % exc)
+        try:
+            self.reconcile_directives(paused, attempted)
+        except StateError as exc:
+            self.note("directive reconcile failed: %s" % exc)
         if not paused:
             self.run_due(local_now())
         else:

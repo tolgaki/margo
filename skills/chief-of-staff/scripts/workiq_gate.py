@@ -20,16 +20,28 @@ Authorization is by peer uid, not by what a message says: ``manager`` is a uid l
 else is denied. Because Copilot shares that uid, ``margo/shutdown`` is honoured only when the
 gate was started with ``--allow-shutdown`` (tests); a service stops on SIGTERM. No network or
 model call ever happens inside a database transaction.
+
+The ledger and directive journal are owned by the same uid that runs Copilot sessions, so a row's
+existence proves nothing. Authority comes from an HMAC key only the gate can read
+(``gate.approval_key_path``): every directive, standing rule and approval the gate verified is
+sealed with it when recorded and the seal is recomputed before a grant or approval is honoured. A
+row written by anyone else, however well formed, is refused. For the same reason a manager login
+must not be the service user; ``serve --allow-self-manager`` exists for tests only.
 """
 
 import argparse
 import hashlib
+import hmac
 import json
 import os
+import queue
 import re
+import secrets
 import shutil
 import signal
 import socket
+import sqlite3
+import stat
 import struct
 import subprocess
 import sys
@@ -45,12 +57,23 @@ from margo_store import StateError, canonical_json, utc_now
 SERVER_NAME = "margo-workiq-gate"
 SERVER_VERSION = "1"
 DEFAULT_SOCKET = "/run/margo/gate.sock"
+DEFAULT_APPROVAL_KEY = "/var/lib/margo-gate/approval.key"
+KEY_BYTES = 32
 PROTOCOL_FALLBACK = "2024-11-05"
 WRITE_PREFIX = "[margo-gate] T1 needs margo_directive/margo_rule; T2/T3 need margo_action."
 MAX_LINE = 16 * 1024 * 1024
 MAX_NOTIFY_TEXT = 4000
+MAX_PREVIEW = 200
+OUTBOX_LIMIT = 512          # queued outbound lines per session before a non-reading peer is dropped
+HEALTH_PROBE_TIMEOUT = 10.0  # per upstream read inside margo/health, so health answers inside the harness budget
+FOLDER_CACHE_SECONDS = 3600  # resolved Deleted Items / Recoverable Items ids per mailbox root
+CHAT_CACHE_SECONDS = 600     # verified control chat membership before notify re-reads it
+APPROVAL_SKEW = timedelta(minutes=5)  # an approval may not precede its proposal by more than this
 GRANT_KEYS = ("margo_directive", "margo_rule", "margo_action")
 TIERS = ("T0", "T1", "T2", "T3")
+EXIT_UPSTREAM_LOST = 3
+NOT_GATE_APPROVAL = "approval was not recorded by the gate; only the manager's verified approval counts"
+NOT_GATE_GRANT = "grant was not recorded by the gate"
 # JSON-RPC error codes fixed by the remote-host contract.
 DENIED, POLICY, UPSTREAM, INVALID_PARAMS = -32001, -32002, -32003, -32602
 METHOD_NOT_FOUND, PARSE_ERROR, INVALID_REQUEST = -32601, -32700, -32600
@@ -61,7 +84,13 @@ IMPLIED_METHOD = {"create_entity": "POST", "update_entity": "PATCH", "delete_ent
 DELETE_ACTIONS = {"delete", "remove", "purge", "cancel", "permanentdelete"}
 DELETED_FOLDERS = {"deleteditems", "recoverableitemsdeletions"}
 T1_MESSAGE_KEYS = {"isRead", "flag", "categories"}
+# A content edit is private only on a draft; classify() cannot see the message, so the T1 branch
+# re-checks ``isDraft`` on the pre-read before forwarding.
+DRAFT_EDIT_KEYS = {"subject", "body", "toRecipients", "ccRecipients", "bccRecipients", "importance",
+                   "categories", "isRead", "flag"}
+DRAFT_EDIT_REASON = "draft edit (pre-read must show a draft)"
 T1_EVENT_KEYS = {"categories", "showAs", "isReminderOn", "reminderMinutesBeforeStart"}
+MAILBOX_ROOT = re.compile(r"^(/me|/users/[^/?#]+)(?=/)")
 T3_PATHS = re.compile(r"/(deleteditems|messagerules|inboxrules|permissions|members|cancel|subscriptions|mailboxsettings)(?:/|$)")
 T2_PATHS = re.compile(r"/(send|sendmail|reply|replyall|forward|accept|decline|tentativelyaccept|createlink|invite|"
                       r"onlinemeetings|reactions|setreaction|unsetreaction|presence|teamwork)(?:/|$)"
@@ -121,6 +150,64 @@ def _ledger_module():
 
 
 # ---------------------------------------------------------------------------
+# Seals: the gate signs what it verified, with a key the model's sessions cannot read
+# ---------------------------------------------------------------------------
+
+def seal(key, kind, *parts):
+    """Hex HMAC-SHA256 over canonical_json([kind, *parts]); the only proof a row came from the gate."""
+    if not isinstance(key, (bytes, bytearray)) or len(key) < KEY_BYTES:
+        raise StateError("approval key must hold at least %d bytes" % KEY_BYTES)
+    if not isinstance(kind, str) or not kind:
+        raise StateError("seal kind must be a nonempty string")
+    message = canonical_json([kind, *parts]).encode("utf-8")
+    return hmac.new(bytes(key), message, hashlib.sha256).hexdigest()
+
+
+def seal_matches(key, candidate, kind, *parts):
+    """Constant-time comparison; anything that is not a string, or no key at all, never matches."""
+    if key is None or not isinstance(candidate, str):
+        return False
+    try:
+        expected = seal(key, kind, *parts)
+    except StateError:
+        return False
+    return hmac.compare_digest(candidate.encode("utf-8"), expected.encode("utf-8"))
+
+
+def load_approval_key(path):
+    """Read the gate's approval key or create it (0600, 32 random bytes); the directory must already exist.
+
+    An existing key must be a private regular file of at least 32 bytes owned by the gate's uid;
+    anything else is refused rather than silently replaced, because replacing it would void every
+    approval already sealed.
+    """
+    location = Path(path)
+    if not location.parent.is_dir():
+        raise StateError("approval key directory does not exist: " + str(location.parent))
+    if location.is_symlink():
+        raise StateError("approval key must not be a symlink: " + str(location))
+    if location.exists():
+        info = location.stat()
+        if not stat.S_ISREG(info.st_mode):
+            raise StateError("approval key is not a regular file: " + str(location))
+        if hasattr(os, "getuid") and info.st_uid != os.getuid():
+            raise StateError("approval key must belong to the gate's uid: " + str(location))
+        if os.name != "nt" and stat.S_IMODE(info.st_mode) & 0o077:
+            raise StateError("approval key must be private (0600): " + str(location))
+        data = location.read_bytes()
+        if len(data) < KEY_BYTES:
+            raise StateError("approval key is shorter than %d bytes: %s" % (KEY_BYTES, location))
+        return data
+    data = secrets.token_bytes(KEY_BYTES)
+    descriptor = os.open(str(location), os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    try:
+        os.write(descriptor, data)
+    finally:
+        os.close(descriptor)
+    return data
+
+
+# ---------------------------------------------------------------------------
 # Policy: pure functions over tool, arguments and the deployment anchor
 # ---------------------------------------------------------------------------
 
@@ -129,6 +216,33 @@ def _first(arguments, keys):
         if key in arguments:
             return arguments[key]
     return None
+
+
+def _normalize_role(role, value):
+    """Compare aliases of one role the way the classifier reads them, so a harmless duplicate is not ambiguous."""
+    if role == "path":
+        return normalize_path(value)
+    if role == "method":
+        return value.strip().upper() if isinstance(value, str) else value
+    if role == "action":
+        return value.strip().casefold() if isinstance(value, str) else value
+    return canonical_json(value) if isinstance(value, (dict, list)) else value
+
+
+def ambiguous_roles(arguments, deployment):
+    """Roles (path, method, body, action) that appear under more than one alias with differing values.
+
+    The classifier reads the first alias; the live tool may honour another. Such a call is decided
+    on one reading and executed on a different one, so write tools refuse it outright.
+    """
+    if not isinstance(arguments, dict):
+        return []
+    found = []
+    for role, keys in deployment["workiq"]["argument_keys"].items():
+        values = [_normalize_role(role, arguments[key]) for key in keys if key in arguments]
+        if len(values) > 1 and any(value != values[0] for value in values[1:]):
+            found.append(role)
+    return found
 
 
 def normalize_path(value):
@@ -223,7 +337,9 @@ def _has_attendees_or_meeting(body):
 def classify(tool, arguments, deployment):
     """Place one tools/call in a tier without side effects; anything the rules cannot name is T3."""
     workiq = deployment["workiq"]
-    result = {"tier": "T3", "reason": "unclassified write", "path": None, "method": None, "scope": None}
+    ambiguous = ambiguous_roles(arguments, deployment)
+    result = {"tier": "T3", "reason": "unclassified write", "path": None, "method": None, "scope": None,
+              "ambiguous": ambiguous}
     path, method, body, action = extract_call(arguments, deployment)
     if tool in workiq["read_tools"]:
         return dict(result, tier="T0", reason="read tool", path=path, method=method, scope=path_scope(path, deployment))
@@ -232,6 +348,9 @@ def classify(tool, arguments, deployment):
     if method is None:
         method = IMPLIED_METHOD.get(tool)
     result.update(path=path, method=method, scope=path_scope(path, deployment))
+    if ambiguous:
+        # Two readings of one write: whichever upstream honours, the tier below would not cover it.
+        return dict(result, reason="ambiguous arguments")
     if path is None:
         return dict(result, reason="write without a path")
     bare = path.split("?", 1)[0].split("#", 1)[0].rstrip("/") or "/"
@@ -268,7 +387,9 @@ def classify(tool, arguments, deployment):
             if isinstance(body, dict) and body and set(body) <= T1_MESSAGE_KEYS:
                 return tier("T1", "message flags")
             if _body_value(body, "isdraft") is True or "/mailfolders/drafts/" in bare:
-                return tier("T1", "draft edit")
+                return tier("T1", DRAFT_EDIT_REASON)
+            if isinstance(body, dict) and body and set(body) <= DRAFT_EDIT_KEYS:
+                return tier("T1", DRAFT_EDIT_REASON)
             return tier("T3", "unclassified write")
         if method == "POST" and MOVE_PATH.search(bare):
             return tier("T1", "move")
@@ -378,6 +499,49 @@ def refusal(reason):
     return {"isError": True, "content": [{"type": "text", "text": "margo-gate: " + reason}]}
 
 
+def with_note(result, note):
+    """Prefix a tool result with a gate note the model reads first; a non-object result is wrapped."""
+    text = "margo-gate: " + note
+    if not isinstance(result, dict):
+        return {"isError": True, "content": [{"type": "text", "text": text}], "upstream_result": result}
+    content = result.get("content") if isinstance(result.get("content"), list) else []
+    return dict(result, content=[{"type": "text", "text": text}] + content)
+
+
+def _first_string(value, names):
+    """Depth-first, the first string stored under any key whose casefolded name is in ``names``."""
+    stack = [value]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            for key, child in reversed(list(node.items())):
+                name = key.casefold() if isinstance(key, str) else ""
+                if name in names and isinstance(child, str):
+                    return child
+                stack.append(child)
+        elif isinstance(node, list):
+            stack.extend(reversed(node))
+    return None
+
+
+def payload_summary(payload, deployment):
+    """What an approval would actually do, read from the payload itself and never from the model's ``why``.
+
+    The manager approves by reference, so the reference must show the tool, path, method, every
+    address the arguments can reach, the subject and the start of the text.
+    """
+    tool = payload.get("tool") if isinstance(payload, dict) else None
+    arguments = payload.get("arguments") if isinstance(payload, dict) else None
+    path, method, _, _ = extract_call(arguments, deployment)
+    if isinstance(tool, str) and method is None:
+        method = IMPLIED_METHOD.get(tool)
+    preview = _first_string(arguments, {"content", "body", "text"})
+    return {"tool": tool if isinstance(tool, str) else None, "path": path, "method": method,
+            "addresses": sorted(payload_addresses(arguments)),
+            "subject": _first_string(arguments, {"subject"}),
+            "preview": preview[:MAX_PREVIEW] if preview is not None else None}
+
+
 def resolve_roles(peer_uid, cli_uids, gate_uid):
     """Roles a peer uid holds; an empty list is a denial. Manager and service can coincide."""
     roles = []
@@ -423,10 +587,11 @@ def tool_result_json(result):
 class Upstream:
     """One Work IQ MCP child over stdio. ``call`` returns the raw response; notifications fan out."""
 
-    def __init__(self, command, env, on_notification, timeout=60.0):
+    def __init__(self, command, env, on_notification, timeout=60.0, on_exit=None):
         self.command = list(command)
         self.env = env
         self.on_notification = on_notification
+        self.on_exit = on_exit
         self.timeout = timeout
         self.process = None
         self.pending = {}
@@ -492,6 +657,12 @@ class Upstream:
             self.pending.clear()
         for waiter in waiters:
             waiter["event"].set()
+        # The child's stdout closed: it is gone. The gate decides what that means (see Gate._upstream_lost).
+        if self.on_exit is not None:
+            try:
+                self.on_exit()
+            except Exception:
+                pass
 
     def _write(self, message):
         data = (canonical_json(message) + "\n").encode("utf-8")
@@ -565,15 +736,21 @@ class Gate:
     """Socket server, policy and state glue. One instance per process; sessions run on threads."""
 
     def __init__(self, deployment, account, state_root, socket_path, audit_log, workiq_command=None,
-                 upstream_timeout=60.0, startup_timeout=120.0, allow_shutdown=False):
+                 upstream_timeout=60.0, startup_timeout=120.0, allow_shutdown=False, approval_key_path=None,
+                 allow_self_manager=False):
         self.deployment = deployment
         # Copilot sessions run as the gate's uid, so a socket shutdown is opt-in (tests);
         # production stops the service with SIGTERM.
         self.allow_shutdown = bool(allow_shutdown)
+        # A manager login that is the service user would let every Copilot session approve its own
+        # proposals over the socket; only tests, which have one uid, may ask for that.
+        self.allow_self_manager = bool(allow_self_manager)
         self.account = margo_store.resolve_account(account)
         self.state_root = state_root
         self.socket_path = str(socket_path)
         self.audit_path = Path(audit_log)
+        self.approval_key_path = str(approval_key_path or deployment["gate"].get("approval_key_path") or DEFAULT_APPROVAL_KEY)
+        self.key = None
         self.upstream_timeout = float(upstream_timeout)
         self.startup_timeout = float(startup_timeout)
         self.command = list(workiq_command) if workiq_command else list(deployment["workiq"]["command"])
@@ -584,10 +761,20 @@ class Gate:
         self.sessions_lock = threading.Lock()
         self.state_lock = threading.Lock()
         self.audit_lock = threading.Lock()
+        self.cache_lock = threading.Lock()
+        self.folder_ids = {}       # mailbox root -> (monotonic expiry, {deleted items ids})
+        self.chat_verified_at = None  # monotonic time the control chat last proved to be the manager 1:1
         self.stopping = threading.Event()
+        self.exit_code = 0
         self.listener = None
         self.upstream = None
         self.started_at = utc_now()
+
+    def seal_fn(self, kind, *parts):
+        """Seal with the gate's key; passed to the directive store so every record it keeps is signed."""
+        if self.key is None:
+            raise StateError("approval key is not loaded; the gate has not started")
+        return seal(self.key, kind, *parts)
 
     # -- lifecycle -------------------------------------------------------------
 
@@ -596,11 +783,17 @@ class Gate:
             raise StateError("the gate needs linux peer credentials (SO_PEERCRED); refusing to serve without them")
         resolved = _directives().cli_uids(self.deployment)
         self.cli_uids, self.unknown_logins = dict(resolved["uids"]), list(resolved["unknown"])
+        if self.gate_uid in self.cli_uids and not self.allow_self_manager:
+            raise StateError("control.cli_logins resolves to the gate's own uid (%s); the manager login must not be "
+                             "the service user that runs the gate and copilot (serve --allow-self-manager is for tests)"
+                             % self.cli_uids[self.gate_uid])
+        self.key = load_approval_key(self.approval_key_path)
         self._prepare_audit()
         self._initialize_state()
         env = dict(os.environ)
         env.update(self.deployment["workiq"]["env"])
-        self.upstream = Upstream(self.command, env, self._fan_out_notification, self.upstream_timeout)
+        self.upstream = Upstream(self.command, env, self._fan_out_notification, self.upstream_timeout,
+                                 on_exit=self._upstream_lost)
         try:
             self.upstream.start(self.startup_timeout)
         except GateError:
@@ -608,7 +801,23 @@ class Gate:
             raise
         self._bind()
         self.audit(rpc="serve", decision="started", upstream_tools=len(self.upstream.tool_names),
-                   cli_logins_resolved=len(self.cli_uids), cli_logins_unknown=len(self.unknown_logins))
+                   cli_logins_resolved=len(self.cli_uids), cli_logins_unknown=len(self.unknown_logins),
+                   self_manager_allowed=self.allow_self_manager)
+
+    def _upstream_lost(self):
+        """The Work IQ child is gone: stop serving and exit 3 so the service manager restarts the unit.
+
+        Nothing respawns the child in-process; a restart re-runs identity and delegated-access checks
+        from a clean state. During a deliberate shutdown the child's exit is expected and changes nothing.
+        """
+        if self.stopping.is_set():
+            return
+        self.exit_code = EXIT_UPSTREAM_LOST
+        try:
+            self.audit(rpc="serve", decision="stopping", error="upstream work iq server exited")
+        except OSError:
+            pass
+        self.stopping.set()
 
     def _prepare_audit(self):
         parent = self.audit_path.parent
@@ -698,12 +907,21 @@ class Gate:
                 os.close(descriptor)
 
     def with_state(self, operation):
-        """Run ``operation(ledger, directives)`` on freshly borrowed stores; never across an upstream call."""
+        """Run ``operation(ledger, directives)`` on freshly borrowed stores; never across an upstream call.
+
+        A database error (a lock held past busy_timeout, a disk problem) surfaces as StateError so
+        every caller's existing handling applies instead of an opaque internal error.
+        """
         with self.state_lock:
-            ledger = _ledger_module().Ledger(self.account, self.state_root)
+            try:
+                ledger = _ledger_module().Ledger(self.account, self.state_root)
+            except sqlite3.Error as exc:
+                raise StateError("state unavailable (%s)" % type(exc).__name__) from exc
             try:
                 store = _directives().DirectiveStore.from_connection(ledger.conn, self.account)
                 return operation(ledger, store)
+            except sqlite3.Error as exc:
+                raise StateError("state operation failed (%s)" % type(exc).__name__) from exc
             finally:
                 ledger.close()
 
@@ -713,6 +931,8 @@ class Gate:
     def graph_fetch(self, path, missing_ok=False, timeout=None):
         """Read one Graph path through upstream ``fetch``; returns the document or raises StateError."""
         if self.upstream is None or not self.upstream.alive():
+            if self.upstream is not None:
+                self._upstream_lost()
             raise UpstreamUnavailable()
         _, response = self.upstream.call("tools/call", {"name": "fetch", "arguments": self.fetch_argument(path)}, timeout)
         if "error" in response:
@@ -723,9 +943,14 @@ class Gate:
         return tool_result_json(result)
 
     def probe(self, path):
-        """Health read: ok, denied, auth, error or unavailable with a short detail, plus the document."""
+        """Health read: ok, denied, auth, error or unavailable with a short detail, plus the document.
+
+        Each probe waits at most HEALTH_PROBE_TIMEOUT so margo/health answers inside the harness's
+        own budget even when Graph is slow; a slow probe reads as unavailable, not as a hang.
+        """
         try:
-            return {"status": "ok", "detail": None, "data": self.graph_fetch(path)}
+            return {"status": "ok", "detail": None,
+                    "data": self.graph_fetch(path, timeout=min(HEALTH_PROBE_TIMEOUT, self.upstream_timeout))}
         except UpstreamUnavailable as exc:
             return {"status": "unavailable", "detail": str(exc), "data": None}
         except StateError as exc:
@@ -739,14 +964,19 @@ class Gate:
             return {"status": "error", "detail": detail, "data": None}
 
     def _fan_out_notification(self, message):
+        """Queue an upstream notification for every registered session; sends happen on their writer threads."""
         with self.sessions_lock:
             sessions = list(self.sessions.values())
         for session in sessions:
             session.send(message)
 
     def register(self, session):
+        """Only a session with a role receives upstream notifications; a denied peer is never fanned out to."""
+        if not session.roles:
+            return False
         with self.sessions_lock:
             self.sessions[session.id] = session
+        return True
 
     def unregister(self, session):
         with self.sessions_lock:
@@ -817,24 +1047,38 @@ class Gate:
             raise GateError("margo_directive/margo_rule must be an id string")
         entry.update(directive_id=directive_id, rule_id=rule_id)
 
+        ttl_hours = self.deployment["control"].get("directive_ttl_hours", 24)
+
         def check(ledger, store):
             if store.paused():
                 raise GateError("unattended writes are paused by the manager; resume before T1 writes")
             try:
                 if directive_id is not None:
-                    return store.active(directive_id)
-                return store.active_rule(rule_id)
+                    granted = store.active(directive_id, ttl_hours=ttl_hours)
+                else:
+                    granted = store.active_rule(rule_id)
             except GateError:
                 raise
             except StateError as exc:
                 raise GateError("grant not usable: " + str(exc)) from exc
+            # The row exists and is active; now prove the gate wrote it. The journal is owned by
+            # the same uid as the model's sessions, so only the seal distinguishes a verified
+            # directive from one written with a shell.
+            if not self._grant_sealed(granted, directive_id, rule_id):
+                raise GateError(NOT_GATE_GRANT)
+            return granted
 
         self.with_state(check)
+        if decision["reason"] == "move":
+            self._refuse_move_to_deleted_items(decision["path"], arguments)
         read_path = preread_path(decision["path"], decision["method"])
         try:
             before = self.graph_fetch(read_path)
         except StateError as exc:  # includes an upstream timeout: without a prior state there is no undo
             raise GateError("pre-read of %s failed; refusing the write (%s)" % (read_path, exc)) from exc
+        if decision["reason"] == DRAFT_EDIT_REASON and not (isinstance(before, dict) and before.get("isDraft") is True):
+            raise GateError("the message is not a draft (pre-read isDraft is not true); editing a sent or received "
+                            "message is not a private write")
         request_id = None
         try:
             request_id, response = self.upstream.call("tools/call", {"name": name, "arguments": clean})
@@ -846,11 +1090,63 @@ class Gate:
         except UpstreamUnavailable as exc:
             result = refusal("%s; the write may have happened, do not retry" % exc)
         # The effect is journaled whatever the answer was, so an uncertain write is never invisible.
-        effect = self.with_state(lambda ledger, store: store.record_effect(
-            directive_id=directive_id, rule_id=rule_id, tool=name, arguments=clean, before=before, after=result))
-        self.audit(decision="forwarded", upstream_id=request_id, effect_id=effect.get("id"),
+        # When the journal itself fails after the write went out, the audit line still records the
+        # forwarded call and the model is told not to retry: the upstream answer is never discarded.
+        returned, effect_id, recorded = result, None, True
+        try:
+            effect = self.with_state(lambda ledger, store: store.record_effect(
+                directive_id=directive_id, rule_id=rule_id, tool=name, arguments=clean, before=before, after=result))
+            effect_id = effect.get("id")
+        except StateError as exc:
+            recorded = False
+            self.audit(decision="error", error="effect not journaled: " + str(exc)[:300], **entry)
+            returned = with_note(result, "effect could not be journaled; do not retry")
+        self.audit(decision="forwarded", upstream_id=request_id, effect_id=effect_id, effect_recorded=recorded,
                    result_digest=digest(result), outcome=outcome_of(result), **entry)
-        return result
+        return returned
+
+    def _grant_sealed(self, granted, directive_id, rule_id):
+        """Recompute the seal the gate stored when it recorded this directive or rule."""
+        if directive_id is not None:
+            return seal_matches(self.key, granted.get("gate_mac"), "directive", self.account, granted.get("id"),
+                                granted.get("source_ref"), granted.get("kind"), granted.get("text_hash"))
+        return seal_matches(self.key, granted.get("rule_mac"), "rule", self.account, granted.get("id"),
+                            granted.get("directive_id"), granted.get("rule"))
+
+    def _deleted_folder_ids(self, root):
+        """The Deleted Items and Recoverable Items folder ids of one mailbox root, read upstream and cached."""
+        with self.cache_lock:
+            cached = self.folder_ids.get(root)
+        if cached is not None and cached[0] > time.monotonic():
+            return cached[1]
+        ids = set()
+        for name in ("deleteditems", "recoverableitemsdeletions"):
+            try:
+                document = self.graph_fetch("%s/mailFolders/%s?$select=id" % (root, name))
+            except StateError as exc:
+                raise GateError("could not resolve the %s folder of %s; refusing the move (%s)" % (name, root, exc)) from exc
+            folder_id = document.get("id") if isinstance(document, dict) else None
+            if not isinstance(folder_id, str) or not folder_id.strip():
+                raise GateError("could not resolve the %s folder of %s; refusing the move" % (name, root))
+            ids.add(folder_id.strip())
+        with self.cache_lock:
+            self.folder_ids[root] = (time.monotonic() + FOLDER_CACHE_SECONDS, ids)
+        return ids
+
+    def _refuse_move_to_deleted_items(self, path, arguments):
+        """A move whose destination is the real Deleted Items id is a delete in disguise: T3, never a T1 grant."""
+        root = MAILBOX_ROOT.match(path)
+        if root is None:
+            raise GateError("cannot tell whose mailbox %s belongs to; refusing the move" % path)
+        _, _, body, _ = extract_call(arguments, self.deployment)
+        destination = _body_value(body, "destinationid")
+        if not isinstance(destination, str) or not destination.strip():
+            raise GateError("move needs a destinationId")
+        ids = self._deleted_folder_ids(root.group(1))
+        wanted = destination.strip()
+        if wanted in ids or wanted.casefold() in {folder.casefold() for folder in ids}:
+            raise GateError("destination is the Deleted Items or Recoverable Items folder; that move is T3 and "
+                            "needs an exact manager approval (margo_action), not a directive or rule")
 
     def _execute_approved(self, name, arguments, decision, entry):
         grant = arguments.get("margo_action")
@@ -887,6 +1183,9 @@ class Gate:
                                 "propose a revision whose target lists every recipient" % len(unseen))
             if action["state"] != "approved":
                 raise GateError("action is %s, not approved; it needs an unused exact manager approval" % action["state"])
+            # "approved" is a row anyone with the service uid can write. Only an approval the gate
+            # itself sealed, for a verified manager message it recorded, counts.
+            self._require_gate_approval(ledger, store, action_id, revision, action_hash)
             return action
 
         action = self.with_state(load)
@@ -919,15 +1218,53 @@ class Gate:
             result = refusal("%s; recorded as outcome_unknown for %s, do not retry" % (exc, attempt["attempt_id"]))
             outcome = "outcome_unknown"
         receipt = receipt_for(name, request_id if request_id is not None else "none", result, outcome, utc_now())
+        returned = result
         try:
             self.with_state(lambda ledger, store: ledger.finish(attempt["attempt_id"], outcome, receipt))
             settled = True
         except StateError as exc:
+            # The claim stays 'executing' for reconciliation; the caller still gets the real answer.
             settled = False
-            self.audit(decision="error", error="receipt not recorded: " + str(exc), outcome=outcome, **entry)
+            self.audit(decision="error", error="receipt not recorded: " + str(exc)[:300], outcome=outcome, **entry)
+            returned = with_note(result, "receipt could not be journaled for %s; do not retry" % attempt["attempt_id"])
         self.audit(decision="forwarded", upstream_id=request_id, result_digest=digest(result), outcome=outcome,
                    receipt_recorded=settled, **entry)
-        return result
+        return returned
+
+    def _require_gate_approval(self, ledger, store, action_id, revision, action_hash):
+        """Refuse unless the current approval row carries the gate's seal over a recorded manager approval.
+
+        The seal binds account, action, revision, hash and the approval directive; the directive
+        must exist as the gate recorded it (kind approval, completed, same reference and source).
+        """
+        row = ledger.conn.execute(
+            "SELECT account, evidence FROM work_approvals WHERE action_id=? AND revision=? "
+            "AND invalidated_at IS NULL ORDER BY created_at DESC LIMIT 1", (action_id, revision)).fetchone()
+        if row is None or row["account"] != self.account:
+            raise GateError(NOT_GATE_APPROVAL)
+        try:
+            evidence = margo_store.parse_json(row["evidence"])
+        except StateError as exc:
+            raise GateError(NOT_GATE_APPROVAL) from exc
+        if not isinstance(evidence, dict):
+            raise GateError(NOT_GATE_APPROVAL)
+        evidence_ref, directive_id = evidence.get("evidence_ref"), evidence.get("directive_id")
+        if (not isinstance(evidence_ref, str) or not evidence_ref.startswith("manager-channel:")
+                or not isinstance(directive_id, str) or not directive_id):
+            raise GateError(NOT_GATE_APPROVAL)
+        if not seal_matches(self.key, evidence.get("gate_mac"), "approval", self.account, action_id, revision,
+                            action_hash, directive_id):
+            raise GateError(NOT_GATE_APPROVAL)
+        try:
+            directive = store.show(directive_id)
+        except StateError as exc:
+            raise GateError(NOT_GATE_APPROVAL) from exc
+        if (directive.get("type") != "directive" or directive.get("kind") != "approval"
+                or directive.get("state") != "completed"
+                or directive.get("ref") != _directives().approval_ref(action_hash)
+                or directive.get("source_ref") != evidence_ref[len("manager-channel:"):]
+                or not self._grant_sealed(directive, directive_id, None)):
+            raise GateError(NOT_GATE_APPROVAL)
 
     # -- control methods ------------------------------------------------------------
 
@@ -938,6 +1275,7 @@ class Gate:
             "margo/pending": (None, self.pending),
             "margo/directives/sync": ({"service", "manager"}, self.directives_sync),
             "margo/directives/list": (None, self.directives_list),
+            "margo/directives/start": ({"service"}, self.directives_start),
             "margo/directives/complete": ({"service"}, self.directives_complete),
             "margo/approve": ({"manager"}, self.approve),
             "margo/reject": ({"manager"}, self.reject),
@@ -1013,9 +1351,11 @@ class Gate:
             status = "degraded"
         else:
             status = "connected"
+        control = self.deployment["control"]
         return {"status": status, "paused": paused, "checks": checks,
                 "upstream": {"alive": upstream_alive, "tools": len(self.upstream.tool_names) if self.upstream else 0},
                 "pending_approvals": pending, "cli_logins_unknown": list(self.unknown_logins),
+                "email_authentication_results": "required" if control["require_authentication_results"] else "not-required",
                 "started_at": self.started_at, "checked_at": utc_now()}
 
     def preflight(self, session, params):
@@ -1028,8 +1368,7 @@ class Gate:
             raise GateError(str(exc)) from exc
         return {"target_fingerprint": value, "checked_at": utc_now()}
 
-    @staticmethod
-    def _pending_actions(ledger):
+    def _pending_actions(self, ledger):
         approval_ref = _directives().approval_ref
         actions = []
         for action in ledger.list("approval")["actions"]:
@@ -1038,7 +1377,9 @@ class Gate:
             actions.append({"ref": approval_ref(action["action_hash"]), "action_id": action["id"],
                             "revision": action["revision"], "kind": action["kind"], "target": action["target"],
                             "why": action["why"], "state": action["state"], "expires_at": max(current) if current else None,
-                            "action_hash": action["action_hash"]})
+                            "action_hash": action["action_hash"],
+                            # Shown to the manager with the reference: what the payload itself reaches and says.
+                            "payload_summary": payload_summary(action.get("payload"), self.deployment)})
         return actions
 
     def pending(self, session, params):
@@ -1049,6 +1390,13 @@ class Gate:
         limit = params.get("limit", 50)
         return {"directives": self.with_state(lambda ledger, store: store.list(state=state, limit=limit))}
 
+    def directives_start(self, session, params):
+        """Mark an instruction as picked up by a session, so a lost run can be told from one never started."""
+        directive_id = params.get("id")
+        if not isinstance(directive_id, str) or not directive_id.strip():
+            raise GateError("start requires an id string", INVALID_PARAMS)
+        return self.with_state(lambda ledger, store: store.start(directive_id))
+
     def directives_complete(self, session, params):
         directive_id, summary = params.get("id"), params.get("summary")
         if not isinstance(directive_id, str) or not isinstance(summary, str):
@@ -1057,11 +1405,19 @@ class Gate:
 
     # -- directive application (shared by sync and the CLI-role methods) ------------
 
+    @staticmethod
+    def _revision_created_at(ledger, action):
+        """When the approved revision was proposed; the action row's own stamp is the first revision's."""
+        for revision in ledger.history(action["id"]).get("revisions", []):
+            if revision.get("revision") == action["revision"] and isinstance(revision.get("created_at"), str):
+                return revision["created_at"]
+        return action["created_at"]
+
     def _apply_verified(self, ledger, store, verified, report):
         """Record one verified message and apply approvals/rejections; everything inside one transaction."""
         md = _directives()
         with margo_store.transaction(ledger.conn):
-            directive = store.record(verified)
+            directive = store.record(verified, seal=self.seal_fn)
             kind = directive["kind"]
             if kind not in {"approval", "rejection"}:
                 if directive.get("created"):
@@ -1077,13 +1433,22 @@ class Gate:
                 match = matches[0]
                 try:
                     action = ledger.show(match["action_id"])
+                    received = datetime.fromisoformat(directive["received_at"].replace("Z", "+00:00"))
+                    proposed = datetime.fromisoformat(self._revision_created_at(ledger, action).replace("Z", "+00:00"))
+                    if proposed > received + APPROVAL_SKEW:
+                        # The reference the manager answered was shown before this revision existed.
+                        raise StateError("action %s revision %s was proposed after the %s message; it was never "
+                                         "shown to the manager under that reference" % (action["id"], action["revision"], kind))
                     if kind == "approval":
                         # The manager decided when the message was sent; a Graph clock ahead of
                         # this host falls back to the verification time rather than a future stamp.
                         decided_at = directive["received_at"]
-                        if datetime.fromisoformat(decided_at.replace("Z", "+00:00")) > now():
+                        if received > now():
                             decided_at = utc_now()
                         evidence = md.build_approval_evidence(directive, action, decided_at)
+                        # The gate's seal is what _require_gate_approval checks at execution time.
+                        evidence["gate_mac"] = self.seal_fn("approval", self.account, action["id"], action["revision"],
+                                                            action["action_hash"], directive["id"])
                         ttl = self.deployment["control"]["approval_ttl_hours"]
                         expires_at = (now() + timedelta(hours=ttl)).isoformat(timespec="microseconds")
                         outcome = ledger.approve(action["id"], action["revision"], action["action_hash"], evidence, expires_at)
@@ -1142,7 +1507,7 @@ class Gate:
         def lookup(message_id):
             escaped = message_id.replace("'", "''")
             path = ("/users/%s/mailFolders/sentitems/messages?$filter=internetMessageId eq '%s'"
-                    "&$select=id,internetMessageId,subject,toRecipients,ccRecipients,bccRecipients,sentDateTime"
+                    "&$select=id,internetMessageId,subject,toRecipients,ccRecipients,bccRecipients,sentDateTime,body"
                     % (manager, escaped))
             try:
                 return self.graph_fetch(path)
@@ -1209,8 +1574,8 @@ class Gate:
 
     def _decide(self, session, params, word):
         ref = params.get("ref")
-        if not isinstance(ref, str) or not re.fullmatch(r"MA-[0-9A-Fa-f]{8}", ref.strip()):
-            raise GateError("ref must look like MA-xxxxxxxx, exactly as shown by pending", INVALID_PARAMS)
+        if not isinstance(ref, str) or not re.fullmatch(r"MA-[0-9A-Fa-f]{12}", ref.strip()):
+            raise GateError("ref must look like MA-xxxxxxxxxxxx (12 hex), exactly as shown by pending", INVALID_PARAMS)
         verified = self._cli_record(session, "%s %s" % (word, ref.strip()))
         report = {"new": [], "approvals": [], "rejected": [], "errors": []}
         directive = self.with_state(lambda ledger, store: self._apply_verified(ledger, store, verified, report))
@@ -1235,7 +1600,7 @@ class Gate:
         verified = self._cli_record(session, "revoke rule " + rule_id)
 
         def apply(ledger, store):
-            directive = store.record(verified)
+            directive = store.record(verified, seal=self.seal_fn)
             try:
                 rule = store.show(rule_id)
             except StateError:
@@ -1251,7 +1616,7 @@ class Gate:
         verified = self._cli_record(session, word)
 
         def apply(ledger, store):
-            directive = store.record(verified)
+            directive = store.record(verified, seal=self.seal_fn)
             return {"paused": store.paused(), "directive_id": directive["id"]}
 
         return self.with_state(apply)
@@ -1288,6 +1653,8 @@ class Gate:
         if channel == "teams":
             if path is None or "/chats/%s/messages" % control["teams_chat_id"].casefold() not in path:
                 raise GateError("teams template does not post to the configured control chat")
+            # A configured id is not proof the chat is still the manager's 1:1: read it before posting.
+            self._require_manager_chat(control["teams_chat_id"])
         else:
             recipients = []
             stack = [body]
@@ -1335,6 +1702,35 @@ class Gate:
                 "replies_in_last_hour": counted.get("replies_in_last_hour"),
                 "detail": result_text(result)[:300] if outcome != "succeeded" else None}
 
+    def _require_manager_chat(self, chat_id):
+        """Refuse to post unless the control chat is a one-on-one whose members are exactly the manager and Margo.
+
+        The same rule the inbound verifier applies (manager_directives.verify_teams); a positive
+        answer is kept for CHAT_CACHE_SECONDS, a negative one is never cached.
+        """
+        with self.cache_lock:
+            verified_at = self.chat_verified_at
+        if verified_at is not None and time.monotonic() - verified_at < CHAT_CACHE_SECONDS:
+            return
+        try:
+            chat = self.graph_fetch("/chats/%s?$expand=members" % chat_id)
+        except StateError as exc:
+            raise GateError("could not read the control chat; refusing to post (%s)" % exc) from exc
+        if not isinstance(chat, dict) or chat.get("chatType") != "oneOnOne":
+            raise GateError("control chat is not a one-on-one chat; refusing to post anywhere else")
+        if isinstance(chat.get("id"), str) and chat["id"] != chat_id:
+            raise GateError("control chat answered with another chat id; refusing to post")
+        manager = self.deployment["manager"]["object_id"].casefold()
+        margo = self.deployment["margo"]["object_id"].casefold()
+        try:
+            members = _directives()._member_ids(chat)
+        except StateError as exc:
+            raise GateError("control chat membership is unknown; refusing to post (%s)" % exc) from exc
+        if members != {manager, margo}:
+            raise GateError("control chat members are not exactly the manager and margo; refusing to post")
+        with self.cache_lock:
+            self.chat_verified_at = time.monotonic()
+
     def shutdown_request(self, session, params):
         if not self.allow_shutdown:
             raise GateError("shutdown over the socket is disabled; stop the service with SIGTERM "
@@ -1346,7 +1742,12 @@ class Gate:
 
 
 class Session:
-    """One client connection: peer credentials resolved once, requests served in order."""
+    """One client connection: peer credentials resolved once, requests served in order.
+
+    Outbound lines (responses and fanned-out upstream notifications) go through a bounded queue
+    drained by this session's own writer thread, so a peer that stops reading stalls only itself:
+    once OUTBOX_LIMIT lines wait, the session is closed instead of blocking whoever queued the line.
+    """
 
     def __init__(self, gate, connection):
         self.gate = gate
@@ -1354,17 +1755,25 @@ class Session:
         self.id = uuid.uuid4().hex[:12]
         self.peer_uid = None
         self.roles = []
-        self.write_lock = threading.Lock()
+        self.outbox = queue.Queue(maxsize=OUTBOX_LIMIT)
+        self.writer = None
         self.closed = False
         self.initialized = False
 
+    def start_writer(self):
+        if self.writer is None:
+            self.writer = threading.Thread(target=self._write_loop, name="gate-writer-" + self.id, daemon=True)
+            self.writer.start()
+
     def run(self):
+        self.start_writer()
         try:
             credentials = self.connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i"))
             _, self.peer_uid, _ = struct.unpack("3i", credentials)
         except OSError:
             self.peer_uid = None
         self.roles = resolve_roles(self.peer_uid, self.gate.cli_uids, self.gate.gate_uid)
+        # A peer without a role still gets its denials answered, but is never registered for fan-out.
         self.gate.register(self)
         self.gate.audit(session=self.id, roles=self.roles, peer_uid=self.peer_uid, rpc="connect",
                         decision="accepted" if self.roles else "denied")
@@ -1386,15 +1795,29 @@ class Session:
             self.gate.unregister(self)
             self.close()
 
-    def send(self, message):
-        if self.closed:
-            return
-        data = (canonical_json(message) + "\n").encode("utf-8")
-        with self.write_lock:
+    def _write_loop(self):
+        while True:
+            data = self.outbox.get()
+            if data is None:
+                break
             try:
                 self.connection.sendall(data)
             except OSError:
                 self.closed = True
+                break
+
+    def send(self, message):
+        """Queue one line; a full queue means the peer is not reading and the session is dropped."""
+        if self.closed:
+            return
+        data = (canonical_json(message) + "\n").encode("utf-8")
+        try:
+            self.outbox.put_nowait(data)
+        except queue.Full:
+            self.gate.audit(session=self.id, roles=self.roles, peer_uid=self.peer_uid, rpc="send", decision="closed",
+                            error="outbound queue full; the peer stopped reading")
+            self.gate.unregister(self)
+            self.close(drain=False)
 
     def send_error(self, request_id, code, message, data=None):
         error = {"code": code, "message": message}
@@ -1402,17 +1825,25 @@ class Session:
             error["data"] = data
         self.send({"jsonrpc": "2.0", "id": request_id, "error": error})
 
-    def close(self):
-        if not self.closed:
-            self.closed = True
-            try:
-                self.connection.shutdown(socket.SHUT_RDWR)
-            except OSError:
-                pass
-            try:
-                self.connection.close()
-            except OSError:
-                pass
+    def close(self, drain=True):
+        """Stop the session; with ``drain`` the writer gets a moment to flush what was already queued."""
+        if self.closed:
+            return
+        self.closed = True
+        try:
+            self.outbox.put_nowait(None)
+        except queue.Full:
+            pass  # the writer is stuck in sendall; the shutdown below unblocks it
+        if drain and self.writer is not None and self.writer is not threading.current_thread():
+            self.writer.join(2.0)
+        try:
+            self.connection.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+        try:
+            self.connection.close()
+        except OSError:
+            pass
 
     def handle_line(self, line):
         try:
@@ -1468,6 +1899,8 @@ class Session:
         if method.startswith("margo/"):
             return gate.control(self, method, params)
         if gate.upstream is None or not gate.upstream.alive():
+            if gate.upstream is not None:
+                gate._upstream_lost()
             raise UpstreamUnavailable()
         if method == "tools/list":
             return gate.filtered_tools()
@@ -1490,13 +1923,37 @@ def _account(explicit, deployment):
     return explicit or os.environ.get("MARGO_ACCOUNT") or deployment["margo"]["principal"]
 
 
-def check_config(deployment_path=None):
+def _approval_key_status(path):
+    """present, absent (creatable at start) or a problem string; the key itself is never read here."""
+    location = Path(path)
+    if location.is_symlink():
+        return "problem", "approval key must not be a symlink: " + str(location)
+    if location.exists():
+        info = location.stat()
+        if not stat.S_ISREG(info.st_mode):
+            return "problem", "approval key is not a regular file: " + str(location)
+        if hasattr(os, "getuid") and info.st_uid != os.getuid():
+            return "problem", "approval key is not owned by this uid: " + str(location)
+        if os.name != "nt" and stat.S_IMODE(info.st_mode) & 0o077:
+            return "problem", "approval key is not private (0600): " + str(location)
+        if info.st_size < KEY_BYTES:
+            return "problem", "approval key is shorter than %d bytes: %s" % (KEY_BYTES, location)
+        return "present", None
+    if not location.parent.is_dir():
+        return "problem", "approval key directory does not exist: " + str(location.parent)
+    if not os.access(str(location.parent), os.W_OK):
+        return "problem", "approval key directory is not writable: " + str(location.parent)
+    return "absent", None
+
+
+def check_config(deployment_path=None, approval_key_path=None):
     """Describe whether this host can serve; counts and flags only, never identifiers."""
     deployment = _load(deployment_path)
     md = _directives()
     resolved = md.cli_uids(deployment)
     socket_path = Path(os.environ.get("MARGO_GATE_SOCKET") or deployment["gate"]["socket"])
     audit_path = Path(deployment["gate"]["audit_log"])
+    key_path = Path(approval_key_path or deployment["gate"].get("approval_key_path") or DEFAULT_APPROVAL_KEY)
     command = deployment["workiq"]["command"]
     problems = []
     peer = sys.platform.startswith("linux") and hasattr(socket, "SO_PEERCRED")
@@ -1506,11 +1963,18 @@ def check_config(deployment_path=None):
         problems.append("no control.cli_logins entry resolves to a local user; manager CLI methods would be denied")
     if resolved["unknown"]:
         problems.append("unresolved cli_logins: " + ", ".join(resolved["unknown"]))
+    own_uid = os.getuid() if hasattr(os, "getuid") else None
+    if own_uid in resolved["uids"]:
+        problems.append("control.cli_logins resolves to this service uid; the manager login must not be the user "
+                        "that runs the gate and copilot, or every session would hold the manager role")
     for label, path in (("socket", socket_path), ("audit_log", audit_path)):
         if not path.parent.is_dir():
             problems.append("%s directory does not exist: %s" % (label, path.parent))
         elif not os.access(str(path.parent), os.W_OK):
             problems.append("%s directory is not writable: %s" % (label, path.parent))
+    key_status, key_problem = _approval_key_status(key_path)
+    if key_problem:
+        problems.append(key_problem)
     executable = shutil.which(command[0]) if command else None
     if executable is None:
         problems.append("work iq command is not on PATH: " + (command[0] if command else "<empty>"))
@@ -1519,6 +1983,9 @@ def check_config(deployment_path=None):
         problems.append("no control channel is enabled; the manager could not instruct or approve remotely")
     if control["teams_enabled"] and not control["teams_chat_id"]:
         problems.append("teams is enabled without control.teams_chat_id; replies would fall back to email")
+    if control["email_enabled"] and not control["require_authentication_results"]:
+        problems.append("control.require_authentication_results is false; email instructions would be accepted "
+                        "without passing authentication results")
     for name in ("teams_message", "email_message"):
         if name not in deployment["workiq"]["call_templates"]:
             problems.append("missing call template " + name)
@@ -1531,11 +1998,14 @@ def check_config(deployment_path=None):
     return {"status": "ok" if not problems else "problems", "profile": deployment["profile"],
             "manager_configured": True, "account_resolved": account_ok,
             "cli_logins": {"configured": len(control["cli_logins"]), "resolved": len(resolved["uids"]),
-                           "unknown": list(resolved["unknown"])},
+                           "unknown": list(resolved["unknown"]), "self_manager": own_uid in resolved["uids"]},
             "socket": str(socket_path), "audit_log": str(audit_path), "workiq_command_found": executable is not None,
+            "approval_key": {"path": str(key_path), "status": key_status},
             "peer_credentials": "linux" if peer else "unsupported",
             "teams_enabled": control["teams_enabled"], "teams_chat_configured": bool(control["teams_chat_id"]),
-            "email_enabled": control["email_enabled"], "max_replies_per_hour": control["max_replies_per_hour"],
+            "email_enabled": control["email_enabled"],
+            "email_authentication_results": "required" if control["require_authentication_results"] else "not-required",
+            "max_replies_per_hour": control["max_replies_per_hour"],
             "problems": problems}
 
 
@@ -1553,12 +2023,18 @@ def parser():
     serve.add_argument("--startup-timeout", type=float, default=120.0, help="seconds to wait for work iq initialize")
     serve.add_argument("--allow-shutdown", action="store_true",
                        help="honour margo/shutdown from the gate's own uid (tests); otherwise only SIGTERM stops the gate")
+    serve.add_argument("--approval-key", help="HMAC key file the gate seals approvals with; otherwise the deployment's "
+                                              "gate.approval_key_path (created 0600 when absent)")
+    serve.add_argument("--allow-self-manager", action="store_true",
+                       help="serve although a cli_logins entry is the gate's own uid (tests only; every copilot session "
+                            "would hold the manager role)")
     classify_command = commands.add_parser("classify", help="print the tier for one tool call without side effects")
     classify_command.add_argument("--tool", required=True)
     classify_command.add_argument("--arguments", required=True, help="JSON object exactly as the model would send it")
     classify_command.add_argument("--deployment")
     check = commands.add_parser("check-config", help="validate the deployment anchor and this host's readiness")
     check.add_argument("--deployment")
+    check.add_argument("--approval-key", help="HMAC key file to check instead of the deployment's gate.approval_key_path")
     return root
 
 
@@ -1573,7 +2049,8 @@ def run_serve(args):
                 args.socket or os.environ.get("MARGO_GATE_SOCKET") or deployment["gate"]["socket"],
                 args.audit_log or deployment["gate"]["audit_log"], workiq_command=command,
                 upstream_timeout=args.upstream_timeout, startup_timeout=args.startup_timeout,
-                allow_shutdown=args.allow_shutdown)
+                allow_shutdown=args.allow_shutdown, approval_key_path=args.approval_key,
+                allow_self_manager=args.allow_self_manager)
 
     def stop(signum, frame):
         gate.stopping.set()
@@ -1589,7 +2066,12 @@ def run_serve(args):
     print(canonical_json({"status": "serving", "socket": gate.socket_path, "upstream_tools": len(gate.upstream.tool_names),
                           "cli_logins_resolved": len(gate.cli_uids), "cli_logins_unknown": gate.unknown_logins}), flush=True)
     gate.serve_forever()
-    return 0
+    if gate.exit_code == EXIT_UPSTREAM_LOST:
+        # A dead child is not respawned in-process: exit non-zero so Restart=on-failure brings the
+        # whole unit back through its startup checks.
+        print(canonical_json({"error": "upstream work iq server exited; stopping so the service manager restarts the gate",
+                              "command": "serve", "code": "upstream_exited"}), file=sys.stderr)
+    return gate.exit_code
 
 
 def main(argv=None):
@@ -1604,7 +2086,7 @@ def main(argv=None):
                 raise StateError("--arguments must be a JSON object")
             print(canonical_json(classify(args.tool, arguments, deployment)))
             return 0
-        report = check_config(args.deployment)
+        report = check_config(args.deployment, args.approval_key)
         print(canonical_json(report))
         return 0 if report["status"] == "ok" else 1
     except (StateError, OSError, ValueError, TypeError, KeyError) as exc:

@@ -19,7 +19,7 @@ import manager_directives
 
 DEFAULT_SOCKET = "/run/margo/gate.sock"
 MAX_RESPONSE = 4 * 1024 * 1024
-REF = re.compile(r"MA-[0-9A-Fa-f]{8}")
+REF = re.compile(manager_directives.REF_PATTERN)
 RULE_ID = re.compile(r"rule_[0-9a-f]{32}")
 
 
@@ -116,7 +116,8 @@ def parser():
 
 def _ref(value):
     if not isinstance(value, str) or not REF.fullmatch(value.strip()):
-        raise StateError("reference must look like MA-xxxxxxxx, exactly as shown by pending")
+        raise StateError("reference must look like MA-" + "x" * manager_directives.REF_HEX
+                         + ", exactly as shown by pending")
     return "MA-" + value.strip()[3:].casefold()
 
 

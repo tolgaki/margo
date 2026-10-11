@@ -26,6 +26,8 @@ except ImportError:  # Windows has no passwd database; CLI logins cannot resolve
     pwd = None
 
 DEFAULT_DEPLOYMENT = "/etc/margo/deployment.json"
+DEFAULT_APPROVAL_KEY = "/var/lib/margo-gate/approval.key"
+DEFAULT_DIRECTIVE_TTL_HOURS = 24
 CHANNELS = ("cli", "teams", "email")
 KINDS = {"instruction", "standing_rule", "approval", "rejection", "revocation", "pause", "resume"}
 STATES = {"active", "completed", "revoked", "rejected"}
@@ -162,7 +164,8 @@ def load_deployment(path=None, allow_placeholders=False):
 
     control = _require(data, "control", (dict,), "root")
     _no_extra(control, {"cli_logins", "teams_chat_id", "teams_enabled", "email_enabled",
-                        "require_authentication_results", "max_replies_per_hour", "approval_ttl_hours"}, "control")
+                        "require_authentication_results", "max_replies_per_hour", "approval_ttl_hours",
+                        "authserv_id", "directive_ttl_hours"}, "control")
     chat_id = _require(control, "teams_chat_id", (str,), "control", allow_none=True)
     if chat_id is not None and not chat_id.strip():
         raise StateError("deployment control.teams_chat_id must be null or nonempty")
@@ -172,6 +175,19 @@ def load_deployment(path=None, allow_placeholders=False):
         raise StateError("deployment control.max_replies_per_hour must be between 0 and 1000")
     if not 1 <= ttl <= 168:
         raise StateError("deployment control.approval_ttl_hours must be between 1 and 168")
+    # Optional: the authserv-id the tenant's own receiver writes into Authentication-Results. Unset
+    # means every header is read, which only the dmarc=fail/compauth=fail rule protects against.
+    authserv = _require(control, "authserv_id", (str,), "control", optional=True, allow_none=True)
+    if authserv is not None:
+        authserv = authserv.strip()
+        if not authserv or re.search(r"[\s;()]", authserv):
+            raise StateError("deployment control.authserv_id must be null or one authserv-id token")
+    # Optional: how long an instruction stays a T1 grant after the manager sent it (default one day).
+    directive_ttl = _require(control, "directive_ttl_hours", (int,), "control", optional=True)
+    if directive_ttl is None:
+        directive_ttl = DEFAULT_DIRECTIVE_TTL_HOURS
+    if not 1 <= directive_ttl <= 168:
+        raise StateError("deployment control.directive_ttl_hours must be between 1 and 168")
     result["control"] = {
         "cli_logins": _strings(control, "cli_logins", "control", allow_empty=True),
         "teams_chat_id": chat_id,
@@ -180,6 +196,8 @@ def load_deployment(path=None, allow_placeholders=False):
         "require_authentication_results": _require(control, "require_authentication_results", (bool,), "control"),
         "max_replies_per_hour": replies,
         "approval_ttl_hours": ttl,
+        "authserv_id": authserv,
+        "directive_ttl_hours": directive_ttl,
     }
 
     workiq = _require(data, "workiq", (dict,), "root")
@@ -226,12 +244,16 @@ def load_deployment(path=None, allow_placeholders=False):
     }
 
     gate = _require(data, "gate", (dict,), "root")
-    _no_extra(gate, {"socket", "audit_log", "margo_root_paths", "manager_root_paths"}, "gate")
+    _no_extra(gate, {"socket", "audit_log", "margo_root_paths", "manager_root_paths", "approval_key_path"}, "gate")
+    # Optional: the HMAC key only the gate reads; its seal is what makes a recorded grant the gate's.
+    key_path = _require(gate, "approval_key_path", (str,), "gate", optional=True)
     result["gate"] = {
         "socket": text(_require(gate, "socket", (str,), "gate"), "gate.socket", 1000),
         "audit_log": text(_require(gate, "audit_log", (str,), "gate"), "gate.audit_log", 1000),
         "margo_root_paths": _strings(gate, "margo_root_paths", "gate"),
         "manager_root_paths": _strings(gate, "manager_root_paths", "gate"),
+        "approval_key_path": text(key_path, "gate.approval_key_path", 1000) if key_path is not None
+        else DEFAULT_APPROVAL_KEY,
     }
     return result
 
@@ -257,11 +279,20 @@ def cli_uids(deployment):
 # Instruction grammar
 # ---------------------------------------------------------------------------
 
+REF_HEX = 12
+REF_PATTERN = r"MA-[0-9A-Fa-f]{%d}" % REF_HEX
+
+
 def approval_ref(action_hash):
-    """Short reference bound to an exact action hash; the hash itself still has to match."""
+    """Short reference bound to an exact action hash; the hash itself still has to match.
+
+    Twelve hex digits (48 bits): the session that proposes actions also controls their free text,
+    so a prefix short enough to collide by search would let it swap the action behind a reference
+    the manager has already been shown.
+    """
     if not isinstance(action_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", action_hash):
         raise StateError("approval reference requires the displayed action_hash")
-    return "MA-" + action_hash[:8]
+    return "MA-" + action_hash[:REF_HEX]
 
 
 def _normalize_ref(value):
@@ -280,9 +311,9 @@ def parse_instruction(value):
     if control:
         result["kind"] = control.group(1).casefold()
         return result
-    # A decision is the whole message: "ok MA-1a2b3c4d looks wrong, do not send" must never approve.
+    # A decision is the whole message: "ok MA-1a2b3c4d5e6f looks wrong, do not send" must never approve.
     decision = re.fullmatch(r"(approve|approved|ok|yes|reject|rejected|decline|declined|deny|denied)\b"
-                            r"[\s,:.-]*(?:with\s+)?(MA-[0-9A-Fa-f]{8})\b[\s,.!-]*"
+                            r"[\s,:.-]*(?:with\s+)?(" + REF_PATTERN + r")\b[\s,.!-]*"
                             r"(?:thanks|thank you|please|cheers|ta)?[\s.!]*", stripped, re.IGNORECASE)
     if decision:
         word = decision.group(1).casefold()
@@ -360,17 +391,56 @@ class _TextExtractor(HTMLParser):
             self.parts.append(data)
 
 
+# Outlook, Gmail and Apple Mail separators as the common locales write them; a forward the stripper
+# does not recognise would hand a third party's words to the model as the manager's.
+_SEPARATOR_WORDS = (
+    "original message", "original appointment", "forwarded message",
+    "original-nachricht", "ursprüngliche nachricht", "weitergeleitete nachricht",
+    "message d'origine", "message transféré", "mensaje original", "mensaje reenviado",
+    "messaggio originale", "messaggio inoltrato", "oorspronkelijk bericht", "doorgestuurd bericht",
+    "ursprungligt meddelande", "vidarebefordrat meddelande", "oprindelig meddelelse", "videresendt meddelelse",
+    "opprinnelig melding", "videresendt melding", "alkuperäinen viesti", "wiadomość oryginalna",
+)
+_FROM_WORDS = ("from", "von", "de", "da", "van", "från", "fra", "od", "差出人", "发件人", "寄件者")
 _PLAIN_MARKERS = (
-    re.compile(r"^\s*-{2,}\s*(original message|original appointment|forwarded message)\s*-{2,}\s*$", re.IGNORECASE),
+    re.compile(r"^\s*-{2,}\s*(?:%s)\s*-{2,}\s*$" % "|".join(re.escape(word) for word in _SEPARATOR_WORDS),
+               re.IGNORECASE),
     re.compile(r"^\s*_{5,}\s*$"),
     re.compile(r"^\s*begin forwarded message:?\s*$", re.IGNORECASE),
     re.compile(r"^\s*[>|]"),
-    re.compile(r"^\s*[*_]{0,2}from:[*_]{0,2}\s", re.IGNORECASE),
+    re.compile(r"^\s*[*_]{0,2}(?:%s)\s?:[*_]{0,2}(?:\s|$)" % "|".join(_FROM_WORDS), re.IGNORECASE),
 )
+# A header block (Sent/Date/To/Subject in any language) is "Word: value" lines close together.
+_HEADER_LINE = re.compile(r"^[\w .-]{2,20}\s?:\s")
+_FORWARD_PREFIXES = {"fw", "fwd", "wg", "tr", "rv", "enc", "vs", "i"}
+_SUBJECT_PREFIXES = re.compile(r"^(?:(?:re|aw|sv|antw|r|ref|res|odp|fw|fwd|wg|tr|rv|enc|vs|i)\s*:\s*)+", re.IGNORECASE)
 
 
-def strip_quoted_text(value):
-    """Keep only the part above the first reply/forward marker of a plain-text body."""
+def _header_block_at(lines, index, forwarded):
+    """A header-like line is a marker when another follows within four lines; in a forward one is enough."""
+    if not _HEADER_LINE.match(lines[index]):
+        return False
+    if forwarded:
+        return True
+    return any(_HEADER_LINE.match(candidate) for candidate in lines[index + 1:index + 5])
+
+
+def forwarded_subject(subject):
+    """True when the subject's leading prefixes include a forward token (FW, Fwd, WG, TR, RV, Enc, VS, I)."""
+    if not isinstance(subject, str):
+        return False
+    prefixes = _SUBJECT_PREFIXES.match(subject.strip())
+    if not prefixes:
+        return False
+    return any(token in _FORWARD_PREFIXES for token in re.findall(r"[^\W\d_]+", prefixes.group(0).casefold()))
+
+
+def strip_quoted_text(value, forwarded=False):
+    """Keep only the part above the first reply/forward marker of a plain-text body.
+
+    ``forwarded`` (the subject carries a forward prefix) makes any single header-like line the
+    marker: rejecting a forward whose header the stripper cannot place beats guessing.
+    """
     lines = [re.sub(r"[ \t\xa0\r\f\v]+", " ", line).strip() for line in str(value).split("\n")]
     kept = []
     for index, line in enumerate(lines):
@@ -379,25 +449,27 @@ def strip_quoted_text(value):
         if re.match(r"^on\s", line, re.IGNORECASE) and any(
                 candidate.rstrip().endswith("wrote:") for candidate in lines[index:index + 3]):
             break
+        if _header_block_at(lines, index, forwarded):
+            break
         if line:
             kept.append(line)
     return "\n".join(kept).strip()
 
 
-def html_to_text(value):
+def html_to_text(value, forwarded=False):
     """Visible text of an HTML body without blockquotes, attachments or anything after a reply header."""
     parser = _TextExtractor()
     parser.feed(str(value))
     parser.close()
-    return strip_quoted_text("".join(parser.parts))
+    return strip_quoted_text("".join(parser.parts), forwarded)
 
 
-def body_text(body):
+def body_text(body, forwarded=False):
     if not isinstance(body, dict) or not isinstance(body.get("content"), str):
         raise StateError("message body is missing")
     if str(body.get("contentType", "text")).casefold() == "html":
-        return html_to_text(body["content"])
-    return strip_quoted_text(body["content"])
+        return html_to_text(body["content"], forwarded)
+    return strip_quoted_text(body["content"], forwarded)
 
 
 # ---------------------------------------------------------------------------
@@ -507,25 +579,62 @@ def verify_teams(message, chat, deployment, now=None):
     return _record(deployment, "teams", message_id.strip(), received_at, content, verification, now)
 
 
-def _authentication_passed(headers):
+_AUTH_RESULT = re.compile(r"\b(dmarc|spf|dkim|compauth)=([a-z]+)")
+_HEADER_FROM = re.compile(r"\bheader\.from=([^\s;]+)")
+
+
+def _authentication_header(value):
+    """Split one Authentication-Results value into (authserv-id or None, casefolded text).
+
+    RFC 8601 puts the receiver's authserv-id (optionally followed by a version) before the first
+    ';'. A value that starts with a method=result token names no receiver at all.
+    """
+    folded = str(value).casefold()
+    tokens = folded.split(";", 1)[0].split()
+    authserv = tokens[0] if tokens and "=" not in tokens[0] else None
+    return authserv, folded
+
+
+def _authentication_passed(headers, deployment):
+    """Judge the Authentication-Results headers one at a time, never as one joined string.
+
+    Receivers strip only headers that claim their own authserv-id, so a sender can add a header
+    under any other name; with ``control.authserv_id`` set only the tenant's own headers count.
+    None: no header to consider. False: a considered header says dmarc=fail or compauth=fail,
+    or none of them passes (dmarc=pass for the manager's domain, compauth=pass, or spf+dkim pass).
+    """
     if not isinstance(headers, list):
         return None
-    values = [str(item.get("value", "")) for item in headers if isinstance(item, dict)
-              and str(item.get("name", "")).casefold() == "authentication-results"]
-    if not values:
+    expected = deployment["control"]["authserv_id"]
+    expected = expected.casefold() if isinstance(expected, str) else None
+    domain = deployment["manager"]["principal"].rsplit("@", 1)[-1].casefold()
+    considered = []
+    for item in headers:
+        if not isinstance(item, dict) or str(item.get("name", "")).casefold() != "authentication-results":
+            continue
+        authserv, folded = _authentication_header(item.get("value", ""))
+        if expected is not None and authserv != expected:
+            continue
+        considered.append(folded)
+    if not considered:
         return None
-    joined = " ".join(values).casefold()
-    dmarc = re.search(r"\bdmarc=pass\b", joined) is not None
-    spf = re.search(r"\bspf=pass\b", joined) is not None
-    dkim = re.search(r"\bdkim=pass\b", joined) is not None
-    return dmarc or (spf and dkim)
+    passed = False
+    for folded in considered:
+        results = dict(_AUTH_RESULT.findall(folded))
+        if results.get("dmarc") == "fail" or results.get("compauth") == "fail":
+            return False
+        header_from = _HEADER_FROM.search(folded)
+        aligned = results.get("dmarc") == "pass" and (header_from is None or header_from.group(1) == domain)
+        if aligned or results.get("compauth") == "pass" or (results.get("spf") == "pass" and results.get("dkim") == "pass"):
+            passed = True
+    return passed
 
 
 def _subject(message):
     subject = message.get("subject")
     if not isinstance(subject, str):
         return None
-    return re.sub(r"^(?:(?:re|fw|fwd|aw|wg)\s*:\s*)+", "", subject.strip(), flags=re.IGNORECASE).casefold()
+    return _SUBJECT_PREFIXES.sub("", subject.strip()).casefold()
 
 
 def _recipient_addresses(message):
@@ -539,10 +648,11 @@ def _recipient_addresses(message):
 
 
 def _sent_items_match(lookup, message, margo):
-    """True only when the manager's Sent Items holds the same send: id, recipient, subject and time.
+    """The manager's Sent Items copy of the same send (id, recipient, subject and time), or None.
 
     A Message-ID is not secret (everyone the manager ever mailed has seen some), so an attacker who
-    reuses one on a spoofed message must not inherit the real message's Sent Items copy.
+    reuses one on a spoofed message must not inherit the real message's Sent Items copy. The copy
+    is returned because its body, not the inbox message's, is what the manager actually wrote.
     """
     message_id = message["internetMessageId"].strip()
     try:
@@ -556,7 +666,7 @@ def _sent_items_match(lookup, message, margo):
     candidates = found.get("value") if isinstance(found, dict) and isinstance(found.get("value"), list) else [found]
     same_id = [item for item in candidates if isinstance(item, dict) and item.get("internetMessageId") == message_id]
     if not same_id:
-        return False
+        return None
     sent_at = graph_timestamp(message.get("sentDateTime"), "email sentDateTime")
     for item in same_id:
         if margo not in _recipient_addresses(item):
@@ -569,12 +679,17 @@ def _sent_items_match(lookup, message, margo):
             continue
         delta = abs(datetime.fromisoformat(copy_sent_at) - datetime.fromisoformat(sent_at))
         if delta <= timedelta(minutes=15):
-            return True
+            return item
     raise StateError("email differs from the manager's sent copy with the same message id")
 
 
 def verify_email(message, sent_items_lookup, deployment, now=None):
-    """Accept only mail the manager demonstrably sent to Margo; a spoofed From has no Sent Items copy."""
+    """Accept only mail the manager demonstrably sent to Margo, and read the instruction from that copy.
+
+    A spoofed From has no Sent Items copy; a replayed Message-ID has one that differs in recipient,
+    subject or time. ``sent_items_lookup`` must select the copy's body: the inbox message is what
+    arrived, the Sent Items copy is what the manager wrote, and only the latter becomes a directive.
+    """
     if not deployment["control"]["email_enabled"]:
         raise StateError("email channel is disabled")
     if not isinstance(message, dict):
@@ -597,7 +712,7 @@ def verify_email(message, sent_items_lookup, deployment, now=None):
     message_id = message_id.strip()
     authentication = "not-required"
     if deployment["control"]["require_authentication_results"]:
-        passed = _authentication_passed(message.get("internetMessageHeaders"))
+        passed = _authentication_passed(message.get("internetMessageHeaders"), deployment)
         if passed is None:
             raise StateError("email authentication results are missing")
         if not passed:
@@ -607,14 +722,27 @@ def verify_email(message, sent_items_lookup, deployment, now=None):
     graph_timestamp(message.get("sentDateTime"), "email sentDateTime")
     if _subject(message) is None:
         raise StateError("email has no subject to compare with the sent copy")
-    content = body_text(message.get("body"))
-    if not content:
-        raise StateError("email has no instruction text")
+    forwarded = forwarded_subject(message.get("subject"))
+    empty = ("email has no instruction text above the forwarded message" if forwarded
+             else "email has no instruction text")
+    # The inbox copy is only a filter: its words are never recorded, because a spoofed message can
+    # reuse a real Message-ID. Checking it first keeps a locally hopeless message from costing a lookup.
+    if not body_text(message.get("body"), forwarded):
+        raise StateError(empty)
     # The remote lookup comes last so a message that fails locally never costs a Graph call.
-    if not _sent_items_match(sent_items_lookup, dict(message, internetMessageId=message_id), margo):
+    copy = _sent_items_match(sent_items_lookup, dict(message, internetMessageId=message_id), margo)
+    if copy is None:
         raise StateError("email is not in the manager's sent items")
+    if not isinstance(copy.get("body"), dict):
+        raise StateError("sent copy has no body to read")
+    copy_id = text(copy.get("id"), "sent copy id", 1000)
+    # The instruction is what the manager's own Sent Items copy says, never what arrived.
+    content = body_text(copy["body"], forwarded)
+    if not content:
+        raise StateError(empty.replace("email has", "sent copy has"))
     verification = {"method": "email-sent-items", "authentication_results": authentication,
-                    "sent_items_match": True, "attachments_ignored": bool(message.get("hasAttachments"))}
+                    "sent_items_match": True, "sent_copy_id": copy_id,
+                    "attachments_ignored": bool(message.get("hasAttachments"))}
     return _record(deployment, "email", message_id, received_at, content, verification, now)
 
 
@@ -744,12 +872,21 @@ class DirectiveStore:
             raise StateError("unknown standing rule")
         return row
 
+    def _started_at(self, directive_id):
+        """When a run was first started for the directive (the events table is the only record)."""
+        row = self.conn.execute(
+            "SELECT created_at FROM directive_events WHERE account=? AND entity_id=? AND event='started' "
+            "ORDER BY seq LIMIT 1", (self.account, directive_id)).fetchone()
+        return row["created_at"] if row else None
+
     def _render_directive(self, row):
         result = dict(row)
         stored = margo_store.parse_json(result.pop("verification"))
         result["type"] = "directive"
         result["verification"] = stored.get("checks")
-        for key in ("ref", "rule", "rule_id", "manager_principal"):
+        # gate_mac/rule_mac are the gate's seals over this row; a row without them was not recorded
+        # by the gate, however well-formed it looks.
+        for key in ("ref", "rule", "rule_id", "manager_principal", "gate_mac", "rule_mac"):
             result[key] = stored.get(key)
         result["rules"] = [r["id"] for r in self.conn.execute(
             "SELECT id FROM manager_standing_rules WHERE directive_id=? ORDER BY created_at,id", (row["id"],))]
@@ -759,11 +896,16 @@ class DirectiveStore:
             "SELECT data FROM directive_events WHERE entity_id=? AND event IN ('completed','rejected') "
             "ORDER BY seq DESC LIMIT 1", (row["id"],)).fetchone()
         result["summary"] = margo_store.parse_json(outcome["data"]).get("summary") if outcome else None
+        result["started_at"] = self._started_at(row["id"])
         return result
 
     def _render_rule(self, row):
         result = dict(row)
         result["type"] = "rule"
+        # The rule's seal lives in its directive's verification JSON; the rule table is unchanged.
+        parent = self.conn.execute("SELECT verification FROM manager_directives WHERE id=? AND account=?",
+                                   (row["directive_id"], self.account)).fetchone()
+        result["rule_mac"] = margo_store.parse_json(parent["verification"]).get("rule_mac") if parent else None
         result["effects"] = [self._render_effect(r) for r in self.conn.execute(
             "SELECT * FROM directive_effects WHERE rule_id=? ORDER BY created_at,id", (row["id"],))]
         return result
@@ -778,10 +920,26 @@ class DirectiveStore:
 
     # -- recording -----------------------------------------------------------
 
-    def record(self, verified):
-        """Journal one verified message exactly once; namespace-local kinds are applied in the same transaction."""
+    @staticmethod
+    def _mac(seal, kind, *parts):
+        """Ask the gate's seal for a digest and insist on getting one; a silent seal seals nothing."""
+        value = seal(kind, *parts)
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+            raise StateError("seal must return a lowercase hex sha256 digest")
+        return value
+
+    def record(self, verified, seal=None):
+        """Journal one verified message exactly once; namespace-local kinds are applied in the same transaction.
+
+        ``seal(kind, *parts) -> hex digest`` is the gate's HMAC bound to its private key. With it the
+        row carries ``gate_mac`` (and ``rule_mac`` for a standing rule), which is what later turns the
+        row into a grant: the database is writable by the model's own uid, so a row alone proves nothing.
+        An existing row is returned as recorded; a replay never seals a row it did not write.
+        """
         if not isinstance(verified, dict):
             raise StateError("verified record must be an object")
+        if seal is not None and not callable(seal):
+            raise StateError("seal must be callable")
         channel = verified.get("channel")
         if channel not in CHANNELS:
             raise StateError("verified record has an unsupported channel")
@@ -798,7 +956,8 @@ class DirectiveStore:
         if not isinstance(verified.get("verification"), dict) or not verified["verification"]:
             raise StateError("verified record requires verification details")
         ref, rule, rule_id = verified.get("ref"), verified.get("rule"), verified.get("rule_id")
-        if kind in {"approval", "rejection"} and (not isinstance(ref, str) or not re.fullmatch(r"MA-[0-9a-f]{8}", ref)):
+        if kind in {"approval", "rejection"} and (not isinstance(ref, str)
+                                                  or not re.fullmatch(r"MA-[0-9a-f]{%d}" % REF_HEX, ref)):
             raise StateError("approval or rejection requires an MA- reference")
         if kind == "standing_rule" and (not isinstance(rule, str) or not rule.strip()):
             raise StateError("standing rule requires rule text")
@@ -816,15 +975,19 @@ class DirectiveStore:
                     raise StateError("same source reference was recorded with different content; refusing to replace it")
                 return dict(self._render_directive(existing), created=False)
             directive_id, now = "dir_" + uuid.uuid4().hex, utc_now()
+            if seal is not None:
+                stored["gate_mac"] = self._mac(seal, "directive", self.account, directive_id, source_ref, kind, text_hash)
             self.conn.execute("INSERT INTO manager_directives VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                               (directive_id, self.account, manager, channel, source_ref, kind, body, text_hash,
                                received_at, verified_at, canonical_json(stored), "active", None, None, now))
             self._event(directive_id, "recorded", {"channel": channel, "kind": kind, "text_hash": text_hash})
             if kind == "standing_rule":
-                new_rule = "rule_" + uuid.uuid4().hex
+                new_rule, rule_text = "rule_" + uuid.uuid4().hex, rule.strip()
                 self.conn.execute("INSERT INTO manager_standing_rules VALUES(?,?,?,?,?,?,?,?)",
-                                  (new_rule, self.account, directive_id, rule.strip(), "active", now, None, None))
+                                  (new_rule, self.account, directive_id, rule_text, "active", now, None, None))
                 stored["rule_id"] = new_rule
+                if seal is not None:
+                    stored["rule_mac"] = self._mac(seal, "rule", self.account, new_rule, directive_id, rule_text)
                 self.conn.execute("UPDATE manager_directives SET verification=? WHERE id=?",
                                   (canonical_json(stored), directive_id))
                 self._event(new_rule, "created", {"directive_id": directive_id})
@@ -847,11 +1010,32 @@ class DirectiveStore:
                           (state, utc_now(), directive_id))
         self._event(directive_id, state, {"summary": summary})
 
-    def active(self, directive_id):
+    def active(self, directive_id, ttl_hours=None):
+        """An active directive, or a refusal; with ``ttl_hours`` a grant also dies of old age.
+
+        Expiry counts from ``received_at`` (when the manager sent it), so an instruction that was never
+        run, or whose run was lost, cannot stay a T1 grant for every later session.
+        """
+        if ttl_hours is not None and (type(ttl_hours) is not int or not 1 <= ttl_hours <= 168):
+            raise StateError("ttl_hours must be an integer between 1 and 168")
         row = self._directive(directive_id)
         if row["state"] != "active":
             raise StateError("directive is not active")
+        if ttl_hours is not None and datetime.fromisoformat(row["received_at"]) + timedelta(hours=ttl_hours) < clock():
+            raise StateError("directive expired")
         return self._render_directive(row)
+
+    def start(self, directive_id):
+        """Mark that a run was started for an instruction; a replay keeps the first ``started_at``."""
+        with self.transaction():
+            row = self._directive(directive_id)
+            if row["kind"] != "instruction":
+                raise StateError("only instruction directives are started")
+            if self._started_at(directive_id) is None:
+                if row["state"] != "active":
+                    raise StateError("directive is not active")
+                self._event(directive_id, "started", {})
+            return self._render_directive(row)
 
     def active_rule(self, rule_id):
         row = self._rule(rule_id)

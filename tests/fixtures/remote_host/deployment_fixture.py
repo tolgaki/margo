@@ -8,7 +8,8 @@ Import via sys.path (plain helper module, not a package):
 ``make_deployment(tmpdir, **overrides)`` writes a valid ``deployment.json`` and returns its path.
 Section overrides (``control={"teams_enabled": False}``) are merged into that section; any other
 override replaces the key. ``cli_logins`` defaults to the current login so peer-credential tests
-can run as the manager.
+can run as the manager, and ``gate.approval_key_path`` points under ``tmpdir`` so a gate under
+test creates its HMAC key there, never on the host.
 """
 
 import json
@@ -38,9 +39,14 @@ def current_login():
         return None
 
 
-def deployment_dict(**overrides):
-    """The contract's schema v1 with fictional values; see make_deployment for override rules."""
+def deployment_dict(root=None, **overrides):
+    """The contract's schema v1 with fictional values; see make_deployment for override rules.
+
+    ``root`` places the gate's approval key under a temporary directory; without it the document
+    names the production default, which a loader test may read but no test gate should start with.
+    """
     login = current_login()
+    key_path = str(Path(root) / "gate-approval.key") if root is not None else "/var/lib/margo-gate/approval.key"
     data = {
         "schema_version": 1,
         "profile": "remote-host",
@@ -54,6 +60,8 @@ def deployment_dict(**overrides):
             "require_authentication_results": True,
             "max_replies_per_hour": 12,
             "approval_ttl_hours": 24,
+            "authserv_id": None,
+            "directive_ttl_hours": 24,
         },
         "workiq": {
             "command": ["python3", "fake_workiq.py"],
@@ -80,7 +88,8 @@ def deployment_dict(**overrides):
                     "health_path": "/var/lib/margo/health.json", "automations_dir": None, "scheduled_wrapper": None},
         "gate": {"socket": "/run/margo/gate.sock", "audit_log": "/var/lib/margo/gate-audit.jsonl",
                  "margo_root_paths": ["/me/", "/users/" + MARGO_OID + "/", "/users/" + MARGO_PRINCIPAL + "/"],
-                 "manager_root_paths": ["/users/" + MANAGER_OID + "/", "/users/" + MANAGER_PRINCIPAL + "/"]},
+                 "manager_root_paths": ["/users/" + MANAGER_OID + "/", "/users/" + MANAGER_PRINCIPAL + "/"],
+                 "approval_key_path": key_path},
     }
     for key, value in overrides.items():
         if isinstance(value, dict) and isinstance(data.get(key), dict):
@@ -94,5 +103,5 @@ def make_deployment(tmpdir, **overrides):
     """Write deployment.json under tmpdir (or at the ``path`` override) and return its path as a string."""
     target = overrides.pop("path", None)
     path = Path(target) if target else Path(tmpdir) / "deployment.json"
-    path.write_text(json.dumps(deployment_dict(**overrides), indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(deployment_dict(root=tmpdir, **overrides), indent=2) + "\n", encoding="utf-8")
     return str(path)

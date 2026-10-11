@@ -10,7 +10,9 @@
     "email_enabled": true,
     "require_authentication_results": true,
     "max_replies_per_hour": 12,
-    "approval_ttl_hours": 24
+    "approval_ttl_hours": 24,
+    "authserv_id": null,
+    "directive_ttl_hours": 24
   },
   "workiq": {
     "command": ["npx", "-y", "@microsoft/workiq-mcp@{workiq-mcp-version}"],
@@ -63,6 +65,7 @@
     "socket": "/run/margo/gate.sock",
     "audit_log": "/var/lib/margo/gate-audit.jsonl",
     "margo_root_paths": ["/me/", "/users/{margo-object-id}/", "/users/margo@example.com/"],
-    "manager_root_paths": ["/users/{manager-object-id}/", "/users/dana@example.com/"]
+    "manager_root_paths": ["/users/{manager-object-id}/", "/users/dana@example.com/"],
+    "approval_key_path": "/var/lib/margo-gate/approval.key"
   }
 }

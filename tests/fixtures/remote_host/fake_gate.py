@@ -11,16 +11,21 @@ gate's answers mid-run (every key optional)::
 
     {"health": {...} | [{...}, ...],      # margo/health; a list is consumed per call, the last entry repeats
      "sync": {...} | [...],               # margo/directives/sync
-     "pending": {...} | [...],            # margo/pending
+     "pending": {...} | [...],            # margo/pending ({"actions": [pending_action(...), ...]})
      "complete": {...} | [...],           # margo/directives/complete (default echoes the id as completed)
+     "start": {...} | [...],              # margo/directives/start (default echoes the id as started now)
      "notify": {...} | [...],             # margo/notify (default {"delivered": true})
-     "directives": {...} | [...],         # margo/directives/list
+     "directives": {"directives": [...]} | [...],  # margo/directives/list, shaped like the gate's answer
      "errors": {"margo/notify": {"code": -32002, "message": "..."}},  # a JSON-RPC error instead of a result
      "hang": ["margo/health"],            # never answer these methods, so the client's timeout fires
      "delay": {"margo/directives/sync": 0.2}}  # seconds before answering
 
-Defaults describe a connected gate with delegated access, nothing new and nothing pending.
-Per-call sequences count calls to one method within one server lifetime.
+Defaults describe a connected gate with delegated access, nothing new, nothing pending and no
+active directive. Per-call sequences count calls to one method within one server lifetime; a
+value that is itself a list (``directives``) therefore has to be wrapped in the gate's object.
+``pending_action(ref, ...)`` builds one ``margo/pending`` entry with the ``payload_summary`` the
+real gate derives from the payload, so a test can assert the harness shows the manager what an
+approval reaches and not only the model's ``why``.
 
 In process::
 
@@ -39,6 +44,7 @@ import socket
 import sys
 import threading
 import time
+from datetime import datetime, timezone
 
 DEFAULT_HEALTH = {"status": "connected", "paused": False,
                   "checks": {"workiq_identity": {"status": "ok"}, "delegated_access": {"status": "ok"},
@@ -46,9 +52,22 @@ DEFAULT_HEALTH = {"status": "connected", "paused": False,
                   "upstream": {"alive": True, "tools": 11}, "pending_approvals": 0}
 DEFAULT_SYNC = {"new": [], "approvals": [], "rejected": [], "errors": []}
 DEFAULT_PENDING = {"actions": []}
+DEFAULT_DIRECTIVES = {"directives": []}
 METHODS = {"margo/health": "health", "margo/directives/sync": "sync", "margo/pending": "pending",
-           "margo/directives/complete": "complete", "margo/notify": "notify",
+           "margo/directives/complete": "complete", "margo/directives/start": "start", "margo/notify": "notify",
            "margo/directives/list": "directives", "margo/rules/list": "rules", "margo/preflight": "preflight"}
+
+
+def pending_action(ref, kind="send", path="/me/sendmail", why="confirm Thursday with Rafa",
+                   addresses=("rafa@example.com",), subject="Thursday", preview="Confirming Thursday at 10.",
+                   tool="do_action", method="POST", **overrides):
+    """One margo/pending entry as the gate shapes it: the reference, target and payload summary."""
+    entry = {"ref": ref, "action_id": "act_" + ref[3:], "revision": 1, "kind": kind, "target": {"path": path},
+             "why": why, "state": "ready", "expires_at": None, "action_hash": (ref[3:] * 8)[:64].ljust(64, "0"),
+             "payload_summary": {"tool": tool, "path": path, "method": method, "addresses": sorted(addresses),
+                                 "subject": subject, "preview": preview}}
+    entry.update(overrides)
+    return entry
 
 
 def load_script(location):
@@ -158,9 +177,11 @@ class FakeGate:
         key = METHODS.get(method)
         if key is None:
             return {"error": {"code": -32601, "message": "method not found"}}
+        now = datetime.now(timezone.utc).isoformat(timespec="microseconds")
         defaults = {"health": DEFAULT_HEALTH, "sync": DEFAULT_SYNC, "pending": DEFAULT_PENDING,
                     "complete": {"id": params.get("id"), "state": "completed", "summary": params.get("summary")},
-                    "notify": {"delivered": True, "channel": "teams"}, "directives": [], "rules": [],
+                    "start": {"id": params.get("id"), "kind": "instruction", "state": "active", "started_at": now},
+                    "notify": {"delivered": True, "channel": "teams"}, "directives": DEFAULT_DIRECTIVES, "rules": [],
                     "preflight": {"target_fingerprint": "0" * 64, "checked_at": "1970-01-01T00:00:00+00:00"}}
         return {"result": self.pick(script, key, defaults[key])}
 

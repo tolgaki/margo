@@ -19,7 +19,7 @@ Explicit private configuration (no identity lookup or network access):
     python3 margo_store.py rebind-manager --account OWNER_PRINCIPAL --current-manager BOUND_ID --manager NEW_ID
 ``init`` saves the ledger owner's principal in the config's account field, without
 creating state or changing an existing account. A version-1 config holds the
-account alone and keeps local behaviour. ``--manager`` binds exactly one manager by
+account (other keys are ignored) and keeps local behaviour. ``--manager`` binds exactly one manager by
 immutable Entra object ID in a version-2 config ({"account", "config_version": 2,
 "manager": {"object_id", "principal"}, "profile": "local"|"remote-host"}); only the
 remote harness requires a binding. An existing version-1 file is upgraded only by
@@ -208,16 +208,21 @@ def _validate_profile(value):
 
 
 def validate_config(data):
-    """Check a config document's shape; version 1 is {"account"} alone, version 2 adds the binding."""
+    """Check a config document's shape; version 1 is the account, version 2 adds the binding.
+
+    A version-1 file never declares ``config_version``; only its ``account`` is read, so a comment or
+    a hand-added key neither breaks every CLI nor smuggles a manager binding in. A declared version
+    this build does not know, a version that is not an integer, or a version-2 document with the
+    wrong keys is a mismatch, and nothing is rewritten.
+    """
     if not isinstance(data, dict):
         raise StateError("installation config must be a JSON object")
-    version = data["config_version"] if "config_version" in data else 1
-    known = {1: {"account"}, CONFIG_VERSION: {"account", "config_version", "manager", "profile"}}
-    if (isinstance(version, bool) or not isinstance(version, int) or version not in known
-            or set(data) != known[version]):
+    if "config_version" not in data:
+        return {"account": data.get("account")}
+    version = data["config_version"]
+    if (isinstance(version, bool) or not isinstance(version, int) or version != CONFIG_VERSION
+            or set(data) != {"account", "config_version", "manager", "profile"}):
         raise ConfigMismatch(version if isinstance(version, int) and not isinstance(version, bool) else None)
-    if version == 1:
-        return dict(data)
     manager = data["manager"]
     if (not isinstance(manager, dict) or set(manager) != {"object_id", "principal"}
             or data["profile"] not in CONFIG_PROFILES):

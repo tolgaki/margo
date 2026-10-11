@@ -317,11 +317,48 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(self.config.read_bytes(), before)
         self.assert_only_config()
 
+    def test_v1_config_with_extra_keys_still_loads_and_migrates(self):
+        # A hand-annotated version-1 file worked before the binding existed and keeps working: only
+        # the account is read. The extra keys are not carried into the strict version-2 shape.
+        annotated = {"account": ACCOUNT, "comment": "work laptop", "note": {"nested": True}}
+        original = self.write_raw(annotated)
+        self.assertEqual(store.load_config(), {"account": ACCOUNT})
+        self.assertEqual(store.resolve_account(), ACCOUNT)
+        self.assertIsNone(store.resolve_manager())
+        self.assertEqual(store.resolve_profile(), "local")
+        code, report = self.doctor()
+        self.assertEqual((code, report["binding"]["status"], report["binding"]["config_version"]), (0, "unbound", 1))
+        plain = store.initialize_config(ACCOUNT, self.config)
+        self.assertEqual((plain["created"], plain["manager_configured"], plain["config_version"]), (False, False, 1))
+        self.assertEqual(self.config.read_bytes(), original)
+        # The failure that could look like success: a manager binding smuggled into a version-1 file
+        # (no config_version) must not bind anyone; version 2 is the only shape that binds.
+        self.write_raw({"account": ACCOUNT, "manager": {"object_id": MANAGER, "principal": None},
+                        "profile": "remote-host"})
+        self.assertEqual(store.load_config(), {"account": ACCOUNT})
+        self.assertIsNone(store.resolve_manager())
+        self.assertEqual(store.resolve_profile(), "local")
+        with self.assertRaises(store.ManagerRequired):
+            store.require_manager()
+        self.write_raw(annotated)
+        result = self.cli("migrate-config", "--account", ACCOUNT, "--manager", MANAGER,
+                          "--manager-principal", MANAGER_PRINCIPAL)
+        self.assertEqual((result["status"], result["migrated"], result["from_version"], result["to_version"]),
+                         ("migrated", True, 1, 2))
+        self.assertEqual(store.read_json(self.config), v2_document())
+        self.assertEqual(store.require_manager(), {"object_id": MANAGER, "principal": MANAGER_PRINCIPAL})
+        self.assert_only_config()
+        # The account itself is still required to match, extra keys or not.
+        self.write_raw(dict(annotated, account="someone-else@example.com"))
+        with self.assertRaises(store.StateError):
+            store.migrate_config(ACCOUNT, MANAGER, self.config)
+        self.assertEqual(store.read_json(self.config)["comment"], "work laptop")
+
     def test_future_or_unknown_config_shapes_are_rejected_without_rewriting(self):
         mismatch = "config version mismatch; explicit migration required"
         for document in (dict(v2_document(), config_version=3),
                          {"account": ACCOUNT, "config_version": 1},
-                         {"account": ACCOUNT, "manager": {"object_id": MANAGER, "principal": None}},
+                         {"account": ACCOUNT, "config_version": 2},
                          dict(v2_document(), extra=True),
                          dict(v2_document(), config_version=True),
                          dict(v2_document(), config_version="2")):

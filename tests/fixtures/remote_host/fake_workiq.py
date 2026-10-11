@@ -20,8 +20,11 @@ Script shape (every key optional)::
      "default": {"error": "HTTP 404 Not Found: no scripted response"}}
 
 Rules are tried in order; the first whose tool, path and method all match wins. Without a match a
-``fetch`` of ``/me`` answers with ``identity`` and anything else gets ``default`` (a 404 error, so
-an unscripted write is loud rather than silently successful).
+``fetch`` of ``/me`` answers with ``identity``, a ``fetch`` of ``<root>/mailFolders/deletedItems`` or
+``.../recoverableItemsDeletions`` answers with the fixed ids ``DELETED_ITEMS_ID`` /
+``RECOVERABLE_ITEMS_ID`` (the gate resolves them before a T1 move), a ``fetch`` of ``/chats/{id}``
+answers with ``chat`` when the script carries one, and anything else gets ``default`` (a 404 error,
+so an unscripted write is loud rather than silently successful).
 """
 
 import json
@@ -48,6 +51,11 @@ DEFAULT_TOOLS = [
      "inputSchema": {"type": "object"}},
 ]
 DEFAULT_RESPONSE = {"error": "HTTP 404 Not Found: no scripted response"}
+# Fixed, fictional well-known folder ids: a test moving a message to DELETED_ITEMS_ID is moving it
+# to Deleted Items by its real id, which the gate must treat as T3.
+DELETED_ITEMS_ID = "AAMkDeletedItemsFixture"
+RECOVERABLE_ITEMS_ID = "AAMkRecoverableItemsDeletionsFixture"
+WELL_KNOWN_FOLDERS = re.compile(r"^/(?:me|users/[^/]+)/mailfolders/(deleteditems|recoverableitemsdeletions)(?:\?|$)")
 
 
 def load_script():
@@ -122,6 +130,15 @@ class FakeWorkIQ:
                 return rule
         if tool == "fetch" and path is not None and re.match(r"^/me(\?|$)", path) and script.get("identity"):
             return {"result": script["identity"]}
+        if tool == "fetch" and path is not None:
+            folder = WELL_KNOWN_FOLDERS.match(path)
+            if folder:
+                known = {"deleteditems": ("Deleted Items", DELETED_ITEMS_ID),
+                         "recoverableitemsdeletions": ("Recoverable Items", RECOVERABLE_ITEMS_ID)}
+                name, folder_id = known[folder.group(1)]
+                return {"result": {"id": folder_id, "displayName": name}}
+            if re.match(r"^/chats/[^/?]+(\?|$)", path) and isinstance(script.get("chat"), dict):
+                return {"result": script["chat"]}
         return script.get("default", DEFAULT_RESPONSE)
 
     def handle(self, message):
