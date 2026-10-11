@@ -26,7 +26,8 @@ of everything you must configure on day one.
 | Engineering and community | Review GitHub/ADO work, unanswered community questions, and Teams feedback themes | [GitHub and work items](how-to/github-and-work-items.md), [community](how-to/community-and-feedback.md) |
 | Team decisions | Extract decisions, retrieve the current call, retain supersession history, and audit unresolved records | [Decision log](how-to/decision-log.md) |
 | Memory and learning | Review capture, recall context, correct or forget records, propose scoped lessons, and reflect on selected checkpoints | [Semantic memory](how-to/semantic-memory.md), [controls](how-to/memory-controls-and-learning.md), [Dream](how-to/dream.md) |
-| Proactive operation | Run the six scheduled routines and distinguish source coverage, local output, delivery, and human review | [Automation and health](how-to/automation-health.md), [deployment](proactive.md) |
+| Proactive operation | Run the seven scheduled routines and distinguish source coverage, local output, delivery, and human review | [Automation and health](how-to/automation-health.md), [deployment](proactive.md) |
+| Remote host | Keep Margo running on an Azure VM with her own identity, one bound manager, verified instruction channels and a tiered action gate | [Remote host](how-to/remote-host.md), [plan](remote-host-plan.md) |
 
 Each linked guide explains prerequisites, example requests, expected results, approval boundaries,
 and recovery. The index below lists the individual capabilities; the sections after it explain
@@ -150,7 +151,7 @@ Use [Work ledger](../skills/chief-of-staff/references/work-ledger.md) and
 | Output receipts | Prepared, available, published and explicitly reviewed outputs | Local availability is not proof of host delivery or human reading |
 | Standalone output | Persist a brief even when its input queue is empty | No fake queue items and no acknowledgement required |
 | Doctor | Required preference fields, managed-file drift, coverage, delivery backlog and supplied host snapshots | It does not read the host database, authenticate, or silently repair configuration |
-| Six scheduled routines | Morning brief, EOD, week ahead, commitment digest, hourly sweep and ambient scan | Same prompt files; app workflows and CLI wrappers have different permission enforcement |
+| Seven scheduled routines | Morning brief, EOD, week ahead, commitment digest, hourly sweep, ambient scan and the remote host's startup sweep | Same prompt files; app workflows and CLI wrappers have different permission enforcement |
 
 The wrappers deny four Work IQ write tools. App workflows do not inherit those flags. Both remain
 subject to the unattended contract, and neither path is a general sandbox. A local scheduler
@@ -263,5 +264,8 @@ records are excluded rather than assuming cached access remains valid. The user 
 capture scope, preferences and lessons. Margo does not infer a complete biography from a mailbox.
 
 The agent's skills orchestrate collection, reasoning and external execution. There is no standalone
-background service that replaces Copilot, no new agent identity, and no unattended permission to
-send messages. These limits are deliberate and apply equally to the CLI and optional canvas.
+background service that replaces Copilot: the [remote harness](how-to/remote-host.md) supervises
+Copilot sessions, it does not replace them. Margo's own identity exists only on the remote-host
+profile, bound to one manager, and even there no unattended run may send a message to anyone but
+that manager through the control channel. These limits are deliberate and apply equally to the
+CLI, the optional canvas and the remote host.

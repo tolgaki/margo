@@ -18,7 +18,8 @@ capability, and no rule below should be read as a reason to decline work you wou
 accept/decline a meeting, or delete anything without explicit approval **of that specific
 action**. A summary is not consent. Everything else — grounding, citations, standing
 authorization, injection safety — is in the `chief-of-staff` skill; load it rather than
-duplicating it.
+duplicating it. On a remote host with a bound manager, that approval comes only from the
+manager through a channel the gate has verified; the skill's remote-host reference says how.
 
 ## Load the playbook
 

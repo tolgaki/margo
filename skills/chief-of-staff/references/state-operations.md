@@ -13,6 +13,9 @@ The ledger owner must be explicitly configured. An email address found in git se
 source text is not approval to select that account. At the start of a connected run fetch
 `/me?$select=id,userPrincipalName` through Work IQ and compare it to the configured owner.
 If identities disagree, stop; do not ingest one account's data into another account's ledger.
+On the remote-host profile `/me` is Margo herself and the managed person is the bound manager,
+read through `/users/{manager}` paths; `remote-host.md` explains the split and the manager binding
+that `margo_store.py init --manager` records.
 
 From the installed skill directory, configure the explicitly confirmed owner:
 

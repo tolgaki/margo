@@ -39,6 +39,11 @@ User request / scheduled manifest
 | Rolling agendas / relationships | Human-editable private discussion surfaces, not duplicate obligation stores | `references/one-on-ones.md`, `references/relationships.md` |
 | Team decisions | Approved shared-log records and supersession chain | `skills/decision-log/` |
 | Schedules | Names, cadence and unattended prompts | `automations/*.md` |
+| Manager binding | One bound manager object ID and the deployment profile in the private config; an audit binding, not authentication | `margo_store.py` |
+| Manager directives | Verified-channel instructions, standing rules, effects journal and control replies; verification is pure over fetched Graph data | `manager_directives.py`, `margo_control.py` |
+| Work IQ action gate | The only holder of Work IQ tokens on a remote host; tier classification, directive checks, exact approval claims and receipts for every Work IQ call | `workiq_gate.py`, `workiq_gate_client.py` |
+| Remote harness | Boot preflight, startup sweep, directive runs, cron slots and the health file; never an outward actor beyond the control channel | `remote_harness.py`, `automations/startup.md` |
+| Host deployment | Templates, units and runbooks for the Azure VM; never tenant values | `deploy/azure/` |
 | Optional UI | Thin review/read surface, no independent credentials or database | `.github/extensions/margo-action-desk/` |
 | User feature inventory | User outcomes, availability, guide and scenario mapping | `docs/feature-catalog.json` |
 
@@ -56,6 +61,10 @@ the checkout and survives uninstall.
 | Inspect or explicitly change memory | `memory_state.py` | Memory modules listed above |
 | Inspect or explicitly change a task attempt | `task_state.py` | `task_runs.py`, linking the other owners |
 | Diagnose setup, versions and operational state | `margo_doctor.py` | Read-only health aggregation |
+| Bind, migrate or rebind the manager (remote host) | `margo_store.py init --manager`, `migrate-config`, `rebind-manager` | Storage identity; the root-owned deployment file is the trusted anchor |
+| Approve, reject, list directives and rules, pause (manager on the host) | `margo_control.py` | Gate control methods over the local socket with peer-credential roles |
+| Classify or serve the Work IQ gate | `workiq_gate.py` | `work_ledger.py` for approvals/receipts, `manager_directives.py` for directives |
+| Supervise the remote host | `remote_harness.py` | Scheduled wrapper, gate control methods, health file |
 
 Use each command's `--help` and its linked procedure for input shapes. The canvas adapters
 invoke those CLIs with fixed arguments; they do not choose databases or own schemas.

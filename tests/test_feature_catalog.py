@@ -57,10 +57,10 @@ def write_json(directory, name, data):
 class RealCatalogTests(unittest.TestCase):
     """The shipped catalog must validate cleanly against a synthetic, complete manifest."""
 
-    def test_real_catalog_has_exactly_68_features_matching_the_shared_contract(self):
+    def test_real_catalog_has_exactly_73_features_matching_the_shared_contract(self):
         catalog = load_real_catalog()
         ids = [f["id"] for f in catalog["features"]]
-        self.assertEqual(len(ids), 68)
+        self.assertEqual(len(ids), 73)
         self.assertEqual(set(ids), set(fc.EXPECTED_FEATURE_IDS))
         self.assertEqual(len(ids), len(set(ids)), "duplicate feature id present")
 
@@ -414,7 +414,7 @@ class DiscoveryTests(unittest.TestCase):
         files = fc.discover_automation_files()
         self.assertIn("automations/morning-brief.md", files)
         self.assertNotIn("automations/README.md", files)
-        self.assertEqual(len(files), 6)
+        self.assertEqual(len(files), 7)
 
     def test_discover_cli_commands_finds_known_subcommands(self):
         errors = []

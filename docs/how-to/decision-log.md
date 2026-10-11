@@ -140,7 +140,7 @@ and any private output copy remain under their own retention rules.
 silently — in a fast team, an un-owned question is the actual failure mode, not a bad decision.
 
 **Availability:** optional (requires the `decision-log` skill), procedure. Runs on request; not
-one of the six scheduled routines. Since 1.0.0.
+one of the seven scheduled routines. Since 1.0.0.
 
 ## Decision audit
 

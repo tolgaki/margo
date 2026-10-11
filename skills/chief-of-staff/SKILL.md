@@ -36,6 +36,13 @@ data access is MCP tool calls. Composes with the `workiq`, `docx`, and `pptx` sk
    tentative / cancel, delete, and Azure DevOps create or update. If the user asks for a
    standing grant over one of these, say plainly that this one stays per-action and offer
    the bounded version instead.
+
+   **Deployment profiles.** On the **remote-host profile** only (a manager bound at `init`,
+   `profile: remote-host`, and the `workiq-gate` server installed), authority is narrower and
+   the reversible tier is wider: approval comes solely from the bound manager through a verified
+   channel, private reversible writes may run on that manager's directive or standing rule, and
+   the gate enforces the tiers for every Work IQ call. Follow `references/remote-host.md` there.
+   On a local install nothing in that file applies.
 2. **Ground everything in real data.** Never invent meetings, senders, quotes, or commitments.
    Every claim in a brief comes from Work IQ. If you don't have it, say so and offer to fetch it.
 3. **Cite sources.** For each item, note where it came from (sender + subject, meeting title +
@@ -179,6 +186,7 @@ Pick the routine that matches the request; combine as needed. Full procedures ar
 | **Memory and context** | "what do you remember", "remember this", "forget this", "find related context", "what have you learned" | `references/memory.md` |
 | **Dream reflection** | "Dream about yesterday", "save a session checkpoint", "review Dream", "reflect on our sessions" | `references/dream.md` |
 | **Task progress** | "where did you stop", "resume that task", "pause this task", "cancel the remaining steps" | `references/task-runs.md` |
+| **Remote host** | "what has the manager asked", "list standing rules", "why did the gate refuse that", "is the harness connected" | `references/remote-host.md` |
 
 ## Proactive & scheduled operation
 
@@ -193,6 +201,9 @@ Three things about it matter enough to state here:
   successful run**. Every other routine assumes a human is reading; a scheduled one must not.
 - **Proactive runs never act on the outside world.** They never send, post, RSVP, or change a work item —
   regardless of any standing authorization. Drafts may be prepared and held, never delivered.
+  On the remote-host profile the gate additionally permits private reversible writes under a
+  manager's standing rule (`references/remote-host.md`); communicating and destructive actions
+  still need the manager's exact approval, unattended or not.
 - **State lives outside the source tree**, because each scheduled run is a fresh session with
   no memory. `scripts/proactive_state.py` owns delivery and per-source coverage; `work_state.py`
   owns work and action records in the same account-scoped store. Use their APIs, never hand-edit

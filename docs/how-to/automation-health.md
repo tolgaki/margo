@@ -343,7 +343,7 @@ See [schedule setup](../proactive.md), [automation definitions](../../automation
 ## Feature reference
 
 The numbered sections above are the full CLI walkthrough. These are the stable per-feature entry
-points the [feature catalog](../feature-catalog.json) links to. The six scheduled routines share
+points the [feature catalog](../feature-catalog.json) links to. The seven scheduled routines share
 the boundary in [§6](#6-choose-the-schedules-safety-boundary); their tier, cadence and prompt
 come from each `automations/*.md` manifest. Anchors may synthesize; hourly/ambient scans cannot
 call `workiq-ask`. Nothing here replaces the manifest as the source of the exact schedule.

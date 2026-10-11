@@ -253,6 +253,44 @@ license attribution, and Git commit authorship are public project metadata, not 
 
 ---
 
-## 8. Reporting a vulnerability
+## 8. The remote-host profile
+
+Everything above describes a local install. The **remote-host profile** — an always-on host
+where Margo signs in to Work IQ as her own Entra identity, has delegated access to one bound
+manager's mailbox and calendar, and every Work IQ call passes through the local action gate —
+changes two things, and only there. The [remote-host plan](remote-host-plan.md) records the
+owner's decision; the [operator guide](how-to/remote-host.md) explains the mechanics.
+
+**Who may approve narrows.** A local install accepts the person in the foreground session. The
+remote host accepts exactly one manager, bound by immutable Entra object ID at `init`, and only
+through a channel the gate verified from live Graph data: the CLI behind an Entra sign-in to the
+host, the 1:1 Teams chat between Margo and the manager, or an email the gate found in the
+manager's own Sent Items with passing authentication results. The approval journal records the
+decision with `manager-channel:<channel>:<message-id>` evidence; the gate, not the model and not
+the message text, decided that the channel was genuine. Quoted and forwarded text is never an
+instruction. Anyone else who writes to Margo is a correspondent.
+
+**What may run without a per-item approval widens, slightly.** Private, reversible writes —
+mark read or unread, flag, categorize, file into a folder other than Deleted Items, create or
+edit a draft without sending, a private calendar hold with no attendees — may run on the
+manager's verified directive or standing rule. The gate re-reads the item first and journals the
+prior state so the change can be undone, and refuses when that read fails. Standing rules are
+listed in every brief and revoked by the manager at will.
+
+**Nothing else moves.** Sending, replying, forwarding, posting, reacting, RSVPs, invitations,
+sharing, deletion, cancellation, permission and rule changes still need the manager's exact
+approval of one proposal revision, carry one execution claim, and produce a receipt. Anything the
+gate cannot classify is treated as destructive. A timeout is `outcome_unknown`, never retried.
+Margo may message only the manager without approval, only through the control channel, and only
+through the gate's rate-limited reply method. Unattended runs gain nothing beyond standing rules.
+
+The widening is enforced by the gate, which alone holds the Work IQ tokens; it is not a prompt
+the model is asked to honour. A local install never enters this profile by accident: it needs the
+manager binding, the gate as the only registered Work IQ server, and the root-owned deployment
+file on the host. Where those are absent, §1–§3 apply exactly as written.
+
+---
+
+## 9. Reporting a vulnerability
 
 Please **don't** open a public issue for a security problem. See **[SECURITY.md](../SECURITY.md)**.

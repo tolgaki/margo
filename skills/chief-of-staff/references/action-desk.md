@@ -119,7 +119,9 @@ python3 scripts/work_state.py --account fictional-account approve ACTION_ID --re
 Dates and identities above are illustrative. In operation record the actual interaction;
 never generate evidence as a substitute for asking. Expiry must be future and within seven
 days. No `--yes`, no approve-all, no standing grant for outward actions. Approval of a work
-item/outcome/artifact is not delivery approval.
+item/outcome/artifact is not delivery approval. On the remote-host profile the action gate
+records the manager's approval itself with `evidence_ref` `manager-channel:<channel>:<id>` after
+verifying the channel (`remote-host.md`); never write that prefix by hand.
 
 This is a **record of human confirmation, not an authentication wall**. A generally capable
 agent can invoke tools directly; host permissions and the agent's approval rules remain

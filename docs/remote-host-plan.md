@@ -1,9 +1,12 @@
 # Plan: Margo on a remote host with her own identity
 
-**Status: approved direction, not implemented.** Nothing in this repository provisions a VM,
-an Entra identity, a manager binding or the action gate described here yet. The current policy in
-[trust and safety](safety.md) stays in force for every installation until the phase that changes
-it has landed with code, tests and docs. The [delivery tracker](#delivery-tracker) is the source
+**Status: implemented in code and templates; tenant verification pending.** The manager
+binding, directives, action gate, harness, deployment templates, runbooks and CI checks are in the
+repository with deterministic tests against synthetic Work IQ, Copilot and Graph data. Phase 0
+(platform verification) and Phase 7 (pilot) need the owner's tenant and are not done. Local
+installs keep the policy in [trust and safety](safety.md) §1–§3; the remote-host profile is
+described in [§8](safety.md#8-the-remote-host-profile) and operated per the
+[operator guide](how-to/remote-host.md). The [delivery tracker](#delivery-tracker) is the source
 of truth for what exists.
 
 [Documentation hub](README.md) · [Autopilot design note](autopilot.md) ·
@@ -285,7 +288,9 @@ copying a human's tokens.
 
 ### Phase 2: Harness supervisor
 
-- `tools/harness/margo_harness.py`: preflight, startup sweep, watch loop, schedules, health file,
+- `skills/chief-of-staff/scripts/remote_harness.py` (shipped with the skill like every other
+  deterministic owner; the earlier `tools/harness/` location was dropped because copy-mode installs
+  do not ship tools subdirectories): preflight, startup sweep, watch loop, schedules, health file,
   bounded backoff.
 - New `automations/startup.md` (read-only).
 - Tests with a fake `copilot`, fake metadata endpoint and fake Work IQ.
@@ -331,14 +336,14 @@ Update this table in the same change that delivers or alters a phase.
 
 | Phase | Status | Delivered in |
 | --- | --- | --- |
-| 0. Platform verification | Waiting for tenant details from the owner | — |
-| 1. Manager binding | Not started | — |
-| 2. Harness supervisor | Not started | — |
-| 3. Manager channels and directives | Not started | — |
-| 4. Work IQ action gate | Not started | — |
-| 5. Azure deployment | Not started | — |
-| 6. Operations | Not started | — |
-| 7. Pilot | Not started | — |
+| 0. Platform verification | Tooling delivered (`deploy/azure/scripts/verify-phase0.sh`, evidence template); verification waits for tenant details from the owner | this change |
+| 1. Manager binding | Delivered: `margo_store.py init --manager`, `migrate-config`, `rebind-manager`, doctor `binding` | this change |
+| 2. Harness supervisor | Delivered: `remote_harness.py`, `automations/startup.md`, health states, cron slots, tests with fake Copilot and gate | this change |
+| 3. Manager channels and directives | Delivered: `manager_directives.py` verification matrix and store, `margo_control.py`, `manager-channel:` evidence, `manager-directive:` task requests | this change |
+| 4. Work IQ action gate | Delivered: `workiq_gate.py` tiers, directive checks, exact approvals, receipts, peer-credential roles; policy change scoped to the profile | this change |
+| 5. Azure deployment | Delivered as templates and units under `deploy/azure/`; compiled in CI, not yet deployed to a tenant | this change |
+| 6. Operations | Delivered as runbooks and alert templates; not yet exercised | this change |
+| 7. Pilot | Not started; needs Phase 0 evidence first | — |
 
 ## Keeping the docs current
 

@@ -32,6 +32,12 @@ So the output contract changes, and getting this wrong is the main way the featu
 - **Surface script failures.** A `WARNING` or non-zero exit from the state script goes into the
   next brief. A ledger that silently reset is why you'd start seeing repeats.
 
+On the [remote-host profile](how-to/remote-host.md) the fourth rule has one documented
+exception: the action gate may allow a private, reversible write (flag, file, draft, private
+hold) under a standing rule the bound manager set. Sends, posts, RSVPs, deletes and work-item
+changes stay per-approval there too, and the gate — not the prompt — enforces it. The startup
+sweep (`automations/startup.md`) is the seventh routine; it runs once when the harness boots.
+
 The third one is the hard one. A model handed an inbox will always find *something* it could
 report. The discipline is not reporting it.
 

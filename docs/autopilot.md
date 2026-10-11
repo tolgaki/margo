@@ -6,10 +6,12 @@ autonomous outward actions. Its existing bounded task runs and unattended privat
 are different capabilities; see [task progress](how-to/task-progress-and-recovery.md) and
 [automation health](how-to/automation-health.md).
 
-**Direction chosen:** the repository owner has approved a remote-host design in which Margo runs
-on an Azure VM with her own Entra identity and delegated access to one bound manager. It is
-tracked in the [remote-host plan](remote-host-plan.md). Until its phases land, the boundaries
-below and in [trust and safety](safety.md) remain the current policy.
+**Direction chosen and built:** the repository owner approved a remote-host design in which Margo
+runs on an Azure VM with her own Entra identity and delegated access to one bound manager. Its
+code, templates and tests are in the repository ([plan and tracker](remote-host-plan.md),
+[operator guide](how-to/remote-host.md), [safety §8](safety.md#8-the-remote-host-profile)); tenant
+verification is still pending. The questions below remain the checklist for that verification.
+For local installs the boundaries in [trust and safety](safety.md) §1–§3 are unchanged.
 
 [Documentation hub](README.md) · [Developer journey](development/README.md) ·
 [Current feature inventory](features.md)

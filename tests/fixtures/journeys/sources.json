@@ -353,6 +353,16 @@
           "states": ["paused", "expired-read", "outcome-unknown", "cancelled"]
         }
       ]
+    },
+    "remote-host-v1": {
+      "version": "remote-host-v1",
+      "sources": [
+        {"id": "deployment:synthetic", "kind": "deployment-configuration", "profile": "remote-host", "margo_principal": "margo@example.com", "manager_principal": "dana@example.com", "object_ids": "{generated-at-runtime}", "tenant_values_in_repo": false},
+        {"id": "teams:manager-1on1-approve", "kind": "teams-message", "chat_type": "oneOnOne", "from": "the bound manager", "text": "approve MA-{ref}", "edited": false},
+        {"id": "email:spoofed-from", "kind": "mail", "from": "dana@example.com", "sent_items_match": false, "authentication_results": "dmarc=fail"},
+        {"id": "workiq:scripted", "kind": "mcp-server", "mode": "scripted-fake", "outbound_actions": false},
+        {"id": "copilot:fake", "kind": "host-cli", "mode": "records-argv", "outbound_actions": false}
+      ]
     }
   }
 }

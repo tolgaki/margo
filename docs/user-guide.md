@@ -187,7 +187,7 @@ the scheduler exited successfully.
 
 ## 7. Add features when there is a reason
 
-The [full feature index](features.md#full-feature-index) lists all 68 catalog entries. These
+The [full feature index](features.md#full-feature-index) lists all 73 catalog entries. These
 are the next destinations once the daily loop is useful.
 
 | Your need | Features to explore | Extra setup or important boundary |

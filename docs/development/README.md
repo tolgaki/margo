@@ -52,6 +52,7 @@ request by itself, or sandbox other host tools. A prepared draft is not a sent m
 | `.github/extensions/margo-action-desk/` | Optional thin action, memory and task-progress views | Presentation over existing CLI contracts |
 | `automations/`, `tools/margo-scheduled.*` | Schedule manifests and wrapper execution | Cadence, prompts and unattended restrictions |
 | `install.*`, `packaging/` | Copy/link installs, preservation, provenance and native wrappers | How changed files reach another machine |
+| `deploy/azure/` | Remote-host templates, systemd units, verification and runbooks; placeholders only | How the always-on VM is provisioned and operated |
 | `docs/`, `tests/fixtures/journeys/`, `evals/` | User help, catalog mappings, synthetic inputs and trace contracts | Discoverability and evidence for the outcome |
 
 Use the [state-ownership map](architecture.md#owners) before adding persistence. Task runs

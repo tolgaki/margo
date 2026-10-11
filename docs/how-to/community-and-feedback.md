@@ -57,7 +57,7 @@ not expose usable reply counts or upvotes; report "stayed active N days" as a pr
 a reply count or proof of reply-level threading.
 
 **Availability:** optional (needs a configured community), procedure. Runs on request, and
-recommended as a periodic manual sweep — not one of the six scheduled routines. Since 1.0.0.
+recommended as a periodic manual sweep — not one of the seven scheduled routines. Since 1.0.0.
 
 Treat "unanswered" as an evidence-qualified candidate when only retrieval metadata or a marked
 best answer is available; neither missing answer metadata nor an incomplete search proves no

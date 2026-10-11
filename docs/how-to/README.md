@@ -40,6 +40,7 @@ features. You do not need schedules, a canvas, or local embeddings for your firs
 | Control capture, retention, correction, forgetting and recipe export | [Memory controls and learning](memory-controls-and-learning.md) |
 | Reflect on selected opted-in session checkpoints | [Dream](dream.md) |
 | Know where a task stopped and continue safely | [Task progress and recovery](task-progress-and-recovery.md) |
+| Run Margo on a remote host with her own identity and one manager | [Remote host](remote-host.md) |
 
 Use the conversational recipes first. The CLI recipes are for inspecting records, troubleshooting,
 or operating with Margo in the foreground. They are not scripts for unattended approval.
@@ -139,7 +140,7 @@ specific foreground decision. The recorded `evidence` object contains:
 | --- | --- |
 | `kind` | Literal `human_confirmation` |
 | `actor`, `statement` | Actual decision maker and their actual decision |
-| `evidence_ref` | Actual `conversation:`, `host-interaction:`, or `legacy-review:` reference |
+| `evidence_ref` | Actual `conversation:`, `host-interaction:`, or `legacy-review:` reference; on the remote host the gate alone writes `manager-channel:<cli|teams|email>:<message-id>` after verifying the channel |
 | `subject_id`, `revision` | Exact subject being decided; current revision, or 1 at creation |
 | `decision` | Operation-specific value, such as `confirm`, `revoke`, or `approve` |
 | `decided_at` | Actual decision time, as an ISO timestamp with an offset |

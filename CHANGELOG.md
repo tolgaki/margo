@@ -2,9 +2,18 @@
 
 ## 1.3.0 (unreleased)
 
+- Remote-host profile: `margo_store.py init --manager` binds one manager (versioned config,
+  explicit `migrate-config`/`rebind-manager`, doctor `binding`); `manager_directives.py` verifies
+  manager instructions from the CLI, the Teams 1:1 and Sent-Items-confirmed email; `workiq_gate.py`
+  proxies every Work IQ call and enforces the action tiers (reads pass, private reversible writes
+  need a directive or standing rule, communicating and destructive writes need an exact approved
+  proposal and produce a receipt); `remote_harness.py` supervises boot preflight, the new startup
+  sweep, directive runs and cron slots; `deploy/azure/` ships Bicep, cloud-init, systemd units,
+  verification and runbooks. Local installs keep the unchanged approval policy; the profile needs
+  the manager binding, the gate as the only Work IQ server and tenant verification (Phase 0).
 - Documented the approved remote-host plan: Margo on an always-on Azure VM in Copilot CLI with
   her own Entra identity, delegated access to one bound manager, verified Teams/email/CLI
-  instructions and an action gate. Planned only; current approval policy is unchanged.
+  instructions and an action gate.
 - Separated Margo agent selection from chief-of-staff skill routing: names and greetings no
   longer trigger the playbook, which preserves the caller's identity. Installer and setup help
   now explicitly select the agent; updated instructions require a fresh session, not migration.

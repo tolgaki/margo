@@ -3,8 +3,9 @@
 **Status: illustrative deployment recipe; no Dockerfile, published image or container CI is
 shipped by this repository.** A container is optional and is not required to contribute.
 Start with the credential-free [developer journey](development/README.md) for normal development.
-For the planned always-on Azure VM deployment with its own identity, see the
-[remote-host plan](remote-host-plan.md).
+For the always-on Azure VM deployment with its own identity, one bound manager and the action
+gate, see the [operator guide](how-to/remote-host.md) and `deploy/azure/`; this page remains the
+generic container recipe.
 
 Potential uses are repeatable unattended private preparation and a smaller filesystem exposure
 than a host with your entire home available. A container with tokens, network and general shell

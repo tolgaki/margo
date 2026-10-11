@@ -25,6 +25,8 @@ Margo is a Work IQ reference implementation, not a standalone hosted assistant. 
 - Do not widen outward-action permissions. Approval belongs to one exact account, action,
   target, payload and revision. A goal, task plan, review button or remembered preference is
   not approval. The approval journal records a decision; it does not authenticate the caller.
+  The one sanctioned exception is the remote-host profile's tiered policy
+  (`docs/safety.md` §8): enforced by `workiq_gate.py`, scoped to a bound manager, never by prompt.
 - Unattended routines never send, post, RSVP, delete, publish or change external work items.
   Private preparation follows its documented contract. Wrapper denials cover Work IQ write
   tools, not every possible outbound path; app workflows do not inherit those flags.

@@ -55,6 +55,7 @@ preserves the caller's identity and commentary voice; drafts still use the user'
 | **Memory and context** | "what do you remember", "forget this", "find related context" | `memory.md` |
 | **Dream reflection** | "Dream about yesterday", "save a session checkpoint", "review Dream" | `dream.md` |
 | **Task progress** | "where did you stop", "resume that task", "pause this task" | `task-runs.md` |
+| **Remote host** | "what has the manager asked", "list standing rules", "why did the gate refuse that" | `remote-host.md` |
 
 Routines combine freely. A daily brief pulls from follow-through, GitHub and the document queue
 without being asked.

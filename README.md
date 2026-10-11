@@ -20,7 +20,7 @@ The documentation supports both paths:
 | --- | --- |
 | **Use Margo** | [User journey](docs/user-guide.md): first brief, reviewed reply, meeting follow-through, and a weekly rhythm |
 | **Develop or adapt Margo** | [Developer journey](docs/development/README.md): safe checkout, architecture, a complete feature change, and contribution |
-| **Explore before choosing** | [Documentation home](docs/README.md) and [all 68 features](docs/features.md#full-feature-index), including availability and limitations |
+| **Explore before choosing** | [Documentation home](docs/README.md) and [all 73 features](docs/features.md#full-feature-index), including availability and limitations |
 
 Microsoft 365 routines use Work IQ for reads and approved writes. Local Python state helpers
 maintain private records, calculate capacity, and record approvals and receipts; optional Copilot
@@ -142,7 +142,7 @@ the synthetic core without connecting a real mailbox or installing into your nor
 | **[The chief-of-staff playbook](docs/chief-of-staff.md)** | The routines and when each fires |
 | **[Running in a container](docs/container.md)** | Reproducible unattended runs, and the two-sign-in problem |
 | **[Margo as an autopilot](docs/autopilot.md)** | Design note: her own identity via Entra Agent ID — and what it breaks |
-| **[Remote-host plan](docs/remote-host-plan.md)** | Planned: an always-on Azure VM, her own identity, one bound manager and an action gate |
+| **[Remote host](docs/how-to/remote-host.md)** | An always-on Azure VM, her own identity, one bound manager, verified instruction channels and an action gate — [plan and status](docs/remote-host-plan.md) |
 | **[The agentic development plan](docs/agentic-development-plan.md)** | The contribution contract, state ownership, and delivery sequencing for coding agents |
 | **[Contributing](CONTRIBUTING.md)** | Ground rules, testing, and the one hard rule about real data |
 
