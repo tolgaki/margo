@@ -41,7 +41,7 @@ jobs:
       - name: Synthetic journey contracts cover the feature inventory
         run: python tools/journey_contracts.py --check
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with: { node-version: '22' }
 
       - name: Optional canvas and real CLI integration
