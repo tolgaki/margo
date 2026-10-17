@@ -81,10 +81,13 @@ hits=$(scan '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' \
   | grep -viE ':[A-Za-z0-9._%+-]+@(graph\.microsoft\.com|login\.microsoftonline\.com|msrc\.microsoft\.com|timestamp\.digicert\.com)$' || true)
 report "no real email addresses" "$hits"
 
-# 2. GUIDs. Two are allowed and documented: the fixed public Azure DevOps
-#    resource id, and the Windows installer's own AppId.
+# 2. GUIDs. Three are allowed and documented: the fixed public Azure DevOps
+#    resource id, the Windows installer's own AppId, and the Microsoft 365 Agents
+#    SDK's fixed public service-connection scope used by autopilot/Dockerfile (the
+#    same value Microsoft's Foundry autopilot sample ships; not a tenant identifier).
 hits=$(scan '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}' \
   | grep -vi '499b84ac-1321-427f-aa17-267ca6975798' \
+  | grep -viE '^(autopilot/Dockerfile|tools/check-clean\.sh):[0-9]+:5a807f24-c9de-44ee-a3a7-329e88a00ffc$' \
   | grep -vi 'b7e4b0a1-3c5d-4e2a-9f17-6d8c2a5e9b34' || true)
 report "no tenant/org/channel GUIDs" "$hits"
 

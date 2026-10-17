@@ -141,7 +141,8 @@ the synthetic core without connecting a real mailbox or installing into your nor
 | **[How Margo uses Work IQ](docs/work-iq.md)** | `retrieve` vs `fetch` vs `ask`, payload discipline, failure modes |
 | **[The chief-of-staff playbook](docs/chief-of-staff.md)** | The routines and when each fires |
 | **[Running in a container](docs/container.md)** | Reproducible unattended runs, and the two-sign-in problem |
-| **[Margo as an autopilot](docs/autopilot.md)** | Design note: her own identity via Entra Agent ID — and what it breaks |
+| **[Margo as an autopilot](docs/autopilot.md)** | Design: a Foundry autopilot with her own identity, reading on your behalf — and the guard that keeps it honest |
+| **[Deploy the autopilot](docs/autopilot-deployment.md)** | First read-only version: what it does, prerequisites, `azd provision`, approval and hiring |
 | **[The agentic development plan](docs/agentic-development-plan.md)** | The contribution contract, state ownership, and delivery sequencing for coding agents |
 | **[Contributing](CONTRIBUTING.md)** | Ground rules, testing, and the one hard rule about real data |
 

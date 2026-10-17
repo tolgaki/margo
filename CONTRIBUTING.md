@@ -132,8 +132,9 @@ failures. That file is gitignored and excluded from the current installer/packag
 in an attachment or hand-built archive. Do not assume all untracked files are excluded:
 native packagers enumerate tracked **and non-ignored untracked** files, and local skill installs
 walk their source trees with explicit exclusions. Build only from a sanitized checkout and inspect
-the payload. Two GUIDs are allowed and documented: the fixed public Azure DevOps resource ID, and
-the Windows installer's own AppId.
+the payload. Three GUIDs are allowed and documented: the fixed public Azure DevOps resource ID, the
+Windows installer's own AppId, and the Microsoft 365 Agents SDK's public service-connection
+scope, permitted only in `autopilot/Dockerfile`.
 
 If you touched the installers or packaging, see **[packaging/README.md](packaging/README.md)** —
 the `.pkg` and `.exe` delegate to these same scripts, so a change here reaches all three surfaces.

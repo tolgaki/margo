@@ -1,0 +1,11 @@
+{
+  "mcpServers": [
+    {
+      "name": "workiq",
+      "url": "https://workiq.svc.cloud.microsoft/mcp",
+      "resource": "api://workiq.svc.cloud.microsoft",
+      "scope": "api://workiq.svc.cloud.microsoft/WorkIQAgent.Ask",
+      "subjects": ["principal (agent on-behalf-of)", "margo (agentic user)"]
+    }
+  ]
+}

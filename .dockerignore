@@ -1,0 +1,25 @@
+# The autopilot image is built from the repository root. Never send private state or local
+# configuration to the registry build.
+.git
+**/__pycache__
+**/*.pyc
+**/state/
+**/*.sqlite3
+**/*.sqlite3-*
+**/.env
+**/.env.*
+**/.azure/
+tools/forbidden.local.txt
+tests/
+evals/
+docs/
+packaging/
+.github/
+.autopilot-*
+.work-state-test-*
+**/*.local.md
+**/tmp/
+**/.venv/
+**/venv/
+**/forbidden.local.txt
+.memory-store-test-*

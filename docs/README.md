@@ -85,7 +85,8 @@ Read these after the current implementation, not as extra setup requirements.
 | Document | How to read it |
 | --- | --- |
 | [Running in a container](container.md) | Optional deployment guidance, including separate Copilot and Work IQ sign-ins; not a ready-made security sandbox |
-| [Margo as an autopilot](autopilot.md) | Design exploration of an agent-owned identity, not a shipped sign-in or unattended-send mode |
+| [Margo as an autopilot](autopilot.md) | Foundry autopilot design and decisions; not part of the local install |
+| [Deploy Margo as a Foundry autopilot](autopilot-deployment.md) | Step-by-step deployment of the first, read-only autopilot version to a test tenant |
 | [Agentic development plan](agentic-development-plan.md) | Delivery strategy and sequencing; use the current architecture, catalog, and workflow for implementation facts |
 
 ## Help and documentation maintenance

@@ -1,0 +1,21 @@
+{
+  "agentDisplayName": "Margo",
+  "publishAsAutopilot": true,
+  "publishScope": "Tenant",
+  "appVersion": "{app-version}",
+  "canRespondWithoutMention": false,
+  "shortDescription": "Your chief of staff. Proposes; never sends without your yes.",
+  "fullDescription": "A personal autopilot that briefs, triages, preps meetings and drafts replies for the person who hires it. Works only for its manager. Every outward action needs that manager's explicit approval of the exact action.",
+  "developerName": "Tolga Kilicli",
+  "developerWebsiteUrl": "https://github.com/tolgaki/margo",
+  "privacyUrl": "https://github.com/tolgaki/margo/blob/main/autopilot/terms.md#privacy",
+  "termsOfUseUrl": "https://github.com/tolgaki/margo/blob/main/autopilot/terms.md",
+  "useAgenticUserTemplate": true,
+  "agenticUserTemplate": {
+    "Id": "digitalWorkerTemplate",
+    "File": "agenticUserTemplateManifest.json",
+    "SchemaVersion": "0.1.0-preview",
+    "AgentIdentityBlueprintId": "{blueprint-client-id}",
+    "CommunicationProtocol": "activityProtocol"
+  }
+}
