@@ -31,11 +31,13 @@ from .guard import ATTENDED, UNATTENDED, CallBudget, TokenUnavailable, WorkIQGua
 from .instance import BindingError, InstanceBinding
 from .office import OfficeQueue, OfficeReader
 from .replies import ACKNOWLEDGE, APPROVE, NONE, SETTING_LABEL, ReplyGate, load_reply_policy
+from .statecmd import StateCommands
 from .statesync import StateSync, SyncError, container_name
 
 logger = logging.getLogger("margo.autopilot")
 
 TURN_CALL_BUDGET = 40
+STATE_CALL_BUDGET = 40
 PERSONAL = "personal"  # Teams conversationType of a one-to-one chat
 REPLIES_COMMAND = re.compile(r"^\s*/replies\s+(none|acknowledge|approve)\s*$", re.IGNORECASE)
 NO_MANAGER = ("I can't find my manager in the directory, so I don't know who I work for yet. "
@@ -113,6 +115,7 @@ class Orchestrator:
         self.principal_access = principal_access
         self.recorder = recorder
         self._conversations = {}
+        self._initialised = set()
 
     def _paths(self, account):
         import margo_store  # the core's own path rules: hashed, private, never a synced folder
@@ -187,11 +190,20 @@ class Orchestrator:
             if is_manager:
                 # Create the store if needed, so this turn saves (a changed setting included).
                 await asyncio.to_thread(lambda: binding.open_ledger(str(self.state_root)).close())
+                if binding.account not in self._initialised:
+                    await asyncio.to_thread(self._state_commands(binding, preferences).initialise)
+                    self._initialised.add(binding.account)
                 return await self._manager_turn(event, binding, tokens, preferences)
             return await asyncio.to_thread(self._third_party_turn, event, binding, preferences, manager_name)
 
         outcome = await sync.run(work)
         return outcome["result"]
+
+    def _state_commands(self, binding, preferences, budget=None):
+        """The skill scripts, run for this instance's account only, inside its state lease."""
+        return StateCommands(scripts_dir=Path(self.engine.repo_root) / "skills" / "chief-of-staff" / "scripts",
+                             account=binding.account, state_root=self.state_root, preferences=preferences,
+                             budget=budget, recorder=self.recorder)
 
     async def _manager_turn(self, event, binding, tokens, preferences):
         command = REPLIES_COMMAND.match(event.get("text") or "")
@@ -207,8 +219,9 @@ class Orchestrator:
                             principal_access=self.principal_access, recorder=self.recorder)
         key = hashlib.sha256((binding.account + "|" + event["conversation_id"]).encode("utf-8")).hexdigest()
         office = OfficeReader(lambda: binding.open_ledger(str(self.state_root)))
+        state = self._state_commands(binding, preferences, budget=CallBudget(STATE_CALL_BUDGET))
         result = await self.engine.run(event.get("text") or "", mode=ATTENDED, guard=guard, office=office,
-                                       previous_response_id=self._conversations.get(key),
+                                       state=state, previous_response_id=self._conversations.get(key),
                                        preferences_path=preferences)
         if result.get("response_id"):
             self._conversations[key] = result["response_id"]

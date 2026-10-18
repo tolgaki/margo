@@ -29,6 +29,12 @@ the principal's work on their behalf (OBO), with their explicit consent and with
 as the actor, so every read is attributable. She still proposes rather than acts: nothing goes to
 another person without the principal's approval of that exact action.
 
+**She is desktop Margo, hosted and always on.** The persona file and every skill are loaded
+unchanged; only how they are reached differs. Every capability desktop Margo has and hosted Margo
+does not yet have is named, with its reason, in one list
+([`parity.py`](../autopilot/src/margo_autopilot/parity.py)). The model is told that list, and a
+test fails when a skill starts using something that is neither hosted nor listed (§4.1.1).
+
 ### Non-goals (v1)
 
 - Autonomous correspondence with anyone other than the principal.
@@ -140,13 +146,54 @@ grants **no** access to any principal's data; that is granted per instance at hi
 | Part | Source in this repo | Notes |
 | --- | --- | --- |
 | Persona | `agents/margo.agent.md` | Loaded verbatim as the system persona |
-| Procedures | `skills/chief-of-staff/` (SKILL.md + references) | Packaged as instructions/resources; same router |
-| Deterministic state | `skills/chief-of-staff/scripts/*.py` | Unchanged core logic; new storage adapter (4.3) |
+| Procedures | every `skills/*/` (SKILL.md, references, config) | Listed and loaded on demand, as the desktop host does |
+| Deterministic state | `skills/chief-of-staff/scripts/*.py` | The same scripts, run by the `margo-state` tool (4.1.1); storage shared through 4.3 |
 | Activity handler | **new** `autopilot/src/margo_autopilot/` | Activity protocol endpoint, Teams cards, schedule triggers |
 | Work IQ guard | **new** `autopilot/src/margo_autopilot/guard/` | Sits between the model and Work IQ MCP; picks the token by `on_data_of` (4.2.1) |
 
 The core stays Python 3.9+, standard library only. The hosted adapter is a separate package
 with its own dependencies, the same way optional embeddings are isolated today.
+
+### 4.1.1 Parity with desktop Margo
+
+Desktop Margo runs in a Copilot host: it lists the skills, loads one when its routine is asked
+for, reads the files it points to and runs the scripts it names in a shell. Hosted Margo does the
+same through four function tools, so the procedures run unchanged:
+
+| Desktop | Hosted | Implementation |
+| --- | --- | --- |
+| Skill list and loading | Skill index in the instructions; `load_skill` | [`skills.py`](../autopilot/src/margo_autopilot/skills.py) |
+| Reading `references/…`, `../preferences.md` | `read_skill_file`, confined to the skill's Markdown files | `skills.py` |
+| `python3 scripts/work_state.py --account A …` | `margo-state` with the same script and arguments | [`statecmd.py`](../autopilot/src/margo_autopilot/statecmd.py) |
+| `workiq-fetch`, `workiq-retrieve`, … | The same names, through the guard, plus `on_data_of` | `engine.py`, `guard.py` |
+
+**Private files.** `preferences.md` is the instance's private copy. Hosted instances keep
+commitments only in the work ledger (the post-migration state the skill describes), so
+`commitments.md` is not a file there.
+
+**The state tool runs the same scripts, not a shell.** Each call is a separate process with no
+shell, the instance's account and state directory supplied by the service, and input passed on
+stdin or as named files that exist for one call. Every subcommand of every state script is
+classified, and the run mode decides what may run: none when someone else's message started the
+run; reads and Margo's own bookkeeping (candidates, coverage, queues, run records) when
+unattended; recording a manager's decision only while the manager is in the conversation. The
+execution journal (`approve`, `begin`, `finish`, `reconcile`) waits for approval cards, because a
+hosted approval must come from the manager's authenticated card, not from chat text. A write that
+times out or crashes is `unknown`, never "failed" or "done". Receipts hold no arguments or
+output.
+
+**What is not hosted yet is one list.** [`parity.py`](../autopilot/src/margo_autopilot/parity.py)
+names every program, script, subcommand and Work IQ tool desktop Margo can use and hosted Margo
+cannot, each with its reason: `gh` (GitHub review load), `az`/`curl`/`jq` (Azure DevOps work
+items) and `git` (the team decision registry) each wait on a credential decision;
+`m365_files.py` waits on a hosted large-file bridge; installation checks and setup belong to the
+service; Work IQ writes wait for approval cards. The engine puts this list in the model's
+instructions, so a routine that needs one of them reports the gap instead of an empty result.
+
+**The parity test** ([`tests/test_autopilot_parity.py`](../tests/test_autopilot_parity.py))
+fails when the persona or a `SKILL.md` is not loaded word for word, a skill file cannot be read,
+a state subcommand is unclassified, the image does not carry every skill, or a procedure uses a
+program, script or Work IQ tool that is neither hosted nor listed.
 
 ### 4.2 Tools: Work IQ MCP only
 
@@ -531,10 +578,12 @@ autopilot/
   src/margo_autopilot/
     guard.py        transport.py # Work IQ guard and MCP client (standard library)
     engine.py       orchestrator.py  # model turn loop; who is speaking and what follows
+    skills.py       statecmd.py  # the desktop persona and skills; the skill scripts as one tool
+    parity.py                    # everything not hosted yet, with its reason
     statesync.py    office.py    # leased state bundle; queue of other people's requests
     replies.py      claims.py    instance.py
     host/                        # Agents SDK endpoint and Azure Blob store (hosted dependencies)
-tests/test_autopilot_guard.py, tests/test_autopilot_runtime.py
+tests/test_autopilot_guard.py, tests/test_autopilot_runtime.py, tests/test_autopilot_parity.py
 ```
 
 `InstanceBinding.account` is `autopilot:{agent_identity_id}:{principal_id}`, passed to the
@@ -542,10 +591,12 @@ existing account-isolated store. The core gained one read-only lookup, `Ledger.f
 the office queue can tell whether a sender has written in a conversation without scanning the
 whole ledger on every message.
 
-**First version scope:** read-only chat with the manager, queued requests from others, the reply
-setting (`none`/`acknowledge`), delegation or on-behalf-of access, leased SQLite state.
+**First version scope:** read-only chat with the manager using the same persona and skills as
+desktop Margo, including her work ledger, proactive state, task runs and memory through
+`margo-state`; queued requests from others; the reply setting (`none`/`acknowledge`);
+delegation or on-behalf-of access; leased SQLite state.
 **Not yet:** approval cards and writes, schedules, mail replies, Key Vault-held refresh tokens
-for unattended on-behalf-of, Margo's memory in the hosted turn, a feature-catalog entry.
+for unattended on-behalf-of, the items in `parity.py`, a feature-catalog entry.
 
 Required repository gates still apply (unit tests, feature catalog, journey contracts,
 `check-clean`). New scenarios use synthetic principals and `example.com` only.
@@ -561,6 +612,9 @@ Required repository gates still apply (unit tests, feature catalog, journey cont
 | **2. Scheduled delivery** | Morning brief arrives in the principal's 1:1 chat | Safety review of the §6.2 policy change signed off |
 | **3. Approved actions** | Card-approved drafts, sends, calendar moves | Journal receipts; replay and timeout tests |
 | **4. Requests to the office** | Colleagues' messages to Margo triaged into the principal's queue | Injection test suite passes |
+
+Proposals beyond these phases: [one container per hired Margo](autopilot-instance-containers.md)
+and [talking to Margo by voice](autopilot-voice.md).
 
 ## 10. Verification list (phase 0)
 
@@ -595,5 +649,6 @@ Required repository gates still apply (unit tests, feature catalog, journey cont
 | 7 | Approvals bind the exact Work IQ call (`payload.workiq`) | Kept; cards must render the call readably |
 | 8 | Hiring scope is whatever the admin configures | Blueprint does not restrict it (4.5) |
 | 9 | Publisher Tolga Kilicli; terms and icon in this repository | `autopilot/terms.md`, `autopilot/assets/`, publish template |
+| 10 | Hosted Margo is desktop Margo, hosted and live: the same persona and skills regardless of engine (18 Oct 2026) | Persona and every skill loaded unchanged; the skill scripts through `margo-state`, not a shell; every gap named in `parity.py`; a parity test in CI (4.1.1) |
 
 Still open: Copilot Credits billing subject (verification item 4) and the phase-0 results.

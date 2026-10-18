@@ -11,7 +11,10 @@ verification list are in [Margo as a Foundry autopilot](../docs/autopilot.md).
 | --- | --- |
 | `src/margo_autopilot/guard.py` | The only path from the model to Work IQ: one endpoint, token chosen by `on_data_of`, path policy, run modes, delegation fallback, claim-checked writes, content-free receipts |
 | `src/margo_autopilot/transport.py` | Standard-library MCP client for `https://workiq.svc.cloud.microsoft/mcp` |
-| `src/margo_autopilot/engine.py` | One model turn: persona + playbook, Responses API function tools, bounded rounds |
+| `src/margo_autopilot/engine.py` | One model turn: the desktop persona and skill index, Responses API function tools, bounded rounds |
+| `src/margo_autopilot/skills.py` | The persona and every skill, served unchanged (`load_skill`, `read_skill_file`) |
+| `src/margo_autopilot/statecmd.py` | The skill scripts as the `margo-state` tool: same arguments, no shell, classified by run mode |
+| `src/margo_autopilot/parity.py` | Everything desktop Margo can do that hosted Margo cannot yet, with the reason |
 | `src/margo_autopilot/orchestrator.py` | Who is speaking, manager lookup, token order, queueing and replies |
 | `src/margo_autopilot/statesync.py` | SQLite state shared across sandboxes through a leased Blob bundle |
 | `src/margo_autopilot/office.py` | Requests other people send Margo, as untrusted candidate items |

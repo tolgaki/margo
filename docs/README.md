@@ -87,6 +87,8 @@ Read these after the current implementation, not as extra setup requirements.
 | [Running in a container](container.md) | Optional deployment guidance, including separate Copilot and Work IQ sign-ins; not a ready-made security sandbox |
 | [Margo as an autopilot](autopilot.md) | Foundry autopilot design and decisions; not part of the local install |
 | [Deploy Margo as a Foundry autopilot](autopilot-deployment.md) | Step-by-step deployment of the first, read-only autopilot version to a test tenant |
+| [Plan: one container per hired Margo](autopilot-instance-containers.md) | Proposal: per-instance isolation, router, provisioning, scoped identity |
+| [Plan: talk to Margo](autopilot-voice.md) | Proposal: WebRTC voice with low latency and her own custom voice |
 | [Agentic development plan](agentic-development-plan.md) | Delivery strategy and sequencing; use the current architecture, catalog, and workflow for implementation facts |
 
 ## Help and documentation maintenance

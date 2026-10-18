@@ -6,9 +6,10 @@ WORKDIR /app
 COPY autopilot/requirements.txt /app/autopilot/requirements.txt
 RUN pip install --no-cache-dir -r /app/autopilot/requirements.txt
 
-# Persona, procedures and the deterministic core. Nothing private: .dockerignore excludes state.
+# The persona and every skill, unchanged (hosted Margo is the same Margo), and the deterministic
+# core. Nothing private: .dockerignore excludes state.
 COPY agents/ /app/agents/
-COPY skills/chief-of-staff/ /app/skills/chief-of-staff/
+COPY skills/ /app/skills/
 COPY autopilot/src/ /app/autopilot/src/
 
 ENV PYTHONPATH=/app/autopilot/src:/app/skills/chief-of-staff/scripts \

@@ -32,6 +32,8 @@ office_mod = importlib.import_module("margo_autopilot.office")
 instance = importlib.import_module("margo_autopilot.instance")
 orchestrator_mod = importlib.import_module("margo_autopilot.orchestrator")
 activity_mod = importlib.import_module("margo_autopilot.activity")
+skills_mod = importlib.import_module("margo_autopilot.skills")
+statecmd = importlib.import_module("margo_autopilot.statecmd")
 
 BINDING = autopilot.InstanceBinding("agent-identity-1", "margo-user-1", "principal-1", "chat-principal-1")
 
@@ -265,7 +267,7 @@ class EngineTests(unittest.TestCase):
 
     def test_tool_calls_go_through_the_guard_and_results_feed_back(self):
         engine = self.engine([
-            {"id": "r1", "output": [call("workiq_fetch", {"on_data_of": "principal", "entityUrls": ["/me/messages"]})]},
+            {"id": "r1", "output": [call("workiq-fetch", {"on_data_of": "principal", "entityUrls": ["/me/messages"]})]},
             final("Quiet inbox, which I checked."),
         ])
         result = self.run_engine(engine, previous_response_id="r0")
@@ -283,20 +285,30 @@ class EngineTests(unittest.TestCase):
         tools = self.model.requests[0]["tools"]
         names = {tool["name"] for tool in tools}
         self.assertTrue(all(tool["type"] == "function" for tool in tools))
-        self.assertNotIn("workiq_do_action", names)
-        self.assertNotIn("workiq_create_entity", names)
+        self.assertNotIn("workiq-do_action", names)
+        self.assertNotIn("workiq-create_entity", names)
         self.assertIn("office_requests", names)
-        self.assertIn("workiq_retrieve", names)
+        self.assertIn("workiq-retrieve", names)
+        self.assertTrue({"load_skill", "read_skill_file", "margo-state"} <= names)
         instructions = self.model.requests[0]["instructions"]
         self.assertIn("# Margo", instructions)
-        self.assertIn("# Chief of Staff", instructions)
+        self.assertIn("- **chief-of-staff**:", instructions)
+        self.assertIn("- **decision-log**:", instructions)
         self.assertIn("Saturday 17 October 2026, 01:00 (America/Los_Angeles)", instructions)
+
+    def test_third_party_runs_get_no_state_or_office_tools(self):
+        names = {tool["name"] for tool in engine_mod.function_tools(autopilot.THIRD_PARTY)}
+        self.assertNotIn("margo-state", names)
+        self.assertNotIn("office_requests", names)
+        unattended = {tool["name"] for tool in engine_mod.function_tools(autopilot.UNATTENDED)}
+        self.assertIn("margo-state", unattended)
+        self.assertNotIn("office_requests", unattended)
 
     def test_write_tools_and_bad_arguments_are_refused_without_a_call(self):
         engine = self.engine([
             {"id": "r1", "output": [
-                call("workiq_do_action", {"on_data_of": "principal", "actionUrl": "/me/sendMail"}, "c1"),
-                {"type": "function_call", "name": "workiq_fetch", "arguments": "{not json", "call_id": "c2"},
+                call("workiq-do_action", {"on_data_of": "principal", "actionUrl": "/me/sendMail"}, "c1"),
+                {"type": "function_call", "name": "workiq-fetch", "arguments": "{not json", "call_id": "c2"},
                 call("shell", {"cmd": "curl"}, "c3")]},
             final("I can't send from here."),
         ])
@@ -306,26 +318,33 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(self.transport.calls, [])
 
     def test_rounds_are_bounded_and_stopping_is_honest(self):
-        loop = [{"id": "r%d" % i, "output": [call("read_procedure", {"name": "daily-brief"})]} for i in range(5)]
+        loop = [{"id": "r%d" % i, "output": [call("load_skill", {"name": "chief-of-staff"})]} for i in range(5)]
         result = self.run_engine(self.engine(loop, max_rounds=3))
         self.assertTrue(result["stopped"])
         self.assertIsNone(result["response_id"])
         self.assertIn("incomplete", result["text"])
 
-    def test_read_procedure_is_confined_to_references_and_preferences(self):
+    def test_skill_files_are_served_unchanged_and_confined(self):
         prefs = ROOT / (".autopilot-prefs-" + uuid.uuid4().hex + ".md")
         prefs.write_text("- **Replies to other people:** none\n", encoding="utf-8")
         try:
-            engine = self.engine([], preferences_path=prefs)
-            self.assertEqual(engine._read_procedure("daily-brief")["status"], "ok")
-            self.assertEqual(engine._read_procedure("references/triage.md")["status"], "ok")
-            self.assertIn("Replies", engine._read_procedure("preferences")["text"])
-            for name in ("../SKILL", "../../agents/margo.agent", "/etc/passwd", "x" * 200, None):
-                self.assertNotEqual(engine._read_procedure(name)["status"], "ok")
-            self.assertEqual(engine._read_procedure("missing-file")["status"], "unavailable")
+            library = skills_mod.SkillLibrary(ROOT, prefs)
+            brief = (ROOT / "skills" / "chief-of-staff" / "references" / "daily-brief.md").read_text(encoding="utf-8")
+            for path in ("references/daily-brief.md", "daily-brief", "../references/daily-brief.md"):
+                with self.subTest(path=path):
+                    self.assertEqual(library.read("chief-of-staff", path)["text"], brief)
+            self.assertIn("Replies", library.read("chief-of-staff", "../preferences.md")["text"])
+            self.assertEqual(library.read("chief-of-staff", "commitments.md")["status"], "unavailable")
+            self.assertEqual(library.read("decision-log", "references/schema.md")["status"], "ok")
+            for path in ("../../agents/margo.agent.md", "/etc/passwd", "scripts/work_state.py", "state/x.md",
+                         "x" * 600, None, "..\\SKILL.md"):
+                with self.subTest(path=path):
+                    self.assertNotEqual(library.read("chief-of-staff", path)["status"], "ok")
+            self.assertEqual(library.load("no-such-skill")["status"], "refused")
         finally:
             prefs.unlink()
-        self.assertEqual(self.engine([])._read_procedure("preferences")["status"], "unavailable")
+        self.assertEqual(skills_mod.SkillLibrary(ROOT).read("chief-of-staff", "preferences.md")["status"],
+                         "unavailable")
 
     def test_large_results_are_marked_partial(self):
         big = {"statusCode": 200, "data": "x" * (engine_mod.MAX_OUTPUT_CHARS + 10)}
@@ -403,6 +422,122 @@ class LedgerBackedTests(unittest.TestCase):
         pending = asyncio.run(asyncio.to_thread(reader.pending))
         self.assertEqual([request["from"] for request in pending], ["Rafa"])
         self.assertNotEqual(opened, [threading.get_ident()])
+
+
+FAKE_SCRIPT = """import sys, time
+args = sys.argv[1:]
+command = args[4] if args[:1] == ["--account"] else args[0]
+if command == "list":
+    print('{"items": []}')
+elif command == "source":
+    print('{"error": "refused before any change"}', file=sys.stderr)
+    sys.exit(2)
+elif command == "ingest":
+    raise RuntimeError("crashed after it may have committed")
+elif command in ("propose", "show"):
+    time.sleep(5)
+"""
+
+
+class StateCommandTests(unittest.TestCase):
+    """The skill scripts, run for one instance with the same arguments the procedures show."""
+
+    def setUp(self):
+        self.root = ROOT / (".autopilot-statecmd-test-" + uuid.uuid4().hex)
+        self.root.mkdir(mode=0o700)
+        self.env = patch.dict(os.environ, {"MARGO_ALLOW_UNSAFE_STATE_DIR": "1"})
+        self.env.start()
+        self.receipts = []
+
+    def tearDown(self):
+        self.env.stop()
+        shutil.rmtree(str(self.root))
+
+    def commands(self, scripts_dir=ROOT / "skills" / "chief-of-staff" / "scripts", **kwargs):
+        return statecmd.StateCommands(scripts_dir=scripts_dir, account=BINDING.account, state_root=self.root,
+                                      recorder=self.receipts.append, **kwargs)
+
+    def test_the_same_commands_run_against_the_instance_state(self):
+        state = self.commands()
+        state.initialise()
+        source = {"family": "mail", "scope": "inbox", "external_id": "message-1", "revision": "v1",
+                  "evidence": {"quote": "Could you send the fictional deck by Friday?"},
+                  "web_link": "https://example.com/mail/1"}
+        ref = state.run({"script": "work_state.py", "args": ["source", "--input", "-"], "input": source},
+                        mode=autopilot.ATTENDED)
+        self.assertEqual(ref["status"], "ok", ref)
+        item = {"claim_key": "fictional-1", "data": {"title": "Send the fictional deck", "owner": None, "due": None,
+                                                     "direction": "owe", "source_refs": [ref["result"]]}}
+        created = state.run({"script": "work_state", "args": ["ingest", "--input=@file:item.json"],
+                             "files": {"item.json": json.dumps(item)}}, mode=autopilot.UNATTENDED)
+        self.assertEqual((created["status"], created["result"]["state"]), ("ok", "candidate"), created)
+        listed = state.run({"script": "work_state.py", "args": ["list", "--view", "decisions"]},
+                           mode=autopilot.ATTENDED)
+        self.assertEqual([entry["id"] for entry in listed["result"]["items"]], [created["result"]["id"]])
+        self.assertEqual(state.run({"script": "memory_state.py", "args": ["status"]}, mode=autopilot.ATTENDED)["status"],
+                         "ok")
+        ledger = BINDING.open_ledger(str(self.root))  # the host's own view of the same database
+        try:
+            self.assertEqual(len(ledger.list("decisions")["items"]), 1)
+        finally:
+            ledger.close()
+
+    def test_mode_policy_and_unhosted_commands_run_nothing(self):
+        state = self.commands()
+        cases = [
+            ({"script": "work_state.py", "args": ["list"]}, autopilot.THIRD_PARTY, "refused"),
+            ({"script": "work_state.py", "args": ["item-update", "item_1", "--revision", "1", "--input", "-"]},
+             autopilot.UNATTENDED, "refused"),
+            ({"script": "work_state.py", "args": ["approve", "action_1", "--revision", "1", "--input", "-"]},
+             autopilot.ATTENDED, "unavailable"),
+            ({"script": "margo_doctor.py", "args": []}, autopilot.ATTENDED, "unavailable"),
+            ({"script": "rm", "args": ["-rf", "x"]}, autopilot.ATTENDED, "refused"),
+            ({"script": "work_state.py", "args": ["--account", "someone-else", "list"]}, autopilot.ATTENDED, "refused"),
+            ({"script": "work_state.py", "args": ["list", "--account", "someone-else"]}, autopilot.ATTENDED, "refused"),
+            ({"script": "work_state.py", "args": ["list", "--state-dir=/tmp"]}, autopilot.ATTENDED, "refused"),
+            ({"script": "work_state.py", "args": ["import-preview", "/etc/passwd"]}, autopilot.ATTENDED,
+             "unavailable"),
+            ({"script": "capacity.py", "args": ["--input", "/etc/passwd"]}, autopilot.ATTENDED, "refused"),
+            ({"script": "capacity.py", "args": ["--input", "../secrets.json"]}, autopilot.ATTENDED, "refused"),
+            ({"script": "capacity.py", "args": ["--input", "@file:missing"]}, autopilot.ATTENDED, "refused"),
+            ({"script": "capacity.py", "args": ["--input=/etc/passwd"]}, autopilot.ATTENDED, "refused"),
+            ({"script": "capacity.py", "args": ["--input=../x.json"]}, autopilot.ATTENDED, "refused"),
+            ({"script": "memory_state.py", "args": ["capabilities", "--skills-dir", ".."]}, autopilot.ATTENDED,
+             "refused"),
+            ({"script": "work_state.py", "args": ["not-a-command"]}, autopilot.ATTENDED, "refused"),
+            ({"script": "work_state.py", "args": "list"}, autopilot.ATTENDED, "refused"),
+            ({"script": "work_state.py", "args": ["list"], "files": {"../x": "y"}}, autopilot.ATTENDED, "refused"),
+            ("not an object", autopilot.ATTENDED, "refused"),
+        ]
+        for arguments, mode, expected in cases:
+            with self.subTest(arguments=arguments, mode=mode):
+                self.assertEqual(state.run(arguments, mode=mode)["status"], expected)
+        self.assertTrue(all("exit_code" not in receipt for receipt in self.receipts))
+
+    def test_outcomes_are_reported_truthfully(self):
+        fake = self.root / "fake-scripts"
+        fake.mkdir()
+        (fake / "work_state.py").write_text(FAKE_SCRIPT, encoding="utf-8")
+        state = self.commands(scripts_dir=fake, timeout=1)
+        run = lambda *args: state.run({"script": "work_state.py", "args": list(args)}, mode=autopilot.ATTENDED)
+        self.assertEqual(run("list")["status"], "ok")
+        refused = run("source", "--input", "-")
+        self.assertEqual((refused["status"], refused["reason"]), ("error", "refused before any change"))
+        self.assertEqual(run("ingest", "--input", "-")["status"], "unknown")  # crashed after a possible commit
+        self.assertEqual(run("propose", "--input", "-")["status"], "unknown")  # a write that timed out
+        self.assertEqual(run("show", "item_1")["status"], "error")  # a read that timed out changed nothing
+
+    def test_budget_is_charged_before_running_and_receipts_hold_no_content(self):
+        state = self.commands(budget=autopilot.CallBudget(1))
+        secret = {"family": "mail", "scope": "inbox", "external_id": "fictional-secret-id", "revision": "v1",
+                  "evidence": {"quote": "fictional secret"}, "web_link": "https://example.com/secret"}
+        self.assertEqual(state.run({"script": "work_state.py", "args": ["source", "--input", "-"], "input": secret},
+                                   mode=autopilot.ATTENDED)["status"], "ok")
+        again = state.run({"script": "work_state.py", "args": ["list"]}, mode=autopilot.ATTENDED)
+        self.assertEqual(again["status"], "budget_exhausted")
+        recorded = json.dumps(self.receipts)
+        for text in ("fictional secret", "fictional-secret-id", BINDING.account, str(self.root)):
+            self.assertNotIn(text, recorded)
 
 
 class FakeLeaseStore:
@@ -685,7 +820,7 @@ class OrchestratorTests(unittest.TestCase):
 
     def test_manager_turn_reads_as_principal_and_saves_state(self):
         orchestrator = self.orchestrator([
-            {"id": "r1", "output": [call("workiq_fetch", {"on_data_of": "principal", "entityUrls": ["/me/messages"]})]},
+            {"id": "r1", "output": [call("workiq-fetch", {"on_data_of": "principal", "entityUrls": ["/me/messages"]})]},
             final("Nothing urgent; I checked your inbox."),
         ])
         result = self.handle(orchestrator, self.event())
@@ -831,9 +966,22 @@ class OrchestratorTests(unittest.TestCase):
         self.assertEqual(sorted(request["excerpt"] for request in output["requests"]),
                          ["First fictional request", "Second fictional request"])
 
+    def test_manager_turn_runs_skill_scripts_against_the_instance_state(self):
+        orchestrator = self.orchestrator([
+            {"id": "r1", "output": [call("margo-state", {"script": "memory_state.py", "args": ["status"]}, "c1"),
+                                    call("margo-state", {"script": "work_state.py", "args": ["list"]}, "c2"),
+                                    call("load_skill", {"name": "decision-log"}, "c3")]},
+            final("Nothing open in your ledger."),
+        ])
+        self.assertEqual(self.handle(orchestrator, self.event())["status"], "answered")
+        outputs = [json.loads(item["output"]) for item in self.model.requests[1]["input"]]
+        self.assertEqual([output["status"] for output in outputs], ["ok", "ok", "ok"])
+        self.assertEqual(outputs[1]["result"]["account"], BINDING.account)
+        self.assertIn("# Decision Log", outputs[2]["text"])
+
     def test_delegation_mode_never_requests_a_principal_token(self):
         orchestrator = self.orchestrator([
-            {"id": "r1", "output": [call("workiq_fetch", {"on_data_of": "principal", "entityUrls": ["/me/messages"]})]},
+            {"id": "r1", "output": [call("workiq-fetch", {"on_data_of": "principal", "entityUrls": ["/me/messages"]})]},
             final("Read through delegation."),
         ], principal_access="delegation")
         self.handle(orchestrator, self.event())
@@ -842,7 +990,7 @@ class OrchestratorTests(unittest.TestCase):
 
     def test_missing_principal_token_is_reported_as_blocked(self):
         orchestrator = self.orchestrator([
-            {"id": "r1", "output": [call("workiq_fetch", {"on_data_of": "principal", "entityUrls": ["/me/messages"]})]},
+            {"id": "r1", "output": [call("workiq-fetch", {"on_data_of": "principal", "entityUrls": ["/me/messages"]})]},
             final("I couldn't read your inbox."),
         ])
         self.handle(orchestrator, self.event(), missing={"principal"})

@@ -147,6 +147,7 @@ As the manager, open a chat with Margo and try:
 
 - "Brief me": she should read your inbox and calendar and cite what she found.
 - "What's in my Teams?": in delegation mode she should say Teams is unavailable, not quiet.
+- "What's waiting on me?": she reads her work ledger with the same commands as on the desktop.
 - "/replies acknowledge": she confirms the setting. `/replies none` turns it off again.
 
 Ask a colleague to message her. They should get no reply (or one acknowledgement, if enabled),
@@ -190,7 +191,10 @@ in front of other people.
   center or app package.
 - Conversation continuity (`previous_response_id`) is kept per sandbox, so a new sandbox starts a
   fresh thread; durable facts live in her state, not the thread.
-- Margo's memory store is carried in her state but not yet consulted by the hosted turn engine.
+- She has the same persona and skills as desktop Margo. What she cannot do here yet (GitHub
+  review load, Azure DevOps work items, the team decision registry, the large-file bridge,
+  approvals and sends) is listed in `autopilot/src/margo_autopilot/parity.py`, and she says so
+  when a routine needs one of them.
 - The unattended message to the manager's one-to-one chat is designed but not available: it
   needs the Graph chat ID recorded at hire, and the activity's conversation ID is a different
   identifier. Until a hire-time record exists, Margo answers only in the conversation turn.
