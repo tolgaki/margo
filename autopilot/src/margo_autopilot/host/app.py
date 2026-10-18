@@ -43,10 +43,10 @@ from microsoft_agents.hosting.core import (  # noqa: E402
 from microsoft_agents_a365.notifications.agent_notification import (  # noqa: E402
     AgentNotification,
     AgentNotificationActivity,
-    ChannelId,
 )
 
 from ..activity import is_email as _is_email  # noqa: E402
+from ..activity import stable_ids  # noqa: E402
 from ..engine import Engine  # noqa: E402
 from ..orchestrator import Orchestrator  # noqa: E402
 from ..transport import McpHttpTransport  # noqa: E402
@@ -136,6 +136,14 @@ def _identity(activity):
     }
 
 
+def _email_reference(activity):
+    """The Outlook message behind a mail activity, if the activity carries one."""
+    try:
+        return AgentNotificationActivity(activity).email
+    except Exception:  # the wrapper rejects activities without a known notification type
+        return None
+
+
 class MargoHost:
     def __init__(self):
         _configure_telemetry()
@@ -174,15 +182,24 @@ class MargoHost:
             activity = context.activity
             event = _identity(activity)
             email = _is_email(activity)
-            event.update({"conversation_id": getattr(activity.conversation, "id", None), "activity_id": activity.id,
-                          "channel": "mail" if email else "teams", "text": activity.text or ""})
-            if not event["agent_identity_id"] or not event["agent_user_id"] or not event["conversation_id"]:
+            conversation = getattr(activity, "conversation", None)
+            if not event["agent_identity_id"] or not event["agent_user_id"] or not getattr(conversation, "id", None):
                 logger.warning("message without agent identity or conversation; ignored")
                 return
+            # Mail reaches this route first; its Outlook message ID survives redelivery.
+            reference = _email_reference(activity) if email else None
+            activity_id, conversation_id = stable_ids(getattr(reference, "id", None) or activity.id,
+                                                      getattr(reference, "conversation_id", None) or conversation.id,
+                                                      event["sender_id"], activity.text or "")
+            # conversation_type decides whether this is the manager's one-to-one chat; a group chat
+            # or channel never runs a turn that reads as the manager.
+            event.update({"conversation_id": conversation_id, "activity_id": activity_id,
+                          "conversation_type": getattr(conversation, "conversation_type", None),
+                          "channel": "mail" if email else "teams", "text": activity.text or ""})
             typing = asyncio.ensure_future(self._typing(context))
             try:
                 result = await self.orchestrator.handle(event, self._token_getter(context))
-            except Exception:
+            except Exception:  # handle() reports its own failures; this is a last resort
                 logger.exception("turn failed")
                 result = {"reply": None, "status": "error"}
             finally:
@@ -191,15 +208,23 @@ class MargoHost:
             if result.get("reply") and not email:  # this version never answers mail
                 await context.send_activity(Activity(type="message", text=result["reply"], text_format="markdown"))
 
-        @self.notifications.on_agent_notification(channel_id=ChannelId(channel="agents", sub_channel="*"), **handlers)
-        async def on_notification(context: TurnContext, _: TurnState, notification: AgentNotificationActivity):
-            event = _identity(context.activity)
-            sender = getattr(notification, "from_property", None) or getattr(context.activity, "from_property", None)
-            event.update({"sender_id": getattr(sender, "aad_object_id", None) or getattr(sender, "id", None),
-                          "sender_name": getattr(sender, "name", None),
-                          "conversation_id": getattr(context.activity.conversation, "id", None) or "notification",
-                          "activity_id": context.activity.id or "notification", "channel": "mail",
-                          "text": getattr(notification, "text", None) or getattr(context.activity, "text", None) or ""})
+        # Only mail notifications become requests to the office. Lifecycle events and document
+        # comments are not messages to Margo and are never queued.
+        @self.notifications.on_email(**handlers)
+        async def on_mail_notification(context: TurnContext, _: TurnState, notification: AgentNotificationActivity):
+            activity = context.activity
+            event = _identity(activity)
+            sender = getattr(activity, "from_property", None)
+            email = getattr(notification, "email", None)
+            text = getattr(activity, "text", None) or ""
+            sender_id = getattr(sender, "aad_object_id", None) or getattr(sender, "id", None)
+            message_id, conversation_id = stable_ids(
+                getattr(email, "id", None) or activity.id,
+                getattr(email, "conversation_id", None) or getattr(getattr(activity, "conversation", None), "id", None),
+                sender_id, text)
+            event.update({"sender_id": sender_id, "sender_name": getattr(sender, "name", None),
+                          "conversation_id": conversation_id, "activity_id": message_id, "channel": "mail",
+                          "conversation_type": None, "text": text})
             if not event["agent_identity_id"] or not event["agent_user_id"]:
                 return
             try:
@@ -208,6 +233,10 @@ class MargoHost:
             except Exception:
                 logger.exception("notification failed")
             # No reply: this version never answers mail.
+
+        @self.notifications.on_agent_lifecycle_notification("*")  # SDK's on_lifecycle() is broken in 2.0.0.dev0
+        async def on_lifecycle(context: TurnContext, _: TurnState, notification: AgentNotificationActivity):
+            logger.info("lifecycle notification: %s", getattr(context.activity, "value_type", None))
 
         @self.app.activity("installationUpdate")
         async def on_installation(context: TurnContext, _: TurnState):

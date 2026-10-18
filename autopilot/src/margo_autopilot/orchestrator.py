@@ -3,35 +3,56 @@
 Order matters, and each step fails closed:
 
 1. Get Margo's own token and look up her manager in the directory (``/me/manager``). The manager
-   is who she works for; a message never decides that.
+   is who she works for; a message never decides that. A failed lookup is reported as a failure,
+   never as "no manager".
 2. Compare the authenticated sender's object ID with the manager's.
-3. Only for the manager, request a principal token. On-behalf-of exchanges the *sender's*
+3. The manager is served only in their one-to-one chat. In a group chat or channel a turn would
+   read their private data and answer in front of everyone, so it is refused with a fixed note.
+4. Only for the manager, request a principal token. On-behalf-of exchanges the *sender's*
    token, so asking for it on anyone else's message would hand the guard a colleague's token
    labelled as the manager's.
-4. Run the turn under the instance's state lease (``StateSync``).
-5. Messages from anyone else are queued as untrusted candidate requests; any reply is decided by
+5. Run the turn under the instance's state lease (``StateSync``). Ledger work runs off the event
+   loop, on the thread that opened the connection.
+6. Messages from anyone else are queued as untrusted candidate requests; any reply is decided by
    the manager's ``Replies to other people`` setting, enforced by ``ReplyGate``.
+
+The only other text that leaves is a fixed notice (no manager, lookup failed, group refused,
+turn failed). Notices name no one and carry no data, and they go only to a one-to-one Teams chat.
 """
 
 import asyncio
 import hashlib
+import logging
 import os
 import re
 from pathlib import Path
 
-from .guard import ATTENDED, UNATTENDED, CallBudget, TokenUnavailable, WorkIQGuard
-from .instance import InstanceBinding
-from .office import OfficeQueue
+from .guard import ATTENDED, UNATTENDED, CallBudget, TokenUnavailable, WorkIQGuard, _status_codes
+from .instance import BindingError, InstanceBinding
+from .office import OfficeQueue, OfficeReader
 from .replies import ACKNOWLEDGE, APPROVE, NONE, SETTING_LABEL, ReplyGate, load_reply_policy
 from .statesync import StateSync, SyncError, container_name
 
+logger = logging.getLogger("margo.autopilot")
+
 TURN_CALL_BUDGET = 40
+PERSONAL = "personal"  # Teams conversationType of a one-to-one chat
 REPLIES_COMMAND = re.compile(r"^\s*/replies\s+(none|acknowledge|approve)\s*$", re.IGNORECASE)
 NO_MANAGER = ("I can't find my manager in the directory, so I don't know who I work for yet. "
               "An administrator needs to set my manager before I can help.")
+MANAGER_UNKNOWN = ("I couldn't check who I work for just now (the directory lookup failed), so I haven't "
+                   "acted on this message. Please try again shortly.")
+GROUP_REFUSED = ("I only work with you in our one-to-one chat. I don't take part in group chats or "
+                 "channels, so I haven't read or shared anything here. Message me directly.")
 STATE_UNSAFE = ("I couldn't load my records safely, so I've stopped rather than work from a partial "
                 "memory. Nothing was sent. Try again shortly; if it persists, an operator should check "
                 "my state storage.")
+TURN_FAILED = ("Something failed on my side before I could finish, so I stopped. Nothing was sent. "
+               "Try again; if it keeps happening, an operator should check my logs.")
+
+
+class ManagerLookupFailed(Exception):
+    """The directory lookup did not succeed; that is not evidence that there is no manager."""
 
 
 class TurnTokens:
@@ -48,10 +69,17 @@ class TurnTokens:
 
 
 def _manager_from(result):
-    """Extract ``(id, displayName)`` from a Work IQ fetch of ``/me/manager``."""
+    """Return ``(id, displayName)`` from a Work IQ fetch of ``/me/manager``, or ``None`` when the
+    directory answered that there is no manager (404). Any other non-ok result raises
+    ``ManagerLookupFailed``: an outage, throttling or a billing denial says nothing about who
+    manages Margo."""
+    data = result.get("data") if isinstance(result.get("data"), dict) else {}
+    if result.get("status") == "error":
+        codes = _status_codes(data)
+        if codes and all(code == 404 for code in codes):
+            return None
     if result.get("status") != "ok":
-        return None
-    data = result.get("data") or {}
+        raise ManagerLookupFailed(result.get("status") or "no status")
     candidates = [data]
     for entry in data.get("results", []) if isinstance(data.get("results"), list) else []:
         if isinstance(entry, dict):
@@ -96,8 +124,7 @@ class Orchestrator:
         """Look the manager up on every turn: a re-org takes effect immediately, and a former
         manager stops being treated as the principal. A changed manager is a different account,
         so the previous person's ledger and memory are never opened for the new one."""
-        bootstrap = InstanceBinding(event["agent_identity_id"], event["agent_user_id"],
-                                    "unbound-manager", "unbound-chat")
+        bootstrap = InstanceBinding(event["agent_identity_id"], event["agent_user_id"], "unbound-manager")
         guard = WorkIQGuard(bootstrap, TurnTokens({"margo": margo_token}), self.transport,
                             budget=CallBudget(1), recorder=self.recorder)
         result = await asyncio.to_thread(guard.call, "fetch",
@@ -107,26 +134,45 @@ class Orchestrator:
 
     async def handle(self, event, get_token):
         """``event``: agent_identity_id, agent_user_id, sender_id, sender_name, conversation_id,
-        activity_id, channel, text. ``get_token(kind)``: awaitable returning a token or None.
-        Returns ``{"reply": str|None, "status": str}``."""
+        conversation_type, activity_id, channel, text. ``get_token(kind)``: awaitable returning a
+        token or None. Returns ``{"reply": str|None, "status": str}``; it does not raise."""
         try:
             margo_token = await get_token("margo")
         except Exception:
             margo_token = None
         if not margo_token:
             return {"reply": None, "status": "no_agent_token"}
-        manager = await self._manager(event, margo_token)
         sender = event.get("sender_id")
+        one_to_one = event.get("channel") != "mail" and event.get("conversation_type") == PERSONAL
+        try:
+            manager = await self._manager(event, margo_token)
+        except BindingError:
+            return {"reply": None, "status": "invalid_binding"}
+        except Exception as exc:  # ManagerLookupFailed, or a guard/transport configuration error
+            logger.warning("manager lookup failed: %s", exc if isinstance(exc, ManagerLookupFailed) else type(exc).__name__)
+            return {"reply": MANAGER_UNKNOWN if one_to_one and sender else None, "status": "manager_lookup_failed"}
         if not manager:
-            return {"reply": NO_MANAGER if sender else None, "status": "no_manager"}
+            return {"reply": NO_MANAGER if one_to_one and sender else None, "status": "no_manager"}
         manager_id, manager_name = manager
         # Mail is never a conversation turn in this version, even from the manager: it is queued.
         is_manager = isinstance(sender, str) and sender == manager_id and event.get("channel") != "mail"
-        chat_id = event["conversation_id"] if is_manager else "unbound-chat"
+        if is_manager and not one_to_one:
+            return {"reply": GROUP_REFUSED, "status": "group_refused"}
         try:
-            binding = InstanceBinding(event["agent_identity_id"], event["agent_user_id"], manager_id, chat_id)
+            # No principal chat: the activity's conversation ID is not the Graph chat ID recorded at
+            # hire, so the unattended principal-chat post stays unavailable in this version.
+            binding = InstanceBinding(event["agent_identity_id"], event["agent_user_id"], manager_id)
         except ValueError:
             return {"reply": None, "status": "invalid_binding"}
+        try:
+            return await self._run(event, get_token, binding, is_manager, manager_name, margo_token)
+        except SyncError:
+            return {"reply": STATE_UNSAFE if is_manager else None, "status": "state_unsafe"}
+        except Exception:
+            logger.exception("turn failed")
+            return {"reply": TURN_FAILED if is_manager else None, "status": "error"}
+
+    async def _run(self, event, get_token, binding, is_manager, manager_name, margo_token):
         database, preferences = self._paths(binding.account)
         sync = StateSync(database, self.store_for(container_name(binding.account)),
                          account=binding.account, preferences=preferences)
@@ -138,21 +184,16 @@ class Orchestrator:
                 tokens["principal"] = None
 
         async def work():
-            ledger = binding.open_ledger(str(self.state_root))
-            try:
-                if is_manager:
-                    return await self._manager_turn(event, binding, ledger, tokens, preferences)
-                return self._third_party_turn(event, binding, ledger, preferences, manager_name)
-            finally:
-                ledger.close()
+            if is_manager:
+                # Create the store if needed, so this turn saves (a changed setting included).
+                await asyncio.to_thread(lambda: binding.open_ledger(str(self.state_root)).close())
+                return await self._manager_turn(event, binding, tokens, preferences)
+            return await asyncio.to_thread(self._third_party_turn, event, binding, preferences, manager_name)
 
-        try:
-            outcome = await sync.run(work)
-        except SyncError:
-            return {"reply": STATE_UNSAFE if is_manager else None, "status": "state_unsafe"}
+        outcome = await sync.run(work)
         return outcome["result"]
 
-    async def _manager_turn(self, event, binding, ledger, tokens, preferences):
+    async def _manager_turn(self, event, binding, tokens, preferences):
         command = REPLIES_COMMAND.match(event.get("text") or "")
         if command:
             mode = command.group(1).lower()
@@ -165,8 +206,9 @@ class Orchestrator:
         guard = WorkIQGuard(binding, TurnTokens(tokens), self.transport, budget=CallBudget(TURN_CALL_BUDGET),
                             principal_access=self.principal_access, recorder=self.recorder)
         key = hashlib.sha256((binding.account + "|" + event["conversation_id"]).encode("utf-8")).hexdigest()
-        result = await self.engine.run(event.get("text") or "", mode=ATTENDED, guard=guard,
-                                       office=OfficeQueue(ledger), previous_response_id=self._conversations.get(key),
+        office = OfficeReader(lambda: binding.open_ledger(str(self.state_root)))
+        result = await self.engine.run(event.get("text") or "", mode=ATTENDED, guard=guard, office=office,
+                                       previous_response_id=self._conversations.get(key),
                                        preferences_path=preferences)
         if result.get("response_id"):
             self._conversations[key] = result["response_id"]
@@ -174,16 +216,23 @@ class Orchestrator:
             self._conversations.pop(key, None)
         return {"reply": result.get("text") or None, "status": "stopped" if result.get("stopped") else "answered"}
 
-    def _third_party_turn(self, event, binding, ledger, preferences, manager_name):
-        office = OfficeQueue(ledger)
-        first = not office.seen_before(event.get("sender_id"), event["conversation_id"])
-        office.record(channel=event.get("channel") or "teams", external_id=event["activity_id"],
-                      sender_id=event.get("sender_id"), sender_name=event.get("sender_name"),
-                      text=event.get("text"), conversation_id=event["conversation_id"])
+    def _third_party_turn(self, event, binding, preferences, manager_name):
+        """Runs in a worker thread: the ledger is opened, used and closed on this thread."""
         policy = load_reply_policy(preferences.read_text(encoding="utf-8") if preferences.is_file() else None)
         mode = policy["mode"] if policy["mode"] != APPROVE else NONE
         if event.get("channel") == "mail":
             mode = NONE  # v1 does not answer mail from other people at all
+        ledger = binding.open_ledger(str(self.state_root))
+        try:
+            office = OfficeQueue(ledger)
+            # Only an acknowledgement depends on earlier messages; otherwise skip the lookup.
+            first = not office.seen_before(event.get("sender_id"), event["conversation_id"]) \
+                if mode == ACKNOWLEDGE else None
+            office.record(channel=event.get("channel") or "teams", external_id=event["activity_id"],
+                          sender_id=event.get("sender_id"), sender_name=event.get("sender_name"),
+                          text=event.get("text"), conversation_id=event["conversation_id"])
+        finally:
+            ledger.close()
         decision = ReplyGate(binding, mode).decide(event.get("sender_id"), event["conversation_id"], None,
                                                    manager_name=manager_name, first_in_conversation=first)
         return {"reply": decision.get("text") if decision.get("send") else None, "status": "queued"}

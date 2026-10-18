@@ -98,7 +98,8 @@ availability is not proof that a human has read it.
 **The hosted autopilot design has one approved exception.** If Margo runs as a Foundry
 autopilot with her own identity (a design, not a shipped mode; see [autopilot](autopilot.md)),
 she may message her own manager in their one-to-one chat at any time, including unattended. The
-target is fixed at hire and enforced in code; every other outbound action keeps the rules above.
+target is fixed at hire and enforced in code, and a run started by anyone else's message cannot
+use it; every other outbound action keeps the rules above.
 The local assistant in this repository is unchanged.
 
 **What this rule does and does not cover.** It is scoped to *outbound* actions — anything another

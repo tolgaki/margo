@@ -5,7 +5,8 @@ so the manager's chat and a colleague's message can run in different sandboxes w
 ``$HOME`` directories. A SQLite file in ``$HOME`` alone would fork. Instead each turn:
 
 1. takes an exclusive lease on the instance's state blob (renewed while the turn runs);
-2. installs the newest bundle if the local copy is stale or missing;
+2. installs the newest bundle if the local copy is stale or missing, or, when there is no shared
+   bundle at all, discards any local copy: it was never saved, or the shared copy was removed;
 3. runs the turn against the local SQLite file, with no other session able to write;
 4. uploads a verified snapshot under the same lease, then releases it.
 
@@ -130,6 +131,14 @@ class StateSync:
                 os.chmod(str(self.preferences), 0o600)
         return manifest
 
+    def _discard_local(self):
+        """Remove local state that the shared store does not hold, so it is never built on or
+        uploaded again."""
+        for path in (self.database, *(Path(str(self.database) + suffix) for suffix in ("-journal", "-wal", "-shm")),
+                     self.preferences, self.marker):
+            if path is not None and path.exists():
+                path.unlink()
+
     def _local_etag(self):
         try:
             return self.marker.read_text(encoding="utf-8").strip() if self.database.exists() else None
@@ -156,7 +165,9 @@ class StateSync:
         try:
             data, etag = await asyncio.to_thread(lease.read)
             restored = None
-            if data and etag != self._local_etag():
+            if not data:
+                await asyncio.to_thread(self._discard_local)
+            elif etag != self._local_etag():
                 restored = await asyncio.to_thread(self._install, data)
                 self._set_local_etag(etag)
             result = await work()

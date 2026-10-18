@@ -1,5 +1,8 @@
 """Activity classification that needs no SDK import, so it can be tested offline."""
 
+import hashlib
+import json
+
 
 def _value(source, name):
     if isinstance(source, dict):
@@ -30,3 +33,19 @@ def is_email(activity):
         if str(_value(entity, "type")).lower() == "productinfo" and str(_value(entity, "id")).lower() == "email":
             return True
     return False
+
+
+def stable_ids(message_id, conversation_id, sender_id, text):
+    """Return ``(external_id, conversation_id)`` for an inbound message or mail notification.
+
+    The office queue records one request per external ID. A missing ID must not become a shared
+    placeholder, which would make every later message collide with the first. It is derived
+    from the content instead: a redelivery is recorded once, and different messages never share
+    an ID (identical repeats from the same sender in the same conversation are one request).
+    """
+    if not isinstance(message_id, str) or not message_id:
+        material = json.dumps([sender_id or None, conversation_id or None, text or ""], ensure_ascii=False)
+        message_id = "sha256-" + hashlib.sha256(material.encode("utf-8")).hexdigest()
+    if not isinstance(conversation_id, str) or not conversation_id:
+        conversation_id = "message-" + message_id
+    return message_id, conversation_id

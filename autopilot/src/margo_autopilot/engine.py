@@ -68,6 +68,8 @@ ARG_SCHEMAS = {
     "capabilities": {"type": "array", "items": {"type": "object"}},
     "includeDeveloperCard": {"type": "boolean"},
 }
+# Per-tool overrides: Work IQ's retrieve takes a list of queries, as the playbooks call it.
+TOOL_ARG_SCHEMAS = {("retrieve", "query"): {"type": "array", "items": {"type": "string"}}}
 
 
 def _strip_front_matter(text):
@@ -95,7 +97,7 @@ def function_tools(mode):
     for name in sorted(set(TOOL_ARGS) - WRITE_TOOLS):
         properties = {"on_data_of": {"type": "string", "enum": [PRINCIPAL, SELF]}}
         for arg in sorted(TOOL_ARGS[name] - {"agentId", "backend"}):
-            properties[arg] = ARG_SCHEMAS.get(arg, {"type": "string"})
+            properties[arg] = TOOL_ARG_SCHEMAS.get((name, arg)) or ARG_SCHEMAS.get(arg, {"type": "string"})
         tools.append({"type": "function", "name": PREFIX + name, "description": DESCRIPTIONS[name],
                       "parameters": {"type": "object", "properties": properties, "required": ["on_data_of"]}})
     tools.append({"type": "function", "name": "read_procedure",

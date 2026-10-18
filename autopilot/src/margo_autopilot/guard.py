@@ -14,8 +14,9 @@ What it enforces (fails closed):
 2. Path policy: relative Graph paths only, no traversal or encoded separators, allowed roots
    per intent, and ``/users/{id}`` limited to directory reads (profile, manager, reports).
 3. Writes need a live execution claim from the approval journal whose stored Work IQ call
-   equals this call exactly. Unattended and third-party runs get no write path, except
-   Margo posting to the fixed principal chat recorded at hire.
+   equals this call exactly. Unattended runs get no write path, except Margo posting to the
+   fixed principal chat recorded at hire. Third-party runs get no write path at all: a
+   stranger's message must not be able to steer what reaches the principal.
 4. Requests triggered by someone other than the principal never read as the principal, and
    as Margo may only open the triggering message. Claims are consumed durably in the ledger
    before dispatch, so no attempt is ever sent twice.
@@ -80,7 +81,9 @@ RETRIEVE_CAPABILITIES = {"People", "Meetings", "OneDriveAndSharePoint", "Email",
 # Graph rejected these before acting; anything else after a write was sent stays unknown.
 REJECTED_NO_EFFECT = {400, 401, 403, 404, 405, 409, 412, 413, 415, 422, 429}
 THIRD_PARTY_TOOLS = {"get_schema", "search_paths", "list_agents"}
+UNKNOWN_WRITE = "the write may have taken effect; outcome unknown, not retried"
 MAX_FETCH_PATHS = 20
+MAX_RETRIEVE_QUERIES = 10
 MAX_PATH = 2048
 
 
@@ -133,8 +136,11 @@ def _canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def _check_path(value, intent, write, delegated=False):
-    """Return the path without its query string, or refuse."""
+def _check_path(value, intent, write, delegated_to=None):
+    """Return the path without its query string, or refuse.
+
+    ``delegated_to`` is the bound principal's object ID when the guard itself rewrote ``/me`` to
+    their delegated mailbox; only that exact mailbox is then reachable under ``/users``."""
     if not isinstance(value, str) or not value or len(value) > MAX_PATH:
         raise _Refused("resource path must be a non-empty string")
     if not value.startswith("/") or value.startswith("//") or "://" in value:
@@ -156,8 +162,10 @@ def _check_path(value, intent, write, delegated=False):
         raise _Refused("'/%s' is not an allowed root for on_data_of=%s" % (segments[0], intent))
     if BLOCKED_SEGMENTS.intersection(names):
         raise _Refused("path reaches a blocked resource")
-    if names[0] == "users" and delegated and len(names) >= 3 and names[2] in DELEGABLE:
-        return path  # produced by the guard's own rewrite to the bound principal, never by the model
+    if names[0] == "users" and delegated_to is not None and len(names) >= 3 and names[2] in DELEGABLE:
+        if segments[1] != delegated_to:
+            raise _Refused("delegated access reaches only the bound principal's mailbox")
+        return path
     if names[0] == "users":
         # Colleagues' mail, calendars, chats and files are never reachable; the principal's
         # own data uses /me under the principal token. Directory lookups stay available.
@@ -166,10 +174,12 @@ def _check_path(value, intent, write, delegated=False):
     return path
 
 
-def _is_own_message(path):
-    segments = [segment.lower() for segment in path.strip("/").split("/")]
-    return len(segments) in (3, 4) and segments[:2] == ["me", "messages"] and (
-        len(segments) == 3 or segments[3] == "attachments")
+def _is_message(path, message_id):
+    """``/me/messages/{message_id}`` or its attachments. Graph message IDs are case-sensitive."""
+    segments = path.strip("/").split("/")
+    return (isinstance(message_id, str) and len(segments) in (3, 4)
+            and [segment.lower() for segment in segments[:2]] == ["me", "messages"]
+            and segments[2] == message_id and (len(segments) == 3 or segments[3].lower() == "attachments"))
 
 
 def _check_json_body(value):
@@ -183,7 +193,7 @@ def _check_json_body(value):
         raise _Refused("jsonBody is not valid JSON") from exc
 
 
-def _validate(tool, args, intent, write, delegated=False):
+def _validate(tool, args, intent, write, delegated_to=None):
     """Validate one call's arguments and return the resource paths it touches."""
     for key in MUST_BE_EMPTY:
         if args.get(key) not in (None, ""):
@@ -192,18 +202,22 @@ def _validate(tool, args, intent, write, delegated=False):
         urls = args.get("entityUrls")
         if not isinstance(urls, list) or not urls or len(urls) > MAX_FETCH_PATHS:
             raise _Refused("entityUrls must list 1-%d paths" % MAX_FETCH_PATHS)
-        return [_check_path(url, intent, write, delegated) for url in urls]
+        return [_check_path(url, intent, write, delegated_to) for url in urls]
     if tool == "call_function":
         present = [key for key in ("functionUrl", "parentUrl") if key in args]
         if len(present) != 1:
             raise _Refused("call_function needs exactly one of functionUrl or parentUrl")
-        return [_check_path(args[present[0]], intent, write, delegated)]
+        return [_check_path(args[present[0]], intent, write, delegated_to)]
     if tool in SINGLE_PATH_ARG:
         _check_json_body(args.get("jsonBody"))
-        return [_check_path(args.get(SINGLE_PATH_ARG[tool]), intent, write, delegated)]
+        return [_check_path(args.get(SINGLE_PATH_ARG[tool]), intent, write, delegated_to)]
     if tool == "retrieve":
-        if not isinstance(args.get("query"), str) or not args["query"].strip():
-            raise _Refused("retrieve needs a query")
+        query = args.get("query")
+        queries = [query] if isinstance(query, str) else query
+        # Work IQ takes a list of queries, as the playbooks write it; a single string also works.
+        if not isinstance(queries, list) or not 1 <= len(queries) <= MAX_RETRIEVE_QUERIES \
+                or not all(isinstance(item, str) and item.strip() for item in queries):
+            raise _Refused("retrieve needs a query: a string or a list of 1-%d strings" % MAX_RETRIEVE_QUERIES)
         if args.get("strategy") not in (None, "grounding", "copilot"):
             raise _Refused("unknown retrieve strategy")
         capabilities = args.get("capabilities", [])
@@ -253,7 +267,9 @@ class WorkIQGuard:
     """Validate, authorise, execute and record one Work IQ call at a time."""
 
     def __init__(self, binding, tokens, transport, *, journal=None, recorder=None, budget=None,
-                 principal_access=OBO):
+                 principal_access=OBO, trigger_message_id=None):
+        """``trigger_message_id``: in a third-party run, the one message in Margo's mailbox that
+        started it. Without it, a third-party run cannot open any message."""
         if getattr(transport, "endpoint", None) != WORKIQ_MCP_URL:
             raise GuardConfigError("the guard only connects to " + WORKIQ_MCP_URL)
         if principal_access not in PRINCIPAL_ACCESS:
@@ -261,6 +277,7 @@ class WorkIQGuard:
         self.principal_access = principal_access
         self.binding, self.tokens, self.transport = binding, tokens, transport
         self.journal, self.budget = journal, budget
+        self.trigger_message_id = trigger_message_id
         self.receipts = []
         self._recorder = recorder
         self._consumed = set()
@@ -284,6 +301,7 @@ class WorkIQGuard:
         except Exception:  # malformed model input is refused, never a crash without a receipt
             return self._finish(receipt, "refused", reason="malformed tool call")
         receipt["paths"] = paths
+        write = tool in WRITE_TOOLS
         if claim:
             receipt["action_id"], receipt["attempt_id"] = claim["action_id"], claim["attempt_id"]
         if self.budget is not None and not self.budget.charge():
@@ -311,7 +329,10 @@ class WorkIQGuard:
         except TransportError as exc:
             code = exc.status_code
             receipt["status_codes"] = [code] if isinstance(code, int) else []
-            self._settle(receipt, claim, "failed" if code in REJECTED_NO_EFFECT else "outcome_unknown", code)
+            if write and code not in REJECTED_NO_EFFECT:
+                self._settle(receipt, claim, "outcome_unknown", code)
+                return self._finish(receipt, "unknown", reason=UNKNOWN_WRITE)
+            self._settle(receipt, claim, "failed", code)
             return self._finish(receipt, "error", reason="Work IQ error")
         except Exception:  # connection reset, TLS, decoding: the request may have landed
             self._settle(receipt, claim, "outcome_unknown", None)
@@ -320,12 +341,17 @@ class WorkIQGuard:
         receipt["status_codes"] = codes
         good = [code for code in codes if 200 <= code < 300]
         status = "ok" if len(good) == len(codes) else "partial" if good else "error"
+        if not write:
+            return self._finish(receipt, status, data=result)
+        # A write is only "ok" with a success code, and only "error" when Graph rejected it before
+        # acting. Anything else (no code, mixed, 5xx) may have landed: the model is told so.
         if status == "ok" and codes:
             self._settle(receipt, claim, "succeeded", codes[0])
         elif status == "error" and all(code in REJECTED_NO_EFFECT for code in codes):
             self._settle(receipt, claim, "failed", codes[0])
         else:
             self._settle(receipt, claim, "outcome_unknown", None)
+            return self._finish(receipt, "unknown", reason=UNKNOWN_WRITE, data=result)
         return self._finish(receipt, status, data=result)
 
     # -- policy -------------------------------------------------------------------------
@@ -350,12 +376,14 @@ class WorkIQGuard:
         if claimed and not write:
             raise _Refused("execution claims apply only to write tools")
         paths = _validate(tool, args, intent, write)
-        if mode == THIRD_PARTY and not write:
+        if mode == THIRD_PARTY and write:
+            raise _Refused("a run triggered by someone other than the principal cannot write")
+        if mode == THIRD_PARTY:
             self._check_third_party_read(tool, paths)
         send_args = args
         if intent == PRINCIPAL and self.principal_access == DELEGATION:
             send_args = self._delegated(tool, args)
-            paths = _validate(tool, send_args, PRINCIPAL, write, delegated=True)
+            paths = _validate(tool, send_args, PRINCIPAL, write, delegated_to=self.binding.principal_id)
         if not write:
             return send_args, None, paths
         if not claimed and self._is_principal_chat_post(tool, intent, paths):
@@ -364,7 +392,7 @@ class WorkIQGuard:
                 raise _Refused("a chat message needs a JSON object body")
             return send_args, None, paths
         if mode != ATTENDED:
-            raise _Refused("unattended and third-party runs can only post to the principal's chat")
+            raise _Refused("unattended runs can only post to the principal's chat recorded at hire")
         if self.journal is None:
             raise _Refused("no approval journal is configured; writes are unavailable")
         try:
@@ -404,21 +432,21 @@ class WorkIQGuard:
                 rewritten[key] = [rewrite(v) for v in value] if isinstance(value, list) else rewrite(value)
         return rewritten
 
-    @staticmethod
-    def _check_third_party_read(tool, paths):
+    def _check_third_party_read(self, tool, paths):
         """Least privilege when someone else triggered the run.
 
         Margo's own chats, search and Copilot can surface what she has posted to the
-        principal, so a third-party-triggered run may only open the triggering message in her
-        own mailbox and use schema discovery. Replies to third parties are out of scope in v1.
+        principal, and her mailbox holds other people's requests, so a third-party-triggered
+        run may only open the triggering message and use schema discovery.
         """
         if tool in THIRD_PARTY_TOOLS:
             return
-        if tool != "fetch" or not all(_is_own_message(path) for path in paths):
-            raise _Refused("a third-party-triggered run may only open a message in Margo's mailbox")
+        if tool != "fetch" or not all(_is_message(path, self.trigger_message_id) for path in paths):
+            raise _Refused("a third-party-triggered run may only open the message that triggered it")
 
     def _is_principal_chat_post(self, tool, intent, paths):
-        if tool != "create_entity" or intent != SELF or len(paths) != 1:
+        """The chat ID must be the Graph chat ID recorded at hire; unbound means no such post."""
+        if tool != "create_entity" or intent != SELF or len(paths) != 1 or not self.binding.principal_chat_id:
             return False
         segments = paths[0].strip("/").split("/")
         if segments and segments[0].lower() == "me":

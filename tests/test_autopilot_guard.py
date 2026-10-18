@@ -18,6 +18,7 @@ work = importlib.import_module("work_ledger")
 autopilot = importlib.import_module("margo_autopilot")
 claims = importlib.import_module("margo_autopilot.claims")
 instance = importlib.import_module("margo_autopilot.instance")
+guard_mod = importlib.import_module("margo_autopilot.guard")
 replies = importlib.import_module("margo_autopilot.replies")
 
 ATTENDED, UNATTENDED, THIRD_PARTY = autopilot.ATTENDED, autopilot.UNATTENDED, autopilot.THIRD_PARTY
@@ -128,7 +129,7 @@ class GuardPolicyTests(unittest.TestCase):
         self.assertEqual(self.transport.calls, [])
 
     def test_third_party_trigger_is_least_privilege(self):
-        guard = self.guard()
+        guard = self.guard(trigger_message_id="msg-1")
         allowed = [
             ("fetch", {"on_data_of": "self", "entityUrls": ["/me/messages/msg-1?$select=subject,body"]}),
             ("fetch", {"on_data_of": "self", "entityUrls": ["/me/messages/msg-1/attachments"]}),
@@ -140,6 +141,9 @@ class GuardPolicyTests(unittest.TestCase):
             ("fetch", {"on_data_of": "self", "entityUrls": ["/me/chats/chat-principal-1/messages"]}),
             ("fetch", {"on_data_of": "self", "entityUrls": ["/chats/chat-principal-1/messages"]}),
             ("fetch", {"on_data_of": "self", "entityUrls": ["/me/messages/msg-1", "/me/chats"]}),
+            ("fetch", {"on_data_of": "self", "entityUrls": ["/me/messages/msg-2"]}),
+            ("fetch", {"on_data_of": "self", "entityUrls": ["/me/messages/MSG-1/attachments"]}),
+            ("fetch", {"on_data_of": "self", "entityUrls": ["/me/messages/msg-1", "/me/messages/msg-2"]}),
             ("retrieve", {"on_data_of": "self", "query": "what did Margo tell Dana",
                           "capabilities": [{"name": "TeamsMessages"}]}),
             ("ask", {"on_data_of": "self", "question": "What is in your chat with Dana?"}),
@@ -152,6 +156,33 @@ class GuardPolicyTests(unittest.TestCase):
             with self.subTest(tool=tool, arguments=arguments):
                 self.assertEqual(guard.call(tool, arguments, mode=THIRD_PARTY)["status"], "refused")
         self.assertEqual(self.tokens.requested, ["margo"] * len(allowed))
+
+    def test_third_party_run_without_a_trigger_message_opens_nothing(self):
+        guard = self.guard()
+        result = guard.call("fetch", {"on_data_of": "self", "entityUrls": ["/me/messages/msg-1"]}, mode=THIRD_PARTY)
+        self.assertEqual(result["status"], "refused")
+        self.assertEqual(self.transport.calls, [])
+
+    def test_retrieve_accepts_the_playbooks_query_list(self):
+        guard = self.guard()
+        for query in ("launch risks", ["meeting recap transcript notes for the fictional review"],
+                      ["first fictional query", "second fictional query"]):
+            with self.subTest(query=query):
+                self.assertEqual(guard.call("retrieve", {"on_data_of": "principal", "query": query,
+                                                         "strategy": "grounding"}, mode=ATTENDED)["status"], "ok")
+        for query in ([], [""], ["ok", 3], ["q"] * (guard_mod.MAX_RETRIEVE_QUERIES + 1), {"q": "x"}, None):
+            with self.subTest(query=query):
+                self.assertEqual(guard.call("retrieve", {"on_data_of": "principal", "query": query},
+                                            mode=ATTENDED)["status"], "refused")
+
+    def test_delegated_paths_reach_only_the_bound_principal(self):
+        self.assertEqual(guard_mod._check_path("/users/principal-1/messages", "principal", False,
+                                               delegated_to="principal-1"), "/users/principal-1/messages")
+        for path in ("/users/colleague-1/messages", "/users/PRINCIPAL-1/calendar/events"):
+            with self.subTest(path=path), self.assertRaises(guard_mod._Refused):
+                guard_mod._check_path(path, "principal", False, delegated_to="principal-1")
+        with self.assertRaises(guard_mod._Refused):
+            guard_mod._check_path("/users/principal-1/messages", "principal", False)
 
     def test_malformed_model_input_is_refused_with_a_receipt(self):
         guard = self.guard()
@@ -199,6 +230,32 @@ class GuardPolicyTests(unittest.TestCase):
                 with self.subTest(tool=tool, path=arguments.get("parentUrl"), mode=mode):
                     self.assertEqual(guard.call(tool, arguments, mode=mode)["status"], "refused")
         self.assertEqual(len(self.transport.calls), 2)
+
+    def test_a_stranger_cannot_steer_a_post_to_the_principal(self):
+        guard = self.guard(transport=FakeTransport({"statusCode": 201}))
+        body = json.dumps({"body": {"content": "Re-enter your password at https://phish.example.com"}})
+        result = guard.call("create_entity", {"on_data_of": "self", "parentUrl": "/chats/chat-principal-1/messages",
+                                              "jsonBody": body}, mode=THIRD_PARTY)
+        self.assertEqual(result["status"], "refused")
+        self.assertEqual(self.transport.calls, [])
+
+    def test_unbound_principal_chat_allows_no_claimless_post(self):
+        unbound = autopilot.InstanceBinding("agent-identity-1", "margo-user-1", "principal-1")
+        transport = FakeTransport({"statusCode": 201})
+        guard = autopilot.WorkIQGuard(unbound, FakeTokens(), transport)
+        body = json.dumps({"body": {"content": "Your brief is ready."}})
+        for path in ("/chats/None/messages", "/chats/unbound-chat/messages", "/chats//messages"):
+            with self.subTest(path=path):
+                result = guard.call("create_entity", {"on_data_of": "self", "parentUrl": path, "jsonBody": body},
+                                    mode=UNATTENDED)
+                self.assertEqual(result["status"], "refused")
+        self.assertEqual(transport.calls, [])
+
+    def test_status_less_principal_chat_post_is_unknown_not_ok(self):
+        guard = self.guard(transport=FakeTransport({"data": {}}))
+        result = guard.call("create_entity", {"on_data_of": "self", "parentUrl": "/chats/chat-principal-1/messages",
+                                              "jsonBody": json.dumps({"body": {"content": "x"}})}, mode=UNATTENDED)
+        self.assertEqual(result["status"], "unknown")
 
     def test_budget_is_charged_before_the_call(self):
         guard = self.guard(budget=autopilot.CallBudget(1))
@@ -344,13 +401,15 @@ class GuardedWriteTests(unittest.TestCase):
         self.assertEqual(self.ledger.show(rejected_id)["state"], "failed")
         server_id, server_attempt = self.started()
         guard = self.guard(FakeTransport(error=autopilot.TransportError("unavailable", status_code=503)))
-        self.assertEqual(self.send(guard, server_id, server_attempt)["status"], "error")
+        self.assertEqual(self.send(guard, server_id, server_attempt)["status"], "unknown")
         self.assertEqual(self.ledger.show(server_id)["state"], "outcome_unknown")
 
     def test_success_without_a_status_code_stays_unknown(self):
         action_id, attempt_id = self.started()
         guard = self.guard(FakeTransport({"data": {}}))
-        self.send(guard, action_id, attempt_id)
+        result = self.send(guard, action_id, attempt_id)
+        self.assertEqual(result["status"], "unknown")
+        self.assertIn("not retried", result["reason"])
         self.assertEqual(self.ledger.show(action_id)["state"], "outcome_unknown")
 
     def test_action_without_exact_workiq_call_cannot_execute(self):

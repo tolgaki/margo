@@ -8,6 +8,7 @@ person, can never open each other's ledger or memory.
 
 import re
 from dataclasses import dataclass
+from typing import Optional
 
 _ID = re.compile(r"[^\s\x00-\x1f\x7f{}/?#]{1,256}")
 
@@ -24,16 +25,23 @@ def _check(name, value):
 
 @dataclass(frozen=True)
 class InstanceBinding:
-    """Recorded at hire time from authenticated platform data, never from message content."""
+    """Recorded at hire time from authenticated platform data, never from message content.
+
+    ``principal_chat_id`` is the Graph chat ID of the manager's one-to-one chat with Margo,
+    recorded at hire. It is not the activity's conversation ID, which Teams formats differently.
+    ``None`` means no chat was recorded, so the unattended principal-chat post is unavailable.
+    """
 
     agent_identity_id: str
     agent_user_id: str
     principal_id: str
-    principal_chat_id: str
+    principal_chat_id: Optional[str] = None
 
     def __post_init__(self):
-        for name in ("agent_identity_id", "agent_user_id", "principal_id", "principal_chat_id"):
+        for name in ("agent_identity_id", "agent_user_id", "principal_id"):
             _check(name, getattr(self, name))
+        if self.principal_chat_id is not None:
+            _check("principal_chat_id", self.principal_chat_id)
         if self.principal_id == self.agent_user_id:
             raise BindingError("the principal cannot be the agent's own user account")
 

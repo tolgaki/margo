@@ -152,6 +152,10 @@ As the manager, open a chat with Margo and try:
 Ask a colleague to message her. They should get no reply (or one acknowledgement, if enabled),
 and you should see it when you ask "anything from other people?".
 
+Margo works for you only in your one-to-one chat. If you @mention her in a group chat or
+channel she answers with a fixed note and reads nothing, so your mail and calendar never appear
+in front of other people.
+
 ## Operate
 
 | Task | How |
@@ -170,7 +174,9 @@ and you should see it when you ask "anything from other people?".
 | Provisioning stops partway at role assignments | Contributor without RBAC Administrator | Get Owner, or add Role Based Access Control Administrator, and rerun |
 | `publish.sh`: "Work IQ is not enabled" | No Work IQ service principal in the tenant | Enable Work IQ for the tenant, then rerun `scripts/publish.sh` |
 | `build-image.sh` refuses to build | Uncommitted changes, or the privacy check failed | Commit, or fix what `tools/check-clean.sh` reports |
-| Margo says she can't find her manager | The instance's manager field is empty | Set the manager on Margo's account in the directory |
+| Margo says she can't find her manager | The directory answered that her account has no manager | Set the manager on Margo's account in the directory |
+| "I couldn't check who I work for just now" | The `/me/manager` lookup failed: outage, throttling, or a Copilot Credits denial for Margo's account. It is not a missing manager | Retry. If it persists, check the `workiq` traces for the lookup's status code and Margo's spending-policy assignment |
+| "Something failed on my side before I could finish" | The model call or the turn failed (throttling, content filter, bad `MARGO_TIMEZONE` or `MARGO_PRINCIPAL_ACCESS`) | Check the `turn failed` log entry; fix configuration and retry |
 | Every principal source is `blocked` | `obo` mode without a working on-behalf-of handler | Switch to `delegation`, or complete the handler setup |
 | Mail and calendar are `error` in delegation mode | Mailbox permissions missing or not yet propagated | Recheck the two Exchange commands; allow time to propagate |
 | "I couldn't load my records safely" | The state lease was busy for two minutes, or a bundle failed its checks | Retry. If it persists, check the storage account and the agent's `Storage Blob Data Contributor` role |
@@ -185,5 +191,10 @@ and you should see it when you ask "anything from other people?".
 - Conversation continuity (`previous_response_id`) is kept per sandbox, so a new sandbox starts a
   fresh thread; durable facts live in her state, not the thread.
 - Margo's memory store is carried in her state but not yet consulted by the hosted turn engine.
+- The unattended message to the manager's one-to-one chat is designed but not available: it
+  needs the Graph chat ID recorded at hire, and the activity's conversation ID is a different
+  identifier. Until a hire-time record exists, Margo answers only in the conversation turn.
+- Notifications that arrive without a message ID are recorded under an ID derived from their
+  sender, conversation and text. Two identical messages in the same thread count as one request.
 - Copilot Credits and Azure usage are charged to the deploying organisation. No cost estimate is
   made here.

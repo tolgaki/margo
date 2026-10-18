@@ -208,13 +208,18 @@ one extra argument, `on_data_of: "principal" | "self"`. The guard picks the matc
    `sites`, `drives`, `chats`, `teams`, `planner` for the principal; `me`, `users`, `chats` for
    Margo herself. `/users/{id}` allows only directory reads (profile, `manager`,
    `directReports`, which the relationship procedure uses), so colleagues' mail, calendars,
-   chats and files are unreachable. `agentId`/`backend` routing, unknown arguments and
-   shared-mailbox retrieval are refused.
+   chats and files are unreachable. Under delegation the guard's own rewrite reaches
+   `/users/{principal}` mail and calendar, and the path check itself confirms the ID is the bound
+   principal's. `agentId`/`backend` routing, unknown arguments and shared-mailbox retrieval are
+   refused. `retrieve` takes `query` as a list of strings, as the playbooks write it, or a
+   single string.
 3. **Run modes.** `attended` (the authenticated principal is present), `unattended`
    (schedules, the principal's own source notifications) and `third_party` (triggered by
-   anyone else's message). A `third_party` run never reads as the principal, and as Margo it may
-   only open the triggering message (`/me/messages/{id}` and its attachments) and use schema
-   discovery. Her chats, search and `ask` could surface what she has posted to the principal.
+   anyone else's message). A `third_party` run never reads as the principal, never writes, and
+   as Margo it may only open the triggering message (`/me/messages/{id}` and its attachments,
+   with the ID the runtime passes as `trigger_message_id`) and use schema discovery. Her chats,
+   search, `ask` and other messages could surface what she has posted to the principal or other
+   people's requests.
    The activity reply channel is outside the guard; the v1 runtime must not reply to third
    parties at all.
 4. **Writes need a live claim.** `create_entity`, `update_entity`, `delete_entity` and
@@ -225,11 +230,15 @@ one extra argument, `on_data_of: "principal" | "self"`. The guard picks the matc
    single-use across processes and restarts: a crash after dispatch leaves the attempt for
    reconciliation, never a resend. The guard records the outcome with `Ledger.finish`. The
    single claimless write is Margo posting a JSON message to the principal chat ID recorded at
-   hire, in any mode.
+   hire, in an attended or unattended run. A run started by someone else's message cannot
+   make it, so a stranger cannot steer what reaches the principal. The ID must be the Graph
+   chat ID; the activity's conversation ID is a different identifier. This version records
+   none, so the binding has no principal chat and the post is refused until it does.
 5. **Truthful outcomes.** A missing token, or any token-provider failure, is `blocked`, with no
    fallback to the other subject. A timeout or any unexpected transport failure is `unknown`,
    settled as `outcome_unknown` and never retried. Graph rejections (for example 403, 409, 429)
-   settle as no-effect failures; 5xx and status-less responses stay unknown. Malformed model
+   settle as no-effect failures; 5xx and status-less responses stay unknown, and the model is
+   told `unknown` for such a write, never `ok` or `error`. Malformed model
    input is refused with a receipt rather than raised. A call budget is charged before each call.
 6. **Receipts without content.** Every attempt records mode, subject, tool, paths without
    query strings, status codes and outcome. Tokens, bodies, queries and results are never
@@ -277,7 +286,9 @@ unchanged. Where the file lives, and why it is not enough on its own:
   60-second exclusive lease on the instance's `state.zip` (renewed while it runs), installs the
   newest bundle if its local copy is stale, runs, uploads a verified online-backup snapshot under
   the same lease, and releases it. One writer at a time, across sandboxes. A failed turn marks the
-  local copy stale so unsaved changes are never built on. A daily copy goes to `daily/`.
+  local copy stale so unsaved changes are never built on. When there is no shared bundle at all
+  (nothing saved yet, or an operator removed it), any local copy is discarded rather than
+  uploaded. A daily copy goes to `daily/`.
 - **Bundles are checked.** Each carries a manifest with the account hash and database hash; a
   foreign, tampered or corrupt bundle is refused and nothing local is replaced. The manager's
   private `preferences.md` travels in the same bundle.
@@ -495,7 +506,7 @@ starts, and partial results are reported as partial.
 | Prompt injection via Margo's own address | Anyone in the tenant can now email her directly | Only the principal's authenticated activities are instructions; everything else is data; no replies to others in v1 |
 | Confused deputy | Margo can read everything the principal can; a colleague asks her for it | Requests from non-principals are handled with the Margo token only and never trigger a principal-token read; nothing goes to anyone but the principal without a card |
 | Principal refresh token theft | A long-lived credential that reads as the principal | Per-instance Key Vault, managed-identity access only, never logged or sent to the model; guard is the sole reader; "stop reading as me" deletes it; Conditional Access still applies to each refresh |
-| Disclosure in group surfaces | She knows private things and may be added to a group chat | `canRespondWithoutMention: false`; v1 refuses group participation and says why to the principal |
+| Disclosure in group surfaces | She knows private things and may be added to a group chat | `canRespondWithoutMention: false`; the orchestrator runs the manager's turns only in a `personal` (one-to-one) conversation and answers anywhere else with a fixed note, before any principal token or read |
 | Identity spoofing | Display names and mail headers are forgeable | Authority by Entra object ID from the activity token only |
 | Blueprint supply chain | One update reaches every instance | Signed images, pinned digests, staged rollout by blueprint version, blueprint block as kill switch |
 | Telemetry leakage | Sample enables GenAI message capture by default | Capture disabled; spans carry IDs and counts, not content |
@@ -526,8 +537,10 @@ autopilot/
 tests/test_autopilot_guard.py, tests/test_autopilot_runtime.py
 ```
 
-The core needed no change: `InstanceBinding.account` is
-`autopilot:{agent_identity_id}:{principal_id}`, passed to the existing account-isolated store.
+`InstanceBinding.account` is `autopilot:{agent_identity_id}:{principal_id}`, passed to the
+existing account-isolated store. The core gained one read-only lookup, `Ledger.find_source`, so
+the office queue can tell whether a sender has written in a conversation without scanning the
+whole ledger on every message.
 
 **First version scope:** read-only chat with the manager, queued requests from others, the reply
 setting (`none`/`acknowledge`), delegation or on-behalf-of access, leased SQLite state.
@@ -573,7 +586,7 @@ Required repository gates still apply (unit tests, feature catalog, journey cont
 
 | # | Decision | Effect |
 | --- | --- | --- |
-| 1 | Margo may message her manager in their 1:1 chat at any time, including unattended | Guard allows the fixed principal-chat post in every mode; nothing else unattended |
+| 1 | Margo may message her manager in their 1:1 chat at any time, including unattended | Guard allows the fixed principal-chat post in attended and unattended runs, not in runs another person's message started; nothing else unattended |
 | 2 | Mail may go on the manager's behalf or from Margo's own mailbox, each with the manager's explicit approval | Guard requires a live claim approved by the manager's object ID for either subject |
 | 3 | Start with SQLite | SQLite in the sandbox, shared across sandboxes through a leased Blob bundle (4.3) |
 | 4 | Margo's governed memory, plus memories of her own | Foundry managed memory deferred (5.3); agent-domain memory (5.6) |

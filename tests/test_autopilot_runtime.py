@@ -10,6 +10,7 @@ import sqlite3
 import sys
 import threading
 import time
+import types
 import unittest
 import uuid
 from datetime import datetime, timezone
@@ -236,7 +237,10 @@ class FakeModel:
 
     async def create(self, **kwargs):
         self.requests.append(kwargs)
-        return self.script.pop(0)
+        step = self.script.pop(0)
+        if isinstance(step, Exception):
+            raise step
+        return step
 
 
 def call(name, arguments, call_id="c1"):
@@ -370,6 +374,35 @@ class LedgerBackedTests(unittest.TestCase):
         self.assertIn("untrusted", pending[0]["trust"])
         queue.record(channel="mail", external_id="message-9", sender_id="colleague-2", sender_name=None, text="")
         self.assertEqual(len(queue.pending()), 2)
+
+    def test_seen_before_is_per_sender_and_conversation_without_a_scan(self):
+        queue = office_mod.OfficeQueue(self.ledger)
+        self.assertFalse(queue.seen_before("colleague-1", "conv-1"))
+        queue.record(channel="teams", external_id="activity-1", sender_id="colleague-1", sender_name="Rafa",
+                     text="Hello", conversation_id="conv-1")
+        queue.record(channel="teams", external_id="activity-2", sender_id="colleague-1", sender_name="Rafa",
+                     text="Hello again", conversation_id="conv-1")
+        self.assertTrue(queue.seen_before("colleague-1", "conv-1"))
+        self.assertFalse(queue.seen_before("colleague-1", "conv-2"))
+        self.assertFalse(queue.seen_before("colleague-2", "conv-1"))
+        self.assertFalse(queue.seen_before(None, "conv-1"))
+        with patch.object(self.ledger, "list", side_effect=AssertionError("full scan")):
+            queue.seen_before("colleague-1", "conv-1")
+        self.assertEqual(len(queue.pending()), 2)
+
+    def test_office_reader_opens_the_ledger_on_the_calling_thread(self):
+        office_mod.OfficeQueue(self.ledger).record(channel="teams", external_id="activity-1", sender_id="colleague-1",
+                                                   sender_name="Rafa", text="Hello", conversation_id="conv-1")
+        opened = []
+
+        def open_ledger():
+            opened.append(threading.get_ident())
+            return BINDING.open_ledger(str(self.path))
+
+        reader = office_mod.OfficeReader(open_ledger)
+        pending = asyncio.run(asyncio.to_thread(reader.pending))
+        self.assertEqual([request["from"] for request in pending], ["Rafa"])
+        self.assertNotEqual(opened, [threading.get_ident()])
 
 
 class FakeLeaseStore:
@@ -511,6 +544,30 @@ class StateSyncTests(unittest.TestCase):
         self.turn(sync_a, lambda: None)
         self.assertEqual(notes(db_a), ["saved"])
 
+    def test_a_failed_first_turn_leaves_nothing_to_build_on(self):
+        db_a, sync_a = self.session("sandbox-a")
+        preferences = self.path / "sandbox-a" / "preferences.md"
+
+        def broken():
+            make_db(db_a, BINDING.account)
+            add_note(db_a, "never saved")
+            preferences.write_text("- **Replies to other people:** acknowledge\n")
+            raise RuntimeError("model failed")
+
+        with self.assertRaises(RuntimeError):
+            self.turn(sync_a, broken)
+        self.turn(sync_a, lambda: make_db(db_a, BINDING.account))
+        self.assertEqual(notes(db_a), [])
+        self.assertFalse(preferences.exists())
+
+    def test_removed_shared_state_is_not_resurrected_from_a_sandbox(self):
+        db_a, sync_a = self.session("sandbox-a")
+        self.turn(sync_a, lambda: (make_db(db_a, BINDING.account), add_note(db_a, "before removal")))
+        del self.store.blobs[statesync.BUNDLE]  # an operator removed the instance's data
+        self.turn(sync_a, lambda: None)
+        self.assertFalse(db_a.exists())
+        self.assertNotIn(statesync.BUNDLE, self.store.blobs)
+
     def test_foreign_or_tampered_bundles_are_refused(self):
         db_a, sync_a = self.session("sandbox-a")
         self.turn(sync_a, lambda: (make_db(db_a, BINDING.account), add_note(db_a, "dana's state")))
@@ -578,12 +635,16 @@ class DirectoryTransport:
 
     endpoint = autopilot.WORKIQ_MCP_URL
 
-    def __init__(self, manager=("principal-1", "Dana")):
-        self.manager, self.calls = manager, []
+    def __init__(self, manager=("principal-1", "Dana"), lookup_failure=None):
+        self.manager, self.lookup_failure, self.calls = manager, lookup_failure, []
 
     def call(self, tool, arguments, *, bearer):
         self.calls.append((tool, arguments, bearer))
         if tool == "fetch" and arguments.get("entityUrls", [""])[0].startswith("/me/manager"):
+            if isinstance(self.lookup_failure, Exception):
+                raise self.lookup_failure
+            if self.lookup_failure is not None:
+                return self.lookup_failure
             if not self.manager:
                 return {"results": [{"statusCode": 404, "data": {}}]}
             return {"results": [{"statusCode": 200, "data": {"id": self.manager[0], "displayName": self.manager[1]}}]}
@@ -611,10 +672,10 @@ class OrchestratorTests(unittest.TestCase):
                                              **kwargs)
 
     def event(self, sender="principal-1", text="Brief me", conversation="conv-manager", activity="a-1",
-              channel="teams", name="Dana"):
+              channel="teams", name="Dana", conversation_type="personal"):
         return {"agent_identity_id": "agent-identity-1", "agent_user_id": "margo-user-1", "sender_id": sender,
-                "sender_name": name, "conversation_id": conversation, "activity_id": activity,
-                "channel": channel, "text": text}
+                "sender_name": name, "conversation_id": conversation, "conversation_type": conversation_type,
+                "activity_id": activity, "channel": channel, "text": text}
 
     def handle(self, orchestrator, event, missing=()):
         async def get_token(kind):
@@ -686,6 +747,89 @@ class OrchestratorTests(unittest.TestCase):
         self.requested.clear()
         self.assertEqual(self.handle(self.orchestrator(), self.event(), missing={"margo"}),
                          {"reply": None, "status": "no_agent_token"})
+
+    def test_office_requests_are_readable_in_a_manager_turn(self):
+        orchestrator = self.orchestrator([
+            {"id": "r1", "output": [call("office_requests", {})]},
+            final("Rafa asked for the board deck."),
+        ])
+        self.handle(orchestrator, self.event(sender="colleague-1", name="Rafa", text="Send me the board deck",
+                                             conversation="conv-rafa", activity="c-1"))
+        result = self.handle(orchestrator, self.event(text="Anything from other people?", activity="a-2"))
+        self.assertEqual(result["status"], "answered")
+        output = json.loads(self.model.requests[1]["input"][0]["output"])
+        self.assertEqual(output["status"], "ok")
+        self.assertEqual([request["from"] for request in output["requests"]], ["Rafa"])
+
+    def test_manager_outside_a_one_to_one_chat_is_refused_before_any_read(self):
+        for conversation_type in ("groupChat", "channel", None):
+            with self.subTest(conversation_type=conversation_type):
+                orchestrator = self.orchestrator([final("Your inbox: ...")])
+                self.requested.clear()
+                result = self.handle(orchestrator, self.event(conversation="conv-group",
+                                                              conversation_type=conversation_type))
+                self.assertEqual(result, {"reply": orchestrator_mod.GROUP_REFUSED, "status": "group_refused"})
+                self.assertEqual(self.requested, ["margo"])
+                self.assertEqual(self.model.requests, [])
+                self.assertEqual(len(self.transport.calls), 1)  # the manager lookup only
+                self.assertEqual(self.stores, {})
+
+    def test_manager_turn_binds_no_principal_chat_from_the_activity(self):
+        orchestrator = self.orchestrator([final("Hello, Dana.")])
+        seen, run = [], orchestrator.engine.run
+
+        async def spy(text, **kwargs):
+            seen.append(kwargs["guard"].binding.principal_chat_id)
+            return await run(text, **kwargs)
+
+        orchestrator.engine.run = spy
+        self.assertEqual(self.handle(orchestrator, self.event())["status"], "answered")
+        self.assertEqual(seen, [None])
+
+    def test_failed_manager_lookup_is_not_reported_as_no_manager(self):
+        failures = [autopilot.TransportError("unavailable", status_code=503), autopilot.TransportTimeout("slow"),
+                    {"results": [{"statusCode": 429, "data": {}}]}, {"results": [{"statusCode": 402}]}]
+        for failure in failures:
+            with self.subTest(failure=failure):
+                orchestrator = self.orchestrator(transport=DirectoryTransport(lookup_failure=failure))
+                result = self.handle(orchestrator, self.event())
+                self.assertEqual(result, {"reply": orchestrator_mod.MANAGER_UNKNOWN, "status": "manager_lookup_failed"})
+                group = self.handle(orchestrator, self.event(conversation_type="groupChat"))
+                self.assertEqual(group, {"reply": None, "status": "manager_lookup_failed"})
+                mail = self.handle(orchestrator, self.event(channel="mail", conversation_type=None))
+                self.assertIsNone(mail["reply"])
+                self.assertEqual(self.stores, {})
+
+    def test_setup_notices_go_only_to_a_one_to_one_chat(self):
+        orchestrator = self.orchestrator(transport=DirectoryTransport(manager=None))
+        self.assertEqual(self.handle(orchestrator, self.event())["reply"], orchestrator_mod.NO_MANAGER)
+        self.assertEqual(self.handle(orchestrator, self.event(conversation_type="groupChat")),
+                         {"reply": None, "status": "no_manager"})
+        self.assertIsNone(self.handle(orchestrator, self.event(channel="mail", conversation_type=None))["reply"])
+
+    def test_a_failed_turn_is_reported_to_the_manager_not_silent(self):
+        orchestrator = self.orchestrator([RuntimeError("model throttled")])
+        with self.assertLogs("margo.autopilot", level="ERROR"):
+            result = self.handle(orchestrator, self.event())
+        self.assertEqual(result, {"reply": orchestrator_mod.TURN_FAILED, "status": "error"})
+        orchestrator = self.orchestrator()
+        with patch.object(office_mod.OfficeQueue, "record", side_effect=RuntimeError("ledger failure")), \
+                self.assertLogs("margo.autopilot", level="ERROR"):
+            colleague = self.handle(orchestrator, self.event(sender="colleague-1", conversation="conv-rafa"))
+        self.assertEqual(colleague, {"reply": None, "status": "error"})
+
+    def test_mail_without_ids_is_queued_once_per_message(self):
+        orchestrator = self.orchestrator()
+        for text in ("First fictional request", "Second fictional request", "First fictional request"):
+            message_id, conversation_id = activity_mod.stable_ids(None, None, "colleague-1", text)
+            event = self.event(sender="colleague-1", channel="mail", conversation_type=None, text=text,
+                               activity=message_id, conversation=conversation_id)
+            self.assertEqual(self.handle(orchestrator, event), {"reply": None, "status": "queued"})
+        orchestrator = self.orchestrator([{"id": "r1", "output": [call("office_requests", {})]}, final("Two.")])
+        self.handle(orchestrator, self.event(text="Anything from other people?"))
+        output = json.loads(self.model.requests[1]["input"][0]["output"])
+        self.assertEqual(sorted(request["excerpt"] for request in output["requests"]),
+                         ["First fictional request", "Second fictional request"])
 
     def test_delegation_mode_never_requests_a_principal_token(self):
         orchestrator = self.orchestrator([
@@ -760,3 +904,122 @@ class EmailClassificationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StableIdTests(unittest.TestCase):
+    def test_missing_ids_are_derived_from_content_never_shared(self):
+        first = activity_mod.stable_ids(None, None, "colleague-1", "first")
+        self.assertNotEqual(first, activity_mod.stable_ids(None, None, "colleague-1", "second"))
+        self.assertNotEqual(first[0], activity_mod.stable_ids(None, None, "colleague-2", "first")[0])
+        self.assertEqual(first, activity_mod.stable_ids("", "", "colleague-1", "first"))
+        self.assertEqual(activity_mod.stable_ids("message-1", "conv-1", "x", "y"), ("message-1", "conv-1"))
+        self.assertEqual(activity_mod.stable_ids("message-1", None, "x", "y"), ("message-1", "message-message-1"))
+
+
+def _azure_stubs():
+    """Just enough of azure.core and azure.storage.blob for the store, so no SDK or network."""
+
+    class AzureError(Exception):
+        pass
+
+    class HttpResponseError(AzureError):
+        def __init__(self, message="", status_code=None):
+            super().__init__(message)
+            self.status_code = status_code
+
+    class ResourceExistsError(HttpResponseError):
+        pass
+
+    class ResourceNotFoundError(HttpResponseError):
+        pass
+
+    exceptions = types.ModuleType("azure.core.exceptions")
+    for error in (AzureError, HttpResponseError, ResourceExistsError, ResourceNotFoundError):
+        setattr(exceptions, error.__name__, error)
+    blob = types.ModuleType("azure.storage.blob")
+    blob.BlobServiceClient = None
+    return {"azure": types.ModuleType("azure"), "azure.core": types.ModuleType("azure.core"),
+            "azure.core.exceptions": exceptions, "azure.storage": types.ModuleType("azure.storage"),
+            "azure.storage.blob": blob}
+
+
+class AzureStoreTests(unittest.TestCase):
+    def setUp(self):
+        self.modules = patch.dict(sys.modules, _azure_stubs())
+        self.modules.start()
+        sys.modules.pop("margo_autopilot.host.azure_store", None)
+        self.store_mod = importlib.import_module("margo_autopilot.host.azure_store")
+        self.errors = sys.modules["azure.core.exceptions"]
+        self.calls = []
+        test = self
+
+        class Blob:
+            def __init__(self):
+                self.upload_errors = []
+
+            def upload_blob(self, data, overwrite=False, lease=None):
+                test.calls.append("upload")
+                if self.upload_errors:
+                    raise self.upload_errors.pop(0)
+                return {"etag": "etag-1"}
+
+            def acquire_lease(self, lease_duration):
+                test.calls.append("acquire")
+                return types.SimpleNamespace(release=lambda: test.calls.append("release"), renew=lambda: None)
+
+        class Container:
+            def __init__(self):
+                self.blob = Blob()
+
+            def create_container(self):
+                test.calls.append("create")
+
+            def get_blob_client(self, name):
+                return self.blob
+
+        class Service:
+            def __init__(self, account_url, credential):
+                pass
+
+            def get_container_client(self, name):
+                test.calls.append("client:" + name)
+                return Container()
+
+        self.store_mod.BlobServiceClient = Service
+
+    def tearDown(self):
+        self.modules.stop()
+        sys.modules.pop("margo_autopilot.host.azure_store", None)
+
+    def test_stores_are_reused_and_construction_makes_no_network_call(self):
+        store_for = self.store_mod.AzureBlobLeaseStore.factory("https://state.example.com", credential=None)
+        self.assertIs(store_for("margo-a"), store_for("margo-a"))
+        self.assertIsNot(store_for("margo-a"), store_for("margo-b"))
+        self.assertEqual(self.calls, ["client:margo-a", "client:margo-b"])
+        store = store_for("margo-a")
+        for _ in range(2):
+            with store.lease("state.zip"):
+                pass
+        self.assertEqual(self.calls.count("create"), 1)
+
+    def test_a_blob_leased_by_another_sandbox_is_waited_for_not_an_error(self):
+        store = self.store_mod.AzureBlobLeaseStore.factory("https://state.example.com", None)("margo-a")
+        store.container.blob.upload_errors = [self.errors.HttpResponseError("LeaseIdMissing", status_code=412)]
+        with store.lease("state.zip") as lease:
+            self.assertIsNotNone(lease.lease)
+        self.assertEqual(self.calls[-3:], ["upload", "acquire", "release"])
+
+    def test_other_storage_failures_are_typed_sync_errors(self):
+        store = self.store_mod.AzureBlobLeaseStore.factory("https://state.example.com", None)("margo-a")
+        store.container.blob.upload_errors = [self.errors.HttpResponseError("forbidden", status_code=403)]
+        with self.assertRaises(statesync.SyncError):
+            store.lease("state.zip").__enter__()
+
+    def test_a_removed_container_is_created_again(self):
+        store = self.store_mod.AzureBlobLeaseStore.factory("https://state.example.com", None)("margo-a")
+        with store.lease("state.zip"):
+            pass
+        store.container.blob.upload_errors = [self.errors.ResourceNotFoundError("ContainerNotFound", status_code=404)]
+        with store.lease("state.zip"):
+            pass
+        self.assertEqual(self.calls.count("create"), 2)
