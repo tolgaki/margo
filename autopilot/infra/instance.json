@@ -1,0 +1,308 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.48.1.52935",
+      "templateHash": "11782017648910513000"
+    }
+  },
+  "parameters": {
+    "instanceKey": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 20
+    },
+    "agentIdentityId": {
+      "type": "string"
+    },
+    "agentUserId": {
+      "type": "string"
+    },
+    "appName": {
+      "type": "string",
+      "maxLength": 32
+    },
+    "identityName": {
+      "type": "string"
+    },
+    "stateContainerName": {
+      "type": "string",
+      "maxLength": 63
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "environmentId": {
+      "type": "string"
+    },
+    "image": {
+      "type": "string",
+      "metadata": {
+        "description": "Pinned image reference, ideally by digest"
+      }
+    },
+    "minReplicas": {
+      "type": "int",
+      "defaultValue": 0,
+      "allowedValues": [
+        0,
+        1
+      ]
+    },
+    "storageAccountName": {
+      "type": "string"
+    },
+    "registryServer": {
+      "type": "string"
+    },
+    "registryId": {
+      "type": "string"
+    },
+    "foundryAccountName": {
+      "type": "string"
+    },
+    "foundryProjectName": {
+      "type": "string"
+    },
+    "foundryProjectEndpoint": {
+      "type": "string"
+    },
+    "modelDeployment": {
+      "type": "string"
+    },
+    "storageRoleDefinitionId": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage Blob Data Contributor role definition GUID"
+      }
+    },
+    "pullRoleDefinitionId": {
+      "type": "string",
+      "metadata": {
+        "description": "AcrPull role definition GUID"
+      }
+    },
+    "modelRoleDefinitionId": {
+      "type": "string",
+      "metadata": {
+        "description": "Foundry User / Azure AI User role definition GUID"
+      }
+    },
+    "speechRoleDefinitionId": {
+      "type": "string",
+      "metadata": {
+        "description": "Cognitive Services User role definition GUID, for Voice Live"
+      }
+    },
+    "publicBaseUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "The router public base URL; the voice page is {publicBaseUrl}/i/{instanceKey}/voice/"
+      }
+    },
+    "tenantId": {
+      "type": "string"
+    },
+    "blueprintClientId": {
+      "type": "string"
+    },
+    "blueprintCredentialIdentityId": {
+      "type": "string",
+      "metadata": {
+        "description": "Shared identity trusted by the blueprint federated credential; it holds no Azure roles"
+      }
+    },
+    "blueprintCredentialClientId": {
+      "type": "string"
+    },
+    "voiceLiveModel": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "voiceName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "voiceEndpointId": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "extraEnv": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Additional {name, value} environment entries; never secrets"
+      }
+    }
+  },
+  "variables": {
+    "storageBlobDataContributor": "[parameters('storageRoleDefinitionId')]",
+    "acrPull": "[parameters('pullRoleDefinitionId')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[parameters('identityName')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "margo-instance": "[parameters('instanceKey')]"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}/{2}', parameters('storageAccountName'), 'default', parameters('stateContainerName'))]",
+      "properties": {
+        "publicAccess": "None",
+        "metadata": {
+          "margoinstance": "[parameters('instanceKey')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', parameters('storageAccountName'), 'default', parameters('stateContainerName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', parameters('storageAccountName'), 'default', parameters('stateContainerName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), variables('storageBlobDataContributor'))]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('storageBlobDataContributor'))]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', parameters('storageAccountName'), 'default', parameters('stateContainerName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('registryId'), '/')))]",
+      "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('registryId'), '/'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), variables('acrPull'))]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('acrPull'))]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName'))]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), parameters('modelRoleDefinitionId'))]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('modelRoleDefinitionId'))]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('foundryAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('foundryAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), parameters('speechRoleDefinitionId'))]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('speechRoleDefinitionId'))]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2024-03-01",
+      "name": "[parameters('appName')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "margo-instance": "[parameters('instanceKey')]"
+      },
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')))]": {},
+          "[format('{0}', parameters('blueprintCredentialIdentityId'))]": {}
+        }
+      },
+      "properties": {
+        "managedEnvironmentId": "[parameters('environmentId')]",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": false,
+            "targetPort": 8088,
+            "transport": "auto",
+            "allowInsecure": false
+          },
+          "registries": [
+            {
+              "server": "[parameters('registryServer')]",
+              "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName'))]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "margo",
+              "image": "[parameters('image')]",
+              "resources": {
+                "cpu": "[json('0.5')]",
+                "memory": "1Gi"
+              },
+              "env": "[concat(createArray(createObject('name', 'MARGO_HOSTING', 'value', 'instance'), createObject('name', 'MARGO_INSTANCE_KEY', 'value', parameters('instanceKey')), createObject('name', 'MARGO_INSTANCE_AGENT_ID', 'value', parameters('agentIdentityId')), createObject('name', 'MARGO_INSTANCE_USER_ID', 'value', parameters('agentUserId')), createObject('name', 'MARGO_STATE_BLOB_URL', 'value', reference(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-05-01').primaryEndpoints.blob), createObject('name', 'MARGO_STATE_CONTAINER', 'value', parameters('stateContainerName')), createObject('name', 'MARGO_PUBLIC_BASE_URL', 'value', parameters('publicBaseUrl')), createObject('name', 'MARGO_TENANT_ID', 'value', parameters('tenantId')), createObject('name', 'FOUNDRY_AGENT_DEFAULT_INSTANCE_CLIENT_ID', 'value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').clientId), createObject('name', 'AZURE_CLIENT_ID', 'value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').clientId), createObject('name', 'FOUNDRY_PROJECT_ENDPOINT', 'value', parameters('foundryProjectEndpoint')), createObject('name', 'ModelDeployment', 'value', parameters('modelDeployment')), createObject('name', 'VOICE_LIVE_ENDPOINT', 'value', format('https://{0}.services.ai.azure.com', parameters('foundryAccountName'))), createObject('name', 'VOICE_LIVE_MODEL', 'value', parameters('voiceLiveModel')), createObject('name', 'MARGO_VOICE_NAME', 'value', parameters('voiceName')), createObject('name', 'MARGO_VOICE_ENDPOINT_ID', 'value', parameters('voiceEndpointId')), createObject('name', 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__AUTHTYPE', 'value', 'FederatedCredentials'), createObject('name', 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID', 'value', parameters('blueprintClientId')), createObject('name', 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID', 'value', parameters('tenantId')), createObject('name', 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__FEDERATEDCLIENTID', 'value', parameters('blueprintCredentialClientId'))), parameters('extraEnv'))]",
+              "probes": [
+                {
+                  "type": "Liveness",
+                  "httpGet": {
+                    "path": "/liveness",
+                    "port": 8088
+                  },
+                  "periodSeconds": 30
+                },
+                {
+                  "type": "Readiness",
+                  "httpGet": {
+                    "path": "/readiness",
+                    "port": 8088
+                  },
+                  "periodSeconds": 10
+                }
+              ]
+            }
+          ],
+          "scale": {
+            "minReplicas": "[parameters('minReplicas')]",
+            "maxReplicas": 1
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName'))]",
+        "[extensionResourceId(resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('registryId'), '/'))), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('registryId'), '/'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), variables('acrPull')))]",
+        "[extensionResourceId(resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', parameters('storageAccountName'), 'default', parameters('stateContainerName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', parameters('storageAccountName'), 'default', parameters('stateContainerName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), variables('storageBlobDataContributor')))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "appName": {
+      "type": "string",
+      "value": "[parameters('appName')]"
+    },
+    "identityPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').principalId]"
+    }
+  }
+}

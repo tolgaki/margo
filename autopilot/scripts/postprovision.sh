@@ -4,6 +4,10 @@
 . "$(dirname -- "$0")/lib.sh"
 need TENANT_ID SUBSCRIPTION_ID RESOURCE_GROUP AZURE_AI_PROJECT_ENDPOINT AZURE_CONTAINER_REGISTRY_ENDPOINT
 
+if [ "${MARGO_HOSTING:-foundry}" = "instance" ]; then
+  exec sh "$HERE/postprovision-instance.sh"
+fi
+
 sh "$HERE/assign-infra-roles.sh"
 sh "$HERE/build-image.sh"
 sh "$HERE/create-agent.sh"

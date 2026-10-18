@@ -1,10 +1,31 @@
 # Plan: talk to Margo (WebRTC voice, her own voice)
 
-**Status: proposal, 18 October 2026. Nothing here is built.** It extends
-[Margo as a Foundry autopilot](autopilot.md) and fits the
-[one-container-per-instance plan](autopilot-instance-containers.md). Product facts come from a
-web-search review on 18 October 2026. Items marked **verify** could not be confirmed against the
-official page and must be checked before building.
+**Status: built (phase V1), 18 October 2026, and unproven against a live Voice Live resource or
+tenant.** Voice runs in [one-container-per-instance hosting](autopilot-instance-containers.md) when
+`VOICE_LIVE_MODEL` is set. In Teams, say `/voice` and Margo replies with your page's link. Product
+facts come from a web-search review on 18 October 2026; items marked **verify** were not
+confirmed against the official page.
+
+## What is built
+
+| Part | Where | Tested |
+| --- | --- | --- |
+| Session config, event bridge, tool calls, claim checks | [`voice/session.py`](../autopilot/src/margo_autopilot/voice/session.py) | Offline (`tests/test_autopilot_voice.py`) |
+| Endpoint: page, sign-in config, WebSocket, token verification, manager check, Voice Live | [`voice/server.py`](../autopilot/src/margo_autopilot/voice/server.py) | A full session with real token verification and a fake Voice Live |
+| Browser page: sign-in (PKCE, no library), microphone, playback, barge-in, captions | [`voice/static/`](../autopilot/src/margo_autopilot/voice/static/) | 35 `node --test` tests and a stubbed-browser run; no real browser or microphone |
+| Router voice proxy (HTTP and WebSocket) | `router/app.py` | Against a fake instance |
+
+**Transport change: WebSocket to Margo, not WebRTC.** Azure Container Apps accepts only HTTP and
+TCP, with no UDP, and WebRTC media needs UDP or a TURN relay. So the page sends 20 ms PCM frames
+over a secure WebSocket through the router to Margo's container, which holds the Voice Live
+session (WebSocket, GA). The microphone still uses the browser's WebRTC audio processing (echo
+cancellation, noise suppression, gain control), and Voice Live adds its own.
+
+WebRTC remains possible two ways:
+
+- **Voice Live's own WebRTC,** once it is GA and verification item 2 holds. Audio would go from
+  the browser straight to Microsoft while the server keeps control.
+- **A TURN relay,** on a host that accepts UDP.
 
 ## What you get
 
@@ -55,22 +76,22 @@ limits as Margo in Teams. Voice is another way into the same Margo, not a second
 - **Why it fits:** it is the only Azure-native option found that combines speech-to-speech
   latency, a custom voice, and processing inside the Microsoft boundary.
 
-How the pieces connect:
+How the pieces connect, as built:
 
 ```text
-Browser (MSAL sign-in, mic) ──WebRTC audio──► Margo voice relay (in the instance container)
-                                                 │  checks the manager's token
-                                                 │  holds the Voice Live session (managed identity)
-                                                 │  executes tool calls through the guard
-                                                 └──WebSocket (GA)──► Voice Live (model + custom voice)
+Browser (Entra sign-in, mic with WebRTC audio processing)
+   │  wss: hello{token}, 20 ms PCM frames            ▲ audio, captions, status, interrupt
+   ▼                                                  │
+Router  /i/{instance}/voice/ws  ──────────────►  Margo's container (voice/server.py)
+                                                   │  verifies the token and the manager
+                                                   │  Margo's token + the manager's on-behalf-of token
+                                                   │  every tool call through the engine and guard
+                                                   └──WebSocket (GA)──► Voice Live (model + voice)
 ```
 
-Today the relay takes the browser's WebRTC audio and talks to Voice Live over its GA WebSocket.
-That costs one extra hop, but the server owns the session, the instructions and every tool call.
-
-When Voice Live's WebRTC path is GA, the browser's audio can go straight to Voice Live while the
-server keeps the control channel, if verification shows tool calls arrive on that server-held
-channel. That removes the hop.
+The server owns the session, the instructions and every tool call. Calls that touch Margo's
+state take the state lease only for that call, so a long conversation never blocks her other
+work.
 
 ## Her own voice
 
@@ -96,7 +117,7 @@ open-ended generated content, which is all Margo does.
 | Phase | Outcome | Exit evidence |
 | --- | --- | --- |
 | **V0. Verify** | Answers to the list below; measured p50/p95 latency in your region | Written results; recordings use fictional content only |
-| **V1. Browser voice** | Sign in and talk to Margo in an HD voice; read-only, same tools and guard | Guard and parity tests pass for voice turns; spoken disclosure at session start |
+| **V1. Browser voice** (built) | Sign in and talk to Margo in an HD voice; read-only, same tools and guard | Guard and parity tests pass for voice turns; spoken disclosure at session start |
 | **V2. Her voice** | Custom voice live after Limited Access approval and training | Consent records on file; voice deployed in the same resource |
 | **V3. Direct WebRTC** | Relay hop removed when Voice Live WebRTC is GA | Same tests; lower measured latency |
 | **V4. Phone** (optional) | An Azure Communication Services number reaches Margo | A step-up check (caller ID can be spoofed) before any private data is spoken |
@@ -124,11 +145,23 @@ open-ended generated content, which is all Margo does.
 - **Outbound calls** with an AI voice need prior consent in the US (FCC, under the TCPA). Margo
   does not place calls in this plan.
 
-## Decisions needed
+## Decisions taken (change them with the setting shown)
 
-1. Whose voice: commission a voice talent for a custom voice, or choose an Azure HD voice.
-2. Browser only first, or phone as well.
-3. Keep text transcripts of voice sessions (and for how long), or keep nothing.
+1. **Voice:** an Azure HD voice (`en-US-Ava:DragonHDLatestNeural`) until a custom voice is
+   trained. Set `MARGO_VOICE_NAME`, and `MARGO_VOICE_ENDPOINT_ID` for a trained custom voice.
+2. **Browser only.** Phone (V4) is not built.
+3. **Nothing kept.** No audio or transcript is stored. Captions appear only on the person's own
+   page.
+4. **Limits:** 30 minutes and 60 tool calls per session (`MARGO_VOICE_MAX_SECONDS`,
+   `MARGO_VOICE_MAX_TOOL_CALLS`).
+
+## Not done yet
+
+- **Custom voice training (V2):** needs Limited Access approval and recorded consent first.
+- **Direct WebRTC (V3)** and **phone (V4).**
+- **The verification list above,** run against a live Voice Live resource.
+- **Entra setup by an operator:** expose a delegated scope (default `Voice.Talk`) on the
+  blueprint app, and add each instance's voice page as a single-page-app redirect URI.
 
 ## Sources
 
@@ -144,3 +177,5 @@ open-ended generated content, which is all Margo does.
 - Text-to-speech code of conduct: https://learn.microsoft.com/en-us/legal/cognitive-services/speech-service/text-to-speech/code-of-conduct
 - Voice Live telephony: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live-telephony
 - FCC ruling on AI voices: https://www.fcc.gov/document/fcc-makes-ai-generated-voices-robocalls-illegal
+- Container Apps ingress (HTTP and TCP only): https://learn.microsoft.com/azure/container-apps/ingress-overview
+- Container Apps UDP request: https://github.com/microsoft/azure-container-apps/issues/763

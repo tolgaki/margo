@@ -580,10 +580,14 @@ autopilot/
     engine.py       orchestrator.py  # model turn loop; who is speaking and what follows
     skills.py       statecmd.py  # the desktop persona and skills; the skill scripts as one tool
     parity.py                    # everything not hosted yet, with its reason
+    instances.py  router/  provision/  # one container per instance: names, front door, provisioner
+    voice/                       # talk to Margo: session bridge, endpoint, browser page (static/)
     statesync.py    office.py    # leased state bundle; queue of other people's requests
     replies.py      claims.py    instance.py
     host/                        # Agents SDK endpoint and Azure Blob store (hosted dependencies)
-tests/test_autopilot_guard.py, tests/test_autopilot_runtime.py, tests/test_autopilot_parity.py
+  infra/instance.bicep           # one instance (compiled to instance.json for the provisioner)
+tests/test_autopilot_guard.py, tests/test_autopilot_runtime.py, tests/test_autopilot_parity.py,
+tests/test_autopilot_instances.py, tests/test_autopilot_voice.py
 ```
 
 `InstanceBinding.account` is `autopilot:{agent_identity_id}:{principal_id}`, passed to the
@@ -650,5 +654,7 @@ and [talking to Margo by voice](autopilot-voice.md).
 | 8 | Hiring scope is whatever the admin configures | Blueprint does not restrict it (4.5) |
 | 9 | Publisher Tolga Kilicli; terms and icon in this repository | `autopilot/terms.md`, `autopilot/assets/`, publish template |
 | 10 | Hosted Margo is desktop Margo, hosted and live: the same persona and skills regardless of engine (18 Oct 2026) | Persona and every skill loaded unchanged; the skill scripts through `margo-state`, not a shell; every gap named in `parity.py`; a parity test in CI (4.1.1) |
+| 11 | One container per hired instance, as an option (18 Oct 2026) | `MARGO_HOSTING=instance`: Container Apps, scale to zero by default, own identity and state container per instance, storage never deleted automatically ([plan](autopilot-instance-containers.md)) |
+| 12 | Talk to Margo by voice (18 Oct 2026) | Voice Live behind Margo's own server, same tools and guard, HD voice until a custom voice is trained, nothing recorded; WebSocket transport because Container Apps has no UDP ([plan](autopilot-voice.md)) |
 
 Still open: Copilot Credits billing subject (verification item 4) and the phase-0 results.

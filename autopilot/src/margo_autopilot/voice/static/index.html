@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="referrer" content="no-referrer">
+  <title>Talk to Margo</title>
+  <link rel="stylesheet" href="voice.css">
+  <script type="module" src="voice.js"></script>
+</head>
+<body>
+  <main class="voice" aria-labelledby="title">
+    <header class="voice-header">
+      <h1 id="title">Talk to Margo</h1>
+      <p id="account" class="account" hidden></p>
+    </header>
+
+    <section class="disclosure" aria-labelledby="disclosure-title">
+      <h2 id="disclosure-title" class="visually-hidden">Before you talk</h2>
+      <p>You're talking to Margo, an AI assistant. Her voice is synthetic. Audio is not recorded.</p>
+      <p>Margo can't approve or send anything by voice; approvals happen in Teams.</p>
+      <p id="server-disclosure" class="disclosure-server" hidden></p>
+    </section>
+
+    <div class="controls" role="group" aria-label="Call controls">
+      <button id="sign-in" class="button" type="button" disabled aria-describedby="status">Sign in</button>
+      <button id="start" class="button button-primary" type="button" disabled aria-describedby="status">Start talking</button>
+      <button id="end" class="button button-end" type="button" disabled>End</button>
+    </div>
+
+    <p id="status" class="status" aria-live="polite">Loading…</p>
+    <p id="error" class="error" role="alert" hidden></p>
+    <noscript><p class="error">This page needs JavaScript to sign in and talk to Margo.</p></noscript>
+
+    <section class="captions-panel" aria-labelledby="captions-title">
+      <h2 id="captions-title">Captions</h2>
+      <div id="captions" class="captions" role="log" aria-live="polite" aria-labelledby="captions-title" tabindex="0">
+        <p id="captions-empty" class="captions-empty">Captions appear here during the call.</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

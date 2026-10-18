@@ -1,8 +1,24 @@
 # Plan: one container per hired Margo
 
-**Status: proposal, 18 October 2026. Nothing here is built.** It extends
-[Margo as a Foundry autopilot](autopilot.md) and keeps decision 10: hosted Margo is desktop Margo,
-with the same persona and skills, and no general shell.
+**Status: built, 18 October 2026, and unproven in a live tenant.** Turn it on with
+`MARGO_HOSTING=instance` ([deployment guide](autopilot-deployment.md#one-container-per-instance));
+the default stays one Foundry hosted agent. It extends [Margo as a Foundry autopilot](autopilot.md)
+and keeps decision 10: hosted Margo is desktop Margo, with the same persona and skills, and no
+general shell.
+
+## What is built
+
+| Part | Where | Tested |
+| --- | --- | --- |
+| Names, route table, lifecycle mapping, plans | [`instances.py`](../autopilot/src/margo_autopilot/instances.py) | Offline (`tests/test_autopilot_instances.py`) |
+| Router: platform-token check, forwarding, lifecycle to the queue, voice proxy | [`router/`](../autopilot/src/margo_autopilot/router/) | Decisions offline; the aiohttp app against a fake instance |
+| Provisioner job: deploy, suspend, retire, route table with ETags | [`provision/`](../autopilot/src/margo_autopilot/provision/) | Steps offline with a fake cloud; SDK calls checked against the libraries |
+| One instance: identity, scoped storage role, Container App | [`infra/instance.bicep`](../autopilot/infra/instance.bicep) → `instance.json` | Compiled with Bicep; parameters checked against the provisioner |
+| Shared: environment, router, provisioner job, queue, route table | [`infra/main.bicep`](../autopilot/infra/main.bicep) (`hostingMode`) | Compiled with Bicep |
+| Roles by name, image, router and job update | [`scripts/postprovision-instance.sh`](../autopilot/scripts/postprovision-instance.sh) | Syntax only |
+| Instance mode in the host and orchestrator | `host/app.py`, `orchestrator.py`, `statesync.py` | Offline; the host started in instance mode |
+
+Nothing was deployed: no Azure subscription or tenant was used.
 
 ## Why
 
@@ -127,8 +143,22 @@ only from the router (internal ingress).
 - **Orphaned resources** after partial failures. The provisioner reconciles on a schedule.
 - **Retention** when a manager leaves or an instance is retired (design verification item 10).
 
-## Decisions needed
+## Decisions taken (change them with the setting shown)
 
-1. Container Apps (recommended) or AKS.
-2. Scale to zero (cheaper, cold starts) or a warm minimum (faster, costs more).
-3. Retention period for a retired instance's state, and for a previous manager's state.
+1. **Container Apps**, as recommended.
+2. **Scale to zero** by default (`instanceMinReplicas=0`); set `1` to keep instances warm.
+3. **No automatic deletion of state.** Retirement removes an instance's app and identity and keeps
+   its storage. An operator deletes the `margo-i-…` container when the retention period agreed
+   with the organisation has passed.
+
+## Not done yet
+
+- **Schedules (phase 4):** these wait on the hosted scheduler and on recording the principal chat
+  ID at hire.
+- **The verification list above:** especially routing and the token exchange. Today the
+  blueprint's messaging endpoint and its federated credential are set by an operator (the
+  deployment guide lists the steps).
+- **Shared credential:** all instances share the blueprint credential identity, so a compromised
+  instance could get Margo-the-agent's token for another instance. It could not get another
+  manager's data, which needs that manager's own sign-in. Verification item 2 asks whether this
+  can be per instance.

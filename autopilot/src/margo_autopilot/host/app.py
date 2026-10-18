@@ -53,6 +53,7 @@ from ..transport import McpHttpTransport  # noqa: E402
 from .azure_store import AzureBlobLeaseStore  # noqa: E402
 
 WORKIQ_SCOPE = "api://workiq.svc.cloud.microsoft/.default"
+HOSTING = os.getenv("MARGO_HOSTING", "foundry")  # "instance": this container serves one hired Margo
 AGENTIC_HANDLER = os.getenv("AUTH_HANDLER_NAME", "AGENTIC")
 PRINCIPAL_HANDLER = os.getenv("PRINCIPAL_AUTH_HANDLER", "")  # on-behalf-of handler; see deployment guide
 HEALTH_PATHS = {"/", "/liveness", "/readiness"}
@@ -119,10 +120,18 @@ def build_orchestrator():
     engine = Engine(model=_model_client(async_credential), deployment=deployment,
                     repo_root=os.getenv("MARGO_REPO_ROOT", "/app"),
                     timezone=os.getenv("MARGO_TIMEZONE", "America/Los_Angeles"))
+    instance = state_container = voice_url = None
+    if HOSTING == "instance":
+        instance = (os.environ["MARGO_INSTANCE_AGENT_ID"], os.environ["MARGO_INSTANCE_USER_ID"])
+        state_container = os.environ["MARGO_STATE_CONTAINER"]
+        base = os.getenv("MARGO_PUBLIC_BASE_URL", "").rstrip("/")
+        if base and os.getenv("VOICE_LIVE_MODEL"):
+            voice_url = "%s/i/%s/voice/" % (base, os.environ["MARGO_INSTANCE_KEY"])
     return Orchestrator(engine=engine, transport=McpHttpTransport(), state_root=_state_root(),
                         store_for=AzureBlobLeaseStore.factory(blob_url, _credential()),
                         principal_access=os.getenv("MARGO_PRINCIPAL_ACCESS", "obo"),
-                        recorder=_receipt_logger)
+                        recorder=_receipt_logger, instance=instance, state_container=state_container,
+                        voice_url=voice_url)
 
 
 def _identity(activity):
@@ -159,6 +168,14 @@ class MargoHost:
                                                authorization=self.authorization, **config)
         self.notifications = AgentNotification(self.app)
         self.orchestrator = build_orchestrator()
+        self.voice = None
+        if HOSTING == "instance" and os.getenv("VOICE_LIVE_MODEL"):
+            from ..voice.server import VoiceService
+
+            self.voice = VoiceService(orchestrator=self.orchestrator, connections=self.connections,
+                                      instance=self.orchestrator.instance, tenant_id=os.environ["MARGO_TENANT_ID"],
+                                      client_id=os.environ["CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID"],
+                                      scope=os.getenv("MARGO_VOICE_SCOPE", "Voice.Talk"))
         self._register()
 
     def _token_getter(self, context):
@@ -267,11 +284,18 @@ class MargoHost:
         if secret and client_id and tenant_id and scope:
             auth_configuration = AgentAuthConfiguration(client_id=client_id, tenant_id=tenant_id,
                                                         client_secret=secret, scopes=[scope])
+        elif HOSTING == "instance":
+            # No platform edge in front of an instance container: every activity's token is checked
+            # here, as the router already did. Without the blueprint's identity, refuse to start.
+            if not (client_id and tenant_id):
+                raise RuntimeError("instance hosting needs the blueprint client ID and tenant to check tokens")
+            auth_configuration = AgentAuthConfiguration(client_id=client_id, tenant_id=tenant_id)
         middlewares = []
         if auth_configuration:
             @middleware
             async def jwt(request, handler):
-                if request.path in HEALTH_PATHS:
+                # The voice page authenticates the person with their own sign-in (voice/server.py).
+                if request.path in HEALTH_PATHS or request.path == "/voice" or request.path.startswith("/voice/"):
                     return await handler(request)
                 return await jwt_authorization_middleware(request, handler)
             middlewares.append(jwt)
@@ -292,6 +316,10 @@ class MargoHost:
         app.router.add_get("/activity/messages", lambda _request: Response(status=200))
         for path in HEALTH_PATHS:
             app.router.add_get(path, health)
+        if self.voice is not None:
+            from ..voice.server import mount
+
+            mount(app, self.voice)
         return app
 
 

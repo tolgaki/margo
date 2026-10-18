@@ -15,6 +15,10 @@ verification list are in [Margo as a Foundry autopilot](../docs/autopilot.md).
 | `src/margo_autopilot/skills.py` | The persona and every skill, served unchanged (`load_skill`, `read_skill_file`) |
 | `src/margo_autopilot/statecmd.py` | The skill scripts as the `margo-state` tool: same arguments, no shell, classified by run mode |
 | `src/margo_autopilot/parity.py` | Everything desktop Margo can do that hosted Margo cannot yet, with the reason |
+| `src/margo_autopilot/instances.py` | One container per instance: names, route table, lifecycle events, plans |
+| `src/margo_autopilot/router/`, `provision/` | The public router and the provisioner job (`python -m margo_autopilot.router`, `… .provision run`) |
+| `src/margo_autopilot/voice/` | Talk to Margo: session bridge, endpoint, and the browser page in `static/` |
+| `infra/instance.bicep`, `instance.json` | One instance's identity, scoped storage role and Container App (rebuild the JSON with `bicep build`) |
 | `src/margo_autopilot/orchestrator.py` | Who is speaking, manager lookup, token order, queueing and replies |
 | `src/margo_autopilot/statesync.py` | SQLite state shared across sandboxes through a leased Blob bundle |
 | `src/margo_autopilot/office.py` | Requests other people send Margo, as untrusted candidate items |

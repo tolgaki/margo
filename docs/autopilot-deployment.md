@@ -157,6 +157,47 @@ Margo works for you only in your one-to-one chat. If you @mention her in a group
 channel she answers with a fixed note and reads nothing, so your mail and calendar never appear
 in front of other people.
 
+## One container per instance
+
+Optional. Each hired Margo runs in her own container, with her own identity and state, behind
+one public router ([design](autopilot-instance-containers.md)). It is built and tested offline
+but not yet proven in a tenant.
+
+1. Before `azd provision`, set the hosting mode and the blueprint:
+
+   ```sh
+   azd env set MARGO_HOSTING instance
+   azd env set MARGO_BLUEPRINT_CLIENT_ID <blueprint application (client) ID>
+   azd env set MARGO_VOICE_LIVE_MODEL gpt-realtime-2.1   # optional: turns voice on
+   ```
+
+2. Run `azd provision`. The post-provision script grants roles by name (the provisioner may
+   assign only the four roles an instance needs), builds the image and switches the router and
+   the provisioner job to it.
+3. Finish the identity steps it prints:
+   - point the blueprint's messaging endpoint at `<router>/api/messages`;
+   - add a federated credential for the `…-blueprint-credential` identity;
+   - for voice, expose a delegated `Voice.Talk` scope and add each instance's
+     `<router>/i/<instance>/voice/` as a single-page-app redirect URI.
+4. Hire an instance as above. Her container is created within about two minutes of her first
+   message (the router answers "retry later" until then), or ahead of time with:
+
+   ```sh
+   python -m margo_autopilot.provision enqueue ensure <agenticAppId> <agenticUserId>
+   ```
+
+5. In Teams, say `/voice` to get the voice page's link. Sign in as the manager and press
+   **Start talking**. Anyone else's sign-in is refused.
+
+| Task | How |
+| --- | --- |
+| Retire one instance | Lifecycle "deleted" does it; or `provision enqueue retire …`. App and identity go; state stays |
+| Delete a retired instance's state | Delete its `margo-i-…` container after the retention period |
+| Keep instances warm | Add `"instanceMinReplicas": { "value": 1 }` to `infra/main.parameters.json`, provision, then redeploy all |
+| Change her voice | `azd env set MARGO_VOICE_NAME …` (and `MARGO_VOICE_ENDPOINT_ID` for a trained custom voice), provision, then redeploy all |
+| Ship a new image to every instance | Provision (it builds and pins the image for the provisioner), then redeploy all |
+| Redeploy all | Run `python -m margo_autopilot.provision redeploy-all` with the provisioner's settings, for example as a one-off execution of the provisioner job with that command; or `… enqueue ensure <app> <user> --redeploy` for one |
+
 ## Operate
 
 | Task | How |
@@ -182,6 +223,8 @@ in front of other people.
 | Mail and calendar are `error` in delegation mode | Mailbox permissions missing or not yet propagated | Recheck the two Exchange commands; allow time to propagate |
 | "I couldn't load my records safely" | The state lease was busy for two minutes, or a bundle failed its checks | Retry. If it persists, check the storage account and the agent's `Storage Blob Data Contributor` role |
 | "Version already exists" on publish | Same `MARGO_APP_VERSION` as before | Set a new version |
+| Instance mode: activities get 503 and nothing happens | The provisioner hasn't created the instance, or it failed | Check the job's logs and the route's `error` in `margo-routes/routes.json` |
+| Voice: "Your sign-in can't be used to talk to this Margo" | Wrong tenant, missing `Voice.Talk` scope, or not this Margo's manager | Sign in as the manager; check the scope and redirect URI on the blueprint |
 
 ## Known limits
 

@@ -979,6 +979,31 @@ class OrchestratorTests(unittest.TestCase):
         self.assertEqual(outputs[1]["result"]["account"], BINDING.account)
         self.assertIn("# Decision Log", outputs[2]["text"])
 
+    def test_an_instance_container_serves_only_its_own_instance(self):
+        orchestrator = self.orchestrator([final("Hello, Dana."), final("Hello, Ines.")],
+                                         instance=("agent-identity-1", "margo-user-1"),
+                                         state_container="margo-i-0123456789abcdef0123")
+        other = dict(self.event(), agent_user_id="margo-user-2")
+        self.assertEqual(self.handle(orchestrator, other), {"reply": None, "status": "wrong_instance"})
+        self.assertEqual(self.requested, ["margo"])
+        self.assertEqual(self.handle(orchestrator, self.event())["status"], "answered")
+        self.assertEqual(list(self.stores), ["margo-i-0123456789abcdef0123"])
+        prefix = hashlib.sha256(BINDING.account.encode("utf-8")).hexdigest()[:40] + "/"
+        self.assertEqual(list(self.stores["margo-i-0123456789abcdef0123"].blobs), [prefix + statesync.BUNDLE])
+        self.transport.manager = ("principal-2", "Ines")  # a new manager: same container, separate state
+        self.handle(orchestrator, self.event(sender="principal-2", activity="a-2"))
+        self.assertEqual(len(self.stores["margo-i-0123456789abcdef0123"].blobs), 2)
+
+    def test_voice_command_replies_with_the_link_or_says_it_is_not_set_up(self):
+        url = "https://router.example.com/i/0123456789abcdef0123/voice/"
+        linked = self.handle(self.orchestrator(voice_url=url), self.event(text="/voice"))
+        self.assertEqual(linked, {"reply": "Talk to me here: " + url, "status": "voice_link"})
+        self.assertEqual(self.handle(self.orchestrator(), self.event(text="/voice"))["reply"],
+                         orchestrator_mod.VOICE_UNAVAILABLE)
+        colleague = self.handle(self.orchestrator(voice_url=url), self.event(sender="colleague-1", text="/voice",
+                                                                            conversation="conv-rafa"))
+        self.assertIsNone(colleague["reply"])
+
     def test_delegation_mode_never_requests_a_principal_token(self):
         orchestrator = self.orchestrator([
             {"id": "r1", "output": [call("workiq-fetch", {"on_data_of": "principal", "entityUrls": ["/me/messages"]})]},

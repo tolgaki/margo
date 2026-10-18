@@ -11,6 +11,8 @@ RUN pip install --no-cache-dir -r /app/autopilot/requirements.txt
 COPY agents/ /app/agents/
 COPY skills/ /app/skills/
 COPY autopilot/src/ /app/autopilot/src/
+# The per-instance template the provisioner deploys (one container per hired Margo).
+COPY autopilot/infra/instance.json /app/autopilot/infra/instance.json
 
 ENV PYTHONPATH=/app/autopilot/src:/app/skills/chief-of-staff/scripts \
     PYTHONUNBUFFERED=1 \

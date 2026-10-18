@@ -50,6 +50,9 @@ jobs:
           MARGO_CANVAS_TEST_PARENT="$HOME/.margo-canvas-ci" node --test .github/extensions/margo-action-desk/*.test.mjs
           rmdir "$HOME/.margo-canvas-ci"
 
+      - name: Autopilot voice page (audio, sign-in and protocol helpers)
+        run: node --test autopilot/src/margo_autopilot/voice/static/*.test.mjs
+
       - name: Shell syntax
         run: |
           bash -n install.sh

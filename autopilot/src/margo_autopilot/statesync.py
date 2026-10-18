@@ -62,8 +62,10 @@ def container_name(account):
 
 
 class StateSync:
-    def __init__(self, database, store, *, account, preferences=None, renew_seconds=20):
+    def __init__(self, database, store, *, account, preferences=None, renew_seconds=20, prefix=""):
+        """``prefix`` keeps one account's bundle apart inside a shared per-instance container."""
         self.database, self.store, self.account = Path(database), store, account
+        self.bundle, self.daily = prefix + BUNDLE, prefix + "daily/"
         self.preferences = Path(preferences) if preferences else None
         self.renew_seconds = renew_seconds
         self.marker = self.database.parent / MARKER
@@ -158,7 +160,7 @@ class StateSync:
         reinstalls the shared state instead of building on changes that were never saved.
         """
         now = now or datetime.now(timezone.utc)
-        holder = self.store.lease(BUNDLE)
+        holder = self.store.lease(self.bundle)
         lease = await asyncio.to_thread(holder.__enter__)
         renewer = asyncio.ensure_future(self._renew(lease))
         saved = False
@@ -179,7 +181,7 @@ class StateSync:
                 self._set_local_etag(new_etag)
                 saved = True
                 try:
-                    await asyncio.to_thread(self.store.put, "daily/%s.zip" % now.strftime("%Y-%m-%d"), bundle)
+                    await asyncio.to_thread(self.store.put, self.daily + "%s.zip" % now.strftime("%Y-%m-%d"), bundle)
                 except Exception:  # the leased copy is saved; a missed daily copy is not data loss
                     pass
             else:

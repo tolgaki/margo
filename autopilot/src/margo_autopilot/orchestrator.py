@@ -40,6 +40,8 @@ TURN_CALL_BUDGET = 40
 STATE_CALL_BUDGET = 40
 PERSONAL = "personal"  # Teams conversationType of a one-to-one chat
 REPLIES_COMMAND = re.compile(r"^\s*/replies\s+(none|acknowledge|approve)\s*$", re.IGNORECASE)
+VOICE_COMMAND = re.compile(r"^\s*/voice\s*$", re.IGNORECASE)
+VOICE_UNAVAILABLE = "Voice isn't set up for this deployment yet, so we can only talk here for now."
 NO_MANAGER = ("I can't find my manager in the directory, so I don't know who I work for yet. "
               "An administrator needs to set my manager before I can help.")
 MANAGER_UNKNOWN = ("I couldn't check who I work for just now (the directory lookup failed), so I haven't "
@@ -108,12 +110,16 @@ def set_reply_mode(preferences, mode):
 
 class Orchestrator:
     def __init__(self, *, engine, transport, state_root, store_for, principal_access="obo",
-                 recorder=None):
+                 recorder=None, instance=None, state_container=None, voice_url=None):
+        """``instance``: in per-instance hosting, the one ``(agent_identity_id, agent_user_id)`` this
+        container serves; anything else is refused. ``state_container``: that instance's own Blob
+        container, holding each manager's state under its own prefix. ``voice_url``: the voice page."""
         self.engine, self.transport = engine, transport
         self.state_root = Path(state_root)
         self.store_for = store_for
         self.principal_access = principal_access
         self.recorder = recorder
+        self.instance, self.state_container, self.voice_url = instance, state_container, voice_url
         self._conversations = {}
         self._initialised = set()
 
@@ -145,6 +151,8 @@ class Orchestrator:
             margo_token = None
         if not margo_token:
             return {"reply": None, "status": "no_agent_token"}
+        if self.instance is not None and (event.get("agent_identity_id"), event.get("agent_user_id")) != self.instance:
+            return {"reply": None, "status": "wrong_instance"}  # defence in depth behind the router
         sender = event.get("sender_id")
         one_to_one = event.get("channel") != "mail" and event.get("conversation_type") == PERSONAL
         try:
@@ -175,10 +183,18 @@ class Orchestrator:
             logger.exception("turn failed")
             return {"reply": TURN_FAILED if is_manager else None, "status": "error"}
 
-    async def _run(self, event, get_token, binding, is_manager, manager_name, margo_token):
+    def state_sync(self, binding):
+        """The leased state for one instance and manager, wherever this deployment keeps it."""
         database, preferences = self._paths(binding.account)
-        sync = StateSync(database, self.store_for(container_name(binding.account)),
-                         account=binding.account, preferences=preferences)
+        if self.state_container:
+            prefix = hashlib.sha256(binding.account.encode("utf-8")).hexdigest()[:40] + "/"
+            return StateSync(database, self.store_for(self.state_container), account=binding.account,
+                             preferences=preferences, prefix=prefix), preferences
+        return StateSync(database, self.store_for(container_name(binding.account)), account=binding.account,
+                         preferences=preferences), preferences
+
+    async def _run(self, event, get_token, binding, is_manager, manager_name, margo_token):
+        sync, preferences = self.state_sync(binding)
         tokens = {"margo": margo_token}
         if is_manager and self.principal_access == "obo":
             try:
@@ -206,6 +222,9 @@ class Orchestrator:
                              budget=budget, recorder=self.recorder)
 
     async def _manager_turn(self, event, binding, tokens, preferences):
+        if VOICE_COMMAND.match(event.get("text") or ""):
+            return {"reply": ("Talk to me here: %s" % self.voice_url) if self.voice_url else VOICE_UNAVAILABLE,
+                    "status": "voice_link"}
         command = REPLIES_COMMAND.match(event.get("text") or "")
         if command:
             mode = command.group(1).lower()
