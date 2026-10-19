@@ -29,6 +29,7 @@ from pathlib import Path
 
 from .guard import ATTENDED, UNATTENDED, CallBudget, TokenUnavailable, WorkIQGuard, _status_codes
 from .instance import BindingError, InstanceBinding
+from .instances import instance_key, resource_names
 from .office import OfficeQueue, OfficeReader
 from .replies import ACKNOWLEDGE, APPROVE, NONE, SETTING_LABEL, ReplyGate, load_reply_policy
 from .statecmd import StateCommands
@@ -110,16 +111,20 @@ def set_reply_mode(preferences, mode):
 
 class Orchestrator:
     def __init__(self, *, engine, transport, state_root, store_for, principal_access="obo",
-                 recorder=None, instance=None, state_container=None, voice_url=None):
+                 recorder=None, instance=None, state_container=None, voice_url=None, per_instance_state=False):
         """``instance``: in per-instance hosting, the one ``(agent_identity_id, agent_user_id)`` this
         container serves; anything else is refused. ``state_container``: that instance's own Blob
-        container, holding each manager's state under its own prefix. ``voice_url``: the voice page."""
+        container, holding each manager's state under its own prefix. ``per_instance_state``: the
+        Foundry-hosted Margo keeps each instance's state in that same per-instance container, so the
+        instance's own container and the Foundry agent share one state (hybrid hosting).
+        ``voice_url``: the voice page; ``{instance}`` is replaced by the instance key."""
         self.engine, self.transport = engine, transport
         self.state_root = Path(state_root)
         self.store_for = store_for
         self.principal_access = principal_access
         self.recorder = recorder
         self.instance, self.state_container, self.voice_url = instance, state_container, voice_url
+        self.per_instance_state = per_instance_state
         self._conversations = {}
         self._initialised = set()
 
@@ -186,9 +191,12 @@ class Orchestrator:
     def state_sync(self, binding):
         """The leased state for one instance and manager, wherever this deployment keeps it."""
         database, preferences = self._paths(binding.account)
-        if self.state_container:
+        container = self.state_container
+        if container is None and self.per_instance_state:
+            container = resource_names(instance_key(binding.agent_identity_id, binding.agent_user_id))["container"]
+        if container:
             prefix = hashlib.sha256(binding.account.encode("utf-8")).hexdigest()[:40] + "/"
-            return StateSync(database, self.store_for(self.state_container), account=binding.account,
+            return StateSync(database, self.store_for(container), account=binding.account,
                              preferences=preferences, prefix=prefix), preferences
         return StateSync(database, self.store_for(container_name(binding.account)), account=binding.account,
                          preferences=preferences), preferences
@@ -223,8 +231,10 @@ class Orchestrator:
 
     async def _manager_turn(self, event, binding, tokens, preferences):
         if VOICE_COMMAND.match(event.get("text") or ""):
-            return {"reply": ("Talk to me here: %s" % self.voice_url) if self.voice_url else VOICE_UNAVAILABLE,
-                    "status": "voice_link"}
+            if not self.voice_url:
+                return {"reply": VOICE_UNAVAILABLE, "status": "voice_link"}
+            url = self.voice_url.replace("{instance}", instance_key(binding.agent_identity_id, binding.agent_user_id))
+            return {"reply": "Talk to me here: %s" % url, "status": "voice_link"}
         command = REPLIES_COMMAND.match(event.get("text") or "")
         if command:
             mode = command.group(1).lower()

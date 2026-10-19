@@ -34,6 +34,7 @@ orchestrator_mod = importlib.import_module("margo_autopilot.orchestrator")
 activity_mod = importlib.import_module("margo_autopilot.activity")
 skills_mod = importlib.import_module("margo_autopilot.skills")
 statecmd = importlib.import_module("margo_autopilot.statecmd")
+instances_mod = importlib.import_module("margo_autopilot.instances")
 
 BINDING = autopilot.InstanceBinding("agent-identity-1", "margo-user-1", "principal-1", "chat-principal-1")
 
@@ -993,6 +994,20 @@ class OrchestratorTests(unittest.TestCase):
         self.transport.manager = ("principal-2", "Ines")  # a new manager: same container, separate state
         self.handle(orchestrator, self.event(sender="principal-2", activity="a-2"))
         self.assertEqual(len(self.stores["margo-i-0123456789abcdef0123"].blobs), 2)
+
+    def test_foundry_hosted_margo_shares_each_instances_own_state(self):
+        # Hybrid hosting: the Foundry agent serves every instance but stores each one's state where
+        # that instance's own container reads it, so moving messaging later carries everything over.
+        orchestrator = self.orchestrator([final("Hello, Dana.")], per_instance_state=True,
+                                         voice_url="https://router.example.com/i/{instance}/voice/")
+        self.assertEqual(self.handle(orchestrator, self.event())["status"], "answered")
+        container = instances_mod.resource_names(instances_mod.instance_key("agent-identity-1", "margo-user-1"))["container"]
+        prefix = hashlib.sha256(BINDING.account.encode("utf-8")).hexdigest()[:40] + "/"
+        self.assertEqual(list(self.stores), [container])
+        self.assertEqual(list(self.stores[container].blobs), [prefix + statesync.BUNDLE])
+        link = self.handle(orchestrator, self.event(text="/voice", activity="a-2"))["reply"]
+        self.assertEqual(link, "Talk to me here: https://router.example.com/i/%s/voice/"
+                         % instances_mod.instance_key("agent-identity-1", "margo-user-1"))
 
     def test_voice_command_replies_with_the_link_or_says_it_is_not_set_up(self):
         url = "https://router.example.com/i/0123456789abcdef0123/voice/"

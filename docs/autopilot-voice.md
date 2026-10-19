@@ -2,7 +2,9 @@
 
 **Status: built (phase V1), 18 October 2026, and unproven against a live Voice Live resource or
 tenant.** Voice runs in [one-container-per-instance hosting](autopilot-instance-containers.md) when
-`VOICE_LIVE_MODEL` is set. In Teams, say `/voice` and Margo replies with your page's link. Product
+`VOICE_LIVE_MODEL` is set. It works in hybrid hosting before chat moves: the Foundry agent
+answers `/voice` in Teams with your page's link, and the page talks to your instance's own
+container. Product
 facts come from a web-search review on 18 October 2026; items marked **verify** were not
 confirmed against the official page.
 

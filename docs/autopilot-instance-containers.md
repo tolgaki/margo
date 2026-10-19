@@ -2,7 +2,24 @@
 
 **Status: built, 18 October 2026, and unproven in a live tenant.** Turn it on with
 `MARGO_HOSTING=instance` ([deployment guide](autopilot-deployment.md#one-container-per-instance));
-the default stays one Foundry hosted agent. It extends [Margo as a Foundry autopilot](autopilot.md)
+the default stays one Foundry hosted agent.
+
+## Hybrid hosting: still a Foundry autopilot
+
+Instance mode does not replace the Foundry autopilot; it runs beside it.
+
+| | Who does it |
+| --- | --- |
+| Hosted agent, blueprint, publishing, admin approval, hiring in Teams | **Foundry and Agent 365**, as in the default mode (`create-agent.sh`, `publish.sh`) |
+| Chat in Teams | **The Foundry agent**, until the blueprint's messaging can move to the router |
+| Each instance's state | **That instance's own container**, read and written by whichever side is serving, under the existing lease |
+| Voice, and chat after messaging moves | **The instance's own container**, behind the router |
+| Creating instance containers | **The provisioner**, asked by the Foundry agent (first activity, lifecycle events) or by the router |
+
+Because both sides use the same per-instance state, moving messaging later needs no migration.
+If Foundry never allows the move, Margo keeps chatting through the Foundry agent and only voice
+uses the instance containers. Until chat moves, the Foundry agent's identity can still read every
+instance's state, so the isolation benefit arrives with the move. It extends [Margo as a Foundry autopilot](autopilot.md)
 and keeps decision 10: hosted Margo is desktop Margo, with the same persona and skills, and no
 general shell.
 
@@ -123,8 +140,9 @@ only from the router (internal ingress).
 
 ## Verification list
 
-1. **Routing.** Can Agent 365 send each instance's activities to its own endpoint, or must one
-   router forward them?
+1. **Routing.** Can a Foundry-created blueprint's messaging endpoint move to the router, and can
+   Agent 365 send each instance's activities to its own endpoint, or must one router forward
+   them?
 2. **Token exchange.** Can a container with its own identity perform the agentic token exchange
    for its instance, and only that instance?
 3. **Timing.** Cold start versus Teams activity timeouts. Do long turns need an immediate
@@ -155,9 +173,9 @@ only from the router (internal ingress).
 
 - **Schedules (phase 4):** these wait on the hosted scheduler and on recording the principal chat
   ID at hire.
-- **The verification list above:** especially routing and the token exchange. Today the
-  blueprint's messaging endpoint and its federated credential are set by an operator (the
-  deployment guide lists the steps).
+- **The verification list above:** especially routing (item 1: can a Foundry-created
+  blueprint's messaging move to the router?) and the token exchange. The federated credential is
+  added by the deployment script where Foundry allows it, otherwise by an Entra administrator.
 - **Shared credential:** all instances share the blueprint credential identity, so a compromised
   instance could get Margo-the-agent's token for another instance. It could not get another
   manager's data, which needs that manager's own sign-in. Verification item 2 asks whether this

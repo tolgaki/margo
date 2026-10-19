@@ -1,10 +1,15 @@
 #!/bin/sh
-# After 'azd provision' with MARGO_HOSTING=instance: roles by name, image, router and provisioner.
-# Every step is idempotent. Instances themselves are created by the provisioner job, not here.
+# After 'azd provision' with MARGO_HOSTING=instance (hybrid hosting, docs/autopilot-instance-containers.md):
+# 1. the Foundry autopilot exactly as in the default mode: hosted agent, blueprint, roles, publish;
+# 2. the instance layer beside it: router, provisioner, and the blueprint credential for instances.
+# Until the blueprint's messaging moves to the router, chat is served by the Foundry agent and voice by
+# each instance's own container; both use the same per-instance state. Every step is idempotent.
 . "$(dirname -- "$0")/lib.sh"
 need TENANT_ID SUBSCRIPTION_ID RESOURCE_GROUP AZURE_CONTAINER_REGISTRY_ENDPOINT AZURE_CONTAINER_REGISTRY_ID \
   ACCOUNT_ID ROUTER_NAME ROUTER_URL ROUTER_PRINCIPAL_ID ROUTER_IDENTITY_ID PROVISIONER_NAME \
-  PROVISIONER_PRINCIPAL_ID PROVISIONER_IDENTITY_ID ROUTES_CONTAINER_ID PROVISION_QUEUE_ID BLUEPRINT_CREDENTIAL_CLIENT_ID
+  PROVISIONER_PRINCIPAL_ID PROVISIONER_IDENTITY_ID ROUTES_CONTAINER_ID PROVISION_QUEUE_ID PROVISION_QUEUE_URL \
+  BLUEPRINT_CREDENTIAL_CLIENT_ID BLUEPRINT_CREDENTIAL_PRINCIPAL_ID
+export MARGO_HOSTING=instance ROUTER_URL PROVISION_QUEUE_URL
 
 group_scope="/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
 
@@ -40,9 +45,23 @@ output=$(az role assignment create --assignee-object-id "$PROVISIONER_PRINCIPAL_
     *) printf '%s\n' "$output" >&2; die "could not grant constrained role administration" ;;
   esac
 
+say "Foundry project: pull the image, use the models, write telemetry"
+sh "$HERE/assign-infra-roles.sh"
+
 sh "$HERE/build-image.sh"
-MARGO_IMAGE=${MARGO_IMAGE:-$(azd env get-value MARGO_IMAGE 2>/dev/null || true)}
+MARGO_IMAGE=$(azd env get-value MARGO_IMAGE 2>/dev/null || true)
 need MARGO_IMAGE
+export MARGO_IMAGE
+
+say "Foundry autopilot: hosted agent and its blueprint (serves chat until messaging moves)"
+sh "$HERE/create-agent.sh"
+sh "$HERE/assign-agent-roles.sh"
+BLUEPRINT_CLIENT_ID=$(azd env get-value BLUEPRINT_CLIENT_ID 2>/dev/null || true)
+AGENT_INSTANCE_CLIENT_ID=$(azd env get-value AGENT_INSTANCE_CLIENT_ID 2>/dev/null || true)
+need BLUEPRINT_CLIENT_ID AGENT_INSTANCE_CLIENT_ID
+agent_object_id=$(az ad sp show --id "$AGENT_INSTANCE_CLIENT_ID" --query id -o tsv)
+[ -n "$agent_object_id" ] || die "could not resolve the agent instance identity"
+assign_role "$agent_object_id" "Storage Queue Data Message Sender" "$PROVISION_QUEUE_ID"
 registry=$(printf '%s' "$AZURE_CONTAINER_REGISTRY_ENDPOINT" | cut -d. -f1)
 repository_tag=${MARGO_IMAGE#*/}
 digest=$(az acr repository show --name "$registry" --image "$repository_tag" --query digest -o tsv)
@@ -50,24 +69,54 @@ digest=$(az acr repository show --name "$registry" --image "$repository_tag" --q
 pinned="$AZURE_CONTAINER_REGISTRY_ENDPOINT/${repository_tag%%:*}@$digest"
 say "pinned image: $pinned"
 
-say "router: switch to the Margo image"
+say "router: switch to the Margo image; check activity tokens against the Foundry-created blueprint"
 az containerapp registry set -n "$ROUTER_NAME" -g "$RESOURCE_GROUP" --server "$AZURE_CONTAINER_REGISTRY_ENDPOINT" \
   --identity "$ROUTER_IDENTITY_ID" >/dev/null
-az containerapp update -n "$ROUTER_NAME" -g "$RESOURCE_GROUP" --image "$pinned" >/dev/null
+az containerapp update -n "$ROUTER_NAME" -g "$RESOURCE_GROUP" --image "$pinned" \
+  --set-env-vars "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID=$BLUEPRINT_CLIENT_ID" >/dev/null
 
 say "provisioner: switch to the Margo image and record what instances run"
 az containerapp job registry set -n "$PROVISIONER_NAME" -g "$RESOURCE_GROUP" --server "$AZURE_CONTAINER_REGISTRY_ENDPOINT" \
   --identity "$PROVISIONER_IDENTITY_ID" >/dev/null
 az containerapp job update -n "$PROVISIONER_NAME" -g "$RESOURCE_GROUP" --image "$pinned" \
   --set-env-vars "MARGO_INSTANCE_IMAGE=$pinned" "MARGO_STORAGE_ROLE_ID=$blob_role" "MARGO_PULL_ROLE_ID=$pull_role" \
-  "MARGO_MODEL_ROLE_ID=$model_role" "MARGO_SPEECH_ROLE_ID=$speech_role" >/dev/null
+  "MARGO_MODEL_ROLE_ID=$model_role" "MARGO_SPEECH_ROLE_ID=$speech_role" \
+  "MARGO_BLUEPRINT_CLIENT_ID=$BLUEPRINT_CLIENT_ID" >/dev/null
+
+# Instance containers act as the blueprint through a federated credential on it that trusts the shared,
+# role-less blueprint-credential identity. Foundry may not let this deployer change the blueprint it
+# manages; if so, an Entra administrator adds the same credential by hand.
+say "blueprint: federated credential for instance containers"
+fic_name="margo-instance-containers"
+existing=$(az ad app federated-credential list --id "$BLUEPRINT_CLIENT_ID" --query "[?name=='$fic_name'] | length(@)" -o tsv 2>/dev/null || true)
+fic_note=""
+if [ "$existing" = "1" ]; then
+  say "federated credential already present"
+elif az ad app federated-credential create --id "$BLUEPRINT_CLIENT_ID" --parameters "{\"name\": \"$fic_name\", \"issuer\": \"https://login.microsoftonline.com/$TENANT_ID/v2.0\", \"subject\": \"$BLUEPRINT_CREDENTIAL_PRINCIPAL_ID\", \"audiences\": [\"api://AzureADTokenExchange\"], \"description\": \"Margo instance containers act as this blueprint\"}" >/dev/null 2>&1; then
+  say "federated credential added"
+else
+  fic_note="    - An Entra administrator adds a federated credential to blueprint $BLUEPRINT_CLIENT_ID:
+      issuer https://login.microsoftonline.com/$TENANT_ID/v2.0, subject $BLUEPRINT_CREDENTIAL_PRINCIPAL_ID,
+      audience api://AzureADTokenExchange (the managed identity $BLUEPRINT_CREDENTIAL_CLIENT_ID)."
+  say "could not add the federated credential here; see the steps below"
+fi
+
+if [ "${SKIP_PUBLISH:-false}" = "true" ]; then
+  say "SKIP_PUBLISH=true: not publishing. Run scripts/publish.sh when ready."
+else
+  sh "$HERE/publish.sh"
+fi
 
 cat <<EOF
-==> Done. Steps outside Azure Resource Manager (see docs/autopilot-deployment.md, "One container per instance"):
-    1. Point the agent blueprint's messaging endpoint at: $ROUTER_URL/api/messages
-    2. Add a federated credential on the blueprint for the managed identity with client ID
-       $BLUEPRINT_CREDENTIAL_CLIENT_ID (issuer and subject from that identity).
-    3. For voice: expose a delegated scope on the blueprint and add the SPA redirect URI
-       $ROUTER_URL/i/<instance>/voice/ for each instance (Margo replies with her link to "/voice").
-    New instances are created by the provisioner within about two minutes of their first activity.
+==> Done. Margo is a Foundry autopilot: the blueprint is Foundry's, published for admin approval.
+    Chat: served by the Foundry agent; each instance's state is kept in that instance's own container.
+    Voice: each instance's own container, at $ROUTER_URL/i/<instance>/voice/ (Margo replies to "/voice").
+    Instance containers appear within about two minutes of an instance's first message or hire event.
+    Remaining steps (docs/autopilot-deployment.md, "One container per instance"):
+$fic_note
+    - For voice, expose a delegated Voice.Talk scope on the blueprint and add each voice page as a
+      single-page-app redirect URI.
+    - Verify first, in a test tenant: whether the blueprint's messaging endpoint can be moved to
+      $ROUTER_URL/api/messages. If it can, chat moves to the instance containers with nothing to
+      migrate; if not, Margo keeps chatting through the Foundry agent.
 EOF

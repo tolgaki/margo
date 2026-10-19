@@ -159,28 +159,42 @@ in front of other people.
 
 ## One container per instance
 
-Optional. Each hired Margo runs in her own container, with her own identity and state, behind
-one public router ([design](autopilot-instance-containers.md)). It is built and tested offline
-but not yet proven in a tenant.
+Optional, and hybrid: Margo stays a Foundry autopilot, and each hired Margo also gets her own
+container, with her own identity, behind one public router
+([design](autopilot-instance-containers.md)). It is built and tested offline but not yet proven
+in a tenant.
 
-1. Before `azd provision`, set the hosting mode and the blueprint:
+- **Foundry still runs the autopilot.** It creates the hosted agent and the blueprint, publishes
+  it, and an admin approves it, exactly as in the default mode.
+- **Chat:** the Foundry agent serves it. It keeps each instance's state in that instance's own
+  container and asks the provisioner to create the container.
+- **Voice:** each instance's own container serves it.
+- **If messaging moves later:** once the blueprint's messaging can point at the router, chat
+  moves to the containers with nothing to migrate.
+
+1. Before `azd provision`, turn it on:
 
    ```sh
    azd env set MARGO_HOSTING instance
-   azd env set MARGO_BLUEPRINT_CLIENT_ID <blueprint application (client) ID>
    azd env set MARGO_VOICE_LIVE_MODEL gpt-realtime-2.1   # optional: turns voice on
    ```
 
-2. Run `azd provision`. The post-provision script grants roles by name (the provisioner may
-   assign only the four roles an instance needs), builds the image and switches the router and
-   the provisioner job to it.
-3. Finish the identity steps it prints:
-   - point the blueprint's messaging endpoint at `<router>/api/messages`;
-   - add a federated credential for the `…-blueprint-credential` identity;
-   - for voice, expose a delegated `Voice.Talk` scope and add each instance's
-     `<router>/i/<instance>/voice/` as a single-page-app redirect URI.
+2. Run `azd provision`. The post-provision script:
+   - runs the default Foundry steps: roles, image, hosted agent and blueprint, publish (unless
+     `SKIP_PUBLISH=true`);
+   - grants the router and provisioner their roles by name; the provisioner may assign only the
+     four roles an instance needs;
+   - switches the router and provisioner job to the image and to the Foundry-created blueprint;
+   - tries to add the blueprint's federated credential for instance containers.
+3. Finish what it prints:
+   - the federated credential, if Foundry did not let the script add it;
+   - for voice, a delegated `Voice.Talk` scope and each instance's
+     `<router>/i/<instance>/voice/` as a single-page-app redirect URI;
+   - the one thing to verify in a test tenant before relying on it: whether the blueprint's
+     messaging endpoint can move to `<router>/api/messages`. Until it does, chat stays on the
+     Foundry agent.
 4. Hire an instance as above. Her container is created within about two minutes of her first
-   message (the router answers "retry later" until then), or ahead of time with:
+   message or hire event, or ahead of time with:
 
    ```sh
    python -m margo_autopilot.provision enqueue ensure <agenticAppId> <agenticUserId>
@@ -191,7 +205,7 @@ but not yet proven in a tenant.
 
 | Task | How |
 | --- | --- |
-| Retire one instance | Lifecycle "deleted" does it; or `provision enqueue retire …`. App and identity go; state stays |
+| Retire one instance | Lifecycle "deleted" does it (through the Foundry agent, or the router once messaging moves); or `provision enqueue retire …`. App and identity go; state stays |
 | Delete a retired instance's state | Delete its `margo-i-…` container after the retention period |
 | Keep instances warm | Add `"instanceMinReplicas": { "value": 1 }` to `infra/main.parameters.json`, provision, then redeploy all |
 | Change her voice | `azd env set MARGO_VOICE_NAME …` (and `MARGO_VOICE_ENDPOINT_ID` for a trained custom voice), provision, then redeploy all |

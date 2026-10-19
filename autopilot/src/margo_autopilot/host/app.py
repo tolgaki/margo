@@ -48,12 +48,16 @@ from microsoft_agents_a365.notifications.agent_notification import (  # noqa: E4
 from ..activity import is_email as _is_email  # noqa: E402
 from ..activity import stable_ids  # noqa: E402
 from ..engine import Engine  # noqa: E402
+from ..instances import lifecycle_message  # noqa: E402
 from ..orchestrator import Orchestrator  # noqa: E402
 from ..transport import McpHttpTransport  # noqa: E402
 from .azure_store import AzureBlobLeaseStore  # noqa: E402
 
 WORKIQ_SCOPE = "api://workiq.svc.cloud.microsoft/.default"
 HOSTING = os.getenv("MARGO_HOSTING", "foundry")  # "instance": this container serves one hired Margo
+# Hybrid hosting (docs/autopilot-instance-containers.md): the Foundry agent keeps each instance's state in
+# that instance's own container and asks the provisioner to create the container.
+STATE_LAYOUT = os.getenv("MARGO_STATE_LAYOUT", "")
 AGENTIC_HANDLER = os.getenv("AUTH_HANDLER_NAME", "AGENTIC")
 PRINCIPAL_HANDLER = os.getenv("PRINCIPAL_AUTH_HANDLER", "")  # on-behalf-of handler; see deployment guide
 HEALTH_PATHS = {"/", "/liveness", "/readiness"}
@@ -121,6 +125,9 @@ def build_orchestrator():
                     repo_root=os.getenv("MARGO_REPO_ROOT", "/app"),
                     timezone=os.getenv("MARGO_TIMEZONE", "America/Los_Angeles"))
     instance = state_container = voice_url = None
+    base = os.getenv("MARGO_PUBLIC_BASE_URL", "").rstrip("/")
+    if HOSTING != "instance" and STATE_LAYOUT == "instance" and base and os.getenv("VOICE_LIVE_MODEL"):
+        voice_url = base + "/i/{instance}/voice/"
     if HOSTING == "instance":
         instance = (os.environ["MARGO_INSTANCE_AGENT_ID"], os.environ["MARGO_INSTANCE_USER_ID"])
         state_container = os.environ["MARGO_STATE_CONTAINER"]
@@ -131,7 +138,32 @@ def build_orchestrator():
                         store_for=AzureBlobLeaseStore.factory(blob_url, _credential()),
                         principal_access=os.getenv("MARGO_PRINCIPAL_ACCESS", "obo"),
                         recorder=_receipt_logger, instance=instance, state_container=state_container,
-                        voice_url=voice_url)
+                        voice_url=voice_url, per_instance_state=HOSTING != "instance" and STATE_LAYOUT == "instance")
+
+
+class ProvisionRequests:
+    """Hybrid hosting: ask the provisioner to create each instance's own container, once per
+    instance per process, and pass on Agent 365 lifecycle events. Failures are logged, never fatal:
+    chat keeps working through the Foundry agent either way."""
+
+    def __init__(self, queue_url):
+        from azure.storage.queue import QueueClient
+
+        self.queue = QueueClient.from_queue_url(queue_url, credential=_credential())
+        self._asked = set()
+
+    async def ensure(self, agent_identity_id, agent_user_id):
+        if (agent_identity_id, agent_user_id) in self._asked:
+            return
+        self._asked.add((agent_identity_id, agent_user_id))
+        await self.send({"action": "ensure", "agent_identity_id": agent_identity_id,
+                         "agent_user_id": agent_user_id, "event": "foundry-activity"})
+
+    async def send(self, message):
+        try:
+            await asyncio.to_thread(self.queue.send_message, json.dumps(message, sort_keys=True))
+        except Exception:
+            logger.warning("could not queue a provisioning request")
 
 
 def _identity(activity):
@@ -168,6 +200,8 @@ class MargoHost:
                                                authorization=self.authorization, **config)
         self.notifications = AgentNotification(self.app)
         self.orchestrator = build_orchestrator()
+        queue_url = os.getenv("MARGO_PROVISION_QUEUE_URL")
+        self.provision = ProvisionRequests(queue_url) if HOSTING != "instance" and queue_url else None
         self.voice = None
         if HOSTING == "instance" and os.getenv("VOICE_LIVE_MODEL"):
             from ..voice.server import VoiceService
@@ -213,6 +247,8 @@ class MargoHost:
             event.update({"conversation_id": conversation_id, "activity_id": activity_id,
                           "conversation_type": getattr(conversation, "conversation_type", None),
                           "channel": "mail" if email else "teams", "text": activity.text or ""})
+            if self.provision is not None:
+                asyncio.ensure_future(self.provision.ensure(event["agent_identity_id"], event["agent_user_id"]))
             typing = asyncio.ensure_future(self._typing(context))
             try:
                 result = await self.orchestrator.handle(event, self._token_getter(context))
@@ -254,6 +290,10 @@ class MargoHost:
         @self.notifications.on_agent_lifecycle_notification("*")  # SDK's on_lifecycle() is broken in 2.0.0.dev0
         async def on_lifecycle(context: TurnContext, _: TurnState, notification: AgentNotificationActivity):
             logger.info("lifecycle notification: %s", getattr(context.activity, "value_type", None))
+            if self.provision is not None:
+                message = lifecycle_message(context.activity.model_dump(mode="json", by_alias=True, exclude_none=True))
+                if message is not None:
+                    await self.provision.send(message)
 
         @self.app.activity("installationUpdate")
         async def on_installation(context: TurnContext, _: TurnState):

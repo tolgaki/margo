@@ -26,6 +26,14 @@ env = {
 }
 if os.environ.get("PRINCIPAL_AUTH_HANDLER"):
     env["PRINCIPAL_AUTH_HANDLER"] = os.environ["PRINCIPAL_AUTH_HANDLER"]
+if os.environ.get("MARGO_HOSTING") == "instance":
+    # Hybrid hosting: this Foundry agent keeps serving chat, stores each instance's state where that
+    # instance's own container reads it, and asks the provisioner to create those containers.
+    env.update({"MARGO_STATE_LAYOUT": "instance",
+                "MARGO_PROVISION_QUEUE_URL": os.environ["PROVISION_QUEUE_URL"],
+                "MARGO_PUBLIC_BASE_URL": os.environ["ROUTER_URL"]})
+    if os.environ.get("MARGO_VOICE_LIVE_MODEL"):
+        env["VOICE_LIVE_MODEL"] = os.environ["MARGO_VOICE_LIVE_MODEL"]
 body = {
     "definition": {
         "kind": "hosted", "image": os.environ["MARGO_IMAGE"], "cpu": "1", "memory": "2Gi",
