@@ -81,9 +81,11 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2026-03-01' = {
   properties: { displayName: 'Margo' }
 }
 
+// The account takes one operation at a time (RequestConflict otherwise), so deploy the model last.
 resource model 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: account
   name: modelName
+  dependsOn: [insightsConnection]
   sku: { name: 'GlobalStandard', capacity: modelCapacity }
   properties: { model: { format: 'OpenAI', name: modelName, version: modelVersion } }
 }
