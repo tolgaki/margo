@@ -237,6 +237,8 @@ in a tenant.
 | Mail and calendar are `error` in delegation mode | Mailbox permissions missing or not yet propagated | Recheck the two Exchange commands; allow time to propagate |
 | "I couldn't load my records safely" | The state lease was busy for two minutes, or a bundle failed its checks | Retry. If it persists, check the storage account and the agent's `Storage Blob Data Contributor` role |
 | "Version already exists" on publish | Same `MARGO_APP_VERSION` as before | Set a new version |
+| Chatting with "margo" gets no reply (Copilot: "timeout error after 45000ms") | You are chatting with the published app itself, not a hired instance. Margo only answers through an instance with a manager | Hire an instance from **Agent templates** (or **Built for your org**) and chat with it by the name you gave it |
+| Margo appears only as a plain agent, version 1.0.0, with no **Create instance** | The Foundry portal's **Publish** button republished her as a regular chat agent and replaced the autopilot template | Publish the template again with `scripts/publish.sh` and a higher `MARGO_APP_VERSION`; do not use the portal's Publish button for Margo |
 | Instance mode: activities get 503 and nothing happens | The provisioner hasn't created the instance, or it failed | Check the job's logs and the route's `error` in `margo-routes/routes.json` |
 | Voice: "Your sign-in can't be used to talk to this Margo" | Wrong tenant, missing `Voice.Talk` scope, or not this Margo's manager | Sign in as the manager; check the scope and redirect URI on the blueprint |
 
@@ -246,6 +248,9 @@ in a tenant.
   (`recipient.agenticAppId`, `from.aadObjectId`), notification payloads, Work IQ billing subject,
   and whether the publish API takes an icon. The icons are in `autopilot/assets/` for the admin
   center or app package.
+- Agent identities and agent users can carry an expiration date (Entra Agent ID lifecycle, reported
+  to default to 180 days; **verify** in your tenant). Check `lifecycle.expirationDateTime` on the agent
+  identity and each hired agent user, and extend it before it passes, or the instance stops working.
 - Conversation continuity (`previous_response_id`) is kept per sandbox, so a new sandbox starts a
   fresh thread; durable facts live in her state, not the thread.
 - She has the same persona and skills as desktop Margo. What she cannot do here yet (GitHub

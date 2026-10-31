@@ -88,11 +88,24 @@ az containerapp job update -n "$PROVISIONER_NAME" -g "$RESOURCE_GROUP" --image "
 # manages; if so, an Entra administrator adds the same credential by hand.
 say "blueprint: federated credential for instance containers"
 fic_name="margo-instance-containers"
-existing=$(az ad app federated-credential list --id "$BLUEPRINT_CLIENT_ID" --query "[?name=='$fic_name'] | length(@)" -o tsv 2>/dev/null || true)
+# A blueprint is an agentIdentityBlueprint, which 'az ad app' (the plain applications endpoint) does not
+# find; address it through the Graph beta type cast instead.
+blueprints="https://graph.microsoft.com/beta/applications/graph.agentIdentityBlueprint"
+blueprint_object_id=$(az rest --method get \
+  --url "$blueprints?\$filter=appId%20eq%20%27$BLUEPRINT_CLIENT_ID%27&\$select=id" \
+  --query "value[0].id" -o tsv 2>/dev/null || true)
+existing=""
+if [ -n "$blueprint_object_id" ]; then
+  existing=$(az rest --method get --url "$blueprints/$blueprint_object_id/federatedIdentityCredentials" \
+    --query "value[?name=='$fic_name'] | length(@)" -o tsv 2>/dev/null || true)
+fi
 fic_note=""
 if [ "$existing" = "1" ]; then
   say "federated credential already present"
-elif az ad app federated-credential create --id "$BLUEPRINT_CLIENT_ID" --parameters "{\"name\": \"$fic_name\", \"issuer\": \"https://login.microsoftonline.com/$TENANT_ID/v2.0\", \"subject\": \"$BLUEPRINT_CREDENTIAL_PRINCIPAL_ID\", \"audiences\": [\"api://AzureADTokenExchange\"], \"description\": \"Margo instance containers act as this blueprint\"}" >/dev/null 2>&1; then
+elif [ -n "$blueprint_object_id" ] && az rest --method post \
+    --url "$blueprints/$blueprint_object_id/federatedIdentityCredentials" \
+    --headers "Content-Type=application/json" \
+    --body "{\"name\": \"$fic_name\", \"issuer\": \"https://login.microsoftonline.com/$TENANT_ID/v2.0\", \"subject\": \"$BLUEPRINT_CREDENTIAL_PRINCIPAL_ID\", \"audiences\": [\"api://AzureADTokenExchange\"], \"description\": \"Margo instance containers act as this blueprint\"}" >/dev/null 2>&1; then
   say "federated credential added"
 else
   fic_note="    - An Entra administrator adds a federated credential to blueprint $BLUEPRINT_CLIENT_ID:
