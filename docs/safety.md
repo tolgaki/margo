@@ -95,7 +95,7 @@ Private drafts may be prepared and held for later review. They are never deliver
 or written to Outlook/shared storage unattended. An anchor may make its brief available locally;
 availability is not proof that a human has read it.
 
-**The hosted autopilot design has one approved exception.** If Margo runs as a Foundry
+**The hosted autopilot design has one approved exception.** If Margo runs as an Agent 365
 autopilot with her own identity (a design, not a shipped mode; see [autopilot](autopilot.md)),
 she may message her own manager in their one-to-one chat at any time, including unattended. The
 target is fixed at hire and enforced in code, and a run started by anyone else's message cannot

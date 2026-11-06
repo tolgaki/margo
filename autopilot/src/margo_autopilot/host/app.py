@@ -1,4 +1,9 @@
-"""Margo autopilot host: Microsoft 365 Agents SDK activity endpoint on a Foundry hosted agent.
+"""Margo autopilot host: the Microsoft 365 Agents SDK activity endpoint, self-hosted for Agent 365.
+
+Deployed, each hired Margo runs in her own container behind the router (``MARGO_HOSTING=instance``,
+docs/autopilot-instance-containers.md). Run without it, one process serves whichever instance an
+activity addresses, for local development behind a tunnel. Either way every inbound activity's token
+is checked here against the agent blueprint.
 
 What this file does, and deliberately does not do:
 
@@ -33,9 +38,7 @@ from microsoft_agents.hosting.aiohttp import (  # noqa: E402
 from microsoft_agents.hosting.core import (  # noqa: E402
     AgentApplication,
     AgentAuthConfiguration,
-    AuthenticationConstants,
     Authorization,
-    ClaimsIdentity,
     MemoryStorage,
     TurnContext,
     TurnState,
@@ -48,19 +51,17 @@ from microsoft_agents_a365.notifications.agent_notification import (  # noqa: E4
 from ..activity import is_email as _is_email  # noqa: E402
 from ..activity import stable_ids  # noqa: E402
 from ..engine import Engine  # noqa: E402
-from ..instances import lifecycle_message  # noqa: E402
 from ..orchestrator import Orchestrator  # noqa: E402
 from ..transport import McpHttpTransport  # noqa: E402
 from .azure_store import AzureBlobLeaseStore  # noqa: E402
 
 WORKIQ_SCOPE = "api://workiq.svc.cloud.microsoft/.default"
-HOSTING = os.getenv("MARGO_HOSTING", "foundry")  # "instance": this container serves one hired Margo
-# Hybrid hosting (docs/autopilot-instance-containers.md): the Foundry agent keeps each instance's state in
-# that instance's own container and asks the provisioner to create the container.
-STATE_LAYOUT = os.getenv("MARGO_STATE_LAYOUT", "")
+MODEL_SCOPE = "https://cognitiveservices.azure.com/.default"
+HOSTING = os.getenv("MARGO_HOSTING", "single")  # "instance": this container serves one hired Margo
 AGENTIC_HANDLER = os.getenv("AUTH_HANDLER_NAME", "AGENTIC")
 PRINCIPAL_HANDLER = os.getenv("PRINCIPAL_AUTH_HANDLER", "")  # on-behalf-of handler; see deployment guide
 HEALTH_PATHS = {"/", "/liveness", "/readiness"}
+ACTIVITY_PATHS = ("/api/messages", "/activity/messages")  # the router forwards to /activity/messages
 
 logging.basicConfig(level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO),
                     format="%(asctime)s %(levelname)s %(name)s | %(message)s")
@@ -82,19 +83,27 @@ def _configure_telemetry():
 
 
 def _credential():
+    """This instance's own managed identity (``AZURE_CLIENT_ID``): its state and the model, nothing else."""
     from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 
-    client_id = os.getenv("FOUNDRY_AGENT_DEFAULT_INSTANCE_CLIENT_ID")
+    client_id = os.getenv("AZURE_CLIENT_ID")
     return ManagedIdentityCredential(client_id=client_id) if client_id else DefaultAzureCredential()
 
 
-def _model_client(credential):
-    from azure.ai.projects.aio import AIProjectClient
-
-    endpoint = os.getenv("FOUNDRY_PROJECT_ENDPOINT") or os.getenv("AZURE_AI_PROJECT_ENDPOINT")
+def model_base_url(endpoint):
+    """The OpenAI v1 API of an Azure AI Services account, from its endpoint."""
     if not endpoint:
-        raise RuntimeError("FOUNDRY_PROJECT_ENDPOINT is required")
-    return AIProjectClient(endpoint=endpoint, credential=credential).get_openai_client()
+        raise RuntimeError("AZURE_OPENAI_ENDPOINT is required (https://ACCOUNT.openai.azure.com)")
+    return endpoint.rstrip("/") + "/openai/v1/"
+
+
+def _model_client(credential):
+    """Responses API on the Azure AI Services account, with Entra tokens; no keys anywhere."""
+    from azure.identity.aio import get_bearer_token_provider
+    from openai import AsyncOpenAI
+
+    return AsyncOpenAI(base_url=model_base_url(os.getenv("AZURE_OPENAI_ENDPOINT")),
+                       api_key=get_bearer_token_provider(credential, MODEL_SCOPE))
 
 
 def _receipt_logger(receipt):
@@ -113,11 +122,11 @@ def build_orchestrator():
     from azure.identity.aio import DefaultAzureCredential as AsyncDefault
     from azure.identity.aio import ManagedIdentityCredential as AsyncManaged
 
-    client_id = os.getenv("FOUNDRY_AGENT_DEFAULT_INSTANCE_CLIENT_ID")
+    client_id = os.getenv("AZURE_CLIENT_ID")
     async_credential = AsyncManaged(client_id=client_id) if client_id else AsyncDefault()
-    deployment = os.getenv("ModelDeployment") or os.getenv("MARGO_MODEL_DEPLOYMENT")
+    deployment = os.getenv("MARGO_MODEL_DEPLOYMENT")
     if not deployment:
-        raise RuntimeError("ModelDeployment is required")
+        raise RuntimeError("MARGO_MODEL_DEPLOYMENT is required")
     blob_url = os.getenv("MARGO_STATE_BLOB_URL")
     if not blob_url:
         raise RuntimeError("MARGO_STATE_BLOB_URL is required: state must not live only in one session")
@@ -125,9 +134,6 @@ def build_orchestrator():
                     repo_root=os.getenv("MARGO_REPO_ROOT", "/app"),
                     timezone=os.getenv("MARGO_TIMEZONE", "America/Los_Angeles"))
     instance = state_container = voice_url = None
-    base = os.getenv("MARGO_PUBLIC_BASE_URL", "").rstrip("/")
-    if HOSTING != "instance" and STATE_LAYOUT == "instance" and base and os.getenv("VOICE_LIVE_MODEL"):
-        voice_url = base + "/i/{instance}/voice/"
     if HOSTING == "instance":
         instance = (os.environ["MARGO_INSTANCE_AGENT_ID"], os.environ["MARGO_INSTANCE_USER_ID"])
         state_container = os.environ["MARGO_STATE_CONTAINER"]
@@ -138,32 +144,7 @@ def build_orchestrator():
                         store_for=AzureBlobLeaseStore.factory(blob_url, _credential()),
                         principal_access=os.getenv("MARGO_PRINCIPAL_ACCESS", "obo"),
                         recorder=_receipt_logger, instance=instance, state_container=state_container,
-                        voice_url=voice_url, per_instance_state=HOSTING != "instance" and STATE_LAYOUT == "instance")
-
-
-class ProvisionRequests:
-    """Hybrid hosting: ask the provisioner to create each instance's own container, once per
-    instance per process, and pass on Agent 365 lifecycle events. Failures are logged, never fatal:
-    chat keeps working through the Foundry agent either way."""
-
-    def __init__(self, queue_url):
-        from azure.storage.queue import QueueClient
-
-        self.queue = QueueClient.from_queue_url(queue_url, credential=_credential())
-        self._asked = set()
-
-    async def ensure(self, agent_identity_id, agent_user_id):
-        if (agent_identity_id, agent_user_id) in self._asked:
-            return
-        self._asked.add((agent_identity_id, agent_user_id))
-        await self.send({"action": "ensure", "agent_identity_id": agent_identity_id,
-                         "agent_user_id": agent_user_id, "event": "foundry-activity"})
-
-    async def send(self, message):
-        try:
-            await asyncio.to_thread(self.queue.send_message, json.dumps(message, sort_keys=True))
-        except Exception:
-            logger.warning("could not queue a provisioning request")
+                        voice_url=voice_url)
 
 
 def _identity(activity):
@@ -188,9 +169,6 @@ def _email_reference(activity):
 class MargoHost:
     def __init__(self):
         _configure_telemetry()
-        blueprint = os.getenv("FOUNDRY_AGENT_BLUEPRINT_CLIENT_ID")
-        if blueprint:
-            os.environ["CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID"] = blueprint
         config = load_configuration_from_env(os.environ)
         self.storage = MemoryStorage()
         self.connections = MsalConnectionManager(**config)
@@ -200,8 +178,6 @@ class MargoHost:
                                                authorization=self.authorization, **config)
         self.notifications = AgentNotification(self.app)
         self.orchestrator = build_orchestrator()
-        queue_url = os.getenv("MARGO_PROVISION_QUEUE_URL")
-        self.provision = ProvisionRequests(queue_url) if HOSTING != "instance" and queue_url else None
         self.voice = None
         if HOSTING == "instance" and os.getenv("VOICE_LIVE_MODEL"):
             from ..voice.server import VoiceService
@@ -247,8 +223,6 @@ class MargoHost:
             event.update({"conversation_id": conversation_id, "activity_id": activity_id,
                           "conversation_type": getattr(conversation, "conversation_type", None),
                           "channel": "mail" if email else "teams", "text": activity.text or ""})
-            if self.provision is not None:
-                asyncio.ensure_future(self.provision.ensure(event["agent_identity_id"], event["agent_user_id"]))
             typing = asyncio.ensure_future(self._typing(context))
             try:
                 result = await self.orchestrator.handle(event, self._token_getter(context))
@@ -287,13 +261,11 @@ class MargoHost:
                 logger.exception("notification failed")
             # No reply: this version never answers mail.
 
+        # Deployed, the router turns lifecycle events into provisioning and never forwards them; a
+        # single process only records them.
         @self.notifications.on_agent_lifecycle_notification("*")  # SDK's on_lifecycle() is broken in 2.0.0.dev0
         async def on_lifecycle(context: TurnContext, _: TurnState, notification: AgentNotificationActivity):
             logger.info("lifecycle notification: %s", getattr(context.activity, "value_type", None))
-            if self.provision is not None:
-                message = lifecycle_message(context.activity.model_dump(mode="json", by_alias=True, exclude_none=True))
-                if message is not None:
-                    await self.provision.send(message)
 
         @self.app.activity("installationUpdate")
         async def on_installation(context: TurnContext, _: TurnState):
@@ -320,40 +292,27 @@ class MargoHost:
         client_id = os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID")
         tenant_id = os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID")
         scope = os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__SCOPES__0")
-        auth_configuration = None
-        if secret and client_id and tenant_id and scope:
+        # No platform edge in front of this process: every activity's token is checked here (behind
+        # the router, a second time). Without the blueprint's identity, refuse to start.
+        if not (client_id and tenant_id):
+            raise RuntimeError("the agent blueprint client ID and tenant are required to check activity tokens")
+        if secret and scope:
             auth_configuration = AgentAuthConfiguration(client_id=client_id, tenant_id=tenant_id,
                                                         client_secret=secret, scopes=[scope])
-        elif HOSTING == "instance":
-            # No platform edge in front of an instance container: every activity's token is checked
-            # here, as the router already did. Without the blueprint's identity, refuse to start.
-            if not (client_id and tenant_id):
-                raise RuntimeError("instance hosting needs the blueprint client ID and tenant to check tokens")
-            auth_configuration = AgentAuthConfiguration(client_id=client_id, tenant_id=tenant_id)
-        middlewares = []
-        if auth_configuration:
-            @middleware
-            async def jwt(request, handler):
-                # The voice page authenticates the person with their own sign-in (voice/server.py).
-                if request.path in HEALTH_PATHS or request.path == "/voice" or request.path.startswith("/voice/"):
-                    return await handler(request)
-                return await jwt_authorization_middleware(request, handler)
-            middlewares.append(jwt)
         else:
-            # Hosted agents authenticate inbound calls at the platform edge (BotServiceRbac),
-            # as in Microsoft's sample; the container sees pre-authorised requests.
-            @middleware
-            async def platform_claims(request, handler):
-                request["claims_identity"] = ClaimsIdentity(
-                    {AuthenticationConstants.AUDIENCE_CLAIM: "anonymous",
-                     AuthenticationConstants.APP_ID_CLAIM: "anonymous-app"}, False, "Anonymous")
+            auth_configuration = AgentAuthConfiguration(client_id=client_id, tenant_id=tenant_id)
+
+        @middleware
+        async def jwt(request, handler):
+            # The voice page authenticates the person with their own sign-in (voice/server.py).
+            if request.path in HEALTH_PATHS or request.path == "/voice" or request.path.startswith("/voice/"):
                 return await handler(request)
-            middlewares.append(platform_claims)
-        app = Application(middlewares=middlewares)
-        if auth_configuration:
-            app["agent_configuration"] = auth_configuration
-        app.router.add_post("/activity/messages", messages)
-        app.router.add_get("/activity/messages", lambda _request: Response(status=200))
+            return await jwt_authorization_middleware(request, handler)
+
+        app = Application(middlewares=[jwt])
+        app["agent_configuration"] = auth_configuration
+        for path in ACTIVITY_PATHS:
+            app.router.add_post(path, messages)
         for path in HEALTH_PATHS:
             app.router.add_get(path, health)
         if self.voice is not None:

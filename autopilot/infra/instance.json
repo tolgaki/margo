@@ -61,14 +61,11 @@
     "registryId": {
       "type": "string"
     },
-    "foundryAccountName": {
-      "type": "string"
-    },
-    "foundryProjectName": {
-      "type": "string"
-    },
-    "foundryProjectEndpoint": {
-      "type": "string"
+    "aiAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure AI Services account that serves the chat model and Voice Live"
+      }
     },
     "modelDeployment": {
       "type": "string"
@@ -88,7 +85,7 @@
     "modelRoleDefinitionId": {
       "type": "string",
       "metadata": {
-        "description": "Foundry User / Azure AI User role definition GUID"
+        "description": "Cognitive Services OpenAI User role definition GUID, for the chat model"
       }
     },
     "speechRoleDefinitionId": {
@@ -129,6 +126,13 @@
     "voiceEndpointId": {
       "type": "string",
       "defaultValue": ""
+    },
+    "appInsightsConnectionString": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Application Insights connection string; empty runs without telemetry"
+      }
     },
     "extraEnv": {
       "type": "array",
@@ -195,8 +199,8 @@
     {
       "type": "Microsoft.Authorization/roleAssignments",
       "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName'))]",
-      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), parameters('modelRoleDefinitionId'))]",
+      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), parameters('modelRoleDefinitionId'))]",
       "properties": {
         "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('modelRoleDefinitionId'))]",
         "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').principalId]",
@@ -209,8 +213,8 @@
     {
       "type": "Microsoft.Authorization/roleAssignments",
       "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('foundryAccountName'))]",
-      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('foundryAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), parameters('speechRoleDefinitionId'))]",
+      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), parameters('speechRoleDefinitionId'))]",
       "properties": {
         "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('speechRoleDefinitionId'))]",
         "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').principalId]",
@@ -261,7 +265,7 @@
                 "cpu": "[json('0.5')]",
                 "memory": "1Gi"
               },
-              "env": "[concat(createArray(createObject('name', 'MARGO_HOSTING', 'value', 'instance'), createObject('name', 'MARGO_INSTANCE_KEY', 'value', parameters('instanceKey')), createObject('name', 'MARGO_INSTANCE_AGENT_ID', 'value', parameters('agentIdentityId')), createObject('name', 'MARGO_INSTANCE_USER_ID', 'value', parameters('agentUserId')), createObject('name', 'MARGO_STATE_BLOB_URL', 'value', reference(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-05-01').primaryEndpoints.blob), createObject('name', 'MARGO_STATE_CONTAINER', 'value', parameters('stateContainerName')), createObject('name', 'MARGO_PUBLIC_BASE_URL', 'value', parameters('publicBaseUrl')), createObject('name', 'MARGO_TENANT_ID', 'value', parameters('tenantId')), createObject('name', 'FOUNDRY_AGENT_DEFAULT_INSTANCE_CLIENT_ID', 'value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').clientId), createObject('name', 'AZURE_CLIENT_ID', 'value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').clientId), createObject('name', 'FOUNDRY_PROJECT_ENDPOINT', 'value', parameters('foundryProjectEndpoint')), createObject('name', 'ModelDeployment', 'value', parameters('modelDeployment')), createObject('name', 'VOICE_LIVE_ENDPOINT', 'value', format('https://{0}.services.ai.azure.com', parameters('foundryAccountName'))), createObject('name', 'VOICE_LIVE_MODEL', 'value', parameters('voiceLiveModel')), createObject('name', 'MARGO_VOICE_NAME', 'value', parameters('voiceName')), createObject('name', 'MARGO_VOICE_ENDPOINT_ID', 'value', parameters('voiceEndpointId')), createObject('name', 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__AUTHTYPE', 'value', 'FederatedCredentials'), createObject('name', 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID', 'value', parameters('blueprintClientId')), createObject('name', 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID', 'value', parameters('tenantId')), createObject('name', 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__FEDERATEDCLIENTID', 'value', parameters('blueprintCredentialClientId'))), parameters('extraEnv'))]",
+              "env": "[concat(createArray(createObject('name', 'MARGO_HOSTING', 'value', 'instance'), createObject('name', 'MARGO_INSTANCE_KEY', 'value', parameters('instanceKey')), createObject('name', 'MARGO_INSTANCE_AGENT_ID', 'value', parameters('agentIdentityId')), createObject('name', 'MARGO_INSTANCE_USER_ID', 'value', parameters('agentUserId')), createObject('name', 'MARGO_STATE_BLOB_URL', 'value', reference(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-05-01').primaryEndpoints.blob), createObject('name', 'MARGO_STATE_CONTAINER', 'value', parameters('stateContainerName')), createObject('name', 'MARGO_PUBLIC_BASE_URL', 'value', parameters('publicBaseUrl')), createObject('name', 'MARGO_TENANT_ID', 'value', parameters('tenantId')), createObject('name', 'AZURE_CLIENT_ID', 'value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').clientId), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', format('https://{0}.openai.azure.com', parameters('aiAccountName'))), createObject('name', 'MARGO_MODEL_DEPLOYMENT', 'value', parameters('modelDeployment')), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', parameters('appInsightsConnectionString')), createObject('name', 'VOICE_LIVE_ENDPOINT', 'value', format('https://{0}.services.ai.azure.com', parameters('aiAccountName'))), createObject('name', 'VOICE_LIVE_MODEL', 'value', parameters('voiceLiveModel')), createObject('name', 'MARGO_VOICE_NAME', 'value', parameters('voiceName')), createObject('name', 'MARGO_VOICE_ENDPOINT_ID', 'value', parameters('voiceEndpointId')), createObject('name', 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__AUTHTYPE', 'value', 'FederatedCredentials'), createObject('name', 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID', 'value', parameters('blueprintClientId')), createObject('name', 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID', 'value', parameters('tenantId')), createObject('name', 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__FEDERATEDCLIENTID', 'value', parameters('blueprintCredentialClientId'))), parameters('extraEnv'))]",
               "probes": [
                 {
                   "type": "Liveness",

@@ -69,3 +69,10 @@ tmp/
 # Private denylist for tools/check-clean.sh — your own name, initials,
 # employer, customers, codenames. Never published.
 tools/forbidden.local.txt
+
+# Agent 365 CLI configuration: tenant identifiers and possibly a client secret. Keep it outside
+# the repository; these lines catch a copy left here by mistake.
+a365.config.json
+a365.generated.config.json
+**/a365.config.json
+**/a365.generated.config.json

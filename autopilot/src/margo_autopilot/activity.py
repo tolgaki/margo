@@ -14,7 +14,7 @@ def _value(source, name):
 def is_email(activity):
     """Email reaches the message route too: channel ``email`` or ``agents:email``, or product ``email``.
 
-    Mirrors the classification in Microsoft's Foundry autopilot sample. Treating email as a chat
+    Mirrors the classification in Microsoft's Agent 365 samples. Treating email as a chat
     turn would let mail trigger on-behalf-of reads and replies, which this version never does.
     """
     channel_id = getattr(activity, "channel_id", None)

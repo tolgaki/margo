@@ -174,10 +174,8 @@ def plan(message, current):
 
 
 REQUIRED_CONFIG = ("environmentId", "environmentDomain", "image", "storageAccountName", "registryServer",
-                   "registryId", "foundryAccountName", "foundryProjectName", "foundryProjectEndpoint",
-                   "modelDeployment", "storageRoleDefinitionId", "pullRoleDefinitionId", "modelRoleDefinitionId",
-                   "speechRoleDefinitionId", "publicBaseUrl",
-                   "tenantId", "blueprintClientId", "blueprintCredentialIdentityId", "blueprintCredentialClientId")
+                   "registryId", "aiAccountName", "modelDeployment", "storageRoleDefinitionId",
+                   "pullRoleDefinitionId", "modelRoleDefinitionId", "speechRoleDefinitionId", "publicBaseUrl", "tenantId", "blueprintClientId", "blueprintCredentialIdentityId", "blueprintCredentialClientId")
 
 
 def deployment_parameters(key, message, config):
@@ -197,6 +195,7 @@ def deployment_parameters(key, message, config):
         "voiceLiveModel": config.get("voiceLiveModel", ""),
         "voiceName": config.get("voiceName", ""),
         "voiceEndpointId": config.get("voiceEndpointId", ""),
+        "appInsightsConnectionString": config.get("appInsightsConnectionString", ""),
         "extraEnv": list(config.get("extraEnv", [])),
     }
     for name in REQUIRED_CONFIG:

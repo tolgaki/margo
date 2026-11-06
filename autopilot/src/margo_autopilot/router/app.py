@@ -1,8 +1,9 @@
 """The router service: one public endpoint in front of every hired Margo's own container.
 
-- ``POST /api/messages`` (and ``/activity/messages``): the platform token is validated here with
-  the Agents SDK middleware, then the activity is forwarded unchanged (with its token) to the
-  instance, which validates it again. Lifecycle notifications become provisioning messages.
+- ``POST /api/messages`` (and ``/activity/messages``): the blueprint's Agent 365 messaging endpoint.
+  The platform token is validated here with the Agents SDK middleware, then the activity is
+  forwarded unchanged (with its token) to the instance, which validates it again. Lifecycle
+  notifications become provisioning messages.
 - ``/i/{key}/voice/...``: the voice page and its WebSocket, forwarded to the instance. The
   instance authenticates the person; the router only forwards bytes.
 
@@ -152,8 +153,11 @@ def main():
     from azure.storage.blob.aio import BlobClient
     from azure.storage.queue.aio import QueueClient
 
-    client_id = os.environ["CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID"]
-    tenant_id = os.environ["CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID"]
+    client_id = os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", "")
+    tenant_id = os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID", "")
+    if not (client_id and tenant_id):
+        # Without the blueprint there is no audience to check tokens against: accept nothing.
+        raise SystemExit("the agent blueprint client ID is not set; see docs/autopilot-deployment.md")
     auth = AgentAuthConfiguration(client_id=client_id, tenant_id=tenant_id)
     credential = _credential()
     routes = BlobClient.from_blob_url(os.environ["MARGO_ROUTES_URL"], credential=credential)

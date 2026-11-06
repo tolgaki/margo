@@ -4,10 +4,12 @@
   "parameters": {
     "environmentName": { "value": "${AZURE_ENV_NAME}" },
     "location": { "value": "${AZURE_LOCATION}" },
-    "modelName": { "value": "${MARGO_MODEL_NAME=gpt-chat-latest}" },
-    "modelVersion": { "value": "${MARGO_MODEL_VERSION=2026-05-28}" },
-    "hostingMode": { "value": "${MARGO_HOSTING=foundry}" },
+    "modelName": { "value": "${MARGO_MODEL_NAME=gpt-5-mini}" },
+    "modelVersion": { "value": "${MARGO_MODEL_VERSION=2025-08-07}" },
     "blueprintClientId": { "value": "${MARGO_BLUEPRINT_CLIENT_ID=}" },
+    "principalAccess": { "value": "${MARGO_PRINCIPAL_ACCESS=obo}" },
+    "principalAuthHandler": { "value": "${PRINCIPAL_AUTH_HANDLER=}" },
+    "timezone": { "value": "${MARGO_TIMEZONE=America/Los_Angeles}" },
     "voiceLiveModel": { "value": "${MARGO_VOICE_LIVE_MODEL=}" },
     "voiceName": { "value": "${MARGO_VOICE_NAME=}" },
     "voiceEndpointId": { "value": "${MARGO_VOICE_ENDPOINT_ID=}" }

@@ -29,7 +29,7 @@ from pathlib import Path
 
 from .guard import ATTENDED, UNATTENDED, CallBudget, TokenUnavailable, WorkIQGuard, _status_codes
 from .instance import BindingError, InstanceBinding
-from .instances import instance_key, resource_names
+from .instances import instance_key
 from .office import OfficeQueue, OfficeReader
 from .replies import ACKNOWLEDGE, APPROVE, NONE, SETTING_LABEL, ReplyGate, load_reply_policy
 from .statecmd import StateCommands
@@ -111,12 +111,11 @@ def set_reply_mode(preferences, mode):
 
 class Orchestrator:
     def __init__(self, *, engine, transport, state_root, store_for, principal_access="obo",
-                 recorder=None, instance=None, state_container=None, voice_url=None, per_instance_state=False):
+                 recorder=None, instance=None, state_container=None, voice_url=None):
         """``instance``: in per-instance hosting, the one ``(agent_identity_id, agent_user_id)`` this
         container serves; anything else is refused. ``state_container``: that instance's own Blob
-        container, holding each manager's state under its own prefix. ``per_instance_state``: the
-        Foundry-hosted Margo keeps each instance's state in that same per-instance container, so the
-        instance's own container and the Foundry agent share one state (hybrid hosting).
+        container, holding each manager's state under its own prefix. Without them (one process serving
+        any instance, for local development), each instance and manager has a container of its own.
         ``voice_url``: the voice page; ``{instance}`` is replaced by the instance key."""
         self.engine, self.transport = engine, transport
         self.state_root = Path(state_root)
@@ -124,7 +123,6 @@ class Orchestrator:
         self.principal_access = principal_access
         self.recorder = recorder
         self.instance, self.state_container, self.voice_url = instance, state_container, voice_url
-        self.per_instance_state = per_instance_state
         self._conversations = {}
         self._initialised = set()
 
@@ -192,8 +190,6 @@ class Orchestrator:
         """The leased state for one instance and manager, wherever this deployment keeps it."""
         database, preferences = self._paths(binding.account)
         container = self.state_container
-        if container is None and self.per_instance_state:
-            container = resource_names(instance_key(binding.agent_identity_id, binding.agent_user_id))["container"]
         if container:
             prefix = hashlib.sha256(binding.account.encode("utf-8")).hexdigest()[:40] + "/"
             return StateSync(database, self.store_for(container), account=binding.account,

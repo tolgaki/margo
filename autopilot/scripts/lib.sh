@@ -5,7 +5,6 @@ set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 AUTOPILOT=$(CDPATH= cd -- "$HERE/.." && pwd)
 REPO=$(CDPATH= cd -- "$AUTOPILOT/.." && pwd)
-API_VERSION="2025-11-15-preview"
 
 say() { printf '%s\n' "==> $*"; }
 die() { printf '%s\n' "ERROR: $*" >&2; exit 1; }
@@ -15,10 +14,6 @@ need() {
     eval "value=\${$name:-}"
     [ -n "$value" ] || die "$name is not set. Run from 'azd provision' or 'azd env get-values'."
   done
-}
-
-foundry_token() {
-  az account get-access-token --resource https://ai.azure.com --tenant "$TENANT_ID" --query accessToken -o tsv
 }
 
 # json_get FILE EXPRESSION  -> prints a value from a JSON file using a Python expression on `d`.
@@ -41,14 +36,14 @@ assign_role() {
   esac
 }
 
-# foundry_call METHOD URL BODY_FILE OUT_FILE [EXTRA_HEADER]  -> HTTP status on stdout.
-foundry_call() {
-  token=$(foundry_token)
-  if [ -n "${5:-}" ]; then
-    curl -sS -o "$4" -w '%{http_code}' -X "$1" "$2" -H "Authorization: Bearer $token" \
-      -H "Content-Type: application/json" -H "Accept: application/json" -H "$5" --data-binary "@$3"
-  else
-    curl -sS -o "$4" -w '%{http_code}' -X "$1" "$2" -H "Authorization: Bearer $token" \
-      -H "Content-Type: application/json" -H "Accept: application/json" --data-binary "@$3"
-  fi
+# role_id NAME -> role definition GUID, looked up by name in this tenant.
+role_id() {
+  id=$(az role definition list --name "$1" --query "[0].name" -o tsv 2>/dev/null || true)
+  [ -n "$id" ] || die "role '$1' not found in this tenant"
+  printf '%s' "$id"
 }
+
+GRAPH_BETA="https://graph.microsoft.com/beta"
+# Agent identity blueprints are agentIdentityBlueprint applications, which 'az ad app' (the plain
+# applications endpoint) does not find; address them through the Graph type cast instead.
+BLUEPRINTS="$GRAPH_BETA/applications/graph.agentIdentityBlueprint"

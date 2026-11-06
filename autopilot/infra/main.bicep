@@ -1,7 +1,9 @@
-// Margo autopilot: Foundry account and project, model, registry, monitoring and state storage.
+// Margo autopilot, self-hosted for Agent 365: an Azure AI Services account (chat model and Voice Live),
+// registry, monitoring, state storage, and one container per hired Margo
+// (docs/autopilot-instance-containers.md): a Container Apps environment, the public router that is the
+// blueprint's messaging endpoint, the provisioner job, its queue and route table.
+// The agent blueprint is created with the Agent 365 CLI, not here (docs/autopilot-deployment.md).
 // Role assignments are made by name in scripts/postprovision.sh, so no role-definition IDs live here.
-// hostingMode 'instance' adds one-container-per-instance hosting (docs/autopilot-instance-containers.md):
-// a Container Apps environment, the public router, the provisioner job, its queue and route table.
 targetScope = 'resourceGroup'
 
 @minLength(1)
@@ -10,50 +12,51 @@ targetScope = 'resourceGroup'
 param environmentName string
 
 @minLength(1)
-@description('Region. Must support Foundry hosted agents.')
+@description('Region. Must offer the chat model (and, for voice, Voice Live).')
 param location string
 
 @description('Chat model to deploy for Margo.')
-param modelName string = 'gpt-chat-latest'
+param modelName string = 'gpt-5-mini'
 
 @description('Model version.')
-param modelVersion string = '2026-05-28'
+param modelVersion string = '2025-08-07'
 
 @description('Model deployment capacity (thousands of tokens per minute).')
 param modelCapacity int = 30
 
-@description('Hosted agent name in the Foundry project.')
-param agentName string = 'margo'
-
 param tags object = {}
 
-@allowed(['foundry', 'instance'])
-@description('foundry: one Foundry hosted agent serves every instance. instance: one container per hired instance.')
-param hostingMode string = 'foundry'
+@allowed(['obo', 'delegation'])
+@description('How each Margo reads her manager\'s work: obo (on-behalf-of) or delegation (mailbox permissions).')
+param principalAccess string = 'obo'
 
-@description('Instance mode: the agent blueprint client ID that activities and voice tokens are issued for.')
+@description('On-behalf-of user-authorisation handler name (obo mode); empty leaves principal sources blocked.')
+param principalAuthHandler string = ''
+
+@description('The managers\' time zone (IANA name); Margo states every time in it.')
+param timezone string = 'America/Los_Angeles'
+
+@description('The agent blueprint client ID (from the Agent 365 CLI) that activities and voice tokens are issued for. Empty on the first provision.')
 param blueprintClientId string = ''
 
 @allowed([0, 1])
-@description('Instance mode: 0 lets an idle instance scale to zero (cold starts); 1 keeps it warm.')
+@description('0 lets an idle instance scale to zero (cold starts); 1 keeps it warm.')
 param instanceMinReplicas int = 0
 
-@description('Instance mode: Voice Live model for spoken conversations (for example gpt-realtime-2.1).')
+@description('Voice Live model for spoken conversations (for example gpt-realtime-2.1).')
 param voiceLiveModel string = ''
 
-@description('Instance mode: Azure voice name (an HD voice, or the custom voice name once trained).')
+@description('Azure voice name (an HD voice, or the custom voice name once trained).')
 param voiceName string = ''
 
-@description('Instance mode: deployment ID of a trained custom voice; empty uses voiceName as a standard voice.')
+@description('Deployment ID of a trained custom voice; empty uses voiceName as a standard voice.')
 param voiceEndpointId string = ''
 
-var instanceMode = hostingMode == 'instance'
 var placeholderImage = 'mcr.microsoft.com/k8se/quickstart:latest'
 
 var token = toLower(uniqueString(subscription().id, resourceGroup().id, environmentName))
 var compact = toLower(replace(replace(environmentName, '-', ''), '_', ''))
 var accountName = take('${compact}${token}', 24)
-var projectName = 'margo'
 var registryName = take('${compact}acr${token}', 50)
 var storageName = take('${compact}st${token}', 24)
 
@@ -67,25 +70,14 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-09-01' = {
   properties: {
     customSubDomainName: accountName
     publicNetworkAccess: 'Enabled'
-    allowProjectManagement: true
     disableLocalAuth: true
   }
-}
-
-resource project 'Microsoft.CognitiveServices/accounts/projects@2026-03-01' = {
-  parent: account
-  name: projectName
-  location: location
-  tags: tags
-  identity: { type: 'SystemAssigned' }
-  properties: { displayName: 'Margo' }
 }
 
 // The account takes one operation at a time (RequestConflict otherwise), so deploy the model last.
 resource model 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: account
   name: modelName
-  dependsOn: [insightsConnection]
   sku: { name: 'GlobalStandard', capacity: modelCapacity }
   properties: { model: { format: 'OpenAI', name: modelName, version: modelVersion } }
 }
@@ -111,23 +103,6 @@ resource insights 'Microsoft.Insights/components@2020-02-02' = {
   tags: tags
   kind: 'web'
   properties: { Application_Type: 'web', WorkspaceResourceId: logs.id }
-}
-
-resource insightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-09-01' = {
-  parent: project
-  name: insights.name
-  properties: {
-    category: 'AppInsights'
-    target: insights.id
-    #disable-next-line BCP036
-    authType: 'ProjectManagedIdentity'
-    isSharedToAll: false
-    metadata: {
-      ApiType: 'Azure'
-      ResourceId: insights.id
-      ApplicationInsightsConnectionString: insights.properties.ConnectionString
-    }
-  }
 }
 
 // Margo's private state: one container per hired instance and manager, created at runtime.
@@ -156,46 +131,46 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01'
   }
 }
 
-// -- one container per instance (hostingMode 'instance') ----------------------------------------
-// Apps start from a public placeholder image; scripts/postprovision-instance.sh assigns roles by
-// name, builds the Margo image and switches the router and provisioner to it.
+// -- one container per instance --------------------------------------------------------------------
+// Apps start from a public placeholder image; scripts/postprovision.sh assigns roles by name, builds
+// the Margo image and, once the blueprint exists, switches the router and provisioner to it.
 
-resource queues 'Microsoft.Storage/storageAccounts/queueServices@2023-05-01' = if (instanceMode) {
+resource queues 'Microsoft.Storage/storageAccounts/queueServices@2023-05-01' = {
   parent: storage
   name: 'default'
 }
 
-resource provisionQueue 'Microsoft.Storage/storageAccounts/queueServices/queues@2023-05-01' = if (instanceMode) {
+resource provisionQueue 'Microsoft.Storage/storageAccounts/queueServices/queues@2023-05-01' = {
   parent: queues
   name: 'margo-provision'
 }
 
-resource routesContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = if (instanceMode) {
+resource routesContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
   parent: blobService
   name: 'margo-routes'
   properties: { publicAccess: 'None' }
 }
 
-resource routerIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = if (instanceMode) {
+resource routerIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: '${environmentName}-router'
   location: location
   tags: tags
 }
 
-resource provisionerIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = if (instanceMode) {
+resource provisionerIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: '${environmentName}-provisioner'
   location: location
   tags: tags
 }
 
 // Trusted by the blueprint's federated credential so instances can act as the agent; holds no Azure roles.
-resource blueprintCredential 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = if (instanceMode) {
+resource blueprintCredential 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: '${environmentName}-blueprint-credential'
   location: location
   tags: tags
 }
 
-resource containerEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = if (instanceMode) {
+resource containerEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: '${environmentName}-env'
   location: location
   tags: tags
@@ -210,13 +185,13 @@ resource containerEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = i
   }
 }
 
-resource router 'Microsoft.App/containerApps@2024-03-01' = if (instanceMode) {
+resource router 'Microsoft.App/containerApps@2024-03-01' = {
   name: take('${compact}-router', 32)
   location: location
   tags: tags
-  identity: { type: 'UserAssigned', userAssignedIdentities: { '${routerIdentity!.id}': {} } }
+  identity: { type: 'UserAssigned', userAssignedIdentities: { '${routerIdentity.id}': {} } }
   properties: {
-    managedEnvironmentId: containerEnvironment!.id
+    managedEnvironmentId: containerEnvironment.id
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: { external: true, targetPort: 8088, transport: 'auto', allowInsecure: false }
@@ -229,7 +204,7 @@ resource router 'Microsoft.App/containerApps@2024-03-01' = if (instanceMode) {
           command: [ 'python', '-m', 'margo_autopilot.router' ]
           resources: { cpu: json('0.5'), memory: '1Gi' }
           env: [
-            { name: 'AZURE_CLIENT_ID', value: routerIdentity!.properties.clientId }
+            { name: 'AZURE_CLIENT_ID', value: routerIdentity.properties.clientId }
             { name: 'MARGO_ROUTES_URL', value: '${storage.properties.primaryEndpoints.blob}margo-routes/routes.json' }
             { name: 'MARGO_PROVISION_QUEUE_URL', value: '${storage.properties.primaryEndpoints.queue}margo-provision' }
             { name: 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID', value: blueprintClientId }
@@ -243,33 +218,37 @@ resource router 'Microsoft.App/containerApps@2024-03-01' = if (instanceMode) {
 }
 
 var provisionerConfig = {
-  environmentId: instanceMode ? containerEnvironment!.id : ''
-  environmentDomain: instanceMode ? containerEnvironment!.properties.defaultDomain : ''
+  environmentId: containerEnvironment.id
+  environmentDomain: containerEnvironment.properties.defaultDomain
   storageAccountName: storage.name
   registryServer: registry.properties.loginServer
   registryId: registry.id
-  foundryAccountName: account.name
-  foundryProjectName: project.name
-  foundryProjectEndpoint: project.properties.endpoints['AI Foundry API']
+  aiAccountName: account.name
   modelDeployment: model.name
-  publicBaseUrl: instanceMode ? 'https://${router!.properties.configuration.ingress.fqdn}' : ''
+  appInsightsConnectionString: insights.properties.ConnectionString
+  publicBaseUrl: 'https://${router.properties.configuration.ingress.fqdn}'
   tenantId: tenant().tenantId
   blueprintClientId: blueprintClientId
-  blueprintCredentialIdentityId: instanceMode ? blueprintCredential!.id : ''
-  blueprintCredentialClientId: instanceMode ? blueprintCredential!.properties.clientId : ''
+  blueprintCredentialIdentityId: blueprintCredential.id
+  blueprintCredentialClientId: blueprintCredential.properties.clientId
   minReplicas: instanceMinReplicas
   voiceLiveModel: voiceLiveModel
   voiceName: voiceName
   voiceEndpointId: voiceEndpointId
+  // Settings every instance container gets; never secrets.
+  extraEnv: concat([
+    { name: 'MARGO_PRINCIPAL_ACCESS', value: principalAccess }
+    { name: 'MARGO_TIMEZONE', value: timezone }
+  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ])
 }
 
-resource provisioner 'Microsoft.App/jobs@2024-03-01' = if (instanceMode) {
+resource provisioner 'Microsoft.App/jobs@2024-03-01' = {
   name: take('${compact}-provisioner', 32)
   location: location
   tags: tags
-  identity: { type: 'UserAssigned', userAssignedIdentities: { '${provisionerIdentity!.id}': {} } }
+  identity: { type: 'UserAssigned', userAssignedIdentities: { '${provisionerIdentity.id}': {} } }
   properties: {
-    environmentId: containerEnvironment!.id
+    environmentId: containerEnvironment.id
     configuration: {
       triggerType: 'Schedule'
       scheduleTriggerConfig: { cronExpression: '*/2 * * * *', parallelism: 1, replicaCompletionCount: 1 }
@@ -284,7 +263,7 @@ resource provisioner 'Microsoft.App/jobs@2024-03-01' = if (instanceMode) {
           command: [ 'python', '-m', 'margo_autopilot.provision', 'run' ]
           resources: { cpu: json('0.5'), memory: '1Gi' }
           env: [
-            { name: 'AZURE_CLIENT_ID', value: provisionerIdentity!.properties.clientId }
+            { name: 'AZURE_CLIENT_ID', value: provisionerIdentity.properties.clientId }
             { name: 'AZURE_SUBSCRIPTION_ID', value: subscription().subscriptionId }
             { name: 'AZURE_RESOURCE_GROUP', value: resourceGroup().name }
             { name: 'MARGO_ROUTES_URL', value: '${storage.properties.primaryEndpoints.blob}margo-routes/routes.json' }
@@ -297,16 +276,11 @@ resource provisioner 'Microsoft.App/jobs@2024-03-01' = if (instanceMode) {
   }
 }
 
-output AZURE_AI_PROJECT_ENDPOINT string = project.properties.endpoints['AI Foundry API']
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.properties.loginServer
 output AZURE_CONTAINER_REGISTRY_ID string = registry.id
 output ACCOUNT_ID string = account.id
 output ACCOUNT_NAME string = account.name
-output PROJECT_NAME string = project.name
-output PROJECT_ID string = project.id
-output PROJECT_PRINCIPAL_ID string = project.identity.principalId
 output MODEL_NAME string = model.name
-output AGENT_NAME string = agentName
 output APPLICATIONINSIGHTS_ID string = insights.id
 output STORAGE_ACCOUNT_ID string = storage.id
 output MARGO_STATE_BLOB_URL string = storage.properties.primaryEndpoints.blob
@@ -314,16 +288,16 @@ output TENANT_ID string = tenant().tenantId
 output SUBSCRIPTION_ID string = subscription().subscriptionId
 output RESOURCE_GROUP string = resourceGroup().name
 output LOCATION string = location
-output MARGO_HOSTING string = hostingMode
-output ROUTER_NAME string = instanceMode ? router!.name : ''
-output ROUTER_URL string = instanceMode ? 'https://${router!.properties.configuration.ingress.fqdn}' : ''
-output ROUTER_PRINCIPAL_ID string = instanceMode ? routerIdentity!.properties.principalId : ''
-output ROUTER_IDENTITY_ID string = instanceMode ? routerIdentity!.id : ''
-output PROVISIONER_NAME string = instanceMode ? provisioner!.name : ''
-output PROVISIONER_PRINCIPAL_ID string = instanceMode ? provisionerIdentity!.properties.principalId : ''
-output PROVISIONER_IDENTITY_ID string = instanceMode ? provisionerIdentity!.id : ''
-output BLUEPRINT_CREDENTIAL_CLIENT_ID string = instanceMode ? blueprintCredential!.properties.clientId : ''
-output BLUEPRINT_CREDENTIAL_PRINCIPAL_ID string = instanceMode ? blueprintCredential!.properties.principalId : ''
-output PROVISION_QUEUE_URL string = instanceMode ? '${storage.properties.primaryEndpoints.queue}margo-provision' : ''
-output ROUTES_CONTAINER_ID string = instanceMode ? routesContainer!.id : ''
-output PROVISION_QUEUE_ID string = instanceMode ? provisionQueue!.id : ''
+output ROUTER_NAME string = router.name
+output ROUTER_URL string = 'https://${router.properties.configuration.ingress.fqdn}'
+output MESSAGING_ENDPOINT string = 'https://${router.properties.configuration.ingress.fqdn}/api/messages'
+output ROUTER_PRINCIPAL_ID string = routerIdentity.properties.principalId
+output ROUTER_IDENTITY_ID string = routerIdentity.id
+output PROVISIONER_NAME string = provisioner.name
+output PROVISIONER_PRINCIPAL_ID string = provisionerIdentity.properties.principalId
+output PROVISIONER_IDENTITY_ID string = provisionerIdentity.id
+output BLUEPRINT_CREDENTIAL_CLIENT_ID string = blueprintCredential.properties.clientId
+output BLUEPRINT_CREDENTIAL_PRINCIPAL_ID string = blueprintCredential.properties.principalId
+output PROVISION_QUEUE_URL string = '${storage.properties.primaryEndpoints.queue}margo-provision'
+output ROUTES_CONTAINER_ID string = routesContainer.id
+output PROVISION_QUEUE_ID string = provisionQueue.id

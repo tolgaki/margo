@@ -21,11 +21,11 @@ ENV PYTHONPATH=/app/autopilot/src:/app/skills/chief-of-staff/scripts \
     PORT=8088 \
     OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=false
 
-# Microsoft 365 Agents SDK configuration, as in Microsoft's Foundry autopilot sample. Names must
-# be upper case with SERVICE_CONNECTION; the client ID comes from FOUNDRY_AGENT_BLUEPRINT_CLIENT_ID
-# at runtime. The scope below is the SDK's fixed public service scope, not a tenant identifier.
-ENV CONNECTIONS__SERVICE_CONNECTION__SETTINGS__AUTHTYPE=IdentityProxyManager \
-    CONNECTIONS__SERVICE_CONNECTION__SETTINGS__SCOPES__0=5a807f24-c9de-44ee-a3a7-329e88a00ffc/.default \
+# Microsoft 365 Agents SDK configuration. Names must be upper case with SERVICE_CONNECTION. The
+# blueprint client ID, tenant and sign-in type are set per deployment: instance containers act as the
+# blueprint through a federated credential (infra/instance.bicep). The scope below is the SDK's fixed
+# public service scope, not a tenant identifier.
+ENV CONNECTIONS__SERVICE_CONNECTION__SETTINGS__SCOPES__0=5a807f24-c9de-44ee-a3a7-329e88a00ffc/.default \
     CONNECTIONSMAP__0__SERVICEURL=* \
     CONNECTIONSMAP__0__CONNECTION=SERVICE_CONNECTION \
     AGENTAPPLICATION__STARTTYPINGTIMER=false \

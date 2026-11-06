@@ -2,8 +2,9 @@
 
 **Status: first deployable version, unproven in a live tenant. Not installed by the local
 installers and not a supported mode.** To deploy, follow
-[Deploy Margo as a Foundry autopilot](../docs/autopilot-deployment.md). The design, decisions and
-verification list are in [Margo as a Foundry autopilot](../docs/autopilot.md).
+[Deploy Margo as an Agent 365 agent](../docs/autopilot-deployment.md): self-hosted in Azure
+Container Apps, one container per hired Margo, with the blueprint created by the Agent 365 CLI.
+The design, decisions and verification list are in [Margo as an autopilot](../docs/autopilot.md).
 
 ## What is here
 
@@ -20,18 +21,18 @@ verification list are in [Margo as a Foundry autopilot](../docs/autopilot.md).
 | `src/margo_autopilot/voice/` | Talk to Margo: session bridge, endpoint, and the browser page in `static/` |
 | `infra/instance.bicep`, `instance.json` | One instance's identity, scoped storage role and Container App (rebuild the JSON with `bicep build`) |
 | `src/margo_autopilot/orchestrator.py` | Who is speaking, manager lookup, token order, queueing and replies |
-| `src/margo_autopilot/statesync.py` | SQLite state shared across sandboxes through a leased Blob bundle |
+| `src/margo_autopilot/statesync.py` | SQLite state saved to the instance's Blob container under a lease, so restarts and scale-to-zero lose nothing |
 | `src/margo_autopilot/office.py` | Requests other people send Margo, as untrusted candidate items |
 | `src/margo_autopilot/replies.py` | The manager's "Replies to other people" setting and its gate |
 | `src/margo_autopilot/claims.py`, `instance.py` | Execution claims via the approval journal; instance binding |
-| `src/margo_autopilot/host/` | Microsoft 365 Agents SDK endpoint and Azure Blob store (hosted dependencies only) |
+| `src/margo_autopilot/host/` | Microsoft 365 Agents SDK endpoint (checks every activity's token against the blueprint) and Azure Blob store |
 | `Dockerfile`, `requirements.txt` | Image built from the repository root; hosted-only dependencies |
-| `azure.yaml`, `infra/`, `scripts/` | `azd` project, Bicep and deployment scripts |
-| `config/`, `terms.md`, `assets/` | MCP config, publish payload, terms and privacy, icons |
+| `azure.yaml`, `infra/main.bicep`, `scripts/` | `azd` project: model, registry, storage, router, provisioner; roles, image, blueprint connection (`connect-blueprint.sh`, `blueprint.sh`) |
+| `config/`, `terms.md`, `assets/` | MCP config, terms and privacy, icons |
 
 Everything outside `host/` is Python 3.9+ and standard-library only, like the core, and is
 tested offline. `host/` adds the Microsoft 365 Agents SDK, Azure identity, Blob Storage and the
-Foundry project client; it is exercised only in a deployment.
+OpenAI client (for the Azure AI Services v1 endpoint); it is exercised only in a deployment.
 
 ## The hosted action convention
 
@@ -59,7 +60,8 @@ published reference: `search_paths` takes `query`, and `get_schema` accepts `act
 ## Test
 
 ```sh
-python3 -m unittest tests.test_autopilot_guard tests.test_autopilot_runtime
+python3 -m unittest tests.test_autopilot_guard tests.test_autopilot_runtime tests.test_autopilot_parity \
+  tests.test_autopilot_instances tests.test_autopilot_voice
 ```
 
 The tests use fictional identifiers, fake Work IQ and model services, a local MCP test server,

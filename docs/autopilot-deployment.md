@@ -1,11 +1,31 @@
-# Deploy Margo as a Foundry autopilot
+# Deploy Margo as an Agent 365 agent
 
-[Design](autopilot.md) · [Autopilot code](../autopilot/README.md) · [Trust and safety](safety.md)
+[Design](autopilot.md) · [One container per instance](autopilot-instance-containers.md) ·
+[Voice](autopilot-voice.md) · [Autopilot code](../autopilot/README.md) · [Trust and safety](safety.md)
 
 **Status: first deployable version, not yet proven in a live tenant.** Everything here is built
-and tested offline against fakes and Microsoft's published contracts. Nobody has yet run it end
-to end in a real tenant. Deploy it first to a **test tenant with fictional users**, and treat the
-first run as the phase-0 verification described in the [design](autopilot.md#10-verification-list-phase-0).
+and tested offline against fakes and Microsoft's published contracts. Nobody has yet run this
+route end to end in a real tenant. Deploy it first to a **test tenant with fictional users**, and
+treat the first run as the phase-0 verification described in the [design](autopilot.md#10-verification-list-phase-0).
+Agent 365 and its CLI are in preview; where a step names a CLI flag, check it against
+`a365 --help` for the version you install.
+
+## How it fits together
+
+Margo is **self-hosted**: her code runs in your Azure subscription, in Azure Container Apps. Agent
+365 provides everything around it: the agent blueprint, publishing, admin approval, hiring, each
+hired Margo's own Entra agent identity and agent user (with a mailbox, Teams and a place in the org
+chart), and delivery of Teams messages, mail and notifications to her messaging endpoint.
+
+```text
+Teams / Outlook / Word ──► Agent 365 ──► https://<router>/api/messages   (the blueprint's messaging endpoint)
+                                              │  checks the token, finds the instance
+                                              └─► Margo container for instance A (her own identity and state)
+                                              └─► Margo container for instance B …
+```
+
+There is no Microsoft Foundry project or hosted agent. Azure AI Services serves the chat model
+(and Voice Live, if you turn voice on) directly to each container.
 
 ## What this version does
 
@@ -14,9 +34,9 @@ first run as the phase-0 verification described in the [design](autopilot.md#10-
 | Chat with her manager in Teams and answer as Margo | Send, reply, post, RSVP, move meetings or delete anything |
 | Read her manager's mail and calendar (and, with on-behalf-of access, Teams and files) through the Work IQ guard | Run on a schedule or brief you unprompted |
 | Brief, triage, prep meetings and draft text for her manager to send | Answer email from anyone, including her manager |
-| Queue messages other people send her, as untrusted requests for her manager | Use approval cards (the `approve` reply setting acts as `none`) |
-| Send one fixed "passed this on" note per conversation, if her manager turns that on | Use Foundry's managed memory |
-| Keep her private state in SQLite, shared safely across sandboxes through leased Blob storage | Talk to any MCP server except Work IQ |
+| Queue messages and mail other people send her, as untrusted requests for her manager | Use approval cards (the `approve` reply setting acts as `none`) |
+| Send one fixed "passed this on" note per conversation, if her manager turns that on | Join meetings live |
+| Talk by voice with her manager, if voice is turned on | Talk to any MCP server except Work IQ |
 
 ## What gets created
 
@@ -24,23 +44,26 @@ first run as the phase-0 verification described in the [design](autopilot.md#10-
 
 | Resource | Why |
 | --- | --- |
-| Foundry account and project, with a chat model deployment | Hosts Margo and her model |
+| Azure AI Services account with a chat model deployment | Margo's model, and Voice Live for voice. Entra sign-in only; local keys are off |
 | Azure Container Registry | Holds the Margo image, built in the cloud from this repository |
 | Log Analytics and Application Insights | Operational logs. Message content capture is off |
-| Storage account (no public access, no shared keys, versioning and 14-day soft delete) | Margo's private state: one container per hired instance and manager |
+| Storage account (no public access, no shared keys, versioning and 14-day soft delete) | Each hired Margo's private state, the route table and the provisioning queue |
+| Container Apps environment, the **router** app and the **provisioner** job | The public messaging endpoint, and the job that creates one container per hired Margo |
+| Three managed identities | Router, provisioner, and the role-less identity that instance containers use to act as the blueprint |
 
-Then the post-provision hook:
+The Agent 365 CLI then creates the **agent blueprint** in Entra and registers the router as its
+messaging endpoint. The post-provision hook (`scripts/postprovision.sh`) does the rest:
 
-1. Grants the project's identity `AcrPull`, `Cognitive Services User` and
-   `Monitoring Metrics Publisher`, by role name.
-2. Runs the repository privacy check and builds the image with `az acr build`. It refuses a
-   checkout with uncommitted changes unless `ALLOW_DIRTY=true`.
-3. Creates a hosted-agent version that speaks the Teams activity protocol, waits for it to
-   become active, and requires Bot Service RBAC on its endpoint.
-4. Grants the agent's identity `Foundry User` (formerly `Azure AI User`) on the project and
-   `Storage Blob Data Contributor` on the storage account.
-5. Publishes Margo as an autopilot blueprint, requesting only Work IQ's delegated
-   `WorkIQAgent.Ask` permission, and leaves it waiting for admin approval.
+1. Grants the router and the provisioner their roles, by role name. The provisioner may grant
+   only the four roles an instance needs (an ABAC condition): its state container, image pull,
+   the chat model (`Cognitive Services OpenAI User`) and Voice Live (`Cognitive Services User`).
+2. Runs the repository privacy check, builds the image with `az acr build` and pins it by
+   digest. It refuses a checkout with uncommitted changes unless `ALLOW_DIRTY=true`.
+3. Once the blueprint exists: switches the router and the provisioner to that image and blueprint,
+   then runs `scripts/blueprint.sh`, which adds the blueprint's federated credential for instance
+   containers and gives the blueprint Work IQ's delegated `WorkIQAgent.Ask` scope (inheritable by
+   every hired Margo, with tenant-wide consent). Any of these the deployer may not do is printed as
+   a step for an administrator instead.
 
 ## Before you start
 
@@ -48,40 +71,43 @@ Then the post-provision hook:
 
 | Step | Who | Role |
 | --- | --- | --- |
-| Provision and build | You or an Azure admin | **Owner**, or **Contributor** plus **Role Based Access Control Administrator**, on the resource group; **Foundry User** on the project |
-| Approve the blueprint | Microsoft 365 admin | **Global Administrator** or **AI Administrator** |
+| Provision and build | You or an Azure admin | **Owner**, or **Contributor** plus **Role Based Access Control Administrator**, on the resource group |
+| Create the blueprint (Agent 365 CLI) | You | **Agent ID Developer** at least; the CLI's permission steps may need **Agent ID Administrator** |
+| Consent to Work IQ for the blueprint | Entra admin | **Global Administrator** or **Privileged Role Administrator** |
+| Approve Margo | Microsoft 365 admin | **Global Administrator** or **AI Administrator** |
+| Hire an instance, license her agent user | Anyone the admin allows; a licence admin | Membership in the hiring scope; **License Administrator** |
 | Grant mailbox delegation (delegation mode only) | Exchange admin | Exchange Online permission management |
-| Hire an instance | Anyone the admin allows | Membership in the hiring scope |
 
 ### Tenant prerequisites
 
-- Frontier preview enrolment, Agent 365 terms accepted, and a free autopilot licence seat. Each
-  hired instance uses one seat.
-- Work IQ enabled in the tenant. `publish.sh` checks for its service principal and stops if it
-  is missing.
-- Usage-based billing for Copilot Credits, with a spending policy that covers Work IQ for both
-  the manager and Margo's agent user. Which of the two is billed under on-behalf-of access is
-  still unverified.
+- **Frontier preview** enrolment and the Agent 365 terms accepted. Agent users, mail and
+  document notifications, and **Create instance** need it.
+- **Licences:** an Agent 365 (or Microsoft 365 E7) licence for the tenant's agent features. Each
+  hired Margo's agent user needs a Microsoft 365 licence that includes Exchange Online and Teams for
+  her mailbox and chat, and a Microsoft 365 Copilot licence for Work IQ.
+- **Work IQ** enabled in the tenant. `scripts/blueprint.sh` checks for its service principal.
+- Usage-based billing for Copilot Credits, if your tenant meters Work IQ that way. Which of the
+  manager and Margo is billed under on-behalf-of access is still unverified.
 
 ### Tools on your machine
 
-`az` (Azure CLI), `azd` 1.27.1 or later, `git`, `curl` and `python3`. Docker is not needed;
-the image is built in Azure Container Registry.
+`az` (Azure CLI), `azd` 1.27.1 or later, the **Agent 365 CLI** (`a365`, a .NET tool), `git`, `curl`
+and `python3`. Docker is not needed; the image is built in Azure Container Registry.
 
 ### Choose how Margo reads her manager's work
 
 | Mode | Set | Reaches | Requires |
 | --- | --- | --- | --- |
 | `delegation` | `azd env set MARGO_PRINCIPAL_ACCESS delegation` | Mail and calendar only. Teams, files and Copilot search report "unavailable" | An Exchange admin grants Margo's account access to the manager's mailbox and calendar after hiring |
-| `obo` (default) | `azd env set MARGO_PRINCIPAL_ACCESS obo` and `azd env set PRINCIPAL_AUTH_HANDLER {handler-name}` | Everything the manager can see through Work IQ | An on-behalf-of user-authorisation handler in the Agents SDK configuration, and `WorkIQAgent.Ask` as an inheritable permission on the blueprint |
+| `obo` (default) | `azd env set MARGO_PRINCIPAL_ACCESS obo` and `azd env set PRINCIPAL_AUTH_HANDLER {handler-name}` | Everything the manager can see through Work IQ | An on-behalf-of user-authorisation handler in the Agents SDK configuration |
 
 **Recommendation for the first deployment: `delegation`.** Its moving parts are all documented.
-The on-behalf-of path depends on how the Agents SDK obtains the manager's token inside an
-autopilot conversation, which is the first item on the verification list. With `obo` and no
-working handler, every principal source reports `blocked`; Margo never falls back to her own
-token. That is safe, but not useful.
+With `obo` and no working handler, every principal source reports `blocked`; Margo never falls
+back to her own token. That is safe, but not useful. Set the mode, and the managers' time zone
+(`azd env set MARGO_TIMEZONE Europe/Berlin`; default `America/Los_Angeles`), before provisioning;
+both reach every instance container. After a change, provision and then redeploy all instances.
 
-## Deploy
+## 1. Provision Azure
 
 All commands run from `autopilot/` in a clean checkout of this repository.
 
@@ -91,42 +117,105 @@ az login --tenant {tenant-id}
 azd auth login --tenant-id {tenant-id}
 
 azd env new margo-test
-azd env set AZURE_LOCATION {region-with-hosted-agents}
-azd env set MARGO_PRINCIPAL_ACCESS delegation
-azd env set MARGO_TIMEZONE America/Los_Angeles      # the manager's time zone
-
-azd provision --preview                             # see what will be created
-azd provision                                       # create, build, deploy, publish
+azd env set AZURE_LOCATION westus3
+azd provision
 ```
 
-Optional settings: `MARGO_MODEL_NAME` and `MARGO_MODEL_VERSION` (defaults match Microsoft's
-sample), `MARGO_APP_VERSION` (defaults to `VERSION`), and `SKIP_PUBLISH=true` to stop before
-the approval request.
+Use a real region name for `AZURE_LOCATION` (for example `westus3` or `eastus2`), one that offers
+your chat model with quota in your subscription. The default model is `gpt-5-mini`, version
+`2025-08-07`; choose another with `MARGO_MODEL_NAME` and `MARGO_MODEL_VERSION`. Check quota first:
 
-**Expected result:** the hook ends with "Done. Next: a Microsoft 365 admin approves Margo…",
-and `azd env get-values` shows `BLUEPRINT_CLIENT_ID`, `AGENT_VERSION` and `MARGO_IMAGE`.
+```sh
+az cognitiveservices usage list --location westus3 -o table | grep -i gpt-5-mini
+```
 
-## Approve (Microsoft 365 admin)
+**Expected result:** the hook ends with "Azure is ready; the router waits for an agent
+blueprint", and prints the messaging endpoint, `https://<router>/api/messages`. The router keeps
+its placeholder image until the blueprint exists.
 
-1. In the [Microsoft 365 admin center](https://admin.cloud.microsoft/?#/agents/all/requested),
-   open **Agents › All agents › Requests** and select **Margo** (state *Pending activate*).
-2. **Publish to users:** choose who may create instances. That is the hiring scope; Margo does
-   not restrict it.
-3. **Apply template:** keep Microsoft's default protections. Add policies that block external
-   recipients and apply your DLP rules.
-4. **Accept permissions:** review and grant consent. Margo asks only for Work IQ's
-   `WorkIQAgent.Ask`. For `obo` mode, also make that delegated permission inheritable on the
-   blueprint ([Entra guidance](https://learn.microsoft.com/en-us/entra/agent-id/configure-inheritable-permissions-blueprints)).
-5. **Review and finish**, then check that **Registry** shows Margo as *Available*.
+## 2. Create the blueprint with the Agent 365 CLI
 
-## Hire an instance
+Keep the CLI's files **outside this repository**: they hold tenant identifiers and may hold a
+client secret. Margo never uses that secret; her containers sign in through a federated
+credential.
 
-1. In Teams, open **Apps › Agents for your team** and select **Margo › Create instance**.
+```sh
+mkdir -p ~/margo-a365 && cd ~/margo-a365
+a365 config init
+```
+
+Answer for a **self-hosted** agent: no Azure deployment by the CLI (`needDeployment` false), and
+the messaging endpoint from step 1. Name the blueprint "Margo". Then create the blueprint and
+register the endpoint:
+
+```sh
+a365 setup blueprint --messaging-endpoint https://<router>/api/messages
+```
+
+If you created the blueprint without an endpoint, or the router's address changed, register it
+with `a365 setup blueprint --endpoint-only` (or `--update-endpoint <url>`). In the Teams Developer
+Portal (**Tools › Agent blueprints › Margo › Configuration**), the agent type should be **API
+based** and the notification URL should be the same messaging endpoint.
+
+The CLI writes the blueprint's ID to `a365.generated.config.json` as `agentBlueprintId`.
+
+## 3. Connect the blueprint and finish
+
+```sh
+cd path/to/margo/autopilot
+sh scripts/connect-blueprint.sh ~/margo-a365/a365.generated.config.json
+azd provision
+```
+
+**Expected result:** the hook ends with "Done. Margo's messaging endpoint is …" and lists what
+remains. If it printed steps for an administrator (the federated credential, the Work IQ scope or
+its consent), have them done now. Margo cannot sign in as her agent user without the credential,
+and cannot read anything without the consent. Every step is idempotent; check again with
+`azd hooks run postprovision`.
+
+## 4. Publish and approve
+
+1. Publish Margo with the Agent 365 CLI (`a365 publish`; see `a365 publish --help`). Use these
+   details:
+
+   | Field | Value |
+   | --- | --- |
+   | Name | Margo |
+   | Short description | Your chief of staff. Proposes; never sends without your yes. |
+   | Full description | A personal autopilot that briefs, triages, preps meetings and drafts replies for the person who hires it. Works only for its manager. Every outward action needs that manager's explicit approval of the exact action. |
+   | Developer, website | Your organisation; this repository's URL |
+   | Terms of use, privacy | [`autopilot/terms.md`](../autopilot/terms.md) (or your own) |
+   | Icons | `autopilot/assets/` |
+   | Respond without @mention in group chats | Off |
+
+2. A Microsoft 365 admin opens the [Microsoft 365 admin center](https://admin.cloud.microsoft/?#/agents/all/requested),
+   **Agents › All agents › Requests**, selects **Margo**, and:
+   - **Publish to users:** chooses who may hire Margo (the hiring scope; Margo does not restrict it);
+   - **Apply template:** keeps Microsoft's default protections, and adds policies that block
+     external recipients and apply your DLP rules;
+   - **Review and finish**, then checks that **Registry** shows Margo as *Available*.
+
+   If the approval page keeps spinning on its security-policy step, note the correlation ID the
+   page shows and open a support request; nothing in the deployment can unblock it.
+
+## 5. Hire an instance
+
+1. In Teams, open **Apps › Agents for your team** and select **Margo › Create instance** (or
+   from the admin center's **Agent templates**).
 2. Name it, set its alias and domain, and **make sure the manager is the person Margo will work
    for**. Margo looks up her manager in the directory on every turn and treats only that person's
    messages as instructions. If the manager changes, the new manager starts with fresh state
    and the previous person's state is never opened for them.
-3. Wait a few minutes for the account to appear. Margo does not message first.
+3. **License her agent user.** Set its usage location first, then assign the Microsoft 365 and
+   Copilot licences. Without them she has no mailbox, no Teams presence and no Work IQ.
+4. Wait a few minutes. The hire event reaches the router, which asks the provisioner to create her
+   container (about two minutes). Margo does not message first.
+
+You can also create a container ahead of time:
+
+```sh
+python -m margo_autopilot.provision enqueue ensure <agenticAppId> <agenticUserId>
+```
 
 ### Delegation mode: grant mailbox access
 
@@ -141,126 +230,104 @@ Full Access is what Microsoft Graph needs to read another mailbox. It also permi
 Exchange level; this version's guard refuses every write, but that is a software control, not
 an Exchange one. Remove the permissions when you retire the instance.
 
-## First conversation
+## 6. First conversation
 
-As the manager, open a chat with Margo and try:
+As the manager, open a chat with **the instance you hired** (by the name you gave it, not the
+"Margo" app itself) and try:
 
 - "Brief me": she should read your inbox and calendar and cite what she found.
 - "What's in my Teams?": in delegation mode she should say Teams is unavailable, not quiet.
 - "What's waiting on me?": she reads her work ledger with the same commands as on the desktop.
 - "/replies acknowledge": she confirms the setting. `/replies none` turns it off again.
+- "/voice": if voice is on, she replies with her voice page's link.
 
-Ask a colleague to message her. They should get no reply (or one acknowledgement, if enabled),
-and you should see it when you ask "anything from other people?".
+Ask a colleague to message or email her. They should get no reply (or one acknowledgement, if
+enabled), and you should see it when you ask "anything from other people?".
 
 Margo works for you only in your one-to-one chat. If you @mention her in a group chat or
 channel she answers with a fixed note and reads nothing, so your mail and calendar never appear
 in front of other people.
 
-## One container per instance
+## Voice (optional)
 
-Optional, and hybrid: Margo stays a Foundry autopilot, and each hired Margo also gets her own
-container, with her own identity, behind one public router
-([design](autopilot-instance-containers.md)). It is built and tested offline but not yet proven
-in a tenant.
+```sh
+azd env set MARGO_VOICE_LIVE_MODEL gpt-realtime-2.1
+azd provision
+```
 
-- **Foundry still runs the autopilot.** It creates the hosted agent and the blueprint, publishes
-  it, and an admin approves it, exactly as in the default mode.
-- **Chat:** the Foundry agent serves it. It keeps each instance's state in that instance's own
-  container and asks the provisioner to create the container.
-- **Voice:** each instance's own container serves it.
-- **If messaging moves later:** once the blueprint's messaging can point at the router, chat
-  moves to the containers with nothing to migrate.
-
-1. Before `azd provision`, turn it on:
-
-   ```sh
-   azd env set MARGO_HOSTING instance
-   azd env set MARGO_VOICE_LIVE_MODEL gpt-realtime-2.1   # optional: turns voice on
-   ```
-
-2. Run `azd provision`. The post-provision script:
-   - runs the default Foundry steps: roles, image, hosted agent and blueprint, publish (unless
-     `SKIP_PUBLISH=true`);
-   - grants the router and provisioner their roles by name; the provisioner may assign only the
-     four roles an instance needs;
-   - switches the router and provisioner job to the image and to the Foundry-created blueprint;
-   - tries to add the blueprint's federated credential for instance containers.
-3. Finish what it prints:
-   - the federated credential, if Foundry did not let the script add it;
-   - for voice, a delegated `Voice.Talk` scope and each instance's
-     `<router>/i/<instance>/voice/` as a single-page-app redirect URI;
-   - the one thing to verify in a test tenant before relying on it: whether the blueprint's
-     messaging endpoint can move to `<router>/api/messages`. Until it does, chat stays on the
-     Foundry agent.
-4. Hire an instance as above. Her container is created within about two minutes of her first
-   message or hire event, or ahead of time with:
-
-   ```sh
-   python -m margo_autopilot.provision enqueue ensure <agenticAppId> <agenticUserId>
-   ```
-
-5. In Teams, say `/voice` to get the voice page's link. Sign in as the manager and press
-   **Start talking**. Anyone else's sign-in is refused.
-
-| Task | How |
-| --- | --- |
-| Retire one instance | Lifecycle "deleted" does it (through the Foundry agent, or the router once messaging moves); or `provision enqueue retire …`. App and identity go; state stays |
-| Delete a retired instance's state | Delete its `margo-i-…` container after the retention period |
-| Keep instances warm | Add `"instanceMinReplicas": { "value": 1 }` to `infra/main.parameters.json`, provision, then redeploy all |
-| Change her voice | `azd env set MARGO_VOICE_NAME …` (and `MARGO_VOICE_ENDPOINT_ID` for a trained custom voice), provision, then redeploy all |
-| Ship a new image to every instance | Provision (it builds and pins the image for the provisioner), then redeploy all |
-| Redeploy all | Run `python -m margo_autopilot.provision redeploy-all` with the provisioner's settings, for example as a one-off execution of the provisioner job with that command; or `… enqueue ensure <app> <user> --redeploy` for one |
+Then, on the blueprint, expose a delegated `Voice.Talk` scope and add each instance's
+`https://<router>/i/<instance>/voice/` as a single-page-app redirect URI. Redeploy existing
+instances (below). Details, the custom voice and limits: [Voice](autopilot-voice.md).
 
 ## Operate
 
 | Task | How |
 | --- | --- |
 | See what Margo read | Application Insights traces named `workiq`: subject, tool, path (no query text), status and outcome. No message content |
-| See her state | Storage account › containers named `margo-…`, one per instance and manager. `state.zip` is current; `daily/` holds one copy per day |
-| Ship a change | Commit, then `azd provision` again, or run `scripts/build-image.sh` and `scripts/create-agent.sh`. Set a new `MARGO_APP_VERSION` and run `scripts/publish.sh` when display details change |
-| Stop everyone's Margo | Block the blueprint in the admin center |
-| Stop one instance | Delete or disable the instance in the admin center, remove any mailbox permissions, then delete its `margo-…` container if its data should go |
-| Remove everything | `azd down`. Hired instances and their agent accounts are not removed by this; retire them in the admin center first |
+| See her state | Storage account › containers named `margo-i-…`, one per hired Margo, with each manager's state under its own prefix. `state.zip` is current; `daily/` holds one copy per day |
+| Ship a change | Commit, then `azd provision` (it builds and pins a new image for the router and the provisioner), then redeploy all |
+| Redeploy all | `python -m margo_autopilot.provision redeploy-all` with the provisioner's settings, for example as a one-off execution of the provisioner job with that command; or `… enqueue ensure <app> <user> --redeploy` for one |
+| Keep instances warm | Add `"instanceMinReplicas": { "value": 1 }` to `infra/main.parameters.json`, provision, then redeploy all |
+| Retire one instance | Delete it in the admin center: the lifecycle event retires it (app and identity go; state stays). Or `provision enqueue retire …`. Remove any mailbox permissions |
+| Delete a retired instance's state | Delete its `margo-i-…` container after the retention period |
+| Stop everyone's Margo | Block Margo in the admin center |
+| Remove everything | Retire instances in the admin center, remove the blueprint with the Agent 365 CLI (`a365 cleanup`), then `azd down` |
+
+## Moving from the earlier Foundry deployment
+
+Earlier versions ran Margo as a Microsoft Foundry hosted agent. That blueprint belongs to
+Foundry and cannot be pointed at your own container, so this route starts with a new one.
+
+1. Block the old Margo in the admin center and retire its instances.
+2. Follow steps 1 to 6 above in the same azd environment (`MARGO_HOSTING` is no longer read). Provisioning is incremental, so the Foundry project and its hosted agent stay
+   until you delete them in the Azure portal; delete them once the new Margo works.
+3. State is not carried over: each new hire has a new agent identity and starts fresh. The old
+   `margo-…` state containers stay until you delete them.
 
 ## Troubleshooting
 
 | Symptom | Likely cause | What to do |
 | --- | --- | --- |
+| `InvalidResourceLocation` at the start of provisioning | `AZURE_LOCATION` is not a real region | `azd env set AZURE_LOCATION westus3` (or another region with your model) |
+| "insufficient quota" or model not found | The model or version is not offered, or has no quota, in that region | Pick another model or region; check `az cognitiveservices usage list` |
 | Provisioning stops partway at role assignments | Contributor without RBAC Administrator | Get Owner, or add Role Based Access Control Administrator, and rerun |
-| `publish.sh`: "Work IQ is not enabled" | No Work IQ service principal in the tenant | Enable Work IQ for the tenant, then rerun `scripts/publish.sh` |
 | `build-image.sh` refuses to build | Uncommitted changes, or the privacy check failed | Commit, or fix what `tools/check-clean.sh` reports |
+| The router keeps restarting with "the agent blueprint client ID is not set" | It was switched to the Margo image without a blueprint | Finish steps 2 and 3 |
+| Nothing reaches Margo; the router logs no activities | The messaging endpoint is not registered on the blueprint, or points elsewhere | `a365 setup blueprint --update-endpoint https://<router>/api/messages`; check the Developer Portal configuration |
+| Router logs `kind=reject` | An activity without an agent recipient (for example the app itself, not a hired instance) | Chat with a hired instance |
+| Activities get 503 and nothing happens | The provisioner has not created the instance, or failed | Check the job's logs and the route's `error` in `margo-routes/routes.json` |
+| Instance logs "token exchange failed for margo" | The federated credential is missing on the blueprint, or the agent user is not licensed yet | Add the credential (step 3); license the agent user |
+| Every Work IQ read is `blocked` | No consent for `WorkIQAgent.Ask`, or it is not inheritable | Have an admin finish what `blueprint.sh` printed |
 | Margo says she can't find her manager | The directory answered that her account has no manager | Set the manager on Margo's account in the directory |
-| "I couldn't check who I work for just now" | The `/me/manager` lookup failed: outage, throttling, or a Copilot Credits denial for Margo's account. It is not a missing manager | Retry. If it persists, check the `workiq` traces for the lookup's status code and Margo's spending-policy assignment |
+| "I couldn't check who I work for just now" | The `/me/manager` lookup failed: outage, throttling, or a Copilot Credits denial for Margo's account. It is not a missing manager | Retry. If it persists, check the `workiq` traces for the lookup's status code and Margo's licences |
 | "Something failed on my side before I could finish" | The model call or the turn failed (throttling, content filter, bad `MARGO_TIMEZONE` or `MARGO_PRINCIPAL_ACCESS`) | Check the `turn failed` log entry; fix configuration and retry |
 | Every principal source is `blocked` | `obo` mode without a working on-behalf-of handler | Switch to `delegation`, or complete the handler setup |
 | Mail and calendar are `error` in delegation mode | Mailbox permissions missing or not yet propagated | Recheck the two Exchange commands; allow time to propagate |
-| "I couldn't load my records safely" | The state lease was busy for two minutes, or a bundle failed its checks | Retry. If it persists, check the storage account and the agent's `Storage Blob Data Contributor` role |
-| "Version already exists" on publish | Same `MARGO_APP_VERSION` as before | Set a new version |
-| Chatting with "margo" gets no reply (Copilot: "timeout error after 45000ms") | You are chatting with the published app itself, not a hired instance. Margo only answers through an instance with a manager | Hire an instance from **Agent templates** (or **Built for your org**) and chat with it by the name you gave it |
-| Margo appears only as a plain agent, version 1.0.0, with no **Create instance** | The Foundry portal's **Publish** button republished her as a regular chat agent and replaced the autopilot template | Publish the template again with `scripts/publish.sh` and a higher `MARGO_APP_VERSION`; do not use the portal's Publish button for Margo |
-| Instance mode: activities get 503 and nothing happens | The provisioner hasn't created the instance, or it failed | Check the job's logs and the route's `error` in `margo-routes/routes.json` |
+| "I couldn't load my records safely" | The state lease was busy for two minutes, or a bundle failed its checks | Retry. If it persists, check the storage account and the instance's role on its container |
+| Approval spins on the security-policy step | An admin center issue, not the deployment | Open a support request with the page's correlation ID |
 | Voice: "Your sign-in can't be used to talk to this Margo" | Wrong tenant, missing `Voice.Talk` scope, or not this Margo's manager | Sign in as the manager; check the scope and redirect URI on the blueprint |
 
 ## Known limits
 
-- Unverified in a live tenant: on-behalf-of token flow, activity identity fields
-  (`recipient.agenticAppId`, `from.aadObjectId`), notification payloads, Work IQ billing subject,
-  and whether the publish API takes an icon. The icons are in `autopilot/assets/` for the admin
-  center or app package.
+- Unverified in a live tenant: the Agent 365 CLI steps for a self-hosted blueprint, the
+  on-behalf-of token flow, activity identity fields (`recipient.agenticAppId`,
+  `recipient.agenticUserId`, `from.aadObjectId`), notification payloads, the inheritable-permission
+  call in `blueprint.sh`, and the Work IQ billing subject.
 - Agent identities and agent users can carry an expiration date (Entra Agent ID lifecycle, reported
-  to default to 180 days; **verify** in your tenant). Check `lifecycle.expirationDateTime` on the agent
-  identity and each hired agent user, and extend it before it passes, or the instance stops working.
-- Conversation continuity (`previous_response_id`) is kept per sandbox, so a new sandbox starts a
-  fresh thread; durable facts live in her state, not the thread.
+  to default to 180 days; **verify** in your tenant). Check `lifecycle.expirationDateTime` on each
+  agent identity and agent user, and extend it before it passes, or the instance stops working.
+- Conversation continuity (`previous_response_id`) is kept in the container's memory, so a restart
+  or scale-to-zero starts a fresh thread; durable facts live in her state, not the thread.
 - She has the same persona and skills as desktop Margo. What she cannot do here yet (GitHub
   review load, Azure DevOps work items, the team decision registry, the large-file bridge,
   approvals and sends) is listed in `autopilot/src/margo_autopilot/parity.py`, and she says so
   when a routine needs one of them.
+- Mail is queued, never answered. Word, Excel and PowerPoint comment notifications have no
+  handler of their own yet; how they arrive (and so how Margo treats them) is unverified.
 - The unattended message to the manager's one-to-one chat is designed but not available: it
   needs the Graph chat ID recorded at hire, and the activity's conversation ID is a different
   identifier. Until a hire-time record exists, Margo answers only in the conversation turn.
 - Notifications that arrive without a message ID are recorded under an ID derived from their
   sender, conversation and text. Two identical messages in the same thread count as one request.
-- Copilot Credits and Azure usage are charged to the deploying organisation. No cost estimate is
-  made here.
+- Copilot Credits, licences and Azure usage are charged to the deploying organisation. No cost
+  estimate is made here.

@@ -1,8 +1,8 @@
 """One writer at a time: the instance's private state, shared through a leased Blob bundle.
 
-Why. A Foundry hosted agent serves every hired instance, and its sessions follow conversations,
-so the manager's chat and a colleague's message can run in different sandboxes with different
-``$HOME`` directories. A SQLite file in ``$HOME`` alone would fork. Instead each turn:
+Why. A container's disk is not durable: Container Apps restarts, scales an idle instance to zero
+and replaces revisions, and a process serving several instances may run turns side by side. A
+SQLite file on local disk alone would be lost or fork. Instead each turn:
 
 1. takes an exclusive lease on the instance's state blob (renewed while the turn runs);
 2. installs the newest bundle if the local copy is stale or missing, or, when there is no shared

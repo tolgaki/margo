@@ -54,7 +54,7 @@ class VoiceSettings:
                    max_tool_calls=int(env.get("MARGO_VOICE_MAX_TOOL_CALLS", "60")))
 
     def voice(self):
-        if self.voice_endpoint_id:  # her trained custom voice, deployed on the same Foundry resource
+        if self.voice_endpoint_id:  # her trained custom voice, deployed on the same Azure AI Services account
             return {"type": "azure-custom", "name": self.voice_name, "endpoint_id": self.voice_endpoint_id}
         return {"type": "azure-standard", "name": self.voice_name}
 

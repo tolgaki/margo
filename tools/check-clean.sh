@@ -84,7 +84,7 @@ report "no real email addresses" "$hits"
 # 2. GUIDs. Three are allowed and documented: the fixed public Azure DevOps
 #    resource id, the Windows installer's own AppId, and the Microsoft 365 Agents
 #    SDK's fixed public service-connection scope used by autopilot/Dockerfile (the
-#    same value Microsoft's Foundry autopilot sample ships; not a tenant identifier).
+#    same value Microsoft's Agent 365 samples ship; not a tenant identifier).
 hits=$(scan '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}' \
   | grep -vi '499b84ac-1321-427f-aa17-267ca6975798' \
   | grep -viE '^(autopilot/Dockerfile|tools/check-clean\.sh):[0-9]+:5a807f24-c9de-44ee-a3a7-329e88a00ffc$' \

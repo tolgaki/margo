@@ -2,9 +2,8 @@
 
 **Status: built (phase V1), 18 October 2026, and unproven against a live Voice Live resource or
 tenant.** Voice runs in [one-container-per-instance hosting](autopilot-instance-containers.md) when
-`VOICE_LIVE_MODEL` is set. It works in hybrid hosting before chat moves: the Foundry agent
-answers `/voice` in Teams with your page's link, and the page talks to your instance's own
-container. Product
+`VOICE_LIVE_MODEL` is set (`azd env set MARGO_VOICE_LIVE_MODEL …`): your instance answers
+`/voice` in Teams with your page's link, and the page talks to that same container. Product
 facts come from a web-search review on 18 October 2026; items marked **verify** were not
 confirmed against the official page.
 
@@ -62,14 +61,14 @@ limits as Margo in Teams. Voice is another way into the same Margo, not a second
 
 | | Architecture | Latency | Custom voice | Tools under our control | Status |
 | --- | --- | --- | --- | --- | --- |
-| **A. Voice Live** (Azure) | Managed speech-to-speech (gpt-realtime-2.1, or Microsoft's own realtime model) or a cascade, behind one API | ~300–700 ms typical for speech-to-speech | **Yes**: Azure custom voice (`azure-custom`) on the same Foundry resource | Yes: function tools declared in the session, run by our server | GA over WebSocket; **WebRTC in preview**, removed from the GA Python SDK; no ephemeral browser token, so a server broker is needed |
+| **A. Voice Live** (Azure) | Managed speech-to-speech (gpt-realtime-2.1, or Microsoft's own realtime model) or a cascade, behind one API | ~300–700 ms typical for speech-to-speech | **Yes**: Azure custom voice (`azure-custom`) on the same AI Services account | Yes: function tools declared in the session, run by our server | GA over WebSocket; **WebRTC in preview**, removed from the GA Python SDK; no ephemeral browser token, so a server broker is needed |
 | B. Azure OpenAI Realtime | gpt-realtime-2.1 over WebRTC, browser connects with an ephemeral key minted by our server | Lowest: WebRTC transport ~50–100 ms | **No**: built-in voices only | Tool calls arrive in the browser's data channel; a server sideband is reportedly unsupported on Azure (**verify**) | GA |
 | C. Cascade on Margo's own engine | Streaming speech-to-text → today's text engine and tools → streaming text-to-speech with the custom voice | ~700–1200 ms | Yes | Yes: the existing engine, unchanged | Building blocks GA |
 | D. Non-Azure TTS (ElevenLabs, Cartesia) | Cascade with a third-party voice | Fast TTS (vendor claims ~75–90 ms model time) | Yes: easy cloning | Yes | Audio and spoken Microsoft 365 content leave the Microsoft boundary: a new subprocessor and a privacy assessment, unless self-hosted (Cartesia offers self-hosting under an enterprise contract) |
 
 ## Recommendation
 
-**Voice Live, with Margo's server in the middle, in Margo's own Foundry resource and region.**
+**Voice Live, with Margo's server in the middle, in Margo's own Azure AI Services account and region.**
 
 - **Fast path:** speech-to-speech with gpt-realtime-2.1, or Microsoft's own realtime model if it
   measures faster in your region. That's your fast voice model.
@@ -107,7 +106,7 @@ work.
 3. **Record.** The talent records a consent statement, which Microsoft checks against the
    training audio, plus 300–2000 utterances (about 30 minutes to 3 hours of audio).
 4. **Train and deploy** in the Foundry portal (about 10 compute hours on average) to the same
-   Foundry resource as Voice Live. Then switch the session voice to `azure-custom` with the
+   Azure AI Services account as Voice Live. Then switch the session voice to `azure-custom` with the
    deployment's endpoint ID.
 5. **Until approved,** use an Azure HD voice so everything else can ship.
 

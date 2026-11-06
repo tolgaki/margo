@@ -1,27 +1,27 @@
 # Plan: one container per hired Margo
 
-**Status: built, 18 October 2026, and unproven in a live tenant.** Turn it on with
-`MARGO_HOSTING=instance` ([deployment guide](autopilot-deployment.md#one-container-per-instance));
-the default stays one Foundry hosted agent.
+**Status: built, 18 October 2026; since 6 November 2026 the only way Margo is hosted. Unproven in
+a live tenant.** Deploy it with the [deployment guide](autopilot-deployment.md).
 
-## Hybrid hosting: still a Foundry autopilot
+## Self-hosted for Agent 365
 
-Instance mode does not replace the Foundry autopilot; it runs beside it.
+Margo runs in your own Azure subscription; Agent 365 provides the agent around her.
 
 | | Who does it |
 | --- | --- |
-| Hosted agent, blueprint, publishing, admin approval, hiring in Teams | **Foundry and Agent 365**, as in the default mode (`create-agent.sh`, `publish.sh`) |
-| Chat in Teams | **The Foundry agent**, until the blueprint's messaging can move to the router |
-| Each instance's state | **That instance's own container**, read and written by whichever side is serving, under the existing lease |
-| Voice, and chat after messaging moves | **The instance's own container**, behind the router |
-| Creating instance containers | **The provisioner**, asked by the Foundry agent (first activity, lifecycle events) or by the router |
+| Blueprint, messaging endpoint registration | **The Agent 365 CLI** (`a365 setup blueprint --messaging-endpoint …`) |
+| Publishing, admin approval, hiring, agent identity and agent user | **Agent 365** and the Microsoft 365 admin center |
+| Teams chat, mail and notifications | Delivered by Agent 365 to **the router** (`/api/messages`), which forwards each to **the instance's own container** |
+| Lifecycle events (hired, suspended, deleted) | **The router** turns them into provisioning requests; they never reach an instance |
+| Each instance's state | **That instance's own Blob container**, written only by that instance |
+| Creating and retiring instance containers | **The provisioner** job |
+| The model and Voice Live | **Azure AI Services**, called by each instance with its own identity |
 
-Because both sides use the same per-instance state, moving messaging later needs no migration.
-If Foundry never allows the move, Margo keeps chatting through the Foundry agent and only voice
-uses the instance containers. Until chat moves, the Foundry agent's identity can still read every
-instance's state, so the isolation benefit arrives with the move. It extends [Margo as a Foundry autopilot](autopilot.md)
-and keeps decision 10: hosted Margo is desktop Margo, with the same persona and skills, and no
-general shell.
+An earlier version ran Margo as a Microsoft Foundry hosted agent, with these containers beside it
+for voice. That blueprint belonged to Foundry and could not point at the router, so chat could
+never reach the containers; Foundry hosting was removed. This design extends
+[Margo as an autopilot](autopilot.md) and keeps decision 10: hosted Margo is desktop Margo, with
+the same persona and skills, and no general shell.
 
 ## What is built
 
@@ -30,20 +30,19 @@ general shell.
 | Names, route table, lifecycle mapping, plans | [`instances.py`](../autopilot/src/margo_autopilot/instances.py) | Offline (`tests/test_autopilot_instances.py`) |
 | Router: platform-token check, forwarding, lifecycle to the queue, voice proxy | [`router/`](../autopilot/src/margo_autopilot/router/) | Decisions offline; the aiohttp app against a fake instance |
 | Provisioner job: deploy, suspend, retire, route table with ETags | [`provision/`](../autopilot/src/margo_autopilot/provision/) | Steps offline with a fake cloud; SDK calls checked against the libraries |
-| One instance: identity, scoped storage role, Container App | [`infra/instance.bicep`](../autopilot/infra/instance.bicep) → `instance.json` | Compiled with Bicep; parameters checked against the provisioner |
-| Shared: environment, router, provisioner job, queue, route table | [`infra/main.bicep`](../autopilot/infra/main.bicep) (`hostingMode`) | Compiled with Bicep |
-| Roles by name, image, router and job update | [`scripts/postprovision-instance.sh`](../autopilot/scripts/postprovision-instance.sh) | Syntax only |
+| One instance: identity, scoped storage role, Container App | [`infra/instance.bicep`](../autopilot/infra/instance.bicep) → `instance.json` | Compiled with Bicep before the Agent 365 change; `instance.json` since edited by hand to match, with parameters checked against the provisioner. Rebuild with `bicep build` before deploying |
+| Shared: model, environment, router, provisioner job, queue, route table | [`infra/main.bicep`](../autopilot/infra/main.bicep) | Compiled with Bicep before the Agent 365 change; since edited by hand and checked by tests, not recompiled |
+| Roles by name, image, router and job update | [`scripts/postprovision.sh`](../autopilot/scripts/postprovision.sh) | Syntax; its required values checked against the Bicep outputs |
+| Blueprint: federated credential, Work IQ scope and consent | [`scripts/blueprint.sh`](../autopilot/scripts/blueprint.sh), [`connect-blueprint.sh`](../autopilot/scripts/connect-blueprint.sh) | Syntax only |
 | Instance mode in the host and orchestrator | `host/app.py`, `orchestrator.py`, `statesync.py` | Offline; the host started in instance mode |
 
 Nothing was deployed: no Azure subscription or tenant was used.
 
 ## Why
 
-Today one Foundry hosted agent serves every hired instance. Sessions follow conversations, so a
-manager's chat and a colleague's message can land in different sandboxes, and state is shared
-through a leased Blob bundle. One managed identity holds **Storage Blob Data Contributor on the
-whole storage account** (`autopilot/scripts/assign-agent-roles.sh`), so anything that compromises
-the shared process can read every manager's state.
+With one shared process serving every hired instance (as the earlier Foundry hosted agent did),
+one managed identity holds **Storage Blob Data Contributor on the whole storage account**, so
+anything that compromises the shared process can read every manager's state.
 
 One container per hired instance changes the blast radius from "every manager" to "one manager":
 
@@ -63,7 +62,7 @@ through `margo-state` and narrow tools.
 Teams / Agent 365 ──► Router (shared, stateless) ──► Margo container for instance A ──► Work IQ
                          │  validates the inbound token            │ guard, engine, skills, SQLite
                          │  maps recipient → instance              ├─► Blob container A (snapshots)
-                         └─► Margo container for instance B …      └─► Foundry model endpoint
+                         └─► Margo container for instance B …      └─► Azure AI Services (model, voice)
 Provisioner (separate, privileged) ◄── Agent 365 lifecycle notifications
 ```
 
@@ -87,7 +86,8 @@ wanted, that points to AKS (below).
 Each container gets a user-assigned managed identity with:
 
 - **Storage Blob Data Contributor** on its own Blob container only;
-- **Foundry User** on the project, for the model;
+- **Cognitive Services OpenAI User** on the AI Services account, for the model, and
+  **Cognitive Services User** for Voice Live;
 - whatever the agentic token exchange for **its own** instance needs, and nothing for any other
   instance (verification item 2).
 
@@ -95,7 +95,7 @@ This replaces today's account-wide storage role.
 
 ### Network
 
-Outbound traffic is limited to the Work IQ endpoint, Entra sign-in, the Foundry project, the
+Outbound traffic is limited to the Work IQ endpoint, Entra sign-in, the AI Services account, the
 instance's Blob container (private endpoint) and Application Insights. Inbound traffic comes
 only from the router (internal ingress).
 
@@ -105,7 +105,7 @@ only from the router (internal ingress).
 | --- | --- | --- |
 | **Azure Container Apps** (recommended) | One app per instance, at most one replica, scale to zero, its own managed identity, internal ingress, jobs or scale rules for cron | Verify apps-per-environment limits and cold-start time |
 | AKS | One StatefulSet pod per instance with an Azure Disk | Most control, most operations work |
-| Foundry hosted agents | Not possible | One agent serves every instance; sessions follow conversations |
+| Foundry hosted agents | Not possible, and removed | One agent serves every instance; sessions follow conversations; its blueprint cannot point elsewhere |
 | Container Apps dynamic sessions | Wrong shape | Built for short untrusted-code sessions, not a long-lived agent |
 
 ## Code changes
@@ -140,9 +140,9 @@ only from the router (internal ingress).
 
 ## Verification list
 
-1. **Routing.** Can a Foundry-created blueprint's messaging endpoint move to the router, and can
-   Agent 365 send each instance's activities to its own endpoint, or must one router forward
-   them?
+1. **Routing.** Does Agent 365 deliver every instance's activities, mail and lifecycle events to
+   the blueprint's one messaging endpoint (the router), with `recipient.agenticAppId` and
+   `agenticUserId` set?
 2. **Token exchange.** Can a container with its own identity perform the agentic token exchange
    for its instance, and only that instance?
 3. **Timing.** Cold start versus Teams activity timeouts. Do long turns need an immediate
@@ -173,9 +173,9 @@ only from the router (internal ingress).
 
 - **Schedules (phase 4):** these wait on the hosted scheduler and on recording the principal chat
   ID at hire.
-- **The verification list above:** especially routing (item 1: can a Foundry-created
-  blueprint's messaging move to the router?) and the token exchange. The federated credential is
-  added by the deployment script where Foundry allows it, otherwise by an Entra administrator.
+- **The verification list above:** especially routing (item 1) and the token exchange (item 2).
+  The federated credential is added by `blueprint.sh` where the deployer may, otherwise by an
+  Entra administrator.
 - **Shared credential:** all instances share the blueprint credential identity, so a compromised
   instance could get Margo-the-agent's token for another instance. It could not get another
   manager's data, which needs that manager's own sign-in. Verification item 2 asks whether this

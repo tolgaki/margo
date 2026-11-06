@@ -227,5 +227,31 @@ class ProvisionerSteps(unittest.TestCase):
         self.assertEqual(self.provisioner(cloud).handle(self.message("ensure")), "retry")
 
 
+
+class Deployment(unittest.TestCase):
+    """The Agent 365 self-hosted deployment: what the scripts need, the infrastructure provides."""
+
+    def test_postprovision_needs_only_what_main_bicep_outputs(self):
+        bicep = (ROOT / "autopilot" / "infra" / "main.bicep").read_text(encoding="utf-8")
+        outputs = set(re.findall(r"^output (\w+)", bicep, re.MULTILINE))
+        script = (ROOT / "autopilot" / "scripts" / "postprovision.sh").read_text(encoding="utf-8")
+        needed = re.search(r"^need ((?:[^\n]*\\\n)*[^\n]*)", script, re.MULTILINE).group(1)
+        names = set(re.findall(r"[A-Z][A-Z0-9_]+", needed))
+        self.assertTrue(names)
+        self.assertEqual(sorted(names - outputs), [])
+        self.assertIn("MESSAGING_ENDPOINT", outputs)
+        self.assertRegex(bicep, r"output MESSAGING_ENDPOINT string = '[^']*/api/messages'")
+
+    def test_no_foundry_hosted_agent_remains(self):
+        files = [ROOT / "autopilot" / "Dockerfile", ROOT / "autopilot" / "requirements.txt"]
+        files += sorted((ROOT / "autopilot" / "infra").glob("*.bicep"))
+        files += sorted((ROOT / "autopilot" / "scripts").glob("*.sh"))
+        files += sorted((ROOT / "autopilot" / "src").rglob("*.py"))
+        for path in files:
+            text = path.read_text(encoding="utf-8")
+            for word in ("foundry", "IdentityProxyManager", "azure-ai-projects", "AIProjectClient"):
+                self.assertNotIn(word.lower(), text.lower(), "%s mentions %s" % (path.relative_to(ROOT), word))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,9 +1,10 @@
-# Margo as a Foundry autopilot
+# Margo as an autopilot
 
-**Status: design with offline building blocks, not a deployed or supported mode.**
-This repository does not provision an agent identity, mailbox, hosted service or Azure
-resources, and nothing here changes the current [trust and safety](safety.md) policy. The
-offline pieces in [`autopilot/`](../autopilot/README.md) are tested against synthetic data only.
+**Status: design with a first deployable version, not a supported mode.** The
+[deployment guide](autopilot-deployment.md) creates Azure resources and connects an Agent 365
+blueprint; it has not been proven in a live tenant, and nothing here changes the current
+[trust and safety](safety.md) policy for the local assistant. The pieces in
+[`autopilot/`](../autopilot/README.md) are tested offline against synthetic data only.
 Items marked **VERIFY** are platform behaviours the public documentation does not settle; each
 needs a separately authorised test-tenant proof before any build depends on it.
 
@@ -16,6 +17,11 @@ Sources checked October 2026: Microsoft Learn *What is an autopilot in Microsoft
 tool in Work IQ MCP*, *Work IQ API permissions reference*, Entra *Agent OAuth flows —
 On-behalf-of flow*; and the `microsoft-foundry/foundry-samples` Python autopilot sample.
 Platform contracts change; re-check them before acting on this page.
+
+**Hosting changed on 6 November 2026 (decision 13).** Margo is no longer a Foundry hosted agent.
+She is self-hosted for Agent 365: one container per hired Margo behind a router that is the
+blueprint's messaging endpoint, with the blueprint created by the Agent 365 CLI. Sections below
+that mention the Foundry sample describe where a design idea came from, not what runs.
 
 ---
 
@@ -89,7 +95,7 @@ Three identities are in play, and the design must never confuse them:
 
 | Identity | What it is | Used for |
 | --- | --- | --- |
-| **Agent identity** (service principal) | Infrastructure identity of the instance | Reaching Foundry, models, storage, the state database |
+| **Agent identity** (service principal) | Infrastructure identity of the instance | Reaching the model, storage, the state database |
 | **Agent user account** (user object) | Margo as a member of the organisation | Her own mailbox, calendar, Teams chat with the principal, her own OneDrive |
 | **Principal** (human user, the instance's manager) | The one person Margo serves | Source of authority, preferences and approvals |
 
@@ -120,7 +126,7 @@ An autopilot acting as itself cannot read the principal's data. Options:
 
 | Token | Subject | Used for |
 | --- | --- | --- |
-| **Margo token** (agentic user authorisation, as in the Foundry sample) | Margo's agent user | Her own inbox (requests to the office), her chat with the principal, her own OneDrive |
+| **Margo token** (agentic user authorisation in the Agents SDK) | Margo's agent user | Her own inbox (requests to the office), her chat with the principal, her own OneDrive |
 | **Principal token** (agent OBO + refresh) | The principal, with Margo as actor | Reading the principal's mail, calendar, Teams, files; approved actions as the principal |
 
 Design consequence: every Microsoft 365 call declares `on_data_of: principal | self`, and the
@@ -141,7 +147,7 @@ of Dana", not just "Dana".
 The blueprint defines **what Margo knows how to do and what infrastructure she needs**. It
 grants **no** access to any principal's data; that is granted per instance at hire time.
 
-### 4.1 Hosted agent (container)
+### 4.1 Margo's container
 
 | Part | Source in this repo | Notes |
 | --- | --- | --- |
@@ -203,7 +209,7 @@ program, script or Work IQ tool that is neither hosted nor listed.
 - **No Agent 365 MCP servers.** The workload-specific servers (Mail, Calendar, Teams,
   SharePoint, OneDrive, User, Word, Copilot) are excluded. Microsoft also marks them legacy
   for new projects (*Understand MCP server options in Agent 365*, updated 2026-10-08).
-- **No Foundry Toolbox.** The sample's Toolbox (web search, code interpreter) is removed.
+- **No Foundry Toolbox.** The Foundry sample's Toolbox (web search, code interpreter) is not used.
 - **No Microsoft Graph client.** The local large-file bridge (`m365_files.py`) is not part of the
   hosted runtime.
 - The blueprint's tool configuration declares exactly one remote MCP endpoint. The guard
@@ -309,7 +315,8 @@ impossible, and it keeps the shared skills unchanged across the CLI and hosted r
 
 | Resource | Purpose | Decision |
 | --- | --- | --- |
-| Foundry account + project | Hosts the agent | As per sample |
+| Azure AI Services account | Chat model and Voice Live | Entra sign-in only; local keys off |
+| Container Apps: router, provisioner, one app per instance | Hosts Margo | The router is the blueprint's Agent 365 messaging endpoint ([plan](autopilot-instance-containers.md)) |
 | Chat model deployment | Reasoning | Pin version per blueprint version |
 | Embedding deployment | Memory retrieval | Replaces the local pinned encoder in hosted mode; no cross-tenant fallback |
 | Container registry | Agent image | Signed images; blueprint pins digest |
@@ -321,18 +328,14 @@ impossible, and it keeps the shared skills unchanged across the CLI and hosted r
 **State store (decided: SQLite).** The existing account-isolated SQLite store moves with Margo
 unchanged. Where the file lives, and why it is not enough on its own:
 
-- **The container.** The blueprint's Docker image runs as a Foundry *hosted agent*. Each session
-  is an isolated sandbox whose `$HOME` filesystem the platform persists across turns, idle
-  periods (compute is released after 2–60 minutes, default 15) and restarts (*Manage hosted
-  agent sessions*, updated 2026-09-23). The working SQLite file lives there.
-- **Sessions follow conversations, not instances.** One hosted agent serves every hired
-  instance, and the manager's chat and a colleague's message can land in different sandboxes.
-  A SQLite file in one `$HOME` would fork, and sessions persist only "up to 30 days".
+- **The container.** Each hired Margo runs in her own Container App, at most one replica. The
+  working SQLite file lives on its local disk, which is not durable: the app scales to zero when
+  idle, restarts, and is replaced on every new revision.
 - **So the shared copy lives in Blob Storage, behind a lease**
   ([`statesync.py`](../autopilot/src/margo_autopilot/statesync.py)). Each turn takes a
   60-second exclusive lease on the instance's `state.zip` (renewed while it runs), installs the
   newest bundle if its local copy is stale, runs, uploads a verified online-backup snapshot under
-  the same lease, and releases it. One writer at a time, across sandboxes. A failed turn marks the
+  the same lease, and releases it. One writer at a time, across restarts and revisions. A failed turn marks the
   local copy stale so unsaved changes are never built on. When there is no shared bundle at all
   (nothing saved yet, or an operator removed it), any local copy is discarded rather than
   uploaded. A daily copy goes to `daily/`.
@@ -420,7 +423,8 @@ context packet with mandatory preferences. In hosted mode it moves to the instan
 
 ### 5.3 Where Foundry's managed memory fits
 
-**Decided: deferred in v1.** Foundry Memory (preview) offers user-scoped stores with automatic
+**Decided: deferred in v1**, and since decision 13 it would mean calling a Foundry project
+from Margo's containers. Foundry Memory (preview) offers user-scoped stores with automatic
 profile extraction, chat summaries, TTL and item CRUD. It is convenient, but its automatic
 extraction writes facts without Margo's confirmation discipline. If adopted later:
 
@@ -537,7 +541,7 @@ This is the existing approval-journal flow, now with an authenticated approver.
 | Trigger | Mode | Example |
 | --- | --- | --- |
 | Principal message in 1:1 | Foreground | "Brief me", "draft a reply to Rafa" |
-| Schedule (Foundry/Agent 365 scheduled activity — **VERIFY** mechanism) | Unattended, read-only + principal-chat delivery | 07:30 brief; Friday week review |
+| Schedule (a Container Apps job sending a scheduled event through the router — **VERIFY** mechanism) | Unattended, read-only + principal-chat delivery | 07:30 brief; Friday week review |
 | Mail or Teams message to Margo from others | Unattended, triage only | Queued for the principal |
 | Principal's mailbox and Teams (read via OBO) | Unattended, triage only | VIP mail or an @mention lands → noted for next brief |
 
@@ -566,15 +570,15 @@ starts, and partial results are reported as partial.
 ## 8. Repository shape
 
 **Exists now.** The deployable first version is described in
-[Deploy Margo as a Foundry autopilot](autopilot-deployment.md).
+[Deploy Margo as an Agent 365 agent](autopilot-deployment.md).
 
 ```text
 autopilot/
   README.md, terms.md, assets/   # overview, terms and privacy, icons
   Dockerfile, requirements.txt   # image (built from the repository root) and hosted-only dependencies
-  azure.yaml, infra/main.bicep   # azd project: Foundry, model, registry, monitoring, storage
-  scripts/*.sh                   # roles by name, image build, agent version, publish
-  config/                        # single MCP server; publish payload
+  azure.yaml, infra/main.bicep   # azd project: model, registry, monitoring, storage, router, provisioner
+  scripts/*.sh                   # roles by name, image build, blueprint connection (Agent 365 CLI)
+  config/                        # single MCP server
   src/margo_autopilot/
     guard.py        transport.py # Work IQ guard and MCP client (standard library)
     engine.py       orchestrator.py  # model turn loop; who is speaking and what follows
@@ -646,15 +650,16 @@ and [talking to Margo by voice](autopilot-voice.md).
 | --- | --- | --- |
 | 1 | Margo may message her manager in their 1:1 chat at any time, including unattended | Guard allows the fixed principal-chat post in attended and unattended runs, not in runs another person's message started; nothing else unattended |
 | 2 | Mail may go on the manager's behalf or from Margo's own mailbox, each with the manager's explicit approval | Guard requires a live claim approved by the manager's object ID for either subject |
-| 3 | Start with SQLite | SQLite in the sandbox, shared across sandboxes through a leased Blob bundle (4.3) |
+| 3 | Start with SQLite | SQLite in each instance's container, saved to its own Blob container under a lease (4.3) |
 | 4 | Margo's governed memory, plus memories of her own | Foundry managed memory deferred (5.3); agent-domain memory (5.6) |
 | 5 | Replies to other people are a manager setting in `preferences.md` | `none` default; `acknowledge`; `approve`; enforced by `ReplyGate` (6.1) |
 | 6 | Exchange delegation is an acceptable fallback if OBO refresh is blocked | Mail and calendar only; Teams reported unavailable |
 | 7 | Approvals bind the exact Work IQ call (`payload.workiq`) | Kept; cards must render the call readably |
 | 8 | Hiring scope is whatever the admin configures | Blueprint does not restrict it (4.5) |
-| 9 | Publisher Tolga Kilicli; terms and icon in this repository | `autopilot/terms.md`, `autopilot/assets/`, publish template |
+| 9 | Publisher Tolga Kilicli; terms and icon in this repository | `autopilot/terms.md`, `autopilot/assets/`, publish details in the deployment guide |
 | 10 | Hosted Margo is desktop Margo, hosted and live: the same persona and skills regardless of engine (18 Oct 2026) | Persona and every skill loaded unchanged; the skill scripts through `margo-state`, not a shell; every gap named in `parity.py`; a parity test in CI (4.1.1) |
-| 11 | One container per hired instance, as an option, and still a Foundry autopilot (18–19 Oct 2026) | `MARGO_HOSTING=instance` is hybrid: Foundry creates, publishes and governs the blueprint and serves chat until messaging can move to the router; each instance gets its own Container App, identity and state container (shared with the Foundry agent), scale to zero by default, storage never deleted automatically ([plan](autopilot-instance-containers.md)) |
+| 11 | One container per hired instance (18–19 Oct 2026) | Each instance gets its own Container App, identity and state container, scale to zero by default, storage never deleted automatically ([plan](autopilot-instance-containers.md)). First built beside a Foundry agent; the only hosting since decision 13 |
 | 12 | Talk to Margo by voice (18 Oct 2026) | Voice Live behind Margo's own server, same tools and guard, HD voice until a custom voice is trained, nothing recorded; WebSocket transport because Container Apps has no UDP ([plan](autopilot-voice.md)) |
+| 13 | Self-hosted for Agent 365; Foundry removed (6 Nov 2026) | A Foundry-created blueprint cannot point its messaging at our own containers, so chat could never reach them. The Agent 365 CLI creates the blueprint with the router as its messaging endpoint; Agent 365 publishes, approves and hires; Azure AI Services serves the model directly ([deployment](autopilot-deployment.md)) |
 
 Still open: Copilot Credits billing subject (verification item 4) and the phase-0 results.

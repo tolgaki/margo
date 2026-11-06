@@ -22,9 +22,8 @@ param minReplicas int = 0
 param storageAccountName string
 param registryServer string
 param registryId string
-param foundryAccountName string
-param foundryProjectName string
-param foundryProjectEndpoint string
+@description('Azure AI Services account that serves the chat model and Voice Live')
+param aiAccountName string
 param modelDeployment string
 // Role definition GUIDs are looked up by name at deployment time (postprovision-instance.sh), so
 // no identifier lives in this file.
@@ -32,7 +31,7 @@ param modelDeployment string
 param storageRoleDefinitionId string
 @description('AcrPull role definition GUID')
 param pullRoleDefinitionId string
-@description('Foundry User / Azure AI User role definition GUID')
+@description('Cognitive Services OpenAI User role definition GUID, for the chat model')
 param modelRoleDefinitionId string
 @description('Cognitive Services User role definition GUID, for Voice Live')
 param speechRoleDefinitionId string
@@ -46,6 +45,8 @@ param blueprintCredentialClientId string
 param voiceLiveModel string = ''
 param voiceName string = ''
 param voiceEndpointId string = ''
+@description('Application Insights connection string; empty runs without telemetry')
+param appInsightsConnectionString string = ''
 @description('Additional {name, value} environment entries; never secrets')
 param extraEnv array = []
 
@@ -76,10 +77,7 @@ resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing =
 }
 
 resource account 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = {
-  name: foundryAccountName
-  resource project 'projects' existing = {
-    name: foundryProjectName
-  }
+  name: aiAccountName
 }
 
 // This instance's own state container only: no other manager's state is reachable.
@@ -104,8 +102,8 @@ resource pullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 }
 
 resource modelRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(account::project.id, identity.id, modelRoleDefinitionId)
-  scope: account::project
+  name: guid(account.id, identity.id, modelRoleDefinitionId)
+  scope: account
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', modelRoleDefinitionId)
     principalId: identity.properties.principalId
@@ -132,11 +130,11 @@ var baseEnv = [
   { name: 'MARGO_STATE_CONTAINER', value: stateContainerName }
   { name: 'MARGO_PUBLIC_BASE_URL', value: publicBaseUrl }
   { name: 'MARGO_TENANT_ID', value: tenantId }
-  { name: 'FOUNDRY_AGENT_DEFAULT_INSTANCE_CLIENT_ID', value: identity.properties.clientId }
   { name: 'AZURE_CLIENT_ID', value: identity.properties.clientId }
-  { name: 'FOUNDRY_PROJECT_ENDPOINT', value: foundryProjectEndpoint }
-  { name: 'ModelDeployment', value: modelDeployment }
-  { name: 'VOICE_LIVE_ENDPOINT', value: 'https://${foundryAccountName}.services.ai.azure.com' }
+  { name: 'AZURE_OPENAI_ENDPOINT', value: 'https://${aiAccountName}.openai.azure.com' }
+  { name: 'MARGO_MODEL_DEPLOYMENT', value: modelDeployment }
+  { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
+  { name: 'VOICE_LIVE_ENDPOINT', value: 'https://${aiAccountName}.services.ai.azure.com' }
   { name: 'VOICE_LIVE_MODEL', value: voiceLiveModel }
   { name: 'MARGO_VOICE_NAME', value: voiceName }
   { name: 'MARGO_VOICE_ENDPOINT_ID', value: voiceEndpointId }
