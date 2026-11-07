@@ -1,0 +1,303 @@
+{
+  "description": "The mandatory constraint guard: stale, disputed, overdue, source-changed, restricted, conflicting, conflict-flagged and sensitive preferences block the packet without reciting their text or source; known expiry and unrelated routines do not block; suppressed preferences stay suppressed; a current confirmed replacement satisfies the guard; a scoped successor does not hide the original elsewhere; the block stays explicit under a small budget; mandatory preferences and the imported About-me profile lead the packet.",
+  "account": "context-fixture@example.com",
+  "steps": [
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "1",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "sql": "SELECT id,current_revision FROM work_sources ORDER BY id",
+          "save": "srcrow"
+        },
+        {
+          "sql": "SELECT id,state,confirmed FROM work_items ORDER BY created_at,id",
+          "save": "items"
+        },
+        {
+          "sql": "SELECT id,kind,state FROM work_records ORDER BY kind,id",
+          "save": "records"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "calendar-rule",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "calendar-rule",
+              "text": "Never schedule outside agreed working hours",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "routines": [
+                "calendar"
+              ]
+            },
+            "active"
+          ],
+          "save": "calendar-rule",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:calendar-rule}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "meeting",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "meeting",
+              "text": "Preparation time",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "meeting",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:meeting}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "routine": "calendar",
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "routine": "drafting",
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "preparation"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "profile",
+            {
+              "domain": "user",
+              "kind": "profile",
+              "title": "profile",
+              "text": "Working hours and protected time.",
+              "authority": "source_observed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "metadata": {
+                "imported_configuration": true,
+                "source_heading": "About me"
+              }
+            },
+            "active"
+          ],
+          "save": "profile",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:profile}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "constraint_guard",
+          "on": "context"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "private-stale",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "Withheld private prohibition",
+              "text": "Never include this private detail.",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "private-stale"
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "private-disputed",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "Withheld private prohibition",
+              "text": "Never include this private detail.",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "disputed"
+          ],
+          "save": "private-disputed"
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "constraint_guard",
+          "on": "context"
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "routine": "calendar",
+            "budget_chars": 1000,
+            "mode": "lexical"
+          }
+        }
+      ]
+    }
+  ]
+}

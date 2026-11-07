@@ -1,0 +1,2563 @@
+{
+  "description": "Hybrid and semantic search with a deterministic weighted fake encoder: float32 vectors, cosine similarity (CPython's compensated sum), positive similarities only, reciprocal-rank fusion scores of the exact, keyword, semantic and relationship channels with their raw component scores, exact provider identities that never merge equal labels, canonicalised identity entities, memory-ID entities and queries, relationship neighbours through current applicable links only, no embedding request when nothing is eligible or the mode is lexical, model/dimension mismatches, every malformed query embedding, and forgetting during the embedding request.",
+  "steps": [
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "meeting",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "meeting",
+              "text": "Leave preparation time before decision reviews",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "meeting",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:meeting}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "lunch",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "lunch",
+              "text": "Food and lunch choices",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "lunch",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:lunch}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "launch",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "launch",
+              "text": "Atlas launch review with Dana",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "launch",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:launch}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "dana",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "dana",
+              "text": "Dana owns approvals",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "dana",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:dana}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "avoidance",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "avoidance",
+              "text": "Avoid avoid avoid",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "avoidance",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:avoidance}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "plain",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "plain",
+              "text": "Nothing that matches any group",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "plain",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:plain}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "mixed",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "mixed",
+              "text": "Lunch review food preparation atlas",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "mixed",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:mixed}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ],
+            "log": true
+          }
+        },
+        {
+          "sql": "SELECT memory_id,hex(vector) FROM semantic_vectors ORDER BY memory_id"
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "avoid rushed review"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "Atlas launch"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "dana"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "avoid"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "nothing at all"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review lunch atlas dana"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "Preparation PREPARATION preparation"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch food"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "Atlas"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "dana avoid"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "matches"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "xyz"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "limit": 2
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic",
+            "limit": 1
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "person",
+            {
+              "domain": "user",
+              "kind": "person",
+              "title": "Dana Review",
+              "text": "Person context",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "identity": {
+                "provider": "directory",
+                "scope": "one",
+                "external_id": "dana"
+              },
+              "entities": [
+                "project:atlas"
+              ]
+            },
+            "active"
+          ],
+          "save": "person",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:person}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "person-two",
+            {
+              "domain": "user",
+              "kind": "person",
+              "title": "Dana Review",
+              "text": "Person context",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "identity": {
+                "provider": "directory",
+                "scope": "two",
+                "external_id": "dana"
+              }
+            },
+            "active"
+          ],
+          "save": "person-two",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:person-two}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "dana review"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "lexical",
+            "entities": [
+              "identity:[\"directory\",\"one\",\"dana\"]"
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "identity:[\"directory\",\"one\",\"dana\"]"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "lexical",
+            "entities": [
+              "identity: [ \"directory\", \"one\", \"dana\" ]"
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "lexical",
+            "entities": [
+              "project:atlas",
+              "project:atlas",
+              "${id:user:lunch}"
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "${id:user:lunch}"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "lexical",
+            "entities": [
+              "${id:user:lunch}",
+              "${id:user:missing}"
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "lexical",
+            "entities": [
+              "mem_00",
+              "user"
+            ]
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:meeting}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:plain}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "related_to",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {},
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:lunch}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:plain}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "owns",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {
+              "valid_to": "2020-06-01T00:00:00Z",
+              "valid_from": "2020-01-01T00:00:00Z",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:dana}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:plain}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "owns",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "decision"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "choices"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "approvals"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "decision approvals"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "encoder": {
+            "raise": "must not encode"
+          },
+          "kwargs": {
+            "mode": "semantic",
+            "domain": "agent"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "encoder": {
+            "raise": "must not encode"
+          },
+          "kwargs": {
+            "domain": "agent"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "encoder": {
+            "raise": "must not encode"
+          },
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch"
+          ],
+          "encoder": {
+            "fingerprint": "other-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ],
+            "dimensions": 5
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch"
+          ],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "probe-weighted-model",
+              "dimensions": 5,
+              "vectors": [
+                [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              ]
+            }
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch"
+          ],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "probe-weighted-model",
+              "dimensions": 5,
+              "vectors": []
+            }
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch"
+          ],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "probe-weighted-model",
+              "dimensions": 5,
+              "vectors": [
+                [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ]
+              ]
+            }
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch"
+          ],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "probe-weighted-model",
+              "dimensions": 5,
+              "vectors": [
+                [
+                  0.25,
+                  -0.5,
+                  1e-30,
+                  3,
+                  1e+30
+                ]
+              ]
+            }
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "decision"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ],
+            "before": [
+              {
+                "call": "show",
+                "on": "store",
+                "args": [
+                  "${id:user:meeting}"
+                ],
+                "save": "_row"
+              },
+              {
+                "call": "forget",
+                "on": "store",
+                "args": [
+                  "${id:user:meeting}",
+                  "${_row.revision}",
+                  {
+                    "kind": "human_confirmation",
+                    "actor": "dana@example.com",
+                    "subject_id": "${id:user:meeting}",
+                    "revision": "${_row.revision}",
+                    "decision": "forget",
+                    "statement": "Confirm this synthetic fixture.",
+                    "evidence_ref": "conversation:fixture",
+                    "decided_at": "${now}"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "approvals"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ],
+            "before": [
+              {
+                "call": "show",
+                "on": "store",
+                "args": [
+                  "${id:user:dana}"
+                ],
+                "save": "_row"
+              },
+              {
+                "call": "forget",
+                "on": "store",
+                "args": [
+                  "${id:user:dana}",
+                  "${_row.revision}",
+                  {
+                    "kind": "human_confirmation",
+                    "actor": "dana@example.com",
+                    "subject_id": "${id:user:dana}",
+                    "revision": "${_row.revision}",
+                    "decision": "forget",
+                    "statement": "Confirm this synthetic fixture.",
+                    "evidence_ref": "conversation:fixture",
+                    "decided_at": "${now}"
+                  }
+                ]
+              }
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "seed",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "seed",
+              "text": "Zebra crossing",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "seed",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:seed}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:seed}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:avoidance}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "related_to",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {},
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "zebra"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "zebra"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ],
+            "before": [
+              {
+                "call": "show",
+                "on": "store",
+                "args": [
+                  "${id:user:seed}"
+                ],
+                "save": "_row"
+              },
+              {
+                "call": "forget",
+                "on": "store",
+                "args": [
+                  "${id:user:seed}",
+                  "${_row.revision}",
+                  {
+                    "kind": "human_confirmation",
+                    "actor": "dana@example.com",
+                    "subject_id": "${id:user:seed}",
+                    "revision": "${_row.revision}",
+                    "decision": "forget",
+                    "statement": "Confirm this synthetic fixture.",
+                    "evidence_ref": "conversation:fixture",
+                    "decided_at": "${now}"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "call": "purge_unavailable",
+          "on": "search"
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "encoder": {
+            "fingerprint": "probe-weighted-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [
+                "lunch",
+                "food"
+              ],
+              [
+                "launch",
+                "atlas"
+              ],
+              [
+                "dana"
+              ],
+              [
+                "avoid"
+              ]
+            ],
+            "weights": [
+              1.5,
+              0.7,
+              2.25,
+              0.1,
+              -3.0
+            ],
+            "default": [
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "health",
+          "on": "search"
+        }
+      ]
+    }
+  ]
+}
