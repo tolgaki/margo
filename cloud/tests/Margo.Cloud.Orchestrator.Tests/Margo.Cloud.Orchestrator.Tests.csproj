@@ -5,11 +5,27 @@
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- Expected values written inline in assertions read better than static fields. -->
+    <NoWarn>$(NoWarn);CA1861</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/Margo.Cloud.Orchestrator/Margo.Cloud.Orchestrator.csproj" />
+    <!-- The real margo-state CLI, copied next to the tests: manager turns run it as a separate process. -->
+    <ProjectReference Include="../../src/Margo.Cloud.StateCli/Margo.Cloud.StateCli.csproj" />
     <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- These tests start many processes (margo-state, python3); one class at a time keeps the machine responsive for
+         the timing-sensitive tests of other assemblies that run alongside. -->
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Prints the Python orchestrator's fixed texts (the specification) for comparison. -->
+    <None Include="Parity/orchestrator_constants.py" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Answers generated cases with the Python helpers (DifferentialTests). -->
+    <None Include="Parity/orchestrator_differential.py" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Packs and installs bundles with the Python StateSync (StateSyncTests). -->
+    <None Include="Parity/statesync_bundle.py" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
