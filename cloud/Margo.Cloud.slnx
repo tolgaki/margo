@@ -1,0 +1,35 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Margo.Cloud.Core/Margo.Cloud.Core.csproj" />
+    <Project Path="src/Margo.Cloud.Engine/Margo.Cloud.Engine.csproj" />
+    <Project Path="src/Margo.Cloud.Guard/Margo.Cloud.Guard.csproj" />
+    <Project Path="src/Margo.Cloud.Host/Margo.Cloud.Host.csproj" />
+    <Project Path="src/Margo.Cloud.Orchestrator/Margo.Cloud.Orchestrator.csproj" />
+    <Project Path="src/Margo.Cloud.Provisioner/Margo.Cloud.Provisioner.csproj" />
+    <Project Path="src/Margo.Cloud.Router/Margo.Cloud.Router.csproj" />
+    <Project Path="src/Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
+    <Project Path="src/Margo.Cloud.State.Helpers/Margo.Cloud.State.Helpers.csproj" />
+    <Project Path="src/Margo.Cloud.State.Memory/Margo.Cloud.State.Memory.csproj" />
+    <Project Path="src/Margo.Cloud.State.MemoryCommands/Margo.Cloud.State.MemoryCommands.csproj" />
+    <Project Path="src/Margo.Cloud.State.MemoryLearning/Margo.Cloud.State.MemoryLearning.csproj" />
+    <Project Path="src/Margo.Cloud.State.MemorySearch/Margo.Cloud.State.MemorySearch.csproj" />
+    <Project Path="src/Margo.Cloud.State.Proactive/Margo.Cloud.State.Proactive.csproj" />
+    <Project Path="src/Margo.Cloud.State.Tasks/Margo.Cloud.State.Tasks.csproj" />
+    <Project Path="src/Margo.Cloud.State.Work/Margo.Cloud.State.Work.csproj" />
+    <Project Path="src/Margo.Cloud.StateCli/Margo.Cloud.StateCli.csproj" />
+    <Project Path="src/Margo.Cloud.Voice/Margo.Cloud.Voice.csproj" />
+    <Project Path="src/Margo.Cloud.WorkIQ/Margo.Cloud.WorkIQ.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Margo.Cloud.Core.Tests/Margo.Cloud.Core.Tests.csproj" />
+    <Project Path="tests/Margo.Cloud.Engine.Tests/Margo.Cloud.Engine.Tests.csproj" />
+    <Project Path="tests/Margo.Cloud.Guard.Tests/Margo.Cloud.Guard.Tests.csproj" />
+    <Project Path="tests/Margo.Cloud.Host.Tests/Margo.Cloud.Host.Tests.csproj" />
+    <Project Path="tests/Margo.Cloud.Orchestrator.Tests/Margo.Cloud.Orchestrator.Tests.csproj" />
+    <Project Path="tests/Margo.Cloud.Provisioner.Tests/Margo.Cloud.Provisioner.Tests.csproj" />
+    <Project Path="tests/Margo.Cloud.Router.Tests/Margo.Cloud.Router.Tests.csproj" />
+    <Project Path="tests/Margo.Cloud.State.Tests/Margo.Cloud.State.Tests.csproj" />
+    <Project Path="tests/Margo.Cloud.Voice.Tests/Margo.Cloud.Voice.Tests.csproj" />
+    <Project Path="tests/Margo.Cloud.WorkIQ.Tests/Margo.Cloud.WorkIQ.Tests.csproj" />
+  </Folder>
+</Solution>

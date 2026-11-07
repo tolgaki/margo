@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.Guard</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Margo.Cloud.Core/Margo.Cloud.Core.csproj" />
+    <ProjectReference Include="../Margo.Cloud.WorkIQ/Margo.Cloud.WorkIQ.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Work/Margo.Cloud.State.Work.csproj" />
+  </ItemGroup>
+
+</Project>

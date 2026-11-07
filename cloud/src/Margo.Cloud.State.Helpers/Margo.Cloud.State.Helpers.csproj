@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.State.Helpers</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
+  </ItemGroup>
+
+</Project>

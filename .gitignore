@@ -76,3 +76,8 @@ a365.config.json
 a365.generated.config.json
 **/a365.config.json
 **/a365.generated.config.json
+
+# Margo Cloud build output
+cloud/**/bin/
+cloud/**/obj/
+cloud/artifacts/

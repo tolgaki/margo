@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.StateCli</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>margo-state</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Work/Margo.Cloud.State.Work.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Proactive/Margo.Cloud.State.Proactive.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Tasks/Margo.Cloud.State.Tasks.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Memory/Margo.Cloud.State.Memory.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.MemorySearch/Margo.Cloud.State.MemorySearch.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.MemoryLearning/Margo.Cloud.State.MemoryLearning.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.MemoryCommands/Margo.Cloud.State.MemoryCommands.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Helpers/Margo.Cloud.State.Helpers.csproj" />
+  </ItemGroup>
+
+</Project>

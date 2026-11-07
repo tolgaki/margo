@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.Orchestrator.Tests</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Margo.Cloud.Orchestrator/Margo.Cloud.Orchestrator.csproj" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+</Project>

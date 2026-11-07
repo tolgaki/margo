@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.Voice</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Margo.Cloud.Core/Margo.Cloud.Core.csproj" />
+    <ProjectReference Include="../Margo.Cloud.Guard/Margo.Cloud.Guard.csproj" />
+    <ProjectReference Include="../Margo.Cloud.Engine/Margo.Cloud.Engine.csproj" />
+    <ProjectReference Include="../Margo.Cloud.Orchestrator/Margo.Cloud.Orchestrator.csproj" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

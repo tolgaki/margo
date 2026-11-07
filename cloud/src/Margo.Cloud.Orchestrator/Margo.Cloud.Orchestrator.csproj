@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.Orchestrator</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Margo.Cloud.Core/Margo.Cloud.Core.csproj" />
+    <ProjectReference Include="../Margo.Cloud.Guard/Margo.Cloud.Guard.csproj" />
+    <ProjectReference Include="../Margo.Cloud.Engine/Margo.Cloud.Engine.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Work/Margo.Cloud.State.Work.csproj" />
+  </ItemGroup>
+
+</Project>

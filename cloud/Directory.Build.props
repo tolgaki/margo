@@ -1,0 +1,17 @@
+<Project>
+  <!-- Margo Cloud: shared build settings. Warnings are errors; nullable is on everywhere. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <Deterministic>true</Deterministic>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Test-only and design-time noise that is not a defect here. -->
+    <NoWarn>$(NoWarn);CA1707;CA1515;CA1848;CA1031;CA2007;CA1716;CA1720;CA1724;CA1305;CA1307;CA1309;CA1310;CA1311;CA1304;CA1862;CA1865;CA1866;CA1847</NoWarn>
+  </PropertyGroup>
+</Project>
