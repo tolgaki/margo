@@ -103,7 +103,8 @@ public sealed class PyDynamicTests
         Assert.Equal("unhashable type: 'list'", Assert.Throws<PyTypeError>(() => PyDynamic.Update(target, PyJson.Loads("[[[1], 1]]"))).Message);
         var foreign = PyDynamic.Update(target, PyJson.Loads("[[1, \"a\"], [true, \"b\"], [2.5, \"c\"]]"));
         Assert.Equal(2, foreign.Count);
-        Assert.Equal("sequence item 0: expected str instance, int found", PyDynamic.JoinSortedError([], foreign).Message);
+        Assert.Equal("sequence item 0: expected str instance, int found",
+                     PyDynamic.JoinSortedError([], foreign, target.Count + foreign.Count, 12).Message);
     }
 
     [Fact]

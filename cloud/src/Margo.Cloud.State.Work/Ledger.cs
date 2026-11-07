@@ -455,7 +455,7 @@ public sealed class Ledger : IDisposable
     }
 
     /// <summary><c>_item_data(data, require_current)</c>.</summary>
-    private JsonObject ItemData(JsonNode? data, bool requireCurrent = true, IReadOnlyList<JsonNode?>? foreignKeys = null)
+    private JsonObject ItemData(JsonNode? data, bool requireCurrent = true, List<JsonNode?>? foreignKeys = null)
     {
         if (data is not JsonObject obj)
         {
@@ -465,7 +465,7 @@ public sealed class Ledger : IDisposable
         var unknown = obj.Select(pair => pair.Key).Where(key => !ItemFields.Contains(key)).ToList();
         if (foreignKeys is { Count: > 0 })
         {
-            throw PyDynamic.JoinSortedError(unknown, foreignKeys);
+            throw PyDynamic.JoinSortedError(unknown, foreignKeys, obj.Count + foreignKeys.Count, ItemFields.Count);
         }
 
         if (unknown.Count > 0)
