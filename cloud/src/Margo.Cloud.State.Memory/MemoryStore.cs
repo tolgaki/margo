@@ -319,7 +319,18 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     }
 
     /// <summary><c>_parse_time(value)</c>: <c>datetime.fromisoformat(validate_timestamp(value))</c>.</summary>
-    internal static PyDateTime ParseTime(JsonNode? value) => PyDateTime.FromIsoformat(StateStore.ValidateTimestamp(value));
+    internal static PyDateTime ParseTime(JsonNode? value) => PyDateTime.FromIsoformat(ValidateTimestamp(value));
+
+    /// <summary>
+    /// <c>margo_store.validate_timestamp(value)</c> for any model-supplied JSON value. State.Core's
+    /// <see cref="StateStore.ValidateTimestamp"/> raises <c>TypeError: not a scalar</c> for a list or dict, where
+    /// Python's <c>isinstance(value, str)</c> check raises the timestamp <see cref="StateError"/> (PORTING.md: belongs in
+    /// State.Core).
+    /// </summary>
+    internal static string ValidateTimestamp(JsonNode? value) =>
+        value is JsonObject or JsonArray
+            ? throw new StateError("timestamp must be an ISO-8601 datetime with an explicit timezone")
+            : StateStore.ValidateTimestamp(value);
 
     /// <summary><c>dict.get(key, default)</c> on a value Python expects to be a dict (<c>AttributeError</c> otherwise).</summary>
     internal static JsonNode? DictGet(JsonNode? value, string key, JsonNode? fallback = null)
@@ -624,7 +635,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
 
             if (Py.Has(reference, "verified_at"))
             {
-                value["verified_at"] = StateStore.ValidateTimestamp(reference["verified_at"]);
+                value["verified_at"] = ValidateTimestamp(reference["verified_at"]);
             }
 
             var identity = (kind, Py.AsString(value["ref"])!, value.TryGetPropertyValue("revision", out var r) ? Py.AsString(r) : null);
@@ -740,7 +751,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             }
             else
             {
-                value[field] = StateStore.ValidateTimestamp(value[field]);
+                value[field] = ValidateTimestamp(value[field]);
             }
         }
 
@@ -1047,7 +1058,8 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         return !sourced || WorkSourcesCurrent(data);
     }
 
-    private static IEnumerable<JsonNode?> Iterate(JsonNode? value) => value switch
+    /// <summary>Python iteration over a JSON value: list items, dict keys or string characters.</summary>
+    internal static IEnumerable<JsonNode?> Iterate(JsonNode? value) => value switch
     {
         JsonArray array => array,
         JsonObject obj => obj.Select(pair => (JsonNode?)JsonValue.Create(pair.Key)),
@@ -1322,7 +1334,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         {
             if (edgeData.ContainsKey(field))
             {
-                edgeData[field] = StateStore.ValidateTimestamp(edgeData[field]);
+                edgeData[field] = ValidateTimestamp(edgeData[field]);
             }
         }
 

@@ -192,11 +192,14 @@ public static class MemoryGovernance
         });
     }
 
-    /// <summary><c>authorize_capture(memory, normal, allow_confirmation=False)</c>: the policy allows this passive capture.</summary>
-    public static JsonObject AuthorizeCapture(MemoryStore memory, JsonObject normal, bool allowConfirmation = false)
+    /// <summary>
+    /// <c>authorize_capture(memory, normal, allow_confirmation=False)</c>: the policy allows this passive capture. Like
+    /// Python, it reads the policy first and then indexes <paramref name="normal"/> (any value; callers pass normalised
+    /// data), reading all three scoped fields before checking any.
+    /// </summary>
+    public static JsonObject AuthorizeCapture(MemoryStore memory, JsonNode? normal, bool allowConfirmation = false)
     {
         ArgumentNullException.ThrowIfNull(memory);
-        ArgumentNullException.ThrowIfNull(normal);
         var current = Policy(memory);
         var rules = MemoryStore.Item(MemoryStore.Item(current, "data"), "capture");
         if (!PyJson.Truthy(MemoryStore.Item(rules, "enabled")))
@@ -204,7 +207,12 @@ public static class MemoryGovernance
             throw new StateError("passive capture is disabled; review a scoped capture policy first");
         }
 
-        foreach (var (field, value) in new[] { ("domains", normal["domain"]), ("kinds", normal["kind"]), ("scopes", normal["scope"]) })
+        var scoped = new[]
+        {
+            ("domains", MemoryStore.Item(normal, "domain")), ("kinds", MemoryStore.Item(normal, "kind")),
+            ("scopes", MemoryStore.Item(normal, "scope")),
+        };
+        foreach (var (field, value) in scoped)
         {
             if (!Contains(MemoryStore.Item(rules, field), value))
             {
@@ -213,7 +221,7 @@ public static class MemoryGovernance
         }
 
         var sourceKinds = MemoryStore.Item(rules, "source_kinds");
-        if (((JsonArray)MemoryStore.Item(normal, "source_refs")!).Any(reference => !Contains(sourceKinds, MemoryStore.Item(reference, "kind"))))
+        if (MemoryStore.Iterate(MemoryStore.Item(normal, "source_refs")).Any(reference => !Contains(sourceKinds, MemoryStore.Item(reference, "kind"))))
         {
             throw new StateError("capture policy excludes this source category");
         }
@@ -284,10 +292,9 @@ public static class MemoryGovernance
     }
 
     /// <summary><c>retention_authorized(memory, record, expected_revision)</c>: the approved retention policy makes the record due now.</summary>
-    public static void RetentionAuthorized(MemoryStore memory, JsonObject record, JsonNode? expectedRevision)
+    public static void RetentionAuthorized(MemoryStore memory, JsonNode? record, JsonNode? expectedRevision)
     {
         ArgumentNullException.ThrowIfNull(memory);
-        ArgumentNullException.ThrowIfNull(record);
         var current = Policy(memory);
         if (!PyJson.IsInt(expectedRevision) || !PyJson.PyEquals(current["revision"], expectedRevision) || !PyJson.Truthy(current["configured"]))
         {
@@ -295,7 +302,10 @@ public static class MemoryGovernance
         }
 
         var retention = MemoryStore.Item(MemoryStore.Item(current, "data"), "retention_days");
-        var days = MemoryStore.DictGet(retention, Py.Str(MemoryStore.Item(record, "kind")));
+        // .get(record["kind"]): an unhashable kind raises; a non-string one is never a key (keys are memory kinds).
+        var kind = MemoryStore.Item(record, "kind");
+        Py.EnsureHashable(kind);
+        var days = Py.AsString(kind) is { } name ? MemoryStore.DictGet(retention, name) : retention is JsonObject ? null : MemoryStore.DictGet(retention, "");
         if (days is null || Due(MemoryStore.Item(record, "updated_at"), days) > PyDateTime.Now())
         {
             throw new StateError("memory is not due under the approved retention policy");
@@ -425,7 +435,7 @@ public static class MemoryGovernance
                 throw new StateError("invalid or duplicate tombstone identity");
             }
 
-            StateStore.ValidateTimestamp(entry["forgotten_at"]);
+            MemoryStore.ValidateTimestamp(entry["forgotten_at"]);
             var id = Py.AsString(entry["id"])!;
             ids.Add(id);
             var row = memory.Conn.Execute("SELECT id,revision,status FROM memory_records WHERE id=? AND account=?", id, memory.Account).FetchOne();
