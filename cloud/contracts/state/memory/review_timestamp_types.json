@@ -1,0 +1,1457 @@
+{
+  "description": "Review regression: validate_timestamp on every JSON type. Lists and dicts in valid_from/valid_to/review_after, a source reference's verified_at, relationship validity and a tombstone's forgotten_at raise the timestamp StateError (Python's isinstance check), not a TypeError; scalars keep their messages.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_from": []
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": []
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "review_after": []
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic",
+                  "verified_at": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "odd-[]",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": []
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_from": [
+                "2026-01-01T00:00:00Z"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": [
+                "2026-01-01T00:00:00Z"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "review_after": [
+                "2026-01-01T00:00:00Z"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic",
+                  "verified_at": [
+                    "2026-01-01T00:00:00Z"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "odd-[\"2026-01-01T00:00:00Z\"]",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": [
+                "2026-01-01T00:00:00Z"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_from": {}
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": {}
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "review_after": {}
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic",
+                  "verified_at": {}
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "odd-{}",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": {}
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_from": {
+                "at": "2026-01-01T00:00:00Z"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": {
+                "at": "2026-01-01T00:00:00Z"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "review_after": {
+                "at": "2026-01-01T00:00:00Z"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic",
+                  "verified_at": {
+                    "at": "2026-01-01T00:00:00Z"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "odd-{\"at\": \"2026-01-01T00:00:00Z\"}",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": {
+                "at": "2026-01-01T00:00:00Z"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_from": true
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": true
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "review_after": true
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic",
+                  "verified_at": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "odd-true",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": true
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_from": 0
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": 0
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "review_after": 0
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic",
+                  "verified_at": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "odd-0",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": 0
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_from": 1.5
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": 1.5
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "review_after": 1.5
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic",
+                  "verified_at": 1.5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "odd-1.5",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": 1.5
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_from": ""
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": ""
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "review_after": ""
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic",
+                  "verified_at": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "odd-\"\"",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": ""
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_from": "2026-01-01T00:00:00"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": "2026-01-01T00:00:00"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "review_after": "2026-01-01T00:00:00"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic",
+                  "verified_at": "2026-01-01T00:00:00"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "odd-\"2026-01-01T00:00:00\"",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic title",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ],
+              "valid_to": "2026-01-01T00:00:00"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "source",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Source",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ]
+            }
+          ],
+          "save": "source"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "target",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Target",
+              "text": "A fictional fact.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic"
+                }
+              ]
+            }
+          ],
+          "save": "target"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_from": []
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_to": []
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_from": [
+                "2026-01-01T00:00:00Z"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_to": [
+                "2026-01-01T00:00:00Z"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_from": {}
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_to": {}
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_from": {
+                "at": "2026-01-01T00:00:00Z"
+              }
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_to": {
+                "at": "2026-01-01T00:00:00Z"
+              }
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_from": true
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_to": true
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_from": 0
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_to": 0
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_from": 1.5
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_to": 1.5
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_from": ""
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_to": ""
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_from": "2026-01-01T00:00:00"
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${source.id}",
+            "${target.id}",
+            "related_to",
+            1,
+            null,
+            {
+              "valid_to": "2026-01-01T00:00:00"
+            }
+          ]
+        },
+        {
+          "call": "tombstones_preview",
+          "on": "governance",
+          "args": [
+            {
+              "format": 1,
+              "account": "${account}",
+              "tombstones": [
+                {
+                  "id": "mem_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "key_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "forgotten_at": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "tombstones_preview",
+          "on": "governance",
+          "args": [
+            {
+              "format": 1,
+              "account": "${account}",
+              "tombstones": [
+                {
+                  "id": "mem_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "key_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "forgotten_at": [
+                    "2026-01-01T00:00:00Z"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "tombstones_preview",
+          "on": "governance",
+          "args": [
+            {
+              "format": 1,
+              "account": "${account}",
+              "tombstones": [
+                {
+                  "id": "mem_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "key_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "forgotten_at": {}
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "tombstones_preview",
+          "on": "governance",
+          "args": [
+            {
+              "format": 1,
+              "account": "${account}",
+              "tombstones": [
+                {
+                  "id": "mem_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "key_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "forgotten_at": {
+                    "at": "2026-01-01T00:00:00Z"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "tombstones_preview",
+          "on": "governance",
+          "args": [
+            {
+              "format": 1,
+              "account": "${account}",
+              "tombstones": [
+                {
+                  "id": "mem_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "key_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "forgotten_at": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "tombstones_preview",
+          "on": "governance",
+          "args": [
+            {
+              "format": 1,
+              "account": "${account}",
+              "tombstones": [
+                {
+                  "id": "mem_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "key_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "forgotten_at": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "tombstones_preview",
+          "on": "governance",
+          "args": [
+            {
+              "format": 1,
+              "account": "${account}",
+              "tombstones": [
+                {
+                  "id": "mem_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "key_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "forgotten_at": 1.5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "tombstones_preview",
+          "on": "governance",
+          "args": [
+            {
+              "format": 1,
+              "account": "${account}",
+              "tombstones": [
+                {
+                  "id": "mem_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "key_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "forgotten_at": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "tombstones_preview",
+          "on": "governance",
+          "args": [
+            {
+              "format": 1,
+              "account": "${account}",
+              "tombstones": [
+                {
+                  "id": "mem_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "key_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "forgotten_at": "2026-01-01T00:00:00"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "health",
+          "on": "store"
+        }
+      ]
+    }
+  ]
+}

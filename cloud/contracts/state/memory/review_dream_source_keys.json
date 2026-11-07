@@ -1,0 +1,572 @@
+{
+  "description": "Review regression: memory_dream.source_keys on identities validate_source would refuse. A non-string ref is parse_json's StateError('invalid JSON'); a dict identity fails dict[:5] with KeyError(slice(None, 5, None)); a string fails identity[5] (IndexError, counted in code points) or str + list (TypeError); other scalars are not subscriptable; a short list raises IndexError. validate_source reports all of them as an invalid or non-canonical identity.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": 5,
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": 5,
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": null,
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": null,
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": [
+                "x"
+              ],
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": [
+                "x"
+              ],
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": {
+                "a": 1
+              },
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": {
+                "a": 1
+              },
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": true,
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": true,
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": 1.5,
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": 1.5,
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "\"abcdef\"",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "\"abcdef\"",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "\"abc\"",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "\"abc\"",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "\"\"",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "\"\"",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "{}",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "{}",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "{\"a\":1}",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "{\"a\":1}",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "5",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "5",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "null",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "null",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "true",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "true",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "1.5",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "1.5",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[1,2,3,4,5]",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[1,2,3,4,5]",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[]",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[]",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[1,2,3,4,5,6]",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[1,2,3,4,5,6]",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "\"😀😀😀😀😀😀\"",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "\"😀😀😀😀😀😀\"",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "\"😀😀😀\"",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "\"😀😀😀\"",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[NaN]",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[NaN]",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[1e999]",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[1e999]",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "{\"a\":1,\"a\":2}",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "{\"a\":1,\"a\":2}",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

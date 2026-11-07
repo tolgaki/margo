@@ -1,0 +1,17 @@
+{
+  "description": "Review regression: a file source path holding NUL makes os.stat raise ValueError('stat: embedded null character in path') after the path is encoded (so a lone surrogate still raises UnicodeEncodeError first); home expansion of '~name' with NUL raises pwd's 'embedded null byte'. Eligibility and health propagate it.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": "[{\"write\": \"f.txt\", \"text\": \"fictional source\\n\"}, {\"call\": \"_work_sources_current\", \"on\": \"store\", \"args\": [{\"source_refs\": [{\"kind\": \"file\", \"ref\": \"${dir}/f.txt\\u0000\", \"revision\": \"4dd561c5e285fcb677cf1869bff8407f84cd564dcb79455132f341dcb4a2b344\"}]}]}, {\"call\": \"_work_sources_current\", \"on\": \"store\", \"args\": [{\"source_refs\": [{\"kind\": \"file\", \"ref\": \"${dir}/\\u0000/f.txt\", \"revision\": \"4dd561c5e285fcb677cf1869bff8407f84cd564dcb79455132f341dcb4a2b344\"}]}]}, {\"call\": \"_work_sources_current\", \"on\": \"store\", \"args\": [{\"source_refs\": [{\"kind\": \"file\", \"ref\": \"\\u0000\", \"revision\": \"4dd561c5e285fcb677cf1869bff8407f84cd564dcb79455132f341dcb4a2b344\"}]}]}, {\"call\": \"_work_sources_current\", \"on\": \"store\", \"args\": [{\"source_refs\": [{\"kind\": \"file\", \"ref\": \"${dir}/f.txt\\u0000\\udc80\", \"revision\": \"4dd561c5e285fcb677cf1869bff8407f84cd564dcb79455132f341dcb4a2b344\"}]}]}, {\"call\": \"_work_sources_current\", \"on\": \"store\", \"args\": [{\"source_refs\": [{\"kind\": \"file\", \"ref\": \"~/f\\u0000.txt\", \"revision\": \"4dd561c5e285fcb677cf1869bff8407f84cd564dcb79455132f341dcb4a2b344\"}]}]}, {\"call\": \"_work_sources_current\", \"on\": \"store\", \"args\": [{\"source_refs\": [{\"kind\": \"file\", \"ref\": \"~\\u0000x/f.txt\", \"revision\": \"4dd561c5e285fcb677cf1869bff8407f84cd564dcb79455132f341dcb4a2b344\"}]}]}, {\"call\": \"_work_sources_current\", \"on\": \"store\", \"args\": [{\"source_refs\": [{\"kind\": \"file\", \"ref\": \"~a\\udc80/f.txt\", \"revision\": \"4dd561c5e285fcb677cf1869bff8407f84cd564dcb79455132f341dcb4a2b344\"}]}]}, {\"call\": \"_work_sources_current\", \"on\": \"store\", \"args\": [{\"source_refs\": [{\"kind\": \"file\", \"ref\": \"${dir}/f.txt\", \"revision\": \"4dd561c5e285fcb677cf1869bff8407f84cd564dcb79455132f341dcb4a2b344\"}]}]}, {\"call\": \"record_id\", \"on\": \"store\", \"args\": [\"user\", \"nul-lesson\"], \"save\": \"rid\"}, {\"call\": \"put\", \"on\": \"store\", \"args\": [\"nul-lesson\", {\"domain\": \"user\", \"kind\": \"lesson\", \"title\": \"Synthetic title\", \"text\": \"A fictional fact.\", \"authority\": \"user_confirmed\", \"scope\": \"personal\", \"source_refs\": [{\"kind\": \"file\", \"ref\": \"${dir}/f.txt\\u0000\", \"revision\": \"4dd561c5e285fcb677cf1869bff8407f84cd564dcb79455132f341dcb4a2b344\"}]}, \"active\", 1, {\"kind\": \"human_confirmation\", \"actor\": \"alex@example.com\", \"statement\": \"I reviewed this exact synthetic change.\", \"evidence_ref\": \"conversation:synthetic/session/turn/1\", \"decided_at\": \"2000-01-01T00:00:00Z\", \"subject_id\": \"${rid}\", \"revision\": 1, \"decision\": \"confirm\"}]}, {\"call\": \"eligible\", \"on\": \"store\"}, {\"call\": \"health\", \"on\": \"store\"}, {\"call\": \"export_preview\", \"on\": \"governance\", \"args\": [\"${rid}\", {\"title\": \"T\", \"goal\": \"G\", \"preconditions\": \"P\", \"steps\": \"S\", \"limitations\": \"L\"}]}]"
+    }
+  ]
+}

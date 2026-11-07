@@ -469,13 +469,13 @@ public sealed partial class MemoryProbeScript : IStateScript
                 return MemoryGovernance.SetPolicy(memory, a[0].Value, a[1].Value);
             case "authorize_capture":
                 a = Bind(name, ["normal", "allow_confirmation"], args, kwargs);
-                return MemoryGovernance.AuthorizeCapture(memory, Dict(a[0].Value), PyJson.Truthy(a[1].Or(false)));
+                return MemoryGovernance.AuthorizeCapture(memory, a[0].Value, PyJson.Truthy(a[1].Or(false)));
             case "capture":
                 a = Bind(name, ["key", "data", "revision", "_checkpoint_ref"], args, kwargs);
                 return MemoryGovernance.Capture(memory, a[0].Value, a[1].Value, a[2].Value, a[3].Value);
             case "retention_authorized":
                 a = Bind(name, ["record", "expected_revision"], args, kwargs);
-                MemoryGovernance.RetentionAuthorized(memory, Dict(a[0].Value), a[1].Value);
+                MemoryGovernance.RetentionAuthorized(memory, a[0].Value, a[1].Value);
                 return null;
             case "maintain":
                 a = Bind(name, ["limit", "after"], args, kwargs);

@@ -128,7 +128,15 @@ public static partial class MemoryNative
 
     private static byte[] Encode(string path)
     {
-        var bytes = PyIO.FsEncode(path);
+        // os.stat's path converter encodes first (a lone surrogate raises UnicodeEncodeError wherever it is), then
+        // refuses NUL with its own text; PyIO.FsEncode says "embedded null byte", which is open()'s/pwd's wording.
+        var hasNul = path.Contains('\0', StringComparison.Ordinal);
+        var bytes = PyIO.FsEncode(hasNul ? path.Replace('\0', '\u0001') : path);
+        if (hasNul)
+        {
+            throw new PyValueError("stat: embedded null character in path");
+        }
+
         var terminated = new byte[bytes.Length + 1];
         bytes.CopyTo(terminated, 0);
         return terminated;
