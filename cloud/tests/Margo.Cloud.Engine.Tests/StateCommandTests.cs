@@ -89,8 +89,20 @@ public sealed class StateCommandTests
             Assert.Single((JsonArray)ledger.List("decisions")["items"]!);
         }
 
-        Assert.Equal(["source", "ingest", "list", "status"], _receipts.Select(receipt => receipt.Command).ToArray());
-        Assert.All(_receipts, receipt => Assert.Equal(0, receipt.ExitCode));
+        // task_state.py, as proactive.md shows it: a stable request key needs no initialised state.
+        var key = await state.RunAsync(Args("""{"script": "task_state.py", "args": ["record-id", "fictional-request-key"]}"""), RunModes.Unattended,
+                                       TestContext.Current.CancellationToken);
+        Assert.True(PyNode.AsString(key["status"]) == "ok", Fixtures.Dumps(key));
+        Assert.StartsWith("task_", PyNode.AsString(key["result"]!["id"]), StringComparison.Ordinal);
+        // A read of state the host has not initialised is an error the model is told, never an empty success.
+        var health = await state.RunAsync(Args("""{"script": "task_state.py", "args": ["health"]}"""), RunModes.Attended,
+                                          TestContext.Current.CancellationToken);
+        Assert.Equal(("error", "health"), (PyNode.AsString(health["status"]), PyNode.AsString(health["command"])));
+        Assert.Contains("not initialized", PyNode.AsString(health["reason"]), StringComparison.Ordinal);
+        Assert.False(health.ContainsKey("result"));
+
+        Assert.Equal(["source", "ingest", "list", "status", "record-id", "health"], _receipts.Select(receipt => receipt.Command).ToArray());
+        Assert.Equal([0, 0, 0, 0, 0, 2], _receipts.Select(receipt => receipt.ExitCode).ToArray());
     }
 
     [Fact]
@@ -98,8 +110,8 @@ public sealed class StateCommandTests
     {
         var help = Programs.Cli("--help").Stdout;
         Assert.SkipUnless(help.Contains("memory_state.py", StringComparison.Ordinal) && help.Contains("task_state.py", StringComparison.Ordinal),
-                          "memory_state.py and task_state.py are not ported to margo-state yet, so the C# CLI cannot initialise "
-                          + "them (see cloud/src/Margo.Cloud.Engine/PORTING.md)");
+                          "memory_state.py is not ported to margo-state yet, so the C# CLI cannot initialise memory state "
+                          + "(see cloud/src/Margo.Cloud.Engine/PORTING.md)");
         using var temp = new TempRoot();
         var state = Commands(temp);
         await state.InitialiseAsync(TestContext.Current.CancellationToken);
@@ -205,6 +217,46 @@ public sealed class StateCommandTests
 
         Assert.Equal([0, 2, 1, null, null, 1, 0, 0, 0, 3, 0, 9, 0, 0], _receipts.Select(receipt => receipt.ExitCode).ToArray());
         Assert.All(_receipts, receipt => Assert.NotNull(receipt.Ms));
+    }
+
+    [Fact]
+    public async Task The_cli_sees_only_its_private_directory_and_the_passed_through_environment()
+    {
+        using var temp = new TempRoot();
+        var fake = temp.Combine("inspect.py");
+        File.WriteAllText(fake, """
+            import json, os, stat, sys
+            path = sys.argv[-1].split("=", 1)[-1]
+            print(json.dumps({"cwd": os.getcwd(), "cwd_mode": oct(stat.S_IMODE(os.stat(".").st_mode)),
+                              "file_dir": os.path.dirname(path), "file_mode": oct(stat.S_IMODE(os.stat(path).st_mode)),
+                              "entries": sorted(os.listdir(".")), "environment": sorted(os.environ), "argv": sys.argv[1:-1]}))
+            """);
+        var environment = PyRuntime.EnvironmentSnapshot();
+        environment["IDENTITY_HEADER"] = "fictional-managed-identity-secret";
+        environment["AZURE_CLIENT_SECRET"] = "fictional-client-secret";
+        environment["MARGO_STATE_PROBES"] = "1";
+        environment["DOTNET_STARTUP_HOOKS"] = "/nonexistent/hook.dll";
+        using var _ = PyRuntime.Override(environment);
+        var state = Commands(temp, cli: [Programs.Python(), "-s", fake]);
+        var result = await state.RunAsync(Args("""{"script": "work_state.py", "args": ["ingest", "--input=@file:item.json"], "files": {"item.json": "{}"}}"""),
+                                          RunModes.Attended, TestContext.Current.CancellationToken);
+        Assert.True(PyNode.AsString(result["status"]) == "ok", Fixtures.Dumps(result));
+        var seen = result["result"]!;
+        var cwd = PyNode.AsString(seen["cwd"])!;
+        Assert.StartsWith(Path.Combine(Path.GetTempPath(), "margo-state-"), cwd, StringComparison.Ordinal);
+        Assert.Equal("0o700", PyNode.AsString(seen["cwd_mode"]));
+        Assert.Equal(cwd, PyNode.AsString(seen["file_dir"]));
+        Assert.Equal("0o600", PyNode.AsString(seen["file_mode"]));
+        Assert.Equal(["item.json"], ((JsonArray)seen["entries"]!).Select(PyNode.AsString).ToArray());
+        Assert.False(Directory.Exists(cwd), "the private directory is removed after the call");
+        // The binding's account and state directory, placed by the service before the model's arguments.
+        Assert.Equal(["work_state.py", "--account", Fixtures.Binding.Account, "--state-dir", temp.Combine("state"), "ingest"],
+                     ((JsonArray)seen["argv"]!).Select(PyNode.AsString).ToArray());
+        // Nothing but ENV_PASSTHROUGH (and DOTNET_ROOT) reaches the CLI: no identity secrets, no probes, no startup hooks.
+        // Python itself may add LC_CTYPE (PEP 538 locale coercion).
+        var names = ((JsonArray)seen["environment"]!).Select(name => PyNode.AsString(name)!).ToList();
+        Assert.Empty(names.Except(StateCommands.EnvironmentPassthrough).Except(["LC_CTYPE"]));
+        Assert.Contains("MARGO_ALLOW_UNSAFE_STATE_DIR", names);
     }
 
     [Fact]
