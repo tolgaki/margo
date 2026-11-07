@@ -192,6 +192,99 @@ public sealed class ModelClientTests
         Assert.Equal(["model", "instructions", "input", "tools"], body.Select(pair => pair.Key).ToArray());
     }
 
+    [Theory]
+    [InlineData(302)]
+    [InlineData(307)]
+    public async Task A_redirect_never_carries_the_token_to_another_origin(int status)
+    {
+        // The real handler (CreateHttpClient follows redirects, as the SDK's httpx client did): the Entra token must
+        // not reach the redirect target, whatever the target answers.
+        using var sink = new LoopbackServer((request, response) =>
+        {
+            response.StatusCode = 200;
+            response.ContentType = "application/json";
+            var body = Encoding.UTF8.GetBytes("""{"id": "r-elsewhere", "output": []}""");
+            response.OutputStream.Write(body);
+        });
+        using var source = new LoopbackServer((request, response) =>
+        {
+            response.StatusCode = status;
+            response.RedirectLocation = sink.Url + "steal";
+        });
+        using var http = AzureOpenAIModelClient.CreateHttpClient();
+        using var client = new AzureOpenAIModelClient(http, source.Url, new FakeCredential());
+        var answer = await client.CreateResponseAsync(new JsonObject { ["model"] = "fictional-model" }, TestContext.Current.CancellationToken);
+        Assert.Equal("r-elsewhere", PyNode.AsString(answer!["id"])); // the redirect was followed...
+        Assert.Equal("Bearer fictional-token-1", Assert.Single(source.Authorizations));
+        Assert.Null(Assert.Single(sink.Authorizations)); // ...without the token
+    }
+
+    /// <summary>A plain HTTP server on a free loopback port that records each request's Authorization header.</summary>
+    private sealed class LoopbackServer : IDisposable
+    {
+        private readonly HttpListener _listener = new();
+        private readonly Task _loop;
+
+        public LoopbackServer(Action<HttpListenerRequest, HttpListenerResponse> answer)
+        {
+            for (var attempt = 0; ; attempt++)
+            {
+                var port = Random.Shared.Next(20000, 60000);
+                Url = "http://127.0.0.1:" + port + "/";
+                _listener.Prefixes.Clear();
+                _listener.Prefixes.Add(Url);
+                try
+                {
+                    _listener.Start();
+                    break;
+                }
+                catch (HttpListenerException) when (attempt < 20)
+                {
+                }
+            }
+
+            _loop = Task.Run(async () =>
+            {
+                while (_listener.IsListening)
+                {
+                    HttpListenerContext context;
+                    try
+                    {
+                        context = await _listener.GetContextAsync();
+                    }
+                    catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException or InvalidOperationException)
+                    {
+                        return;
+                    }
+
+                    lock (Authorizations)
+                    {
+                        Authorizations.Add(context.Request.Headers["Authorization"]);
+                    }
+
+                    using (var reader = new StreamReader(context.Request.InputStream))
+                    {
+                        _ = reader.ReadToEnd();
+                    }
+
+                    answer(context.Request, context.Response);
+                    context.Response.Close();
+                }
+            });
+        }
+
+        public string Url { get; private set; } = "";
+
+        public List<string?> Authorizations { get; } = [];
+
+        public void Dispose()
+        {
+            _listener.Stop();
+            _listener.Close();
+            _loop.Wait(TimeSpan.FromSeconds(5));
+        }
+    }
+
     private static ModelClientOptions Options(List<TimeSpan> delays) => new()
     {
         Delay = (delay, _) =>

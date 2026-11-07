@@ -98,6 +98,54 @@ def state_answers(cases, preferences):
     return answers
 
 
+def state_exec_answers(spec):
+    """Runs classified commands against fake scripts (spec["scripts_dir"]) with this Python, as the C# test does."""
+    answers = []
+    for arguments, mode in spec["cases"]:
+        receipts = []
+        state = statecmd.StateCommands(scripts_dir=spec["scripts_dir"], account=BINDING.account,
+                                       state_root="/nonexistent-margo-state", recorder=receipts.append,
+                                       timeout=spec.get("timeout", statecmd.TIMEOUT_SECONDS), python=sys.executable)
+        try:
+            result = state.run(arguments, mode=mode)
+        except Exception as exc:
+            result = {"raised": type(exc).__name__, "message": str(exc)}
+        for receipt in receipts:
+            receipt.pop("at", None)
+            receipt.pop("ms", None)
+        answers.append({"result": result, "receipts": receipts})
+    return answers
+
+
+class ScriptedModel:
+    """Scripted Responses API: each create() returns the next scripted response (a copy)."""
+
+    def __init__(self, script):
+        self.script, self.requests = list(script), []
+        self.responses = self
+
+    async def create(self, **kwargs):
+        self.requests.append({key: value for key, value in kwargs.items() if key not in ("instructions", "tools")})
+        return json.loads(json.dumps(self.script.pop(0)))
+
+
+def run_answers(cases):
+    answers = []
+    for case in cases:
+        model = ScriptedModel(case["script"])
+        transport = Transport()
+        guard = autopilot.WorkIQGuard(BINDING, Tokens(), transport)
+        runner = engine.Engine(model=model, deployment="fictional-model", repo_root=ROOT, max_rounds=case["max_rounds"])
+        try:
+            result = asyncio.run(runner.run(case["text"], mode=case["mode"], guard=guard, office=Office(False),
+                                            previous_response_id=case.get("previous"),
+                                            now=datetime.fromisoformat("2026-10-17T08:00:00+00:00")))
+        except (AttributeError, TypeError) as exc:
+            result = {"raised": "malformed"}
+        answers.append({"result": result, "requests": model.requests, "sent": transport.calls})
+    return answers
+
+
 def subcommands(script):
     """The subcommands a stateful script's argparse parser accepts (as tests/test_autopilot_parity.py reads them)."""
     parser = importlib.import_module(script[:-3]).parser()
@@ -141,6 +189,10 @@ def main():
         library = skills.SkillLibrary(ROOT)
     answer["dispatch"] = dispatch_answers(request.get("dispatch", []), library)
     answer["state"] = state_answers(request.get("state", []), request.get("state_preferences"))
+    if "runs" in request:
+        answer["runs"] = run_answers(request["runs"])
+    if "state_exec" in request:
+        answer["state_exec"] = state_exec_answers(request["state_exec"])
     sys.stdout.write(json.dumps(answer, ensure_ascii=True))
 
 

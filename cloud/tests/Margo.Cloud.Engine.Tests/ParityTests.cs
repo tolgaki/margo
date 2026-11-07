@@ -17,7 +17,9 @@ public sealed partial class ParityTests
     /// Hosted scripts whose C# port has not landed in <c>margo-state</c> yet. The checks that need the CLI skip (never
     /// pass) while one of these is missing, and run in full as soon as it is there. Any other missing script fails.
     /// </summary>
-    private static readonly HashSet<string> PendingCliScripts = new(StringComparer.Ordinal) { "memory_state.py", "task_state.py" };
+    private static readonly HashSet<string> PendingCliScripts = new(StringComparer.Ordinal) { "memory_state.py" };
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Lazy<(int, string, string)>> PythonRuns = new(StringComparer.Ordinal);
 
     private static readonly string[] ProcedureRoots = ["skills", "automations", "agents"];
 
@@ -162,11 +164,14 @@ public sealed partial class ParityTests
         var (status, help, _) = Programs.Cli("--help");
         Assert.Equal(0, status);
         var implemented = CliScripts(help);
+        Assert.Empty(PendingCliScripts.Intersect(implemented)); // a script that landed is checked in full, never skipped
+        var parsers = new List<string[]>();
         foreach (var script in StateCommands.Commands.Keys.Where(script => !StateCommands.Stateful.Contains(script)))
         {
             Assert.True(implemented.Contains(script), "margo-state does not implement " + script);
             var (code, output, error) = Programs.Cli(script, "--help");
             Assert.True(code == 0 && output.StartsWith("usage: " + script, StringComparison.Ordinal), script + " --help: " + output + error);
+            parsers.Add([script]);
         }
 
         var pending = new List<string>();
@@ -181,7 +186,12 @@ public sealed partial class ParityTests
 
             var (classified, listed) = Classified(script);
             Assert.Equal(PyText.Sorted(classified.Union(listed)), PyText.Sorted(CliSubcommands(script)));
+            parsers.AddRange(PyText.Sorted(classified.Union(listed)).Select(command => new[] { script, command }));
         }
+
+        // Implemented means the same parser, not just the same name: each subcommand's options, choices and required
+        // arguments, as its `--help` prints them, are the Python script's.
+        AssertSameParsers(parsers);
 
         Assert.SkipWhen(pending.Count > 0, "margo-state does not implement " + string.Join(" and ", pending)
                                            + " yet; their commands are classified against the Python scripts only");
@@ -190,7 +200,21 @@ public sealed partial class ParityTests
     [Fact]
     public void Every_state_command_a_procedure_shows_is_classified_and_implemented()
     {
-        var shown = new SortedSet<(string Script, string Command)>();
+        // A procedure shows a command in two ways: after its script (`work_state.py --account A list --view decisions`),
+        // and bare in a file about that script (`create KEY --input FILE` in task-runs.md, which names task_state.py).
+        // A bare word counts when it is a subcommand of a stateful script the same file names.
+        var subcommands = (JsonObject)Programs.AskPython(new JsonObject { ["subcommands"] = true })["subcommands"]!;
+        var shown = new SortedDictionary<(string Script, string Command), SortedSet<string>>();
+        void Show(string script, string command, string rest)
+        {
+            if (!shown.TryGetValue((script, command), out var options))
+            {
+                shown[(script, command)] = options = new SortedSet<string>(StringComparer.Ordinal);
+            }
+
+            options.UnionWith(ShownOption().Matches(rest).Select(match => match.Groups[1].Value));
+        }
+
         foreach (var (_, text) in Procedures())
         {
             foreach (var span in CodeSpans(text))
@@ -199,18 +223,36 @@ public sealed partial class ParityTests
                 {
                     if (StateCommands.Stateful.Contains(match.Groups[1].Value))
                     {
-                        shown.Add((match.Groups[1].Value, match.Groups[2].Value));
+                        Show(match.Groups[1].Value, match.Groups[2].Value, match.Groups[3].Value);
                     }
+                }
+            }
+
+            var named = StateCommands.Stateful.Where(script => text.Contains(script, StringComparison.Ordinal)).ToList();
+            foreach (Match inline in Inline().Matches(FencedWhole().Replace(text, "")))
+            {
+                if (BareCommand().Match(inline.Groups[1].Value) is not { Success: true } bare)
+                {
+                    continue;
+                }
+
+                foreach (var script in named.Where(script => PyNode.Iter(subcommands[script]).Any(name => PyNode.Is(name, bare.Groups[1].Value))))
+                {
+                    Show(script, bare.Groups[1].Value, bare.Groups[2].Value);
                 }
             }
         }
 
-        Assert.Contains(("work_state.py", "list"), shown); // the scan itself must keep finding real commands
-        Assert.Contains(("proactive_state.py", "queue-add"), shown);
+        // The scan itself must keep finding real commands, in both forms and with their options.
+        Assert.Contains("--view", shown[("work_state.py", "list")]);
+        Assert.Contains("--json", shown[("proactive_state.py", "queue-add")]);
+        Assert.Contains("--input", shown[("task_state.py", "create")]);
+        Assert.Contains(("memory_state.py", "dream-plan"), shown.Keys);
         var (_, help, _) = Programs.Cli("--help");
         var implemented = CliScripts(help);
         var pending = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var (script, command) in shown)
+        var parsers = new List<string[]>();
+        foreach (var ((script, command), options) in shown)
         {
             var (classified, listed) = Classified(script);
             Assert.True(classified.Contains(command) || listed.Contains(command),
@@ -222,10 +264,20 @@ public sealed partial class ParityTests
                 continue;
             }
 
-            // The C# CLI's own parser must accept it: `margo-state SCRIPT --help` lists it among its subcommands.
+            // The C# CLI's own parser must accept it: `margo-state SCRIPT --help` lists it among its subcommands, its own
+            // `--help` is the Python script's, and it takes every option the procedure shows with it.
             Assert.True(CliSubcommands(script).Contains(command, StringComparer.Ordinal),
                         "margo-state " + script + " does not implement " + command + ", which a procedure shows");
+            parsers.Add([script, command]);
+            var usage = Programs.Cli(script, command, "--help").Stdout;
+            foreach (var option in options)
+            {
+                Assert.True(usage.Contains(option, StringComparison.Ordinal),
+                            "margo-state " + script + " " + command + " does not take " + option + ", which a procedure shows with it");
+            }
         }
+
+        AssertSameParsers(parsers);
 
         Assert.SkipWhen(pending.Count > 0, "margo-state does not implement these commands the skills show yet: " + string.Join(", ", pending));
     }
@@ -355,6 +407,31 @@ public sealed partial class ParityTests
 
     // -- helpers -------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// <c>margo-state SCRIPT [COMMAND] --help</c> and <c>python3 SCRIPT [COMMAND] --help</c> give the same exit status,
+    /// output and errors for every parser listed (both read <c>COLUMNS</c> the same way).
+    /// </summary>
+    private static void AssertSameParsers(IReadOnlyList<string[]> parsers)
+    {
+        var differences = new System.Collections.Concurrent.ConcurrentBag<string>();
+        Parallel.ForEach(parsers, new ParallelOptions { MaxDegreeOfParallelism = 4 }, parser =>
+        {
+            var csharp = Programs.Cli([.. parser, "--help"]);
+            var python = PythonHelp(parser);
+            if (csharp != python)
+            {
+                differences.Add(string.Join(" ", parser) + " --help:\npython: " + python + "\nC#:     " + csharp);
+            }
+        });
+        Assert.True(differences.IsEmpty, "margo-state parsers differ from the Python scripts':\n" + string.Join("\n", differences.Order(StringComparer.Ordinal)));
+    }
+
+    /// <summary><c>python3 -s scripts/SCRIPT [COMMAND] --help</c>, once per test run.</summary>
+    private static (int Status, string Stdout, string Stderr) PythonHelp(string[] parser) =>
+        PythonRuns.GetOrAdd(string.Join('\0', parser), _ => new Lazy<(int, string, string)>(() =>
+            Programs.Run(Programs.Python(), ["-B", "-s", Path.Combine(Fixtures.Root, "skills", "chief-of-staff", "scripts", parser[0]), .. parser[1..], "--help"],
+                         environment: new Dictionary<string, string> { ["PYTHONDONTWRITEBYTECODE"] = "1", ["PYTHONIOENCODING"] = "utf-8" }))).Value;
+
     private static string Instructions() => EngineTools.LoadInstructions(Fixtures.Root, library: new SkillLibrary(Fixtures.Root));
 
     private static (HashSet<string> Classified, HashSet<string> Listed) Classified(string script) =>
@@ -430,9 +507,20 @@ public sealed partial class ParityTests
     [GeneratedRegex(@"(?:^|[|;&(]|\$\(|\$ )\s*(?:[A-Z_][A-Z0-9_]*=\S+\s+)*([a-z][a-z0-9]*)\b(?=\s|$)", RegexOptions.Multiline)]
     private static partial Regex CommandPosition();
 
-    /// <summary>A stateful script followed (after optional service options and line continuations) by its subcommand.</summary>
-    [GeneratedRegex(@"\b([a-z_]+_state\.py)(?:\s+\\?\s*--(?:account|state-dir|state-root)\s+\S+)*\s+\\?\s*([a-z][a-z-]*)\b(?!-)")]
+    /// <summary>
+    /// A stateful script followed (after optional service options and line continuations) by its subcommand, then the
+    /// rest of that command line (continued lines included).
+    /// </summary>
+    [GeneratedRegex(@"\b([a-z_]+_state\.py)(?:\s+\\?\s*--(?:account|state-dir|state-root)\s+\S+)*\s+\\?\s*([a-z][a-z-]*)\b(?!-)((?:[ \t]+(?:\\\n[ \t]*)?[^\s`]+)*)")]
     private static partial Regex ShownCommand();
+
+    /// <summary>Inline code that is a bare subcommand and its arguments, e.g. <c>create KEY --input FILE</c>.</summary>
+    [GeneratedRegex(@"^\s*([a-z][a-z-]*)(?=\s|$)((?:\s+[^\s`]+)*)\s*$")]
+    private static partial Regex BareCommand();
+
+    /// <summary>An option a command line shows (<c>--view</c> in <c>--view decisions</c> or <c>--view=decisions</c>).</summary>
+    [GeneratedRegex(@"(?:^|\s)(--[a-z][a-z0-9-]*)(?=[\s=]|$)")]
+    private static partial Regex ShownOption();
 
     [GeneratedRegex(@"```[^\n]*\n(.*?)```", RegexOptions.Singleline)]
     private static partial Regex Fenced();

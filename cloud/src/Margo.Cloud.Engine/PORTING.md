@@ -149,11 +149,11 @@ failure of a write as `unknown`, and receipts are all as in Python.
 
 ## Requests to other components
 
-1. **`memory_state.py` and `task_state.py` in `margo-state`.** The C# CLI on this branch implements `work_state.py`,
-   `proactive_state.py` and the stateless helpers, but not `memory_state.py` (`Margo.Cloud.State.MemoryCommands`)
-   or `task_state.py` (`Margo.Cloud.State.Tasks`). Until they land, `InitialiseAsync` fails with "could not
-   initialise memory_state.py: unknown script 'memory_state.py' ..." and those commands answer `error`. The engine
-   needs no change when they land; the skipped tests below then run in full.
+1. **`memory_state.py` in `margo-state`.** `task_state.py` (`Margo.Cloud.State.Tasks`) has landed and is checked in
+   full. `memory_state.py` (`Margo.Cloud.State.MemoryCommands`) has not: until it does, `InitialiseAsync` fails with
+   "could not initialise memory_state.py: unknown script 'memory_state.py' ..." and memory commands answer `error`.
+   The engine needs no change when it lands; the skipped tests below then run in full (they compare all 47 of its
+   subcommand parsers with Python's, so a partial port fails rather than passes).
 2. **Margo.Cloud.Host** must ship `margo-state.dll` (with its `.deps.json`/`.runtimeconfig.json` and the
    `Margo.Cloud.State.*` assemblies) next to the host, a Release build so no contract probes are included, or set
    `MARGO_STATE_CLI`; and its image must copy `agents/` and `skills/` to the engine's `repoRoot`
@@ -166,9 +166,57 @@ failure of a write as `unknown`, and receipts are all as in Python.
    fake server; the extra load of another test host appears to be enough. A longer deadline for the calls that are
    not meant to time out would fix it; this port does not edit another component's tests.
 
+## Review (engine-review)
+
+An independent review read `engine.py`, `skills.py`, `parity.py`, `statecmd.py` and the model client side by side
+with this port, then tried to break it with generated inputs compared against the Python modules and with attacks on
+the tool boundary.
+
+**Behaviour: no defect found in the port's sources.** Generated cases, all compared as text with Python: 20,000+
+`margo-state` calls (hostile scripts including probe names, `../` and NUL; forbidden options and their abbreviations,
+`=` forms, padding and case; paths in every form the rules name; `@file:` and `@preferences` in and out of options;
+file names, counts and sizes around `MAX_FILES`/`MAX_FILES_TOTAL`; `input` around `MAX_INPUT`; argument counts and
+lengths around the limits; lone surrogates, astral characters, NUL; unknown modes), identical results and receipts;
+1,500 command outcomes from a fake CLI printing arbitrary bytes with any exit status (invalid and partial UTF-8, BOMs,
+`NaN`, duplicate keys, `{"error": ...}` of every type, stderr JSON lines, Unicode line separators, output around
+`MAX_OUTPUT` in one- to four-byte characters), identical; 11,000 function calls with odd names, raw arguments and
+modes, identical results and Work IQ calls; 4,600 whole turns of odd model responses (non-object items, odd `output`,
+`id`, `call_id`, `arguments`, `output_text`, round limits 0-3), identical requests (`previous_response_id`, inputs,
+call ids, clipped outputs), results and Work IQ calls, apart from deviation 7; 40,000 skill paths and front matter
+texts, identical. The only differences seen were deviations 6 (surrogateescape) and 7, already listed.
+
+**Security: nothing the model can reach gets past the rules, in either implementation.** Checked: forbidden options
+by abbreviation after the subcommand (`--acc=x`, `--state-d=x`, `--state-r x`) are rejected by the C# CLI's parser
+exactly as by argparse (exit 2), and nothing can precede the subcommand; short-option tricks (`-input=/etc/passwd`,
+`-i/x`) are rejected by both parsers; relative paths cannot leave the per-call directory without `..` or `/../`;
+the per-call directory is 0700, the file 0600, the directory is the CLI's working directory and is removed; the CLI
+sees only `ENV_PASSTHROUGH` and `DOTNET_ROOT` (managed-identity secrets, `MARGO_STATE_PROBES` and
+`DOTNET_STARTUP_HOOKS` in the service's environment do not reach it), and the account and state directory come
+first from the binding; the model client does not send the Entra token to another origin when it follows a 302 or
+307 redirect (.NET drops `Authorization` on redirects).
+
+**Test defects fixed** (the evidence for each is stated with it):
+
+1. `ParityTests.PendingCliScripts` still listed `task_state.py` after it landed in the CLI, so a CLI that lost it
+   would have made two parity tests skip instead of fail (found by reading). It now lists only `memory_state.py`,
+   and a script listed as pending that the CLI implements fails the test.
+2. "Implemented by the C# CLI" meant only that the subcommand's name appeared in `margo-state SCRIPT --help`. A
+   subcommand with missing or different options passed. Both CLI parity tests now require each command's
+   `margo-state SCRIPT COMMAND --help` (exit status, stdout and stderr) to equal `python3 SCRIPT COMMAND --help`, for
+   every classified or listed subcommand of every implemented script and for the stateless helpers. A mutated
+   Python help for `task_state.py create` was caught by both tests.
+3. The scan of commands the skills show missed every command shown without its script name (`create KEY --input
+   FILE`, `start`, `charge`, `finish` in task-runs.md; the `dream-*` commands; 63 commands in all) and ignored the
+   options shown with them. It now also takes bare subcommands in inline code of a file that names the script, keeps
+   the options a procedure shows, and checks each is accepted by the C# subcommand. Every one of the 63 is
+   classified, and those of `task_state.py` and `proactive_state.py` are implemented with Python's parser today, so
+   this widens what is checked; it did not expose a broken command.
+
+No defect was found in `Margo.Cloud.Engine`'s sources, so none were changed.
+
 ## Tests and evidence
 
-`cloud/tests/Margo.Cloud.Engine.Tests` (47 tests): a fake model, a recording Work IQ transport behind the real
+`cloud/tests/Margo.Cloud.Engine.Tests` (55 tests): a fake model, a recording Work IQ transport behind the real
 `WorkIQGuard`, real temporary state through the real `margo-state` CLI (the test project references
 `Margo.Cloud.StateCli`, so `margo-state.dll` sits next to the tests and is the default command), and live
 comparisons with the Python modules through `Parity/engine_cases.py` (`python3 -B -I`, no network, no state).
@@ -180,8 +228,10 @@ comparisons with the Python modules through `Parity/engine_cases.py` (`python3 -
   matter texts compared with Python, a fictional skill tree (hidden entries, CRLF, symbolic links, excluded
   directories, astral characters at the size limit, private preferences, the ledger-only file) listed, loaded and
   read by both, and an undecodable file.
-- `StateCommandTests`: `test_the_same_commands_run_against_the_instance_state` (work and proactive state through the
-  C# CLI, read back through `InstanceLedger.OpenLedger`), `test_mode_policy_and_unhosted_commands_run_nothing`,
+- `StateCommandTests`: `test_the_same_commands_run_against_the_instance_state` (work, proactive and task state through
+  the C# CLI, read back through `InstanceLedger.OpenLedger`; an uninitialised task read is an `error`),
+  `test_mode_policy_and_unhosted_commands_run_nothing`, what the CLI process sees (private 0700 directory as working
+  directory, 0600 file, binding arguments first, only the passed-through environment),
   `test_outcomes_are_reported_truthfully` (a fake CLI: refusal exit 2, crash after a possible commit, timed-out write
   and read, `{"error"}` on stdout, stderr JSON, plain text, oversized output, the private file directory),
   `test_budget_is_charged_before_running_and_receipts_hold_no_content`, cancellation, programs that cannot start,
@@ -191,23 +241,34 @@ comparisons with the Python modules through `Parity/engine_cases.py` (`python3 -
   reachable, every script, subcommand, program and Work IQ tool a procedure names hosted or listed, the model told
   what is missing; the Dockerfile check as described above), plus: every subcommand classified against the Python
   scripts' argparse parsers; every hosted command implemented by the C# CLI (`margo-state SCRIPT --help` choices
-  equal the classified set); every state command the skills show classified and implemented (listed among the
-  subcommands of `margo-state SCRIPT --help`); tools, instructions (three time zones), summary, lists and `_clip`
-  identical to Python. Each distinct CLI `--help` runs once per test run, and the test classes run one at a time
-  (`xunit.runner.json`), to keep the load these process-starting tests add to a full solution run small.
+  equal the classified set, and every subcommand's `--help` equals Python's); every state command the skills show,
+  after its script or bare in a file about it, classified and implemented (listed by the CLI, the same parser as
+  Python's, and taking every option shown with it); tools, instructions (three time zones), summary, lists and
+  `_clip` identical to Python. Each distinct CLI or Python `--help` runs once per test run (four at a time), and the
+  test classes run one at a time (`xunit.runner.json`), to keep the load these process-starting tests add to a full
+  solution run small.
+- `GeneratedCaseTests` (fixed seeds; `MARGO_ENGINE_SEED` tries others): 3,000 generated `margo-state` calls, 200
+  generated command outcomes from a fake CLI (both sides run it), 3,000 generated function calls, 800 generated
+  turns and 16,000 generated skill paths and front matter texts, each compared with the Python modules through
+  `engine_cases.py` (which gained `runs` and `state_exec` for this). The review ran the same generators at larger
+  counts and other seeds (numbers above).
 - `ModelClientTests`: URL, bearer token and scope, body, token caching and refresh, retries and their delays, retry
-  headers, error messages, connection failures and timeouts, cancellation, and an engine turn over the HTTP client.
+  headers, error messages, connection failures and timeouts, cancellation, an engine turn over the HTTP client, and
+  302/307 redirects through the real handler (followed, without the token).
 
 Skipped, honestly (they skip, never pass, while the condition holds; they run in full once it does):
 `Initialise_prepares_memory_and_task_state`, `Every_hosted_command_is_implemented_by_the_cli` and
 `Every_state_command_a_procedure_shows_is_classified_and_implemented` (request 1; their other checks run first and
-must pass), and `The_image_carries_the_persona_and_every_skill` (no C# image yet). Any hosted script missing from
-the CLI other than `memory_state.py` and `task_state.py` fails.
+must pass, `task_state.py` and `work_state.py`/`proactive_state.py` included), and
+`The_image_carries_the_persona_and_every_skill` (no C# image yet). Any hosted script missing from the CLI other than
+`memory_state.py` fails.
 
-Verification at commit: `dotnet build cloud/Margo.Cloud.slnx` 0 warnings; `dotnet test --solution Margo.Cloud.slnx`
-5074 total, 5069 passed, 4 skipped (the four above), 1 failed (the WorkIQ timing test, request 3); this project alone
-47 total, 43 passed, 4 skipped; `python3 tools/state_parity.py --check` 108 scenarios passed;
-`python3 -m unittest discover -s tests -p 'test_*.py'` 520 OK (4 skipped); `./tools/check-clean.sh` clean.
+Verification at the review commit: `dotnet build cloud/Margo.Cloud.slnx` 0 warnings; `dotnet test --solution
+Margo.Cloud.slnx` 5156 total, 5151 passed, 5 skipped (the four above and State.Tests' in-suite parity judge, which
+runs only on request), 0 failed (the WorkIQ timing test of request 3 passed in this run; it remains timing-sensitive);
+this project alone 55 total, 51 passed, 4 skipped (rerun after the last edit, a skip message);
+`python3 tools/state_parity.py --check` 182 scenarios passed; `python3 -m unittest discover -s tests -p 'test_*.py'`
+520 OK (4 skipped); `./tools/check-clean.sh` clean.
 
 Not verified: anything against a real Azure OpenAI endpoint, Entra or Work IQ; model behaviour (these are contract
 tests, not model evaluations).
