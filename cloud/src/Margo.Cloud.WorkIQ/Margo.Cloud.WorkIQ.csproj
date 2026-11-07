@@ -4,4 +4,8 @@
     <RootNamespace>Margo.Cloud.WorkIQ</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.WorkIQ.Tests" />
+  </ItemGroup>
+
 </Project>

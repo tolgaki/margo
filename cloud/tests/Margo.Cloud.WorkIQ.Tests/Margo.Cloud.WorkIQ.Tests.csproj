@@ -5,11 +5,18 @@
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- Expected values written inline in assertions read better than static fields. -->
+    <NoWarn>$(NoWarn);CA1861</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/Margo.Cloud.WorkIQ/Margo.Cloud.WorkIQ.csproj" />
     <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Outcomes recorded from transport.py by Parity/transport_cases.py. -->
+    <None Include="Parity/transport_cases.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
