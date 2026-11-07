@@ -10,6 +10,14 @@
     <ProjectReference Include="../Margo.Cloud.Engine/Margo.Cloud.Engine.csproj" />
     <ProjectReference Include="../Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
     <ProjectReference Include="../Margo.Cloud.State.Work/Margo.Cloud.State.Work.csproj" />
+    <!-- StateSync: the online-backup snapshot and integrity checks of the bundle. -->
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <!-- ILogger only (the host passes its logger); the Host and Voice already run on ASP.NET Core. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.Orchestrator.Tests" />
   </ItemGroup>
 
 </Project>
