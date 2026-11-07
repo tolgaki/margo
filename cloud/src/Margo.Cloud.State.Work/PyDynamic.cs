@@ -337,37 +337,19 @@ public static class PyDynamic
         string.Join(", ", values.Order(PyRepr.StringComparer));
 
     /// <summary>
-    /// What <c>", ".join(sorted(keys))</c> raises when the unknown keys of a dict include non-string keys
-    /// (only reachable through <c>dict.update</c> with a list of pairs).
+    /// What <c>", ".join(sorted(set(data) - allowed))</c> raises when the unknown keys of <c>data</c> include
+    /// non-string keys (only reachable through <c>dict.update</c> with a list of pairs): <paramref name="strings"/>
+    /// are the unknown string keys, <paramref name="foreign"/> the non-string keys in insertion order,
+    /// <paramref name="dictSize"/> the number of keys in <c>data</c> and <paramref name="allowedSize"/> the size
+    /// of <c>allowed</c>. The text follows CPython's set iteration order and sort comparisons
+    /// (<see cref="PySortedKeys"/>); only the slots of string keys depend on <c>PYTHONHASHSEED</c>.
     /// </summary>
-    public static PyTypeError JoinSortedError(IReadOnlyCollection<string> strings, IReadOnlyList<JsonNode?> foreign)
+    public static PyTypeError JoinSortedError(IReadOnlyCollection<string> strings, IReadOnlyList<JsonNode?> foreign,
+                                              int dictSize, int allowedSize)
     {
         ArgumentNullException.ThrowIfNull(strings);
         ArgumentNullException.ThrowIfNull(foreign);
-        var hasNone = foreign.Any(key => key is null);
-        if (strings.Count == 0 && !hasNone)
-        {
-            var smallest = foreign[0];
-            foreach (var key in foreign.Skip(1))
-            {
-                if (CompareNumbers(key, smallest) < 0)
-                {
-                    smallest = key;
-                }
-            }
-
-            return new PyTypeError("sequence item 0: expected str instance, " + TypeName(smallest) + " found");
-        }
-
-        if (strings.Count == 0 && foreign.Count == 1)
-        {
-            return new PyTypeError("sequence item 0: expected str instance, NoneType found");
-        }
-
-        // Mixed types: Python's message depends on set iteration order (string hashing); see PORTING.md.
-        var other = foreign.First(key => strings.Count > 0 || key is not null);
-        var first = strings.Count > 0 ? "str" : "NoneType";
-        return new PyTypeError("'<' not supported between instances of '" + TypeName(other) + "' and '" + first + "'");
+        return PySortedKeys.JoinSortedError(strings, foreign, dictSize, allowedSize);
     }
 
     private static bool IsSurrogate(int codePoint) => codePoint is >= 0xD800 and <= 0xDFFF;

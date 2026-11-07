@@ -1,0 +1,24 @@
+{
+  "description": "work_state.py item-update with a patch given as a list of pairs whose keys are null, bools, ints or floats: _item_data's ', '.join(sorted(set(data) - allowed)) raises the TypeError of CPython's set iteration order and list.sort comparisons (these hashes do not depend on PYTHONHASHSEED), never an approximation; nothing is written (review of the work port).",
+  "steps": [
+    {"script": "work_state.py", "args": ["ingest", "--input", "-"], "expect_exit": 0,
+     "stdin": {"claim_key": "k", "data": {"title": "Fictional task", "owner": null, "due": null, "direction": "owe", "confirmation_source": "conversation:fictional"}}},
+    {"script": "work_state.py", "args": ["item-update", "item_c24a71d29895508e49ceb1aed3f9856b", "--revision", "1", "--input", "-"], "expect_exit": 2,
+     "stdin": {"patch": [[2.5, "x"], [1, "y"], [null, "z"]]}},
+    {"script": "work_state.py", "args": ["item-update", "item_c24a71d29895508e49ceb1aed3f9856b", "--revision", "1", "--input", "-"], "expect_exit": 2,
+     "stdin": {"patch": [[3, "x"], [2.5, "y"], [null, "z"]]}},
+    {"script": "work_state.py", "args": ["item-update", "item_c24a71d29895508e49ceb1aed3f9856b", "--revision", "1", "--input", "-"], "expect_exit": 2,
+     "stdin": {"patch": [[null, "z"], [2.5, "x"], [1, "y"]]}},
+    {"script": "work_state.py", "args": ["item-update", "item_c24a71d29895508e49ceb1aed3f9856b", "--revision", "1", "--input", "-"], "expect_exit": 2,
+     "stdin": {"patch": [[null, "y"], [0.5, "x"], [-3, "w"], [100000000000000000000, "v"]]}},
+    {"script": "work_state.py", "args": ["item-update", "item_c24a71d29895508e49ceb1aed3f9856b", "--revision", "1", "--input", "-"], "expect_exit": 2,
+     "stdin": {"patch": [[-0.0, 1], [-79.5, 2], [8, 3], [18446744073709551617, 4], [39, 5], [-0.5, 6], [18446744073709551618, 7], [null, 8], [-2305843009213693952, 9], [1.0000000000000014e16, 10], [2305843009213693951, 11]]}},
+    {"script": "work_state.py", "args": ["item-update", "item_c24a71d29895508e49ceb1aed3f9856b", "--revision", "1", "--input", "-"], "expect_exit": 2,
+     "stdin": {"patch": [[true, "x"], [null, "y"]]}},
+    {"script": "work_state.py", "args": ["item-update", "item_c24a71d29895508e49ceb1aed3f9856b", "--revision", "1", "--input", "-"], "expect_exit": 2,
+     "stdin": {"patch": [[null, "y"]]}},
+    {"script": "work_state.py", "args": ["item-update", "item_c24a71d29895508e49ceb1aed3f9856b", "--revision", "1", "--input", "-"], "expect_exit": 2,
+     "stdin": {"patch": [[2.5, "x"], [1.0, "y"], [true, "z"], [-7, "w"]]}},
+    {"script": "work_state.py", "args": ["show", "item_c24a71d29895508e49ceb1aed3f9856b"], "expect_exit": 0}
+  ]
+}
