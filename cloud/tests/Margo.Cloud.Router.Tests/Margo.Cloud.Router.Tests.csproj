@@ -11,6 +11,8 @@
     <ProjectReference Include="../../src/Margo.Cloud.Router/Margo.Cloud.Router.csproj" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <!-- Mints tokens the way Microsoft's own libraries do, independently of the router's validator. -->
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
   </ItemGroup>
 
 </Project>
