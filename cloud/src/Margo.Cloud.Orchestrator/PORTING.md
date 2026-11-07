@@ -121,9 +121,17 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
    cancelled turn saves nothing and its marker is removed. A token getter that throws counts as no token, except for
    that cancellation.
 4. **Zip and SQLite libraries.** Bundles are written with `System.IO.Compression` (deflate) and read back by
-   `zipfile`; Python bundles are read here. Any `InvalidDataException` while reading a bundle (not a zip, bad CRC,
-   corrupt deflate data) is "state bundle is unreadable"; Python's `zlib.error` for corrupt deflate data escaped as a
-   plain error (`error` rather than `state_unsafe`). A manifest that is not an object raises `PyAttributeError`, and a
+   `zipfile`; Python bundles are read here (both directions are tested against the Python `StateSync`). Every entry
+   read is checked against its CRC-32 as `zipfile` checks it (`ZipArchive` does not; `StateSync.Crc32`), so a corrupt
+   entry, including `preferences.md` and the manifest that no hash covers, is "state bundle is unreadable" as in
+   Python. Any `InvalidDataException` while reading a bundle (not a zip, bad CRC, corrupt deflate data) is "state
+   bundle is unreadable"; Python's `zlib.error` for corrupt deflate data escaped as a plain error (`error` rather than
+   `state_unsafe`). `ZipArchive` is stricter than `zipfile` in ways that only fail closed, never install more: it
+   refuses data prepended to the archive and entries compressed with bzip2 or LZMA (Python accepts all three, but its
+   `_pack` writes none of them), and an encrypted entry is "state bundle is unreadable" here where `zipfile` raised a
+   plain `RuntimeError` (`error`). It does not compare an entry's local header name with the central directory as
+   `zipfile` does; that only matters for a hand-made archive, whose content is still checked by the manifest hashes
+   and the database checks. A manifest that is not an object raises `PyAttributeError`, and a
    staged file SQLite cannot read raises `SqliteException`, as Python's `AttributeError`/`sqlite3.DatabaseError`
    escape (`error`). Snapshots use Microsoft.Data.Sqlite's `BackupDatabase` (no pooling), 10 s busy timeout on the
    source as in Python.
@@ -172,13 +180,12 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
    recorders, `MARGO_STATE_CONTAINER`, `MARGO_INSTANCE_KEY`-based voice URL and the instance. The class is
    `Margo.Cloud.Orchestrator.Orchestrator`: outside this namespace, name it fully (the namespace has the same name).
 3. **`Margo.Cloud.Voice`** can reuse `OfficeReader` and `InstanceLedger.OpenLedger` as `voice/server.py` does.
-4. **`Margo.Cloud.State.Tests`:** `ParityTests.State_parity_check_passes` gives `state_parity.py --check` 15 minutes;
-   with 182 scenarios the check alone took 14 min 58 s here, and in a full solution run it timed out. A longer limit
-   (or running the judge outside the xUnit suite) is needed; this port does not edit that test.
+4. **`Margo.Cloud.State.Tests`:** done on the base branch (96fb6a0, merged into the review branch): the in-suite
+   parity wrapper now runs only with `MARGO_RUN_PARITY_IN_TESTS=1`, and `state_parity.py --check` is its own gate.
 
 ## Tests and evidence
 
-`cloud/tests/Margo.Cloud.Orchestrator.Tests` (116 test cases), a fake model, a fake Work IQ directory transport
+`cloud/tests/Margo.Cloud.Orchestrator.Tests` (119 test cases), a fake model, a fake Work IQ directory transport
 behind the real `WorkIQGuard`, `InMemoryLeaseStore`, real temporary state, the real engine and the real `margo-state`
 CLI (referenced by the test project, so `margo-state.dll` sits next to the tests; see request 1 for `memory_state.py`):
 
@@ -189,7 +196,9 @@ CLI (referenced by the test project, so `margo-state.dll` sits next to the tests
   conversation continuity, the round limit (`stopped`), the setting written to private preferences, and state paths.
 - `StateSyncTests`: every `StateSyncTests` test (9), plus the bundle and manifest contents and modes, installing once,
   bundles Python would refuse (not a zip, missing entries, bad JSON, hash mismatch, a forged manifest over another
-  account's database), preferences removed with the bundle, a failed daily copy, and the lease always released.
+  account's database), entries that fail their CRC-32 (preferences and manifest), bundles exchanged with the Python
+  `StateSync` in both directions (`Parity/statesync_bundle.py`), preferences removed with the bundle, a failed daily
+  copy, and the lease always released.
 - `OfficeTests`: the three `LedgerBackedTests` office tests, plus the recorded evidence and marker, pending order and
   limit, and a record without an ID.
 - `ReplyTests`: `ReplyPolicyTests` of `tests/test_autopilot_guard.py` (4) and the two `test_reply_gate_*` tests against
@@ -197,17 +206,34 @@ CLI (referenced by the test project, so `margo-state.dll` sits next to the tests
 - `TurnSupportTests`: `TurnTokens`, `_manager_from` (15 results, 13 of them checked against Python's output), the commands (24 texts),
   `set_reply_mode` (4 files compared with Python's output), and every fixed text and limit compared with the Python
   modules at test time (`Parity/orchestrator_constants.py`, `python3 -B -I`, no state, no network).
+- `DifferentialTests`: 1,800 seeded generated cases answered by the Python helpers (`Parity/orchestrator_differential.py`)
+  and by the port, compared exactly: `load_reply_policy`, the two command patterns, `set_reply_mode`, `_manager_from`,
+  the office excerpt and conversation key, and `ReplyGate.decide` sequences in `none` and `acknowledge` modes.
 
-Verification at commit: `dotnet build cloud/Margo.Cloud.slnx` 0 warnings, 0 errors; this project 116 passed;
-`dotnet test --solution Margo.Cloud.slnx` 5263 total, 5258 passed, 4 skipped (Engine's four, see its PORTING.md),
-1 failed: `Margo.Cloud.State.Tests.ParityTests.State_parity_check_passes` stopped at its own 15-minute limit
-(`TaskCanceledException`). Run on its own, `python3 tools/state_parity.py --check` passed all 182 scenarios but took
-14 min 58 s on this shared 4-core machine, so the C# wrapper's limit is now too tight for the scenario count (request
-4). Nothing in this project touches state code or scenarios. `python3 -m unittest discover -s tests -p 'test_*.py'`
-520 OK (4 skipped); `./tools/check-clean.sh` clean.
+Verification at the original port commit (cab0043): this project 116 passed; the full solution run had one failure,
+the in-suite parity wrapper hitting its 15-minute limit (request 4, since resolved on the base branch).
+
+Verification after the review (base branch merged): `dotnet build cloud/Margo.Cloud.slnx` 0 warnings, 0 errors;
+`dotnet test --solution Margo.Cloud.slnx` 5266 total, 5261 passed, 0 failed, 5 skipped (Engine's four, and the
+parity wrapper, which now runs only on request); `python3 tools/state_parity.py --check` 182 of 182 scenarios passed (15 min 54 s); `python3 -m unittest discover -s tests -p 'test_*.py'` 520 OK (4 skipped); `./tools/check-clean.sh` clean.
 
 Not verified: anything against real Azure Blob Storage, Work IQ, Entra or a model (contract tests with fakes, not model
 evaluations).
+
+## Review (independent reviewer, on top of the port)
+
+Read against the Python side by side; differential tests added (above); all findings fixed with a failing test first:
+
+1. **CRC-32 not checked when installing a bundle** (`StateSync.cs`, `Read`). `ZipArchive` does not verify an entry's
+   CRC-32; `zipfile` does (`BadZipFile`, so `SyncError`). A bundle whose `preferences.md` (not covered by the manifest)
+   was corrupted in storage was installed here, silently replacing the manager's `Replies to other people` setting with
+   the corrupted text, where Python refuses the bundle and replaces nothing. Fixed: every entry read is checked
+   (`An_entry_that_fails_its_checksum_is_refused_as_python_s_zipfile_refuses_it`). The earlier note here claimed a bad
+   CRC was already refused; it was not.
+2. Not defects, recorded as deviations: `ZipArchive`'s stricter reading (deviation 4).
+
+Checked and found to match: every status and its order; the fixed texts; the command patterns, reply setting and
+manager lookup over 18,000 generated cases (one 10x run beyond the committed 1,800); the cross-language bundle format.
 
 ## Open questions
 

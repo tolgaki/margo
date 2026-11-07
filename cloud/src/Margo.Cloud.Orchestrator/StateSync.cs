@@ -62,6 +62,8 @@ public sealed class StateSync
 
     private static readonly string[] Sidecars = ["-journal", "-wal", "-shm"];
 
+    private static readonly uint[] CrcTable = BuildCrcTable();
+
     /// <param name="database">The local <c>margo.sqlite3</c> the turn uses.</param>
     /// <param name="store">The shared leased store.</param>
     /// <param name="account">The account the state must belong to.</param>
@@ -457,12 +459,53 @@ public sealed class StateSync
         stream.Write(data);
     }
 
+    /// <summary><c>ZipFile.read(name)</c>: the last entry of that name, checked against its CRC-32 as <c>zipfile</c> checks
+    /// it (<c>BadZipFile("Bad CRC-32 for file ...")</c>); <see cref="ZipArchive"/> does not check it.</summary>
     private static byte[] Read(ZipArchive bundle, string name)
     {
         var entry = bundle.Entries.LastOrDefault(item => item.FullName == name) ?? throw new KeyNotFoundException("There is no item named '" + name + "' in the archive");
-        using var stream = entry.Open();
-        using var copy = new MemoryStream();
-        stream.CopyTo(copy);
-        return copy.ToArray();
+        byte[] data;
+        using (var stream = entry.Open())
+        using (var copy = new MemoryStream())
+        {
+            stream.CopyTo(copy);
+            data = copy.ToArray();
+        }
+
+        if (Crc32(data) != entry.Crc32)
+        {
+            throw new InvalidDataException("Bad CRC-32 for file '" + name + "'");
+        }
+
+        return data;
+    }
+
+    /// <summary>The zip format's CRC-32 (IEEE 802.3, reflected, polynomial 0xEDB88320), as <c>zlib.crc32</c>.</summary>
+    internal static uint Crc32(ReadOnlySpan<byte> data)
+    {
+        var crc = 0xFFFFFFFFu;
+        foreach (var value in data)
+        {
+            crc = CrcTable[(crc ^ value) & 0xFF] ^ (crc >> 8);
+        }
+
+        return crc ^ 0xFFFFFFFFu;
+    }
+
+    private static uint[] BuildCrcTable()
+    {
+        var table = new uint[256];
+        for (var n = 0u; n < 256; n++)
+        {
+            var c = n;
+            for (var k = 0; k < 8; k++)
+            {
+                c = (c & 1) != 0 ? 0xEDB88320u ^ (c >> 1) : c >> 1;
+            }
+
+            table[n] = c;
+        }
+
+        return table;
     }
 }

@@ -100,11 +100,16 @@ internal static class StateCli
 /// <summary>Runs a program and returns its exit code and output.</summary>
 internal static class Programs
 {
-    public static (int Status, string Stdout, string Stderr) Run(string program, IEnumerable<string> arguments)
+    public static (int Status, string Stdout, string Stderr) Run(string program, IEnumerable<string> arguments) =>
+        RunWithInput(program, arguments, null);
+
+    /// <summary>Runs a program with <paramref name="input"/> (UTF-8) on its standard input.</summary>
+    public static (int Status, string Stdout, string Stderr) RunWithInput(string program, IEnumerable<string> arguments, string? input)
     {
         var start = new ProcessStartInfo(program)
         {
             UseShellExecute = false,
+            RedirectStandardInput = input is not null,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };
@@ -114,6 +119,12 @@ internal static class Programs
         }
 
         using var process = Process.Start(start)!;
+        if (input is not null)
+        {
+            process.StandardInput.Write(input);
+            process.StandardInput.Close();
+        }
+
         var output = process.StandardOutput.ReadToEndAsync();
         var error = process.StandardError.ReadToEndAsync();
         if (!process.WaitForExit(TimeSpan.FromMinutes(2)))

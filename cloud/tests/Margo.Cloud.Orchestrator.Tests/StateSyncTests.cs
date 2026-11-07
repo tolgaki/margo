@@ -334,6 +334,84 @@ public sealed class StateSyncTests
     }
 
     [Fact]
+    public async Task An_entry_that_fails_its_checksum_is_refused_as_python_s_zipfile_refuses_it()
+    {
+        // zipfile checks each entry's CRC-32 as it reads it ("Bad CRC-32", BadZipFile): a corrupt bundle is unreadable,
+        // even where the manifest's database hash does not cover the bytes (the preferences, the manifest itself).
+        using var state = new TempState();
+        var (dbA, syncA) = Session(state, "sandbox-a");
+        await Turn(syncA, () =>
+        {
+            MakeDb(dbA, Fixtures.Binding.Account);
+            WriteFile(state.Combine("sandbox-a", "preferences.md"), "- **Replies to other people:** acknowledge\n");
+        });
+        var (good, _) = _store.Get(StateSync.Bundle)!.Value;
+        var stored = Rezip(good, compression: CompressionLevel.NoCompression);
+
+        async Task Refused(byte[] bundle, string name)
+        {
+            _store.Set(StateSync.Bundle, bundle, "etag-" + name);
+            var (db, sync) = Session(state, name);
+            Assert.Equal("state bundle is unreadable", (await Assert.ThrowsAsync<SyncException>(() => Turn(sync, () => { }))).Message);
+            Assert.False(File.Exists(db));
+            Assert.False(File.Exists(state.Combine(name, "preferences.md")));
+        }
+
+        await Refused(Corrupt(stored, "acknowledge"u8, "ACKNOWLEDGE"u8), "preferences-corrupt");
+        await Refused(Corrupt(stored, "\"taken_at\": \"2026"u8, "\"taken_at\": \"2025"u8), "manifest-corrupt");
+    }
+
+    [Fact]
+    public async Task Bundles_move_between_the_python_service_and_this_port_in_both_directions()
+    {
+        using var state = new TempState();
+        var script = Path.Combine(AppContext.BaseDirectory, "Parity", "statesync_bundle.py");
+        var account = Fixtures.Binding.Account;
+
+        // This port packs; Python's _install accepts it and installs the same database and preferences.
+        var (dbA, syncA) = Session(state, "sandbox-a");
+        await Turn(syncA, () =>
+        {
+            MakeDb(dbA, account);
+            AddNote(dbA, "packed in C#");
+            WriteFile(state.Combine("sandbox-a", "preferences.md"), "- **Replies to other people:** acknowledge\n");
+        });
+        var packed = state.Combine("packed.zip");
+        File.WriteAllBytes(packed, _store.Get(StateSync.Bundle)!.Value.Data);
+        var pythonDb = state.Combine("python", "state", "margo.sqlite3");
+        var pythonPreferences = state.Combine("python", "preferences.md");
+        var (status, stdout, stderr) = Programs.Run(Fixtures.Python(), ["-B", "-I", script, Fixtures.Root, "install", packed, pythonDb, pythonPreferences, account]);
+        Assert.True(status == 0, stderr);
+        var installed = (JsonObject)PyJson.Loads(stdout)!;
+        Assert.True(installed.ContainsKey("manifest"), stdout);
+        Assert.Equal(["packed in C#"], Notes(pythonDb));
+        Assert.Equal("- **Replies to other people:** acknowledge\n", File.ReadAllText(pythonPreferences));
+        Assert.Equal("2026-10-17T00:00:00+00:00", PyNode.AsString(installed["manifest"]!["taken_at"]));
+
+        // Python packs (deflate, its own manifest); this port installs it.
+        AddNote(pythonDb, "packed in Python");
+        var pythonBundle = state.Combine("python.zip");
+        (status, _, stderr) = Programs.Run(Fixtures.Python(), ["-B", "-I", script, Fixtures.Root, "pack", pythonDb, pythonPreferences, account, pythonBundle]);
+        Assert.True(status == 0, stderr);
+        _store.Set(StateSync.Bundle, File.ReadAllBytes(pythonBundle), "etag-python");
+        var (dbB, syncB) = Session(state, "sandbox-b");
+        var outcome = await Turn(syncB, () => { });
+        Assert.Equal("2026-10-17T09:30:00+00:00", PyNode.AsString(outcome.Restored!["taken_at"]));
+        Assert.Equal(["packed in C#", "packed in Python"], Notes(dbB));
+        Assert.Equal("- **Replies to other people:** acknowledge\n", File.ReadAllText(state.Combine("sandbox-b", "preferences.md")));
+
+        // A bundle of another account is refused by both, with the same reason.
+        var (otherDb, otherSync) = Session(state, "other", account: "autopilot:agent-identity-1:principal-2", store: new InMemoryLeaseStore());
+        (status, stdout, stderr) = Programs.Run(Fixtures.Python(), ["-B", "-I", script, Fixtures.Root, "install", packed, state.Combine("python-other", "margo.sqlite3"),
+                                                                    state.Combine("python-other", "preferences.md"), "autopilot:agent-identity-1:principal-2"]);
+        Assert.True(status == 0, stderr);
+        Assert.Equal("""{"sync_error": "state bundle belongs to another account; refusing it"}""", stdout.Trim());
+        Assert.Equal("state bundle belongs to another account; refusing it",
+                     Assert.Throws<SyncException>(() => otherSync.Install(File.ReadAllBytes(packed))).Message);
+        Assert.False(File.Exists(otherDb));
+    }
+
+    [Fact]
     public async Task A_bundle_without_preferences_removes_the_local_ones()
     {
         using var state = new TempState();
@@ -366,7 +444,19 @@ public sealed class StateSyncTests
         return copy.ToArray();
     }
 
-    private static byte[] Rezip(byte[] data, string? drop = null, (string Name, byte[] Data)? replace = null)
+    /// <summary>Replaces the first occurrence of <paramref name="from"/> in the raw zip bytes (same length, so every header and
+    /// checksum stays as it was).</summary>
+    private static byte[] Corrupt(byte[] data, ReadOnlySpan<byte> from, ReadOnlySpan<byte> to)
+    {
+        var copy = data.ToArray();
+        var at = copy.AsSpan().IndexOf(from);
+        Assert.True(at >= 0, "the bytes to corrupt are not stored as they are");
+        to.CopyTo(copy.AsSpan(at));
+        return copy;
+    }
+
+    private static byte[] Rezip(byte[] data, string? drop = null, (string Name, byte[] Data)? replace = null,
+                                CompressionLevel compression = CompressionLevel.Optimal)
     {
         using var source = new ZipArchive(new MemoryStream(data), ZipArchiveMode.Read);
         using var buffer = new MemoryStream();
@@ -380,7 +470,7 @@ public sealed class StateSyncTests
                 }
 
                 var bytes = replace is { } swap && swap.Name == entry.FullName ? swap.Data : ReadEntry(source, entry.FullName);
-                using var stream = target.CreateEntry(entry.FullName).Open();
+                using var stream = target.CreateEntry(entry.FullName, compression).Open();
                 stream.Write(bytes);
             }
         }
