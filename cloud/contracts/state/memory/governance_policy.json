@@ -1,0 +1,1297 @@
+{
+  "description": "Capture/retention/usage policy: the default (capture and usage off), every normalise_policy rule, policy_preview subjects bound to the current revision, reviewed set_policy and a stale approval that cannot change a newer policy.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "policy",
+          "on": "governance"
+        },
+        {
+          "call": "digest",
+          "on": "governance",
+          "args": [
+            {
+              "b": 1,
+              "a": [
+                true,
+                null,
+                "é"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "digest",
+          "on": "governance",
+          "args": [
+            "text"
+          ]
+        },
+        {
+          "call": "digest",
+          "on": "governance",
+          "args": [
+            {
+              "x": NaN
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            null
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {},
+              "extra": 1
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": [],
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": [],
+                "extra": 1
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": 1,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": "no",
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": null,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": "user",
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [
+                  "team"
+                ],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [
+                  "note"
+                ],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [
+                  " "
+                ],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [
+                  1
+                ],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": [
+                  "web"
+                ]
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [
+                  "s0",
+                  "s1",
+                  "s2",
+                  "s3",
+                  "s4",
+                  "s5",
+                  "s6",
+                  "s7",
+                  "s8",
+                  "s9",
+                  "s10",
+                  "s11",
+                  "s12",
+                  "s13",
+                  "s14",
+                  "s15",
+                  "s16",
+                  "s17",
+                  "s18",
+                  "s19",
+                  "s20",
+                  "s21",
+                  "s22",
+                  "s23",
+                  "s24",
+                  "s25",
+                  "s26",
+                  "s27",
+                  "s28",
+                  "s29",
+                  "s30",
+                  "s31",
+                  "s32",
+                  "s33",
+                  "s34",
+                  "s35",
+                  "s36",
+                  "s37",
+                  "s38",
+                  "s39",
+                  "s40",
+                  "s41",
+                  "s42",
+                  "s43",
+                  "s44",
+                  "s45",
+                  "s46",
+                  "s47",
+                  "s48",
+                  "s49",
+                  "s50",
+                  "s51",
+                  "s52",
+                  "s53",
+                  "s54",
+                  "s55",
+                  "s56",
+                  "s57",
+                  "s58",
+                  "s59",
+                  "s60",
+                  "s61",
+                  "s62",
+                  "s63",
+                  "s64",
+                  "s65",
+                  "s66",
+                  "s67",
+                  "s68",
+                  "s69",
+                  "s70",
+                  "s71",
+                  "s72",
+                  "s73",
+                  "s74",
+                  "s75",
+                  "s76",
+                  "s77",
+                  "s78",
+                  "s79",
+                  "s80",
+                  "s81",
+                  "s82",
+                  "s83",
+                  "s84",
+                  "s85",
+                  "s86",
+                  "s87",
+                  "s88",
+                  "s89",
+                  "s90",
+                  "s91",
+                  "s92",
+                  "s93",
+                  "s94",
+                  "s95",
+                  "s96",
+                  "s97",
+                  "s98",
+                  "s99",
+                  "s100"
+                ],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [
+                  "s0",
+                  "s1",
+                  "s2",
+                  "s3",
+                  "s4",
+                  "s5",
+                  "s6",
+                  "s7",
+                  "s8",
+                  "s9",
+                  "s10",
+                  "s11",
+                  "s12",
+                  "s13",
+                  "s14",
+                  "s15",
+                  "s16",
+                  "s17",
+                  "s18",
+                  "s19",
+                  "s20",
+                  "s21",
+                  "s22",
+                  "s23",
+                  "s24",
+                  "s25",
+                  "s26",
+                  "s27",
+                  "s28",
+                  "s29",
+                  "s30",
+                  "s31",
+                  "s32",
+                  "s33",
+                  "s34",
+                  "s35",
+                  "s36",
+                  "s37",
+                  "s38",
+                  "s39",
+                  "s40",
+                  "s41",
+                  "s42",
+                  "s43",
+                  "s44",
+                  "s45",
+                  "s46",
+                  "s47",
+                  "s48",
+                  "s49",
+                  "s50",
+                  "s51",
+                  "s52",
+                  "s53",
+                  "s54",
+                  "s55",
+                  "s56",
+                  "s57",
+                  "s58",
+                  "s59",
+                  "s60",
+                  "s61",
+                  "s62",
+                  "s63",
+                  "s64",
+                  "s65",
+                  "s66",
+                  "s67",
+                  "s68",
+                  "s69",
+                  "s70",
+                  "s71",
+                  "s72",
+                  "s73",
+                  "s74",
+                  "s75",
+                  "s76",
+                  "s77",
+                  "s78",
+                  "s79",
+                  "s80",
+                  "s81",
+                  "s82",
+                  "s83",
+                  "s84",
+                  "s85",
+                  "s86",
+                  "s87",
+                  "s88",
+                  "s89",
+                  "s90",
+                  "s91",
+                  "s92",
+                  "s93",
+                  "s94",
+                  "s95",
+                  "s96",
+                  "s97",
+                  "s98",
+                  "s99"
+                ],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": true,
+                "domains": [],
+                "kinds": [
+                  "episode"
+                ],
+                "scopes": [
+                  "x"
+                ],
+                "source_kinds": [
+                  "file"
+                ]
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": true,
+                "domains": [
+                  "user"
+                ],
+                "kinds": [],
+                "scopes": [
+                  "x"
+                ],
+                "source_kinds": [
+                  "file"
+                ]
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": true,
+                "domains": [
+                  "user"
+                ],
+                "kinds": [
+                  "episode"
+                ],
+                "scopes": [],
+                "source_kinds": [
+                  "file"
+                ]
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": true,
+                "domains": [
+                  "user"
+                ],
+                "kinds": [
+                  "episode"
+                ],
+                "scopes": [
+                  "x"
+                ],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": true,
+                "domains": [
+                  "user",
+                  "agent",
+                  "user"
+                ],
+                "kinds": [
+                  "lesson",
+                  "episode"
+                ],
+                "scopes": [
+                  "z",
+                  "a",
+                  "z"
+                ],
+                "source_kinds": [
+                  "tool_result",
+                  "file"
+                ]
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": [],
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {
+                "note": 3
+              },
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {
+                "episode": 0
+              },
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {
+                "episode": 3651
+              },
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {
+                "episode": 7.0
+              },
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {
+                "episode": true
+              },
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {
+                "lesson": 3650,
+                "episode": 1
+              }
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {
+                "lesson": "7"
+              }
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 0,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 3651,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30.0,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 1,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ]
+        },
+        {
+          "call": "normalise_policy",
+          "on": "governance",
+          "args": [
+            {
+              "review_days": {},
+              "retention_days": {},
+              "usage_retention_days": 3,
+              "usage_enabled": true,
+              "allow_sensitive": true,
+              "capture": {
+                "source_kinds": [],
+                "scopes": [],
+                "kinds": [],
+                "domains": [],
+                "enabled": false
+              }
+            }
+          ]
+        },
+        {
+          "call": "policy_preview",
+          "on": "governance",
+          "args": [
+            null
+          ]
+        },
+        {
+          "call": "policy_preview",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ],
+          "save": "p1"
+        },
+        {
+          "call": "set_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            },
+            null
+          ]
+        },
+        {
+          "call": "set_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            },
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${p1.subject_id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "set_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            },
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${p1.subject_id}",
+              "revision": 2,
+              "decision": "configure",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "set_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            },
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "memory-policy:other",
+              "revision": 1,
+              "decision": "configure",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "set_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            },
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${p1.subject_id}",
+              "revision": 1,
+              "decision": "configure",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "policy",
+          "on": "governance"
+        },
+        {
+          "call": "policy",
+          "on": "store"
+        },
+        {
+          "call": "policy_preview",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ],
+          "save": "p_stale"
+        },
+        {
+          "call": "policy_preview",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": true,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ],
+          "save": "p2"
+        },
+        {
+          "call": "set_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": true,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            },
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${p2.subject_id}",
+              "revision": 1,
+              "decision": "configure",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "set_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            },
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${p_stale.subject_id}",
+              "revision": 1,
+              "decision": "configure",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "policy",
+          "on": "governance"
+        },
+        {
+          "sql": "SELECT account,revision,data,updated_at FROM memory_policy"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

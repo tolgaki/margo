@@ -1,0 +1,936 @@
+{
+  "description": "memory_dream's source helpers as memory_store uses them: source_keys and validate_source (canonical six-part identity, account, bounded revision, tombstoned aliases), capture of a checkpoint root only through its exact canonical identity and an enabled policy, Dream-derived memories needing capture authorisation, Dream indexing and eligibility rules, checkpoint groups in derived descendants, and erasure that tombstones the session event and locator aliases so the evidence cannot be reimported.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "ref": "[1,2,3,4,5]"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "ref": "{bad"
+            }
+          ]
+        },
+        {
+          "call": "source_keys",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "ref": "{bad",
+              "revision": "r"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "ref": 5,
+              "revision": "r"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "ref": "[]",
+              "revision": "r"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "ref": "[\"other@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "r"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "ref": "[\"parity-owner@example.com\", \"host-a\", \"workspace-a\", \"session-1\", \"event-1\", \"turn:4\"]",
+              "revision": "r"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\" \",\"e\",\"l\"]",
+              "revision": "r"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+            }
+          ]
+        },
+        {
+          "call": "capture",
+          "on": "governance",
+          "args": [
+            "dream-event:2244f6dee3ed78f1c093d28c5ef46186351254f622869d650155ef6436b139a6",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Session checkpoint",
+              "text": "We agreed to keep Friday mornings for preparation.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ],
+              "metadata": {
+                "dream": "checkpoint",
+                "host": "host-a",
+                "workspace": "workspace-a"
+              }
+            },
+            null
+          ],
+          "kwargs": {
+            "_checkpoint_ref": {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          }
+        },
+        {
+          "call": "policy_preview",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": true,
+                "domains": [
+                  "user"
+                ],
+                "kinds": [
+                  "episode"
+                ],
+                "scopes": [
+                  "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585"
+                ],
+                "source_kinds": [
+                  "session_checkpoint",
+                  "memory_record"
+                ]
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ],
+          "save": "dream"
+        },
+        {
+          "call": "set_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": true,
+                "domains": [
+                  "user"
+                ],
+                "kinds": [
+                  "episode"
+                ],
+                "scopes": [
+                  "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585"
+                ],
+                "source_kinds": [
+                  "session_checkpoint",
+                  "memory_record"
+                ]
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {}
+            },
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${dream.subject_id}",
+              "revision": 1,
+              "decision": "configure",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "derived-too-early",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "capture",
+          "on": "governance",
+          "args": [
+            "wrong-key",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Session checkpoint",
+              "text": "We agreed to keep Friday mornings for preparation.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ],
+              "metadata": {
+                "dream": "checkpoint",
+                "host": "host-a",
+                "workspace": "workspace-a"
+              }
+            },
+            null
+          ],
+          "kwargs": {
+            "_checkpoint_ref": {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          }
+        },
+        {
+          "call": "capture",
+          "on": "governance",
+          "args": [
+            "dream-event:2244f6dee3ed78f1c093d28c5ef46186351254f622869d650155ef6436b139a6",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Session checkpoint",
+              "text": "We agreed to keep Friday mornings for preparation.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ],
+              "metadata": {
+                "dream": "snapshot"
+              }
+            },
+            null
+          ],
+          "kwargs": {
+            "_checkpoint_ref": {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          }
+        },
+        {
+          "call": "capture",
+          "on": "governance",
+          "args": [
+            "dream-event:2244f6dee3ed78f1c093d28c5ef46186351254f622869d650155ef6436b139a6",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Session checkpoint",
+              "text": "We agreed to keep Friday mornings for preparation.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r2"
+                }
+              ],
+              "metadata": {
+                "dream": "checkpoint",
+                "host": "host-a",
+                "workspace": "workspace-a"
+              }
+            },
+            null
+          ],
+          "kwargs": {
+            "_checkpoint_ref": {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          }
+        },
+        {
+          "call": "capture",
+          "on": "governance",
+          "args": [
+            "dream-event:2244f6dee3ed78f1c093d28c5ef46186351254f622869d650155ef6436b139a6",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Session checkpoint",
+              "text": "We agreed to keep Friday mornings for preparation.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ],
+              "metadata": {
+                "dream": "checkpoint",
+                "host": "host-a",
+                "workspace": "workspace-a"
+              }
+            },
+            null
+          ],
+          "kwargs": {
+            "_checkpoint_ref": {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          },
+          "save": "root"
+        },
+        {
+          "call": "capture",
+          "on": "governance",
+          "args": [
+            "dream-event:2244f6dee3ed78f1c093d28c5ef46186351254f622869d650155ef6436b139a6",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Session checkpoint",
+              "text": "We agreed to keep Friday mornings for preparation.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ],
+              "metadata": {
+                "dream": "checkpoint",
+                "host": "host-a",
+                "workspace": "workspace-a"
+              }
+            },
+            null
+          ],
+          "kwargs": {
+            "_checkpoint_ref": {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${root.id}"
+          ]
+        },
+        {
+          "call": "dream_index_current",
+          "on": "store",
+          "args": [
+            "${root}"
+          ]
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store"
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "_work_sources_current",
+          "on": "store",
+          "args": [
+            {
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_work_sources_current",
+          "on": "store",
+          "args": [
+            {
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "other"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "derived",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ]
+            },
+            "candidate"
+          ],
+          "save": "derived"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "derived-confirmed",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "user_confirmed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ]
+            },
+            "active",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "x",
+              "revision": 1,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "derived-other-scope",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "derived-active",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "dactive"
+        },
+        {
+          "call": "dream_index_current",
+          "on": "store",
+          "args": [
+            "${dactive}"
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "grand",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${root.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "grand"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "plain-from-derived",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${dactive.id}",
+                  "revision": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_resolve_work_sources",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_resolve_work_sources",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-2\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_resolve_work_sources",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-2\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ]
+            }
+          ],
+          "kwargs": {
+            "_checkpoint_ref": {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-2\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "same-event-other-locator",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:9\"]",
+                  "revision": "r1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_derived_descendants",
+          "on": "store",
+          "args": [
+            "${root.id}"
+          ]
+        },
+        {
+          "call": "_derived_descendants",
+          "on": "store",
+          "args": [
+            "${derived.id}"
+          ]
+        },
+        {
+          "call": "forget_preview",
+          "on": "store",
+          "args": [
+            "${derived.id}"
+          ]
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "call": "tombstones_preview",
+          "on": "governance",
+          "args": [
+            {
+              "format": 1,
+              "account": "parity-owner@example.com",
+              "tombstones": []
+            }
+          ]
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${dactive.id}",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${dactive.id}",
+              "revision": 1,
+              "decision": "forget",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${root.id}"
+          ]
+        },
+        {
+          "call": "tombstones",
+          "on": "governance"
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:5\"]",
+              "revision": "r1"
+            }
+          ]
+        },
+        {
+          "call": "validate_source",
+          "on": "dream",
+          "args": [
+            {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-3\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          ]
+        },
+        {
+          "call": "capture",
+          "on": "governance",
+          "args": [
+            "dream-event:2244f6dee3ed78f1c093d28c5ef46186351254f622869d650155ef6436b139a6",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Session checkpoint",
+              "text": "We agreed to keep Friday mornings for preparation.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ],
+              "metadata": {
+                "dream": "checkpoint",
+                "host": "host-a",
+                "workspace": "workspace-a"
+              }
+            },
+            null
+          ],
+          "kwargs": {
+            "_checkpoint_ref": {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-1\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          }
+        },
+        {
+          "call": "capture",
+          "on": "governance",
+          "args": [
+            "dream-event:98ac320ec2581e3054d5242338171997f57319cc2e0b726d653de4757730fa67",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Session checkpoint",
+              "text": "We agreed to keep Friday mornings for preparation.",
+              "authority": "source_observed",
+              "scope": "dream:6fafc1bf0540ca11390e9c73689d27ed1f553ed8cccdca1b109cbb5ca364c585",
+              "source_refs": [
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-3\",\"turn:4\"]",
+                  "revision": "r1"
+                }
+              ],
+              "metadata": {
+                "dream": "checkpoint",
+                "host": "host-a",
+                "workspace": "workspace-a"
+              }
+            },
+            null
+          ],
+          "kwargs": {
+            "_checkpoint_ref": {
+              "kind": "session_checkpoint",
+              "ref": "[\"parity-owner@example.com\",\"host-a\",\"workspace-a\",\"session-1\",\"event-3\",\"turn:4\"]",
+              "revision": "r1"
+            }
+          },
+          "save": "root3"
+        },
+        {
+          "call": "tombstones",
+          "on": "governance",
+          "save": "journal"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

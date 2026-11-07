@@ -1,0 +1,84 @@
+{
+  "description": "Health reports imported preferences whose private source file changed (count, ids) with the documented recovery action.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "write": "preferences.md",
+          "text": "## Scheduling defaults\nProtect a preparation block.\n"
+        },
+        {
+          "call": "record_id",
+          "on": "store",
+          "args": [
+            "user",
+            "imported"
+          ],
+          "save": "iid"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "imported",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "user_confirmed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "${dir}/preferences.md",
+                  "revision": "36e3f62a90b6c74c0b85ba8e4ea106c8910a51b27b67fbe15ecc7a883d17f83c"
+                }
+              ],
+              "metadata": {
+                "imported_configuration": true
+              }
+            },
+            "active",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${iid}",
+              "revision": 1,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "write": "preferences.md",
+          "text": "## Scheduling defaults\nProtect a preparation block.\n\nDo not schedule before 09:00.\n"
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "const": "PREFERENCES_RECOVERY"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

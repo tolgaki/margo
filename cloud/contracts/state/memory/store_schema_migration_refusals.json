@@ -1,0 +1,110 @@
+{
+  "description": "Explicit v1 migration refuses an incomplete legacy schema, a drifted table contract and a wrong local version; migrate on a fresh store simply initialises v2.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "script": "@SCHEMA_V1",
+          "account": "incomplete@example.com"
+        },
+        {
+          "sql": "INSERT INTO memory_meta VALUES('schema_version','1')",
+          "account": "incomplete@example.com"
+        },
+        {
+          "sql": "INSERT INTO margo_meta VALUES('memory_schema_version','1')",
+          "account": "incomplete@example.com"
+        },
+        {
+          "script": "DROP TABLE memory_tombstones;",
+          "account": "incomplete@example.com"
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "incomplete@example.com",
+          "migrate": true
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "incomplete@example.com"
+        },
+        {
+          "script": "@SCHEMA_V1",
+          "account": "drifted@example.com"
+        },
+        {
+          "sql": "INSERT INTO memory_meta VALUES('schema_version','1')",
+          "account": "drifted@example.com"
+        },
+        {
+          "sql": "INSERT INTO margo_meta VALUES('memory_schema_version','1')",
+          "account": "drifted@example.com"
+        },
+        {
+          "script": "DROP TABLE memory_jobs; CREATE TABLE memory_jobs (memory_id TEXT PRIMARY KEY, revision INTEGER NOT NULL, op TEXT NOT NULL, content_hash TEXT NOT NULL, created_at TEXT NOT NULL);",
+          "account": "drifted@example.com"
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "drifted@example.com",
+          "migrate": true
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "drifted@example.com"
+        },
+        {
+          "script": "@SCHEMA_V1",
+          "account": "local-version@example.com"
+        },
+        {
+          "sql": "INSERT INTO memory_meta VALUES('schema_version','1')",
+          "account": "local-version@example.com"
+        },
+        {
+          "sql": "INSERT INTO margo_meta VALUES('memory_schema_version','1')",
+          "account": "local-version@example.com"
+        },
+        {
+          "script": "UPDATE memory_meta SET value='2' WHERE key='schema_version';",
+          "account": "local-version@example.com"
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "local-version@example.com",
+          "migrate": true
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "local-version@example.com"
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "fresh@example.com",
+          "migrate": true
+        },
+        {
+          "sql": "SELECT key,value FROM memory_meta ORDER BY key",
+          "account": "fresh@example.com"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

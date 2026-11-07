@@ -1,0 +1,1384 @@
+{
+  "description": "Memory relationships: link validation (relations, self links, relationship data, validity, source refs), replay of an existing link, revision conflicts, typed relationships needing current target revisions and review, evidence given as pairs (Python's dict() rules), derivation/dependency/reporting cycles, supersession (same kind, excluded from eligibility), contradictions in health, unlink rules and active links filtered by validity windows and endpoint status.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "linked-base",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Base",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "base"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "linked-child",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Child",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ],
+          "save": "child"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "related_to",
+            1
+          ],
+          "save": "rel"
+        },
+        {
+          "call": "links",
+          "on": "store",
+          "args": [
+            "${base.id}"
+          ]
+        },
+        {
+          "call": "links",
+          "on": "store",
+          "args": [
+            "${child.id}"
+          ]
+        },
+        {
+          "call": "links",
+          "on": "store",
+          "args": [
+            "mem_unknown"
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "related_to",
+            1
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "related_to",
+            99
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "related_to",
+            2,
+            null,
+            {
+              "valid_from": "2001-02-03T04:05:06.000007+00:00"
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "likes",
+            2
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            [
+              "about"
+            ],
+            2
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${child.id}",
+            "about",
+            2
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "about",
+            2,
+            null,
+            "window"
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "about",
+            2,
+            null,
+            ""
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "about",
+            3,
+            null,
+            {
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "about",
+            3,
+            null,
+            {
+              "valid_from": "soon"
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "about",
+            3,
+            null,
+            {
+              "valid_from": "2999-02-03T04:05:06+00:00",
+              "valid_to": "2001-02-03T04:05:06.000007+00:00"
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "about",
+            3,
+            null,
+            {
+              "source_refs": []
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "mem_unknown",
+            "about",
+            3
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "mem_unknown",
+            "${base.id}",
+            "about",
+            3
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "about",
+            "3"
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "about",
+            2
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "about",
+            3,
+            [
+              [
+                "note",
+                "pairs"
+              ],
+              "ok"
+            ],
+            {
+              "valid_from": "2026-01-02T03:04:05Z"
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "discusses",
+            4
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "discusses",
+            4,
+            null,
+            {
+              "valid_from": "2001-02-03T04:05:06.000007+00:00"
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "discusses",
+            4,
+            null,
+            {
+              "valid_from": "2001-02-03T04:05:06.000007+00:00",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "discusses",
+            4,
+            null,
+            {
+              "valid_from": "2001-02-03T04:05:06.000007+00:00",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            1
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "discusses",
+            4,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${child.id}",
+              "revision": 4,
+              "decision": "relate",
+              "decided_at": "${now}"
+            },
+            {
+              "valid_from": "2001-02-03T04:05:06.000007+00:00",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            2
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "discusses",
+            4,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${child.id}",
+              "revision": 4,
+              "decision": "relate",
+              "decided_at": "${now}"
+            },
+            {
+              "valid_from": "2001-02-03T04:05:06.000007+00:00",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            true
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            "${base.id}",
+            "discusses",
+            4,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${child.id}",
+              "revision": 4,
+              "decision": "relate",
+              "decided_at": "${now}"
+            },
+            {
+              "valid_from": "2001-02-03T04:05:06.000007+00:00",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "valid_to": "2999-02-03T04:05:06+00:00"
+            },
+            1
+          ],
+          "save": "typed"
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${child.id}"
+          ]
+        },
+        {
+          "call": "links",
+          "on": "store",
+          "args": [
+            "${base.id}"
+          ]
+        },
+        {
+          "call": "active_links",
+          "on": "store",
+          "args": [
+            "${base.id}"
+          ]
+        },
+        {
+          "call": "active_links",
+          "on": "store",
+          "args": [
+            "${child.id}"
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${child.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Child",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            5
+          ],
+          "save": "child5"
+        },
+        {
+          "call": "active_links",
+          "on": "store",
+          "args": [
+            "${base.id}"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "evidence-pairs",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ],
+          "save": "ep"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ep.id}",
+            "${base.id}",
+            "about",
+            1,
+            "ab"
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ep.id}",
+            "${base.id}",
+            "about",
+            1,
+            5
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ep.id}",
+            "${base.id}",
+            "about",
+            1,
+            true
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ep.id}",
+            "${base.id}",
+            "about",
+            1,
+            [
+              [
+                "a"
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ep.id}",
+            "${base.id}",
+            "about",
+            1,
+            [
+              5
+            ]
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ep.id}",
+            "${base.id}",
+            "about",
+            1,
+            [
+              [
+                1,
+                "x"
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ep.id}",
+            "${base.id}",
+            "about",
+            1,
+            [
+              [
+                [
+                  "k"
+                ],
+                "v"
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ep.id}",
+            "${base.id}",
+            "about",
+            1,
+            [
+              {
+                "a": 1,
+                "b": 2
+              },
+              "cd"
+            ]
+          ]
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${ep.id}",
+            1
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ep.id}",
+            "${base.id}",
+            "about",
+            2,
+            {}
+          ]
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${ep.id}",
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "chain-a",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "ca"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "chain-b",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "cb"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "chain-c",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "cc"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ca.id}",
+            "${cb.id}",
+            "derives_from",
+            1
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${cb.id}",
+            "${cc.id}",
+            "derives_from",
+            1
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${cc.id}",
+            "${ca.id}",
+            "derives_from",
+            1
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${cc.id}",
+            "${ca.id}",
+            "related_to",
+            1
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ca.id}",
+            "${cb.id}",
+            "depends_on",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${ca.id}",
+              "revision": 2,
+              "decision": "relate",
+              "decided_at": "${now}"
+            },
+            {
+              "valid_from": "2001-02-03T04:05:06.000007+00:00",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            2
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${cb.id}",
+            "${ca.id}",
+            "depends_on",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${cb.id}",
+              "revision": 2,
+              "decision": "relate",
+              "decided_at": "${now}"
+            },
+            {
+              "valid_from": "2001-02-03T04:05:06.000007+00:00",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            3
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${cb.id}",
+            "${ca.id}",
+            "reports_to",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${cb.id}",
+              "revision": 2,
+              "decision": "relate",
+              "decided_at": "${now}"
+            },
+            {
+              "valid_from": "2999-02-03T04:05:06+00:00",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            3
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ca.id}",
+            "${cb.id}",
+            "reports_to",
+            3,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${ca.id}",
+              "revision": 3,
+              "decision": "relate",
+              "decided_at": "${now}"
+            },
+            {
+              "valid_from": "2001-02-03T04:05:06.000007+00:00",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            3
+          ]
+        },
+        {
+          "call": "active_links",
+          "on": "store",
+          "args": [
+            "${ca.id}"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "older",
+            {
+              "domain": "user",
+              "kind": "decision",
+              "title": "Older decision",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "old"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "newer",
+            {
+              "domain": "user",
+              "kind": "decision",
+              "title": "Newer decision",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "new"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${new.id}",
+            "${base.id}",
+            "supersedes",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${new.id}",
+              "revision": 1,
+              "decision": "relate",
+              "decided_at": "${now}"
+            },
+            null,
+            1
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${new.id}",
+            "${old.id}",
+            "supersedes",
+            1
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${new.id}",
+            "${old.id}",
+            "supersedes",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${new.id}",
+              "revision": 1,
+              "decision": "relate",
+              "decided_at": "${now}"
+            },
+            null,
+            1
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${old.id}",
+            "${new.id}",
+            "supersedes",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${old.id}",
+              "revision": 1,
+              "decision": "relate",
+              "decided_at": "${now}"
+            },
+            null,
+            2
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${old.id}",
+            "${new.id}",
+            "contradicts",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${old.id}",
+              "revision": 1,
+              "decision": "relate",
+              "decided_at": "${now}"
+            },
+            {
+              "valid_from": "2001-02-03T04:05:06.000007+00:00",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            2
+          ]
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "call": "unlink",
+          "on": "store",
+          "args": [
+            "${ca.id}",
+            "${cb.id}",
+            "derives_from",
+            4,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${ca.id}",
+              "revision": 4,
+              "decision": "unrelate",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "unlink",
+          "on": "store",
+          "args": [
+            "${new.id}",
+            "${old.id}",
+            "supersedes",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${new.id}",
+              "revision": 2,
+              "decision": "unrelate",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "unlink",
+          "on": "store",
+          "args": [
+            "${old.id}",
+            "${new.id}",
+            "friend",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${old.id}",
+              "revision": 2,
+              "decision": "unrelate",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "unlink",
+          "on": "store",
+          "args": [
+            "${old.id}",
+            "${new.id}",
+            [
+              "contradicts"
+            ],
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${old.id}",
+              "revision": 2,
+              "decision": "unrelate",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "unlink",
+          "on": "store",
+          "args": [
+            "${old.id}",
+            "${new.id}",
+            "contradicts",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${old.id}",
+              "revision": 1,
+              "decision": "unrelate",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "unlink",
+          "on": "store",
+          "args": [
+            "${old.id}",
+            "${new.id}",
+            "contradicts",
+            true,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${old.id}",
+              "revision": 1,
+              "decision": "unrelate",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "unlink",
+          "on": "store",
+          "args": [
+            "${old.id}",
+            "${new.id}",
+            "contradicts",
+            2,
+            null
+          ]
+        },
+        {
+          "call": "unlink",
+          "on": "store",
+          "args": [
+            "${old.id}",
+            "${new.id}",
+            "contradicts",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${old.id}",
+              "revision": 2,
+              "decision": "relate",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "unlink",
+          "on": "store",
+          "args": [
+            "${old.id}",
+            "mem_unknown",
+            "contradicts",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${old.id}",
+              "revision": 2,
+              "decision": "unrelate",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "unlink",
+          "on": "store",
+          "args": [
+            "${old.id}",
+            "${base.id}",
+            "contradicts",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${old.id}",
+              "revision": 2,
+              "decision": "unrelate",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "unlink",
+          "on": "store",
+          "args": [
+            "${old.id}",
+            "${new.id}",
+            "contradicts",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${old.id}",
+              "revision": 2,
+              "decision": "unrelate",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "links",
+          "on": "store",
+          "args": [
+            "${old.id}"
+          ]
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${old.id}",
+            2
+          ]
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "call": "record_id",
+          "on": "store",
+          "args": [
+            "user",
+            "protected-source"
+          ],
+          "save": "ps"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "protected-source",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "user_confirmed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${ps}",
+              "revision": 1,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ps}",
+            "${base.id}",
+            "related_to",
+            1
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${ps}",
+            "${base.id}",
+            "related_to",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${ps}",
+              "revision": 1,
+              "decision": "relate",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}
