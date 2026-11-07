@@ -1,0 +1,96 @@
+{
+  "description": "With COPILOT_HOME set: the private embedding interpreter path, status 'configured' when it exists, and status_local/encode_local failing as Python does when it cannot run it (Margo Cloud never executes it).",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "mkdir": "copilot"
+        },
+        {
+          "mkdir": "copilot/margo"
+        },
+        {
+          "mkdir": "copilot/margo/embeddings"
+        },
+        {
+          "mkdir": "copilot/margo/embeddings/venv"
+        },
+        {
+          "mkdir": "copilot/margo/embeddings/venv/bin"
+        },
+        {
+          "call": "_private_python",
+          "on": "encoder"
+        },
+        {
+          "call": "default_model_dir",
+          "on": "encoder"
+        },
+        {
+          "call": "status",
+          "on": "encoder"
+        },
+        {
+          "call": "status_local",
+          "on": "encoder"
+        },
+        {
+          "call": "encode_local",
+          "on": "encoder",
+          "args": [
+            [
+              "Synthetic text"
+            ]
+          ]
+        },
+        {
+          "write": "copilot/margo/embeddings/venv/bin/python",
+          "text": "not an interpreter\n",
+          "mode": "600"
+        },
+        {
+          "call": "status",
+          "on": "encoder",
+          "args": [
+            "${dir}/model"
+          ]
+        },
+        {
+          "call": "status_local",
+          "on": "encoder"
+        },
+        {
+          "call": "encode_local",
+          "on": "encoder",
+          "args": [
+            [
+              "Synthetic text"
+            ]
+          ]
+        },
+        {
+          "call": "encode_local",
+          "on": "encoder",
+          "args": [
+            [
+              "  "
+            ]
+          ]
+        }
+      ],
+      "expect_exit": 0,
+      "env": {
+        "COPILOT_HOME": "{root}/work/copilot"
+      }
+    }
+  ]
+}

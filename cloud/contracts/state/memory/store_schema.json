@@ -1,0 +1,261 @@
+{
+  "description": "Schema contract: lost or redefined tables are never recreated, unknown memory tables, local and global version markers (text and integer), read-only opens that never initialise, and the explicit v1 to v2 migration (links gain data, policy and usage tables appear, capture stays off).",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "__init__",
+          "on": "store"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "kept",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "kept"
+        },
+        {
+          "sql": "DROP TABLE memory_jobs"
+        },
+        {
+          "call": "__init__",
+          "on": "store"
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "read_only": true
+        },
+        {
+          "script": "CREATE TABLE memory_jobs (memory_id TEXT PRIMARY KEY, revision INTEGER, op TEXT NOT NULL, content_hash TEXT NOT NULL, created_at TEXT NOT NULL);"
+        },
+        {
+          "call": "__init__",
+          "on": "store"
+        },
+        {
+          "script": "DROP TABLE memory_jobs; CREATE TABLE memory_jobs (memory_id TEXT PRIMARY KEY REFERENCES memory_records(id), revision INTEGER NOT NULL, op TEXT NOT NULL, content_hash TEXT NOT NULL, created_at TEXT NOT NULL);"
+        },
+        {
+          "call": "__init__",
+          "on": "store"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${kept.id}"
+          ]
+        },
+        {
+          "script": "CREATE TABLE memory_extra (x TEXT);"
+        },
+        {
+          "call": "__init__",
+          "on": "store"
+        },
+        {
+          "script": "DROP TABLE memory_extra;"
+        },
+        {
+          "sql": "UPDATE memory_meta SET value='3' WHERE key='schema_version'"
+        },
+        {
+          "call": "__init__",
+          "on": "store"
+        },
+        {
+          "sql": "DELETE FROM memory_meta WHERE key='schema_version'"
+        },
+        {
+          "call": "__init__",
+          "on": "store"
+        },
+        {
+          "sql": "INSERT INTO memory_meta VALUES('schema_version','2')"
+        },
+        {
+          "sql": "UPDATE margo_meta SET value='9' WHERE key='memory_schema_version'"
+        },
+        {
+          "call": "__init__",
+          "on": "store"
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "migrate": true
+        },
+        {
+          "sql": "DELETE FROM margo_meta WHERE key='memory_schema_version'"
+        },
+        {
+          "call": "__init__",
+          "on": "store"
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "read_only": true
+        },
+        {
+          "sql": "INSERT INTO margo_meta VALUES('memory_schema_version',2)"
+        },
+        {
+          "call": "__init__",
+          "on": "store"
+        },
+        {
+          "sql": "UPDATE margo_meta SET value='2' WHERE key='memory_schema_version'"
+        },
+        {
+          "call": "__init__",
+          "on": "store"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${kept.id}"
+          ],
+          "read_only": true
+        },
+        {
+          "script": "@SCHEMA_V1",
+          "account": "synthetic-legacy-memory@example.com"
+        },
+        {
+          "sql": "INSERT INTO memory_meta VALUES('schema_version','1')",
+          "account": "synthetic-legacy-memory@example.com"
+        },
+        {
+          "sql": "INSERT INTO margo_meta VALUES('memory_schema_version','1')",
+          "account": "synthetic-legacy-memory@example.com"
+        },
+        {
+          "call": "memory_identity",
+          "on": "module",
+          "args": [
+            "synthetic-legacy-memory@example.com",
+            "user",
+            "legacy"
+          ],
+          "save": "legacy"
+        },
+        {
+          "sql": "INSERT INTO memory_records VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "${legacy.0}",
+            "synthetic-legacy-memory@example.com",
+            "${legacy.1}",
+            1,
+            "user",
+            "episode",
+            "active",
+            "{\"authority\":\"source_observed\",\"domain\":\"user\",\"kind\":\"episode\",\"scope\":\"personal\",\"source_refs\":[{\"kind\":\"tool_result\",\"ref\":\"tool:synthetic-result\"}],\"text\":\"A fictional review benefited from preparation time.\",\"title\":\"Synthetic review preparation\"}",
+            "synthetic-hash",
+            "2001-02-03T04:05:06.000007+00:00",
+            "2001-02-03T04:05:06.000007+00:00"
+          ],
+          "account": "synthetic-legacy-memory@example.com"
+        },
+        {
+          "sql": "INSERT INTO memory_links VALUES(?,?,?,?)",
+          "params": [
+            "${legacy.0}",
+            "${legacy.0}",
+            "related_to",
+            "2001-02-03T04:05:06.000007+00:00"
+          ],
+          "account": "synthetic-legacy-memory@example.com"
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "synthetic-legacy-memory@example.com"
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "synthetic-legacy-memory@example.com",
+          "read_only": true
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "synthetic-legacy-memory@example.com",
+          "read_only": true,
+          "migrate": true
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "synthetic-legacy-memory@example.com",
+          "migrate": true
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${legacy.0}"
+          ],
+          "account": "synthetic-legacy-memory@example.com"
+        },
+        {
+          "call": "links",
+          "on": "store",
+          "args": [
+            "${legacy.0}"
+          ],
+          "account": "synthetic-legacy-memory@example.com"
+        },
+        {
+          "call": "policy",
+          "on": "store",
+          "account": "synthetic-legacy-memory@example.com"
+        },
+        {
+          "call": "health",
+          "on": "store",
+          "account": "synthetic-legacy-memory@example.com"
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "synthetic-legacy-memory@example.com",
+          "migrate": true
+        },
+        {
+          "sql": "SELECT key,value FROM memory_meta ORDER BY key",
+          "account": "synthetic-legacy-memory@example.com"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

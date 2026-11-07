@@ -1,0 +1,866 @@
+{
+  "description": "A revised parent requeues its current descendants (derivation links, current and historical memory sources) and drops their derived index rows without rewriting them; a child pinned to the old parent revision is queued for deletion.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "script": "CREATE TABLE semantic_vectors (memory_id TEXT, revision INTEGER);CREATE TABLE semantic_documents (memory_id TEXT, body TEXT);CREATE TABLE semantic_fts (memory_id TEXT, body TEXT);"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "put-linked",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Parent fact",
+              "text": "Cedar ships in March.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "put_linked_parent"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "put-linked-child",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Child fact",
+              "text": "Preparation leaves room for discussion.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "put_linked_child"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${put_linked_child.id}",
+            "${put_linked_parent.id}",
+            "derives_from",
+            1,
+            null,
+            null,
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${put_linked_child.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${put_linked_child.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${put_linked_child.id}",
+            1
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${put_linked_child.id}"
+          ],
+          "save": "put_linked_child_now"
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store",
+          "args": [
+            10000
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "put-linked",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Parent fact",
+              "text": "Cedar ships in April.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM semantic_vectors WHERE memory_id=?",
+          "params": [
+            "${put_linked_child.id}"
+          ]
+        },
+        {
+          "sql": "SELECT memory_id,op FROM memory_jobs WHERE memory_id=?",
+          "params": [
+            "${put_linked_child.id}"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${put_linked_child.id}"
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "put-historical",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Parent fact",
+              "text": "Cedar ships in March.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "put_historical_parent"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "put-historical-child",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Child fact",
+              "text": "Preparation leaves room for discussion.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${put_historical_parent.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "put_historical_child"
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${put_historical_child.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Child fact",
+              "text": "Preparation leaves room for discussion.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${put_historical_child.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${put_historical_child.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${put_historical_child.id}",
+            1
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${put_historical_child.id}"
+          ],
+          "save": "put_historical_child_now"
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store",
+          "args": [
+            10000
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "put-historical",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Parent fact",
+              "text": "Cedar ships in April.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM semantic_vectors WHERE memory_id=?",
+          "params": [
+            "${put_historical_child.id}"
+          ]
+        },
+        {
+          "sql": "SELECT memory_id,op FROM memory_jobs WHERE memory_id=?",
+          "params": [
+            "${put_historical_child.id}"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${put_historical_child.id}"
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "put-pinned",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Parent fact",
+              "text": "Cedar ships in March.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "put_pinned_parent"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "put-pinned-child",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Child fact",
+              "text": "Preparation leaves room for discussion.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${put_pinned_parent.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "put_pinned_child"
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${put_pinned_child.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${put_pinned_child.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${put_pinned_child.id}",
+            1
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${put_pinned_child.id}"
+          ],
+          "save": "put_pinned_child_now"
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store",
+          "args": [
+            10000
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "put-pinned",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Parent fact",
+              "text": "Cedar ships in April.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM semantic_vectors WHERE memory_id=?",
+          "params": [
+            "${put_pinned_child.id}"
+          ]
+        },
+        {
+          "sql": "SELECT memory_id,op FROM memory_jobs WHERE memory_id=?",
+          "params": [
+            "${put_pinned_child.id}"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${put_pinned_child.id}"
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "revise-linked",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Parent fact",
+              "text": "Cedar ships in March.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "revise_linked_parent"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "revise-linked-child",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Child fact",
+              "text": "Preparation leaves room for discussion.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "revise_linked_child"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${revise_linked_child.id}",
+            "${revise_linked_parent.id}",
+            "derives_from",
+            1,
+            null,
+            null,
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${revise_linked_child.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${revise_linked_child.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${revise_linked_child.id}",
+            1
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${revise_linked_child.id}"
+          ],
+          "save": "revise_linked_child_now"
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store",
+          "args": [
+            10000
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${revise_linked_parent.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Parent fact",
+              "text": "Cedar ships in April.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM semantic_vectors WHERE memory_id=?",
+          "params": [
+            "${revise_linked_child.id}"
+          ]
+        },
+        {
+          "sql": "SELECT memory_id,op FROM memory_jobs WHERE memory_id=?",
+          "params": [
+            "${revise_linked_child.id}"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${revise_linked_child.id}"
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "revise-historical",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Parent fact",
+              "text": "Cedar ships in March.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "revise_historical_parent"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "revise-historical-child",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Child fact",
+              "text": "Preparation leaves room for discussion.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${revise_historical_parent.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "revise_historical_child"
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${revise_historical_child.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Child fact",
+              "text": "Preparation leaves room for discussion.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${revise_historical_child.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${revise_historical_child.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${revise_historical_child.id}",
+            1
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${revise_historical_child.id}"
+          ],
+          "save": "revise_historical_child_now"
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store",
+          "args": [
+            10000
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${revise_historical_parent.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Parent fact",
+              "text": "Cedar ships in April.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM semantic_vectors WHERE memory_id=?",
+          "params": [
+            "${revise_historical_child.id}"
+          ]
+        },
+        {
+          "sql": "SELECT memory_id,op FROM memory_jobs WHERE memory_id=?",
+          "params": [
+            "${revise_historical_child.id}"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${revise_historical_child.id}"
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "revise-pinned",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Parent fact",
+              "text": "Cedar ships in March.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "revise_pinned_parent"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "revise-pinned-child",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Child fact",
+              "text": "Preparation leaves room for discussion.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${revise_pinned_parent.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "revise_pinned_child"
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${revise_pinned_child.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${revise_pinned_child.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${revise_pinned_child.id}",
+            1
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${revise_pinned_child.id}"
+          ],
+          "save": "revise_pinned_child_now"
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store",
+          "args": [
+            10000
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${revise_pinned_parent.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Parent fact",
+              "text": "Cedar ships in April.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM semantic_vectors WHERE memory_id=?",
+          "params": [
+            "${revise_pinned_child.id}"
+          ]
+        },
+        {
+          "sql": "SELECT memory_id,op FROM memory_jobs WHERE memory_id=?",
+          "params": [
+            "${revise_pinned_child.id}"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${revise_pinned_child.id}"
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

@@ -2,10 +2,16 @@
 
   <PropertyGroup>
     <RootNamespace>Margo.Cloud.State.Memory</RootNamespace>
+    <!-- LibraryImport (MemoryNative: statx with device, inode and nanosecond times) generates code that needs unsafe blocks. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.State.Tests" />
   </ItemGroup>
 
 </Project>

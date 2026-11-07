@@ -1,0 +1,376 @@
+{
+  "description": "File sources: a verified SHA-256 is required, the hash is re-checked by eligibility and health (changed, oversized, at-limit, relative, home-relative, dotted, symlinked, directory, missing and unreadable files; an unknown ~user raises RuntimeError as pathlib does).",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "write": "profile.txt",
+          "text": "Saved fact"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "no-hash",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "${dir}/profile.txt"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "file-fact",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "${dir}/profile.txt",
+                  "revision": "b34a3abdea945341efa6f0cefc0114c5f579bee7e44c7733061602ad1577c1ef"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "ff"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "relative",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "relative.txt",
+                  "revision": "b34a3abdea945341efa6f0cefc0114c5f579bee7e44c7733061602ad1577c1ef"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "home",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "~/../work/profile.txt",
+                  "revision": "b34a3abdea945341efa6f0cefc0114c5f579bee7e44c7733061602ad1577c1ef"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "dotted",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "${dir}/./sub/../profile.txt",
+                  "revision": "b34a3abdea945341efa6f0cefc0114c5f579bee7e44c7733061602ad1577c1ef"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "unknown-user",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "~no-such-margo-user/x",
+                  "revision": "b34a3abdea945341efa6f0cefc0114c5f579bee7e44c7733061602ad1577c1ef"
+                }
+              ]
+            },
+            "candidate"
+          ]
+        },
+        {
+          "mkdir": "sub"
+        },
+        {
+          "symlink": "link.txt",
+          "target": "${dir}/profile.txt"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "symlinked",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "${dir}/link.txt",
+                  "revision": "b34a3abdea945341efa6f0cefc0114c5f579bee7e44c7733061602ad1577c1ef"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "directory",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "${dir}/sub",
+                  "revision": "b34a3abdea945341efa6f0cefc0114c5f579bee7e44c7733061602ad1577c1ef"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "_file_digest",
+          "on": "store",
+          "args": [
+            "${dir}/profile.txt"
+          ]
+        },
+        {
+          "call": "_file_digest",
+          "on": "store",
+          "args": [
+            "${dir}/link.txt"
+          ]
+        },
+        {
+          "call": "_file_digest",
+          "on": "store",
+          "args": [
+            "${dir}/sub"
+          ]
+        },
+        {
+          "call": "_file_digest",
+          "on": "store",
+          "args": [
+            "${dir}/missing.txt"
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "write": "large.txt",
+          "text": "b",
+          "repeat": 1048577
+        },
+        {
+          "write": "limit.txt",
+          "text": "b",
+          "repeat": 1048576
+        },
+        {
+          "call": "_file_digest",
+          "on": "store",
+          "args": [
+            "${dir}/large.txt"
+          ]
+        },
+        {
+          "call": "_file_digest",
+          "on": "store",
+          "args": [
+            "${dir}/limit.txt"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "large",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "${dir}/large.txt",
+                  "revision": "d454619f929d302c8422a887943eb42fff8d7392a4848fdddd90b1f83b0c84eb"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "limit",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "${dir}/limit.txt",
+                  "revision": "e56ec8dc1862be6c09c53620cbc0f00f639de2a51c882745fbbc4e144714b3c2"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "write": "profile.txt",
+          "text": "Changed fact"
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "unknown-user",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "~no-such-margo-user/x",
+                  "revision": "b34a3abdea945341efa6f0cefc0114c5f579bee7e44c7733061602ad1577c1ef"
+                }
+              ]
+            },
+            "active",
+            1
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "write": "unreadable.txt",
+          "text": "Saved fact",
+          "mode": "000"
+        },
+        {
+          "call": "_file_digest",
+          "on": "store",
+          "args": [
+            "${dir}/unreadable.txt"
+          ]
+        },
+        {
+          "chmod": "unreadable.txt",
+          "mode": "600"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+{
+  "description": "Store calls inside a caller's open transaction run in savepoints: failed calls roll back only their own changes, the caller commits or rolls back the rest.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "outer",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "row"
+        },
+        {
+          "open": "writer"
+        },
+        {
+          "begin": "writer"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "inside",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Inside",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ],
+          "save": "inside",
+          "use": "writer"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "inside",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Inside",
+              "text": "Edited inside.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "candidate",
+            7
+          ],
+          "use": "writer"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${inside.id}",
+            "${row.id}",
+            "related_to",
+            1
+          ],
+          "use": "writer"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${inside.id}",
+            "${row.id}",
+            "depends_on",
+            2,
+            null,
+            {
+              "valid_from": "2001-02-03T04:05:06.000007+00:00"
+            }
+          ],
+          "use": "writer"
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${row.id}",
+            1,
+            null
+          ],
+          "use": "writer"
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "use": "writer"
+        },
+        {
+          "commit": "writer"
+        },
+        {
+          "call": "list",
+          "on": "store"
+        },
+        {
+          "begin": "writer"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "rolled-back",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ],
+          "use": "writer"
+        },
+        {
+          "rollback": "writer"
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "use": "writer"
+        },
+        {
+          "close": "writer"
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${inside.id}"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

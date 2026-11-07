@@ -1,0 +1,185 @@
+{
+  "description": "Recapturing from the same work source without an explicit revision is idempotent (the pinned source revision and review date are kept); a new source revision renews them.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "script": "CREATE TABLE work_sources (id TEXT PRIMARY KEY, account TEXT NOT NULL, current_revision INTEGER NOT NULL);CREATE TABLE work_source_revisions (source_id TEXT NOT NULL, revision TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(source_id, revision));"
+        },
+        {
+          "sql": "INSERT INTO work_sources VALUES(?,?,?)",
+          "params": [
+            "src_synthetic",
+            "${account}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES(?,?,?)",
+          "params": [
+            "src_synthetic",
+            "1",
+            "{\"quote\":\"Synthetic source\"}"
+          ]
+        },
+        {
+          "call": "policy_preview",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": true,
+                "domains": [
+                  "user"
+                ],
+                "kinds": [
+                  "episode"
+                ],
+                "scopes": [
+                  "personal"
+                ],
+                "source_kinds": [
+                  "work_source"
+                ]
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {
+                "episode": 7
+              }
+            }
+          ],
+          "save": "cap"
+        },
+        {
+          "call": "set_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": true,
+                "domains": [
+                  "user"
+                ],
+                "kinds": [
+                  "episode"
+                ],
+                "scopes": [
+                  "personal"
+                ],
+                "source_kinds": [
+                  "work_source"
+                ]
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {},
+              "review_days": {
+                "episode": 7
+              }
+            },
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${cap.subject_id}",
+              "revision": 1,
+              "decision": "configure",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "capture",
+          "on": "store",
+          "args": [
+            "same-source",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_synthetic"
+                }
+              ]
+            }
+          ],
+          "save": "first"
+        },
+        {
+          "call": "capture",
+          "on": "store",
+          "args": [
+            "same-source",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_synthetic"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_sources SET current_revision=2"
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES(?,?,?)",
+          "params": [
+            "src_synthetic",
+            "2",
+            "{\"quote\":\"Changed\"}"
+          ]
+        },
+        {
+          "call": "capture",
+          "on": "store",
+          "args": [
+            "same-source",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_synthetic"
+                }
+              ]
+            },
+            1
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

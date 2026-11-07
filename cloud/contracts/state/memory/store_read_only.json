@@ -1,0 +1,201 @@
+{
+  "description": "Read-only stores work while a writer holds an open transaction, cannot write (sqlite readonly error), and never initialise missing state.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "readable",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "row"
+        },
+        {
+          "open": "writer"
+        },
+        {
+          "begin": "writer"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "inside",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Inside",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "candidate"
+          ],
+          "use": "writer"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${row.id}"
+          ],
+          "read_only": true
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "read_only": true
+        },
+        {
+          "call": "policy",
+          "on": "store",
+          "read_only": true
+        },
+        {
+          "call": "health",
+          "on": "store",
+          "read_only": true
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "x",
+              "revision": 1,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "x",
+            1,
+            "confirm"
+          ],
+          "read_only": true
+        },
+        {
+          "rollback": "writer"
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "use": "writer"
+        },
+        {
+          "close": "writer"
+        },
+        {
+          "open": "reader",
+          "read_only": true
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${row.id}"
+          ],
+          "use": "reader"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "forbidden",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ],
+          "use": "reader"
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting"
+          ],
+          "use": "reader"
+        },
+        {
+          "call": "_derived_descendants",
+          "on": "store",
+          "args": [
+            "${row.id}"
+          ],
+          "use": "reader"
+        },
+        {
+          "close": "reader"
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "state_dir": "${dir}/missing-state",
+          "read_only": true
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "",
+          "read_only": true
+        },
+        {
+          "call": "__init__",
+          "on": "store",
+          "account": "  "
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

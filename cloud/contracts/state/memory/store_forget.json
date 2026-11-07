@@ -1,0 +1,712 @@
+{
+  "description": "Forgetting: preview of affected and retained data, forget evidence and revision checks, erasure of data/history/evidence/index rows, delete jobs with the redacted hash, replay on a forgotten record, tombstones denying re-creation and new dependencies, and recursive erasure of descendants through derivation links and current or historical memory sources (corrected copies included).",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "script": "CREATE TABLE semantic_vectors (memory_id TEXT, revision INTEGER);CREATE TABLE semantic_documents (memory_id TEXT, body TEXT);CREATE TABLE semantic_fts (memory_id TEXT, body TEXT);"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "forget-me",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "row"
+        },
+        {
+          "call": "forget_preview",
+          "on": "store",
+          "args": [
+            "${row.id}"
+          ]
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${row.id}",
+            1
+          ]
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${row.id}",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${row.id}",
+              "revision": 1,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${row.id}",
+            "1",
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${row.id}",
+              "revision": 1,
+              "decision": "forget",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${row.id}",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${row.id}",
+              "revision": 2,
+              "decision": "forget",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "mem_unknown",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "mem_unknown",
+              "revision": 1,
+              "decision": "forget",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${row.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${row.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${row.id}",
+            1
+          ]
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${row.id}",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${row.id}",
+              "revision": 1,
+              "decision": "forget",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "sql": "SELECT (SELECT count(*) FROM semantic_vectors),(SELECT count(*) FROM semantic_documents),(SELECT count(*) FROM semantic_fts)"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${row.id}"
+          ]
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            null,
+            "forgotten"
+          ]
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${row.id}"
+          ]
+        },
+        {
+          "sql": "SELECT memory_id,revision,status,data,evidence,content_hash FROM memory_revisions ORDER BY revision"
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store"
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${row.id}",
+            99,
+            "anything"
+          ]
+        },
+        {
+          "call": "forget_preview",
+          "on": "store",
+          "args": [
+            "${row.id}"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "forget-me",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "forget-me",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            3
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "uses-forgotten",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${row.id}",
+                  "revision": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "base",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Base",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "base"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "linked-child",
+            {
+              "domain": "agent",
+              "kind": "lesson",
+              "title": "Derived",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ],
+          "save": "lc"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${lc.id}",
+            "${base.id}",
+            "derives_from",
+            1
+          ],
+          "save": "link"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "sourced-child",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Sourced",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${base.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "sc"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "grandchild",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Grandchild",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${sc.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "candidate"
+          ],
+          "save": "gc"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "historic",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "Synthetic private phrase",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${base.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "hist"
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${hist.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "New independent observation",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "unrelated",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Unrelated",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "un"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${un.id}",
+            "${base.id}",
+            "related_to",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${base.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${base.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${base.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${lc.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${lc.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${lc.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${sc.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${sc.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${sc.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${gc.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${gc.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${gc.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${hist.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${hist.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${hist.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors(memory_id,revision) VALUES(?,?)",
+          "params": [
+            "${un.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_documents(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${un.id}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,body) VALUES(?,?)",
+          "params": [
+            "${un.id}",
+            1
+          ]
+        },
+        {
+          "call": "_derived_descendants",
+          "on": "store",
+          "args": [
+            "${base.id}"
+          ]
+        },
+        {
+          "call": "_derived_descendants",
+          "on": "store",
+          "args": [
+            "${un.id}"
+          ]
+        },
+        {
+          "call": "forget_preview",
+          "on": "store",
+          "args": [
+            "${base.id}"
+          ]
+        },
+        {
+          "call": "forget_preview",
+          "on": "store",
+          "args": [
+            "${sc.id}"
+          ]
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${base.id}",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${base.id}",
+              "revision": 1,
+              "decision": "forget",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "sql": "SELECT (SELECT count(*) FROM semantic_vectors),(SELECT count(*) FROM semantic_documents),(SELECT count(*) FROM semantic_fts)"
+        },
+        {
+          "call": "links",
+          "on": "store",
+          "args": [
+            "${un.id}"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${lc.id}"
+          ]
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${hist.id}"
+          ]
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "new-derived-copy",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${base.id}",
+                  "revision": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${un.id}",
+            "${base.id}",
+            "about",
+            2
+          ]
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "sql": "SELECT id,key_hash FROM memory_tombstones ORDER BY id"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

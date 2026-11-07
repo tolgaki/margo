@@ -1,0 +1,862 @@
+{
+  "description": "MemoryStore.eligible: routines, environment requirements (and the legacy environment key), fixed far-past/far-future validity and review windows, uses, sensitivity, inferred and candidate records, Dream snapshots, stale records on request, preference ordering, argument validation; _environment_subset and dream_index_current on edge inputs (unhashable Dream roles).",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "general",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "General",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "general"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "calendar",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Calendar only",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "routines": [
+                "calendar"
+              ],
+              "metadata": {
+                "environment_requirements": {
+                  "host": "desktop",
+                  "tools": {
+                    "mail": "v2"
+                  }
+                }
+              }
+            },
+            "active"
+          ],
+          "save": "calendar"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "future",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Future",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "valid_from": "2999-02-03T04:05:06+00:00"
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "expired",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Expired",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "valid_to": "2001-02-03T04:05:06.000007+00:00"
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "review-overdue",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Review overdue",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "review_after": "2001-02-03T04:05:06.000007+00:00"
+            },
+            "active"
+          ],
+          "save": "overdue"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "window",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Window",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "valid_from": "2001-02-03T04:05:06.000007+00:00",
+              "valid_to": "2999-02-03T04:05:06+00:00",
+              "review_after": "2999-02-03T04:05:06+00:00"
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "drafting",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Drafting only",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "allowed_uses": [
+                "drafting"
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "both-uses",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Both uses",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "allowed_uses": [
+                "drafting",
+                "reasoning"
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "sensitive",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Sensitive",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "sensitivity": "sensitive"
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "agent-fact",
+            {
+              "domain": "agent",
+              "kind": "capability",
+              "title": "Agent capability",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Candidate",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "record_id",
+          "on": "store",
+          "args": [
+            "user",
+            "pref"
+          ],
+          "save": "pref"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "pref",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "Preference",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "user_confirmed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${pref}",
+              "revision": 1,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "env-legacy",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Legacy environment",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": {
+                "environment": {
+                  "host": "desktop"
+                }
+              }
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "snapshot",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Snapshot",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": {
+                "dream": "snapshot"
+              }
+            },
+            "candidate"
+          ],
+          "save": "snap"
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "routine": "calendar",
+            "environment": {
+              "host": "desktop",
+              "tools": {
+                "mail": "v2",
+                "calendar": "v1"
+              }
+            }
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "routine": "calendar",
+            "environment": {
+              "host": "desktop",
+              "tools": {
+                "mail": "v1"
+              }
+            }
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "routine": "calendar",
+            "environment": {
+              "host": "desktop",
+              "tools": "v2"
+            }
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "routine": "calendar"
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "environment": {
+              "host": "desktop"
+            }
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "usage": "drafting"
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "include_stale": true
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "domain": "agent"
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "domain": "team"
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "domain": [
+              "user"
+            ]
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "routine": " "
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "routine": 5
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "usage": "publishing"
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "usage": null
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "usage": [
+              "reasoning"
+            ]
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "environment": "desktop"
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "environment": {
+              "x": NaN
+            }
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "include_stale": 1
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "include_stale": null
+          }
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${overdue.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Review overdue",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "review_after": "2001-02-03T04:05:06.000007+00:00"
+            },
+            "stale",
+            1
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "include_stale": true
+          }
+        },
+        {
+          "call": "_environment_subset",
+          "on": "store",
+          "args": [
+            {
+              "a": {
+                "b": 1
+              }
+            },
+            {
+              "a": {
+                "b": 1.0,
+                "c": 2
+              }
+            }
+          ]
+        },
+        {
+          "call": "_environment_subset",
+          "on": "store",
+          "args": [
+            {
+              "a": {
+                "b": 1
+              }
+            },
+            {
+              "a": {
+                "b": true
+              }
+            }
+          ]
+        },
+        {
+          "call": "_environment_subset",
+          "on": "store",
+          "args": [
+            {
+              "a": {
+                "b": 1
+              }
+            },
+            {
+              "a": 5
+            }
+          ]
+        },
+        {
+          "call": "_environment_subset",
+          "on": "store",
+          "args": [
+            {
+              "a": [
+                1
+              ]
+            },
+            {
+              "a": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_environment_subset",
+          "on": "store",
+          "args": [
+            {},
+            []
+          ]
+        },
+        {
+          "call": "_environment_subset",
+          "on": "store",
+          "args": [
+            [],
+            {}
+          ]
+        },
+        {
+          "call": "_environment_subset",
+          "on": "store",
+          "args": [
+            {},
+            {}
+          ]
+        },
+        {
+          "call": "_environment_subset",
+          "on": "store",
+          "args": [
+            {
+              "a": null
+            },
+            {}
+          ]
+        },
+        {
+          "call": "dream_index_current",
+          "on": "store",
+          "args": [
+            "${general}"
+          ]
+        },
+        {
+          "call": "dream_index_current",
+          "on": "store",
+          "args": [
+            {
+              "metadata": {
+                "dream": "checkpoint"
+              }
+            }
+          ]
+        },
+        {
+          "call": "dream_index_current",
+          "on": "store",
+          "args": [
+            {
+              "metadata": {
+                "dream": "reflection"
+              }
+            }
+          ]
+        },
+        {
+          "call": "dream_index_current",
+          "on": "store",
+          "args": [
+            {
+              "metadata": {
+                "dream": []
+              }
+            }
+          ]
+        },
+        {
+          "call": "dream_index_current",
+          "on": "store",
+          "args": [
+            {
+              "metadata": []
+            }
+          ]
+        },
+        {
+          "call": "dream_index_current",
+          "on": "store",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "dream_index_current",
+          "on": "store",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "dream_index_current",
+          "on": "store",
+          "args": [
+            {
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${general.id}",
+                  "revision": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "dream_index_current",
+          "on": "store",
+          "args": [
+            {
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${general.id}",
+                  "revision": "2"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "dream_index_current",
+          "on": "store",
+          "args": [
+            {
+              "source_refs": [
+                {
+                  "ref": "x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "dream-list",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": {
+                "dream": []
+              }
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "dream-list",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": {
+                "dream": []
+              }
+            },
+            "stale"
+          ],
+          "save": "dl"
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "include_stale": true
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "dream-active",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": {
+                "dream": "reflection"
+              }
+            },
+            "active"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}
