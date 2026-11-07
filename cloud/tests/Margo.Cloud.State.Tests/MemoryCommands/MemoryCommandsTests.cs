@@ -258,6 +258,31 @@ public sealed class MemoryCommandsTests
         ["work_refs"] = new JsonArray(),
     };
 
+    // python3 -c 'print(Q in T)' with T and Q from json.loads (escaped pairs combine): a lone surrogate is never half of
+    // an astral code point.
+    [Fact]
+    public void Citation_quotes_match_by_python_code_points()
+    {
+        // (text, quote, Python's `quote in text`); lone surrogates are written as C# escapes, not theory data.
+        (string Text, string Quote, bool Expected)[] cases =
+        [
+            ("Cedar \ud83d\ude00 option", "\ud83d", false),
+            ("Cedar \ud83d\ude00 option", "\ude00 option", false),
+            ("Cedar \ud83d\ude00 option", "Cedar \ud83d", false),
+            ("Cedar \ud83d\ude00 option", "\ud83d\ude00", true),
+            ("Cedar \ud83d\ude00 option", "Cedar", true),
+            ("\ud83d\ude00\ud83d", "\ud83d", true),
+            ("\ude00\ud83d\ude00", "\ude00", true),
+            ("\ud83d", "\ud83d", true),
+            ("abc", "", true),
+            ("", "a", false),
+        ];
+        foreach (var (text, quote, expected) in cases)
+        {
+            Assert.Equal(expected, MemoryDream.StrContains(text, quote));
+        }
+    }
+
     private static void Configure(MemoryStore memory)
     {
         var policy = new JsonObject

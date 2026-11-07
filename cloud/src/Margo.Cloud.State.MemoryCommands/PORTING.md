@@ -4,7 +4,7 @@ Ports `skills/chief-of-staff/scripts/memory_dream.py` (complete) and `memory_sta
 on top of the Memory, MemorySearch, MemoryLearning, Proactive and Tasks ports, using only their public APIs and
 State.Core's shared helpers. Reference behaviour is CPython 3.13 (3.13.16 here) with its C `zoneinfo` and the system
 time zone database; `tools/state_parity.py` judges everything through `memory_state.py` and the
-`memory_commands_probe.py` probe pair (`cloud/contracts/state/memory-commands/`, 37 scenarios). Nothing here reaches the
+`memory_commands_probe.py` probe pair (`cloud/contracts/state/memory-commands/`, 39 scenarios). Nothing here reaches the
 network, calls a model, discovers host history or invokes a tool.
 
 ## What maps to what
@@ -72,6 +72,10 @@ xUnit tests).
    `max(8192, b2cratio * remaining)` bytes, positions of decoding errors relative to their chunk, nothing read after the
    last chunk). The Tasks PORTING.md already asks for it in `PyIO`; with two users it should move there.
 2. **`PyZoneInfo`** (above): State.Core's `PyDateTime` models fixed offsets only.
+3. **`str in str` by code points**: `MemoryDream.StrContains`. An ordinal UTF-16 search (`string.Contains`, and
+   State.Core's `PyObj.Contains` for strings) also matches a lone surrogate, which a JSON `\udXXX` escape can produce,
+   against half of a surrogate pair; Python holds the astral character as one code point, so that is no substring. It
+   should replace the string branch of `PyObj.Contains` (other ports' `in` checks on model text have the same gap).
 
 ## Contract probe
 
@@ -85,7 +89,7 @@ writer holding a transaction on another connection; SQL; files (with a saved SHA
 `astimezone`; and a per-zone digest sweep (`zone_sweep`). This project grants `InternalsVisibleTo` to the probes and the
 tests (`MemoryStateScript.Main`, `PyTextFile`).
 
-## Scenarios (`cloud/contracts/state/memory-commands/`, 37 files)
+## Scenarios (`cloud/contracts/state/memory-commands/`, 39 files)
 
 | Files | Cover |
 | --- | --- |
@@ -93,8 +97,10 @@ tests (`MemoryStateScript.Main`, `PyTextFile`).
 | `cli_storage_and_accounts`, `cli_migrate` | read commands never initialise (`not_initialized`), `record-id` without storage and account resolution, init/migrate replays, `MARGO_STATE_DIR`, a second account; a v1 schema refused until `migrate` |
 | `cli_input_loading` | `load()` for files (universal newlines, pathlib normalisation, BOM, undecodable bytes, duplicate keys, NaN, missing, directories, NUL) and stdin, `--input -` with `--evidence -`, the Dream `read(100001)` budget with chunk-relative decoding errors |
 | `cli_memory_lifecycle`, `cli_policy_usage_capture`, `cli_search_context_index`, `cli_review_regressions`, `cli_lexical_without_index` | every lifecycle, policy, usage, capture, search/context/graph/explain/index, link/unlink, forget, tombstone and maintain subcommand with its options and failures, the `**data` binding errors, a held writer transaction, missing and dropped semantic tables |
+| `cli_link_evidence_and_explain_options` | `link --evidence` (loaded before `--input`, both from stdin, empty, unreadable), `explain`'s `--budget-chars`, `--domain`, `--routine`, `--usage` and an empty `--environment` (added in review: these options had no scenario) |
 | `cli_learning_commands`, `cli_trends_and_preferences` | capabilities, validate-capability, propose/activate-lesson, export-preview/export, consolidate, record-consolidation, trend-definition, trend, preferences-preview/-import and the changed-preferences guard |
 | `dream_*` (21 files) | every test of `tests/test_memory_dream.py` that does not need a fake encoder or a patched module (see below), checkpoint/start/finish validation in Python's order, plan bounds and paging, read commands without state, the Dream daily window |
+| `dream_citation_quote_code_points` | `finish()`'s `quote not in row["text"]` by Python code points: a lone surrogate (half of an astral character of the cited text) is "not present" (added in review, see below) |
 | `zoneinfo_sweep`, `zoneinfo_keys_and_offsets` | all 499 system zones around every transition and 30 years of TZ rules; key errors; hand-picked folds and gaps |
 
 Converted Python tests:
@@ -117,10 +123,26 @@ Converted Python tests:
   restart, forget, account isolation) are in `cli_search_context_index`, `cli_memory_lifecycle` and
   `cli_storage_and_accounts`.
 
-xUnit (`cloud/tests/Margo.Cloud.State.Tests/MemoryCommands/`, 32 tests): CPython-measured folds and `fromutc`, key
+xUnit (`cloud/tests/Margo.Cloud.State.Tests/MemoryCommands/`, 33 tests): CPython-measured folds and `fromutc`, key
 errors, `normpath`, an empty `TZPATH`, the window under a fixed clock (folds, gaps, unfinished days, `OverflowError`),
-the `MAX_SCAN` override scope, concurrent corrections with one revision owner, the chunked reader and an in-process CLI
-round trip.
+the `MAX_SCAN` override scope, concurrent corrections with one revision owner, the chunked reader, an in-process CLI
+round trip and code-point substring matching of citation quotes.
+
+## Review fixes
+
+An independent review (differential scenarios over put/record-usage binding, revise/search/context/link loading
+order, every Dream validation path with malformed claims and citations, file and stdin loading edge cases, the daily
+window over unusual keys, cutoffs, days and DST transitions, and very large `--revision`/`--limit` values) found one
+behavioural difference, fixed with a failing-first scenario:
+
+1. `finish()` checked `citation["quote"] not in row["text"]` with an ordinal UTF-16 search, so a quote that is a lone
+   surrogate (for example `"\ud83d"`, half of an emoji in the cited text) counted as present; Python refuses it with
+   "citation quote is not present; this check does not prove entailment", while the port went on and failed later in
+   `digest()` with a `UnicodeEncodeError` text. `StrContains` now rejects matches that split a surrogate pair
+   (`dream_citation_quote_code_points`, xUnit `Citation_quotes_match_by_python_code_points`).
+
+Coverage gaps closed: `link --evidence` and `explain`'s `--budget-chars`, `--domain`, `--routine` and `--usage` had no
+scenario (`cli_link_evidence_and_explain_options`).
 
 ## Deliberate deviations (and why)
 

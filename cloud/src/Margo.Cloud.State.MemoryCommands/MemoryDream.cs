@@ -710,7 +710,7 @@ public static class MemoryDream
                     var quote = Text(citation["quote"], "citation quote", 2000);
                     if (PyNode.AsString(PyNode.Index(row, "text")) is not { } body
                         ? !PyObj.Contains(PyNode.Index(row, "text"), quote)
-                        : !body.Contains(quote, StringComparison.Ordinal))
+                        : !StrContains(body, quote))
                     {
                         throw new StateError("citation quote is not present; this check does not prove entailment");
                     }
@@ -984,6 +984,31 @@ public static class MemoryDream
         }
 
         return required.All(name => items.Any(item => PyNode.Is(item, name)));
+    }
+
+    /// <summary>
+    /// <c>needle in haystack</c> for two Python strings, by code points. An ordinal UTF-16 search would also match a
+    /// lone surrogate (a JSON <c>\udXXX</c> escape) against half of an astral character's surrogate pair; Python's
+    /// strings hold that character as one code point, so such a match is not a substring there. Belongs in State.Core
+    /// (<c>PyObj.Contains</c> on strings has the same UTF-16 behaviour; see PORTING.md).
+    /// </summary>
+    internal static bool StrContains(string haystack, string needle)
+    {
+        ArgumentNullException.ThrowIfNull(haystack);
+        ArgumentNullException.ThrowIfNull(needle);
+        for (var start = haystack.IndexOf(needle, StringComparison.Ordinal); start >= 0;
+             start = start + 1 > haystack.Length ? -1 : haystack.IndexOf(needle, start + 1, StringComparison.Ordinal))
+        {
+            var end = start + needle.Length;
+            var splitsStart = start > 0 && char.IsHighSurrogate(haystack[start - 1]) && char.IsLowSurrogate(haystack[start]);
+            var splitsEnd = end > start && end < haystack.Length && char.IsHighSurrogate(haystack[end - 1]) && char.IsLowSurrogate(haystack[end]);
+            if (!splitsStart && !splitsEnd)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary><c>(ref, revision) in sources</c> for a set of tuples (both parts hashed, compared by Python equality).</summary>
