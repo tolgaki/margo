@@ -223,7 +223,8 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
     /// <summary>One POST (<c>transport.py</c> <c>_post</c>). <paramref name="requestId"/> is null for a notification.</summary>
     private async Task<PostResult> PostAsync(byte[] body, long? requestId, string bearer, McpSession? session, bool capture, CancellationToken cancellationToken)
     {
-        // urllib finds a URL without a host before http.client checks the header values.
+        // urllib finds a URL without a host, and http.client a bad host:port, before the header values are checked.
+        RefuseUserInfo(Endpoint);
         if (!Uri.TryCreate(Endpoint, UriKind.Absolute, out var uri))
         {
             throw new TransportException(Unreachable);
@@ -348,6 +349,11 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
         {
             throw new TransportTimeoutException(TimedOut, exc);
         }
+        catch (Exception exc) when (exc is not OperationCanceledException && IsTimeout(exc) && !cancellationToken.IsCancellationRequested)
+        {
+            // An OS-level ETIMEDOUT from response.read() is TimeoutError in Python, which _post catches too.
+            throw new TransportTimeoutException(TimedOut, exc);
+        }
 
         // Any other failure while reading the body (reset, truncated body) propagates as is: Python lets it
         // escape too, and the guard records an unknown transport failure because the request may have landed.
@@ -362,12 +368,12 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
     }
 
     /// <summary>
-    /// A socket timeout or an OS-level <c>ETIMEDOUT</c> before the response is a timeout in Python
+    /// A socket timeout or an OS-level <c>ETIMEDOUT</c>, at any stage, is a timeout in Python
     /// (<c>TimeoutError</c>, directly or as a <c>URLError</c> reason).
     /// </summary>
     private static bool IsTimeout(Exception exc)
     {
-        for (var inner = exc.InnerException; inner is not null; inner = inner.InnerException)
+        for (Exception? inner = exc; inner is not null; inner = inner.InnerException)
         {
             if (inner is TimeoutException or SocketException { SocketErrorCode: SocketError.TimedOut })
             {
@@ -376,6 +382,71 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// urllib hands http.client the whole percent-decoded authority as the host and never strips a user-info
+    /// part, so a URL with an '@' there sends nothing in Python: when the text after the last colon is not a
+    /// port, http.client raises <c>InvalidURL</c> (not a transport error); otherwise "user@host" is looked up as
+    /// a host name, which fails ("Work IQ unreachable"). <see cref="Uri"/> would send the request, bearer token
+    /// included, to the host after the '@' (in plain http under the loopback exemption).
+    /// </summary>
+    private static void RefuseUserInfo(string url)
+    {
+        var scheme = url.IndexOf("://", StringComparison.Ordinal);
+        if (scheme < 0)
+        {
+            return;
+        }
+
+        var rest = url[(scheme + 3)..];
+        var end = rest.IndexOfAny(['/', '?', '#']);
+        var authority = Uri.UnescapeDataString(end < 0 ? rest : rest[..end]);
+        if (!authority.Contains('@', StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var colon = authority.LastIndexOf(':');
+        if (colon > authority.LastIndexOf(']'))
+        {
+            var port = authority[(colon + 1)..];
+            if (port.Length > 0 && !IsPythonInt(port))
+            {
+                throw new TransportFaultException("the URL has a non-numeric port");
+            }
+        }
+
+        throw new TransportException(Unreachable);
+    }
+
+    /// <summary>Whether Python's <c>int(text)</c> accepts the text (whitespace, a sign, digits with single underscores).</summary>
+    private static bool IsPythonInt(string text)
+    {
+        var digits = PythonJson.Strip(text);
+        if (digits.Length > 0 && digits[0] is '+' or '-')
+        {
+            digits = digits[1..];
+        }
+
+        var afterDigit = false;
+        foreach (var c in digits)
+        {
+            if (char.IsDigit(c))
+            {
+                afterDigit = true;
+            }
+            else if (c == '_' && afterDigit)
+            {
+                afterDigit = false;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        return afterDigit;
     }
 
     /// <summary>

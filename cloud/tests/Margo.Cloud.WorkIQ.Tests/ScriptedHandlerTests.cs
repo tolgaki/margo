@@ -116,6 +116,26 @@ public sealed class ScriptedHandlerTests
     }
 
     [Fact]
+    public async Task Os_level_timeout_while_reading_the_body_is_a_timeout()
+    {
+        // Python: an ETIMEDOUT from response.read() is TimeoutError, which _post maps to TransportTimeout.
+        var handler = ScriptedHandler.Mcp((_, _, _) => Task.FromResult(FailingBody(new IOException("fictional", new SocketException((int)SocketError.TimedOut)))));
+        using var client = new McpHttpTransport(Url, handler: handler);
+        var timeout = await Assert.ThrowsAsync<TransportTimeoutException>(() => client.CallAsync("fetch", FetchMe(), "token-a", Token));
+        Assert.Equal("Work IQ timed out", timeout.Message);
+    }
+
+    [Fact]
+    public async Task Reset_while_reading_the_body_is_not_a_transport_error()
+    {
+        // Python: ConnectionResetError from response.read() escapes; the guard records an unknown failure.
+        var handler = ScriptedHandler.Mcp((_, _, _) => Task.FromResult(FailingBody(new IOException("fictional", new SocketException((int)SocketError.ConnectionReset)))));
+        using var client = new McpHttpTransport(Url, handler: handler);
+        var failure = await Record.ExceptionAsync(() => client.CallAsync("fetch", FetchMe(), "token-a", Token));
+        Assert.IsType<IOException>(failure);
+    }
+
+    [Fact]
     public async Task Failure_after_sending_propagates_unwrapped()
     {
         var handler = ScriptedHandler.Mcp((_, _, _) => throw new HttpRequestException("fictional reset"));
@@ -222,5 +242,45 @@ public sealed class ScriptedHandlerTests
         Assert.Null(new TransportTimeoutException("slow").StatusCode);
     }
 
+    private static HttpResponseMessage FailingBody(Exception failure)
+    {
+        var content = new StreamContent(new FailingStream(failure));
+        content.Headers.TryAddWithoutValidation("Content-Type", "application/json");
+        return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+    }
+
     private sealed class PassThrough(HttpMessageHandler inner) : DelegatingHandler(inner);
+
+    /// <summary>A response body whose every read fails, as a socket error after the headers would.</summary>
+    private sealed class FailingStream(Exception failure) : Stream
+    {
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => throw failure;
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+            ValueTask.FromException<int>(failure);
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
 }

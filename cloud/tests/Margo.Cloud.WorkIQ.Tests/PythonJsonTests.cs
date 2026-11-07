@@ -26,6 +26,32 @@ public sealed class PythonJsonTests
         Assert.Equal("\u00E9\n/\"\\", (string)array[2]!);
     }
 
+    [Fact]
+    public void Lone_surrogate_characters_are_read_as_python_reads_a_str()
+    {
+        // json.loads works on str: a lone surrogate may stand inside a string (or a key), nowhere else.
+        Assert.Equal("\ud800x", (string)PythonJson.Loads("\"\ud800x\"")!);
+        Assert.Equal("\\\udc00", (string)PythonJson.Loads("\"\\\\\udc00\"")!);
+        Assert.Equal(new[] { "k\udbff" }, PythonJson.Loads("{\"k\udbff\": 1}")!.AsObject().Select(pair => pair.Key));
+        Assert.Equal("\U0001F600\ud800", (string)PythonJson.Loads("\"\U0001F600\ud800\"")!);
+        Assert.ThrowsAny<JsonException>(() => PythonJson.Loads("\"\\\ud800\"")); // invalid \escape
+        Assert.ThrowsAny<JsonException>(() => PythonJson.Loads("[\ud800]"));
+        Assert.ThrowsAny<JsonException>(() => PythonJson.Loads("\"\\u\ud800\""));
+    }
+
+    [Fact]
+    public void Integer_literals_follow_pythons_digit_limit()
+    {
+        // Python 3.11+ int() refuses more than 4300 digits (ValueError, so "not JSON"); floats have no limit.
+        Assert.Equal(4300, PythonJson.MaxIntegerDigits);
+        Assert.NotNull(PythonJson.Loads(new string('9', PythonJson.MaxIntegerDigits)));
+        Assert.NotNull(PythonJson.Loads("-" + new string('9', PythonJson.MaxIntegerDigits)));
+        Assert.ThrowsAny<JsonException>(() => PythonJson.Loads(new string('9', PythonJson.MaxIntegerDigits + 1)));
+        Assert.ThrowsAny<JsonException>(() => PythonJson.Loads("{\"id\":-" + new string('9', PythonJson.MaxIntegerDigits + 1) + "}"));
+        Assert.NotNull(PythonJson.Loads(new string('9', 5000) + ".5"));
+        Assert.NotNull(PythonJson.Loads(new string('9', 5000) + "e0"));
+    }
+
     [Theory]
     [InlineData("\uFEFF{}")]
     [InlineData("")]
@@ -111,6 +137,9 @@ public sealed class PythonJsonTests
     [InlineData("\"7\"", 7, false)]
     [InlineData("null", 7, false)]
     [InlineData("[7]", 7, false)]
+    [InlineData("9007199254740992.0", 9007199254740993, false)] // Python: exact float/int comparison
+    [InlineData("9007199254740992.0", 9007199254740992, true)]
+    [InlineData("1e400", 7, false)]
     public void Equality_with_an_int_follows_python(string json, long id, bool equal) =>
         Assert.Equal(equal, PythonJson.EqualsInteger(PythonJson.Loads(json), id));
 

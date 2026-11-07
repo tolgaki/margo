@@ -72,6 +72,12 @@ PARSE = [
     ("sse without a matching event", sse(message(6)), SSE, 7),
     ("sse leading space before data is not data", " data: " + message(7) + "\n\n", SSE, 7),
     ("sse byte order mark hides the first line", "\ufeffdata: " + message(7) + "\n\n", SSE, 7),
+    # Python 3.11+ refuses to convert an integer literal of more than 4300 digits (ValueError).
+    ("integer of more than 4300 digits is not json", message(7, {"n": "BIG"}).replace('"BIG"', "1" * 4301), JSON, 7),
+    ("negative integer of 4300 digits is json", message(7, {"n": "BIG"}).replace('"BIG"', "-" + "1" * 4300), JSON, 7),
+    ("long float literal has no digit limit", message(7, {"n": "BIG"}).replace('"BIG"', "0." + "0" * 4400 + "1"), JSON, 7),
+    ("sse event with an over-long integer is skipped",
+     sse(message(7, {"n": "BIG"}).replace('"BIG"', "2" * 4301), message(7, {"n": 2})), SSE, 7),
 ]
 
 # Raw bytes: invalid UTF-8 is replaced, never fatal (Python errors="replace").
@@ -96,6 +102,13 @@ NORMALISE = [
     ("json string text becomes value", '{"content":[{"type":"text","text":"\\"done\\""}]}'),
     ("byte order mark text is not json", '{"content":[{"type":"text","text":"\\ufeff{}"}]}'),
     ("duplicate keys in text keep the last value", '{"content":[{"type":"text","text":"{\\"a\\":1,\\"a\\":2}"}]}'),
+    ("text with an over-long integer is not json", '{"content":[{"type":"text","text":"' + "3" * 4301 + '"}]}'),
+    # A text item can carry a lone surrogate (from a \\ud800 escape); Python parses the text as a str.
+    ("lone surrogate inside a text string survives", r'{"content":[{"type":"text","text":"{\"s\":\"\ud800x\"}"}]}'),
+    ("lone surrogate after an escaped backslash survives", r'{"content":[{"type":"text","text":"\"\\\\\udc00\""}]}'),
+    ("lone surrogate escaped by a backslash is not json", r'{"content":[{"type":"text","text":"\"\\\ud800\""}]}'),
+    ("lone surrogate outside a string is not json", r'{"content":[{"type":"text","text":"[\ud800]"}]}'),
+    ("empty text items join to a newline that is not json", '{"content":[{"type":"text","text":""},{"type":"text","text":""}]}'),
     ("no content is an empty payload", "{}"),
     ("empty content is an empty payload", '{"content":[]}'),
     ("string content has no items", '{"content":"text"}'),

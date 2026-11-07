@@ -73,8 +73,13 @@ What each outcome means to the guard (`guard.py` lines around `self.transport.ca
   non-JSON events skipped, a JSON array event is not a message. JSON: an empty or Python-whitespace-only
   body, or `null`, answers nothing; an array is a batch; a parse failure is "Work IQ returned a non-JSON
   body". The first object whose `id == request_id` by Python equality (`7.0`, `7e0` and `true == 1`
-  match; `"7"` does not) is the answer, else "Work IQ response did not answer the request". Duplicate JSON
-  keys keep the last value at the first key's position, as Python dicts do.
+  match; `"7"` does not; a float is compared with the int exactly, never by rounding the int) is the answer,
+  else "Work IQ response did not answer the request". Duplicate JSON keys keep the last value at the first
+  key's position, as Python dicts do. An integer literal of more than 4300 digits (Python 3.11+
+  `sys.get_int_max_str_digits()`, sign not counted) is a `ValueError` in Python, so the body is "non-JSON",
+  the SSE event is skipped, or the content text becomes `{"text": ...}`; the same bound keeps `BigInteger`
+  parsing of server-sent numbers cheap. A lone surrogate character inside a JSON string (possible in a text
+  item that came from a `\ud800` escape) survives, as it does when Python parses a `str`.
 - **Normalisation.** A non-object `result` is "malformed tool result". An object `structuredContent` is the
   payload; otherwise text items (`type == "text"` and a string `text`) are joined with `\n` and parsed: an
   object is the payload, any other JSON value becomes `{"value": ...}`, non-JSON becomes `{"text": ...}`, no
@@ -96,7 +101,8 @@ and flushed (`SentTrackingContent`), and classifies the same way:
 
 | Situation | Python | C# |
 | --- | --- | --- |
-| socket timeout or `ETIMEDOUT` anywhere | `TransportTimeout("Work IQ timed out")` | `TransportTimeoutException` |
+| socket timeout or `ETIMEDOUT` anywhere, including while reading the body | `TransportTimeout("Work IQ timed out")` | `TransportTimeoutException` |
+| an `@` in the URL's authority (user info) | http.client is given `user@host` as the host: `InvalidURL` when the text after the last colon is not a port, else the lookup fails ("unreachable"); nothing is sent | `TransportFaultException` or `TransportException("Work IQ unreachable")`; nothing is sent (`System.Uri` alone would send the token to the host after the `@`) |
 | refused, DNS, TLS, proxy, reset before the request is sent | `TransportError("Work IQ unreachable")` | `TransportException` (`StatusCode` null) |
 | server hangs up or sends a bad status line after the request | `RemoteDisconnected` / `BadStatusLine` | the `HttpRequestException`, unwrapped |
 | truncated or reset body | `IncompleteRead` / `ConnectionResetError` | the `IOException` (`HttpIOException`), unwrapped |
@@ -130,7 +136,8 @@ already processed. With one request per connection that resend cannot happen.
    UTF-16 surrogate in the arguments is written as U+FFFD; Python writes `\udXXX`.
 7. **JSON parsing limits.** Python's `json.loads` accepts `NaN`, `Infinity` and `-Infinity`; the port does
    not (a JSON body containing them is "non-JSON", an SSE event is skipped, content text becomes
-   `{"text": ...}`). Nesting is limited to 1000 levels (`PythonJson.MaxNesting`, the default depth of
+   `{"text": ...}`). Supporting them would also put values into the tree that `System.Text.Json` cannot write
+   back out by default. Nesting is limited to 1000 levels (`PythonJson.MaxNesting`, the default depth of
    `Utf8JsonWriter`); Python's limit is interpreter-dependent (about 10 000 on 3.13; the autopilot image runs
    3.12). Beyond either limit the result is a non-transport failure.
 8. **Status code type.** `StatusCode` is `int?`. A boolean tool `statusCode` (an `int` in Python) is carried as
@@ -138,11 +145,16 @@ already processed. With one request per connection that resend cannot happen.
    is carried as `null`; Python keeps the big int. The guard's decision is the same in both cases (neither is
    in `REJECTED_NO_EFFECT`).
 9. **Header-level edge cases not reproduced.** http.client allows at most 100 response headers and 64 KB per
-   line; `SocketsHttpHandler` allows 64 KB of headers in total. A folded header value (`"\r\n "`) that
-   http.client would send may be refused by .NET. A bearer token containing a lone surrogate fails while
+   line; `SocketsHttpHandler` allows 64 KB of headers in total. A folded header value (`"\r\n "`) passes the
+   header check in both and is sent as is (seen on the loopback server; not checked against a real one). A
+   bearer token containing a lone surrogate fails while
    hashing in Python and at the header check here (both before anything is sent, both non-transport).
    A malformed `https://` URL that `Uri` cannot parse is "Work IQ unreachable" at call time; Python reports
-   some of those (`InvalidURL`) as non-transport failures.
+   some of those (`InvalidURL`) as non-transport failures. `SocketsHttpHandler` trims trailing whitespace from
+   a response header value; http.client keeps it, so an out-of-spec `Mcp-Session-Id` ending in spaces is sent
+   back trimmed here and untrimmed by Python. A `1xx` response other than `100` is skipped by .NET; http.client
+   takes it as the final response (`Work IQ HTTP 1xx`). A backslash in an `https://` authority is a path
+   separator to `Uri` but part of the host name to urllib (which then fails to resolve it).
 
 ## Not ported
 
@@ -158,21 +170,25 @@ already processed. With one request per connection that resend cannot happen.
 
 ## Tests and evidence
 
-`cloud/tests/Margo.Cloud.WorkIQ.Tests` (186 test cases):
+`cloud/tests/Margo.Cloud.WorkIQ.Tests` (207 test cases):
 
 - `TransportTests`: the Python `TransportTests` (https rule, JSON and SSE handshake, session per token,
   expired session re-initialised once, 503 / tool error / timeout mapping) and `RedirectTests`, against a
   real loopback HTTP server (`LoopbackHttpServer`, `FakeMcpServer`: the Python `_McpHandler` with extra
   modes), plus request shapes and headers, version handling, refused and failed sessions, notification
-  failures, id sequence, concurrency, detachment, and the failure classification table above.
-- `TransportParityTests`: 80 response shapes whose outcomes were recorded from the real `_parse_body` and
-  `_normalise` by `Parity/transport_cases.py` into `Parity/transport_cases.json`.
-- `Parity/transport_paths.py`: runs the real `McpHttpTransport` through 22 network scenarios (hang-up, bad
-  status line, truncated, stalled and trickled bodies, notification 404, session forgotten twice, unsendable
-  versions and tokens, refused connection) and checks Python's outcome is the one `TransportTests` asserts
-  for C#.
-- `PythonJsonTests`, `ScriptedHandlerTests`: Python value rules, and failure classes a socket cannot produce
-  on demand (OS-level timeout, failure before vs after sending, redirect-following handlers).
+  failures, id sequence, concurrency, detachment, user info in the URL, and the failure classification
+  table above.
+- `TransportParityTests`: 89 response shapes whose outcomes were recorded from the real `_parse_body` and
+  `_normalise` by `Parity/transport_cases.py` into `Parity/transport_cases.json` (read back with
+  `PythonJson.Loads`, because expected values may hold lone surrogates).
+- `Parity/transport_paths.py`: runs the real `McpHttpTransport` through 28 network scenarios (hang-up, bad
+  status line, truncated, stalled and trickled bodies, an OS-level timeout and a reset while reading the body
+  (simulated by patching `HTTPResponse.read`), notification 404, session forgotten twice, unsendable versions
+  and tokens, user info in the URL, refused connection) and checks Python's outcome is the one the C# tests
+  assert. It is a separate script; `dotnet test` does not run it.
+- `PythonJsonTests`, `ScriptedHandlerTests`: Python value rules (including the 4300-digit integer limit and
+  lone surrogates), and failure classes a socket cannot produce on demand (OS-level timeout before and while
+  reading the body, failure before vs after sending, redirect-following handlers).
 
 ```sh
 cd cloud && dotnet test --project tests/Margo.Cloud.WorkIQ.Tests/Margo.Cloud.WorkIQ.Tests.csproj
@@ -195,3 +211,22 @@ in-process), and Python 3.12 (the image's version); the Python checks ran on 3.1
    either get it made public here or use `Margo.Cloud.State.Core`'s `PyJson` if it offers the same.
 4. **Client identity.** `clientInfo` stays `margo-autopilot` `0.1.0` (and the User-Agent follows it). The cloud
    may want its own name; that is a behaviour change for both implementations.
+5. **Constructor overloads.** `new TransportException(message, null)` is ambiguous between the
+   `(string, Exception)` and `(string, int?, Exception?)` overloads; a caller passing a null status must name it
+   (`statusCode: null`). Left as is so the public surface does not change under the Guard port.
+
+## Review notes (second pass)
+
+An independent review checked the port against `transport.py` and fixed four differences, each with a test
+that failed before the fix and a Python check that confirms the expected outcome:
+
+- **User info in the URL.** `http://localhost:1@127.0.0.1:<port>/mcp` passes the loopback prefix check.
+  Python never sends it (http.client is given `localhost:1@127.0.0.1` as the host); the port sent the request,
+  bearer token included, in plain http to the host after the `@`. `PostAsync` now refuses any `@` in the
+  authority before anything is sent, classified as Python classifies it.
+- **OS-level timeout while reading the body.** `ETIMEDOUT` from `response.read()` is `TimeoutError` in Python,
+  so `TransportTimeout`; the port let the `IOException` escape (guard: unknown transport failure).
+- **4300-digit integers.** Python's `json.loads` refuses longer integer literals (`ValueError`); the port
+  parsed them, with unbounded `BigInteger` work on server-sent numbers.
+- **Lone surrogate characters** inside a JSON string in a content text item became U+FFFD; Python keeps them.
+  Also, a float `id` beyond 2^53 now compares with the request id exactly, as Python does.

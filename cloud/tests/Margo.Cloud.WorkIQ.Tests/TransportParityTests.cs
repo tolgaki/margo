@@ -150,7 +150,8 @@ public sealed class TransportParityTests
     private static Dictionary<string, JsonObject> Load()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "Parity", "transport_cases.json");
-        var fixture = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        // Python's reader, not System.Text.Json: expected values may hold lone surrogates (\ud800).
+        var fixture = PythonJson.Loads(File.ReadAllText(path))!.AsObject();
         var cases = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
         foreach (var c in fixture["cases"]!.AsArray())
         {

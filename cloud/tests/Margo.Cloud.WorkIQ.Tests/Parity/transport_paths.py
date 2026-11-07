@@ -8,6 +8,9 @@ anything else is what the guard records as an unknown transport failure. Exits 1
 Fictional data only; nothing leaves 127.0.0.1.
 """
 
+import contextlib
+import errno
+import http.client
 import json
 import socket
 import sys
@@ -15,6 +18,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT / "skills" / "chief-of-staff" / "scripts"))
@@ -108,7 +112,7 @@ def outcome(call):
         return "unknown: %s" % type(exc).__name__
 
 
-def scenario(warm=True, timeout=60, bearer="token-a", **queues):
+def scenario(warm=True, timeout=60, bearer="token-a", during=contextlib.nullcontext, **queues):
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     server.seen, server.sessions = [], 0
     server.mode, server.init, server.notify = [], [], []
@@ -121,7 +125,8 @@ def scenario(warm=True, timeout=60, bearer="token-a", **queues):
             client.call("fetch", {"entityUrls": ["/me"]}, bearer="token-a")
         for name, values in queues.items():
             getattr(server, name).extend(values)
-        result = outcome(lambda: client.call("fetch", {"entityUrls": ["/me"]}, bearer=bearer))
+        with during():
+            result = outcome(lambda: client.call("fetch", {"entityUrls": ["/me"]}, bearer=bearer))
         return result, list(server.seen)
     finally:
         server.shutdown()
@@ -135,6 +140,27 @@ def refused():
     probe.close()
     client = transport.McpHttpTransport("http://127.0.0.1:%d/mcp" % port, allow_loopback_http=True)
     return outcome(lambda: client.call("fetch", {"entityUrls": ["/me"]}, bearer="token-a")), []
+
+
+def userinfo(template):
+    """A loopback URL whose authority holds an '@': nothing may reach the server it seems to name."""
+    def run():
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        server.seen, server.sessions, server.mode, server.init, server.notify = [], 0, [], [], []
+        server.handle_error = lambda *args: None
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            client = transport.McpHttpTransport(template % server.server_address[1], allow_loopback_http=True)
+            return outcome(lambda: client.call("fetch", {"entityUrls": ["/me"]}, bearer="secret-token")), list(server.seen)
+        finally:
+            server.shutdown()
+            server.server_close()
+    return run
+
+
+def body_read_fails(code):
+    """Make reading the response body fail with an OS error, as a dropped TCP connection would."""
+    return lambda: mock.patch.object(http.client.HTTPResponse, "read", side_effect=OSError(code, "fictional"))
 
 
 INIT = ["initialize", "notifications/initialized", "tools/call"]
@@ -152,6 +178,10 @@ CASES = [
      "unknown: IncompleteRead", INIT + ["tools/call"]),
     ("Stalled_body_times_out", lambda: scenario(timeout=0.2, mode=["stall_body"]),
      "TransportTimeout: Work IQ timed out", INIT + ["tools/call"]),
+    ("Os_level_timeout_while_reading_the_body_is_a_timeout (ScriptedHandlerTests)",
+     lambda: scenario(during=body_read_fails(errno.ETIMEDOUT)), "TransportTimeout: Work IQ timed out", INIT + ["tools/call"]),
+    ("Reset_while_reading_the_body_is_not_a_transport_error (ScriptedHandlerTests)",
+     lambda: scenario(during=body_read_fails(errno.ECONNRESET)), "unknown: ConnectionResetError", INIT + ["tools/call"]),
     ("Timeout_bounds_each_wait_not_the_whole_body", lambda: scenario(timeout=0.3, mode=["trickle"]),
      "ok", INIT + ["tools/call"]),
     ("Session_forgotten_twice_escapes_as_an_unknown_failure_after_one_resend",
@@ -177,6 +207,14 @@ CASES = [
      lambda: scenario(warm=False, init=["result:[1]"]), "unknown: AttributeError", INIT[:1]),
     ("Unsendable_versions_fail_before_the_notification_and_cache_nothing(text)",
      lambda: scenario(warm=False, init=['result:"text"']), "unknown: AttributeError", INIT[:1]),
+    ("User_info_in_the_url_never_sends_the_token(localhost:1@127.0.0.1:port)",
+     userinfo("http://localhost:1@127.0.0.1:%d/mcp"), "TransportError: Work IQ unreachable (None)", []),
+    ("User_info_in_the_url_never_sends_the_token(%40)",
+     userinfo("http://127.0.0.1:1%%40127.0.0.1:%d/mcp"), "TransportError: Work IQ unreachable (None)", []),
+    ("User_info_in_the_url_never_sends_the_token(port@localhost)",
+     userinfo("http://127.0.0.1:%d@localhost/mcp"), "unknown: InvalidURL", []),
+    ("User_info_in_the_url_never_sends_the_token(backslash)",
+     userinfo("http://127.0.0.1:1\\@127.0.0.1:%d/mcp"), "TransportError: Work IQ unreachable (None)", []),
     ("Unsendable_tokens_fail_before_anything_is_sent(newline)",
      lambda: scenario(warm=False, bearer="token\nX-Injected: 1"), "unknown: ValueError", []),
     ("Unsendable_tokens_fail_before_anything_is_sent(CR)", lambda: scenario(warm=False, bearer="token\r"),

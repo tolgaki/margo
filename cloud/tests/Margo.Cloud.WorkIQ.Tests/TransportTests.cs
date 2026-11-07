@@ -420,6 +420,31 @@ public sealed class TransportTests : IAsyncLifetime
     }
 
     [Theory]
+    [InlineData("http://localhost:1@127.0.0.1:{0}/mcp", "unreachable")]
+    [InlineData("http://127.0.0.1:1%40127.0.0.1:{0}/mcp", "unreachable")]
+    [InlineData("http://127.0.0.1:{0}@localhost/mcp", "fault")]
+    [InlineData("http://127.0.0.1:1\\@127.0.0.1:{0}/mcp", "unreachable")]
+    public async Task User_info_in_the_url_never_sends_the_token(string pattern, string outcome)
+    {
+        // urllib gives http.client "user@host" as the host: an unresolvable name ("unreachable") or, when the
+        // text after its last colon is not a port, InvalidURL. Python never sends; System.Uri would send the
+        // token to the host after the '@'.
+        var url = string.Format(System.Globalization.CultureInfo.InvariantCulture, pattern, new Uri(_server.Url).Port);
+        using var client = new McpHttpTransport(url, allowLoopbackHttp: true);
+        var failure = await Record.ExceptionAsync(() => client.CallAsync("fetch", FetchMe(), "secret-token", Token));
+        if (outcome == "unreachable")
+        {
+            Assert.Equal("Work IQ unreachable", Assert.IsType<TransportException>(failure).Message);
+        }
+        else
+        {
+            Assert.IsType<TransportFaultException>(failure);
+        }
+
+        Assert.Empty(_server.Seen);
+    }
+
+    [Theory]
     [InlineData("token\nX-Injected: 1")]
     [InlineData("token\r")]
     [InlineData("tok\u0101en")]
