@@ -45,6 +45,8 @@ public sealed class AzureCloud : ICloud
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     private readonly ArmClient _arm;
+    private readonly HttpPipeline _armPipeline;
+    private readonly Uri _armEndpoint;
     private readonly BlobClient _routes;
     private readonly string _subscriptionId;
     private readonly string _resourceGroup;
@@ -73,6 +75,9 @@ public sealed class AzureCloud : ICloud
         }
 
         _arm = new ArmClient(credential, subscriptionId, armOptions);
+        var environment = armOptions.Environment ?? ArmEnvironment.AzurePublicCloud;
+        _armEndpoint = environment.Endpoint;
+        _armPipeline = HttpPipelineBuilder.Build(armOptions, new BearerTokenAuthenticationPolicy(credential, environment.DefaultScope));
         _routes = new BlobClient(new Uri(routesUrl), credential, blobOptions);
         _subscriptionId = subscriptionId;
         _resourceGroup = resourceGroup;
@@ -116,8 +121,8 @@ public sealed class AzureCloud : ICloud
 
     /// <inheritdoc/>
     /// <remarks>The role assignments are those ARM lists for the resource group with the filter
-    /// <c>principalId eq '...'</c> (at, above or below the resource group), each deleted by its id,
-    /// then the identity itself is deleted.</remarks>
+    /// <c>principalId eq '...'</c> (at, above or below the resource group), each deleted by its id
+    /// as soon as its page is read, then the identity itself is deleted.</remarks>
     public async Task DeleteIdentityAsync(string name, CancellationToken cancellationToken)
     {
         var identityId = Id(IdentityProvider, name);
@@ -136,10 +141,37 @@ public sealed class AzureCloud : ICloud
             .GetAllAsync(filter: "principalId eq '" + principal + "'", cancellationToken: cancellationToken);
         await foreach (var assignment in assignments.ConfigureAwait(false))
         {
-            await assignment.DeleteAsync(WaitUntil.Completed, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await DeleteRoleAssignmentAsync(assignment.Id, cancellationToken).ConfigureAwait(false);
         }
 
         await _arm.GetGenericResource(identityId).DeleteAsync(WaitUntil.Completed, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Python's <c>authorization.role_assignments.delete_by_id(id)</c>: <c>DELETE {id}?api-version=2022-04-01</c>,
+    /// where 200 (deleted) and 204 (already gone) succeed and any other status throws.
+    /// </summary>
+    /// <remarks><c>RoleAssignmentResource.DeleteAsync</c> is not used: it builds the deleted
+    /// assignment from the response body and throws <see cref="NullReferenceException"/> on 204, which
+    /// ARM returns for an assignment that is already gone (a retry, or a list that still shows a
+    /// just-deleted assignment). The generic resource API cannot take assignments above a subscription
+    /// and polls a 202 that Python refused.</remarks>
+    private async Task DeleteRoleAssignmentAsync(ResourceIdentifier id, CancellationToken cancellationToken)
+    {
+        using var message = _armPipeline.CreateMessage();
+        var request = message.Request;
+        request.Method = RequestMethod.Delete;
+        var uri = new RequestUriBuilder();
+        uri.Reset(_armEndpoint);
+        uri.AppendPath(id.ToString(), escape: false);
+        uri.AppendQuery("api-version", RoleAssignmentApiVersion);
+        request.Uri = uri;
+        request.Headers.Add("Accept", "application/json");
+        await _armPipeline.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        if (message.Response.Status is not (200 or 204))
+        {
+            throw new RequestFailedException(message.Response);
+        }
     }
 
     /// <summary>Python's <c>.properties["principalId"]</c>.</summary>

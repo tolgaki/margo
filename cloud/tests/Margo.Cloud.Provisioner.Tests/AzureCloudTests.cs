@@ -163,6 +163,115 @@ public sealed class AzureCloudTests : IDisposable
     }
 
     [Fact]
+    public async Task Role_assignments_answered_with_no_content_and_listed_in_pages_are_deleted_as_python_does()
+    {
+        // ARM answers a role assignment DELETE with 204 No Content when the assignment is already gone
+        // (a retry, or a list that still shows a just-deleted assignment). Python's delete_by_id
+        // accepts 200 and 204 and goes on; the .NET RoleAssignmentResource.DeleteAsync dereferenced
+        // the missing body (NullReferenceException), failing the retirement on every retry.
+        // The request order below is what the Python job sent through azure-mgmt-authorization 4.0.0
+        // for the same responses: each page's assignments are deleted before the next page is read.
+        var principal = new Guid(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11).ToString();
+        var identityPath = GroupPath + "/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-margo-" + Key;
+        var below = GroupPath + "/providers/Microsoft.Storage/storageAccounts/fictional/providers/Microsoft.Authorization/roleAssignments/a1";
+        var atGroup = GroupPath + "/providers/Microsoft.Authorization/roleAssignments/a2";
+        var above = "/subscriptions/" + Subscription + "/providers/Microsoft.Authorization/roleAssignments/a3";
+        var managementGroup = "/providers/Microsoft.Management/managementGroups/fictional/providers/Microsoft.Authorization/roleAssignments/a4";
+        var list = GroupPath + "/providers/Microsoft.Authorization/roleAssignments";
+        var nextLink = Arm + list + "?$filter=principalId%20eq%20%27" + principal + "%27&api-version=2022-04-01&$skipToken=fictional-page-2";
+        _http.Respond = request => request.Method.Method switch
+        {
+            "GET" when request.RequestUri!.AbsolutePath.EndsWith("roleAssignments", StringComparison.OrdinalIgnoreCase)
+                && request.RequestUri.Query.Contains("skipToken", StringComparison.Ordinal) => Json(HttpStatusCode.OK,
+                "{\"value\": [" + Assignment(above, principal) + ", " + Assignment(managementGroup, principal) + "]}"),
+            "GET" when request.RequestUri!.AbsolutePath.EndsWith("roleAssignments", StringComparison.OrdinalIgnoreCase) => Json(HttpStatusCode.OK,
+                "{\"value\": [" + Assignment(below, principal) + ", " + Assignment(atGroup, principal) + "], \"nextLink\": \"" + nextLink + "\"}"),
+            "GET" => Json(HttpStatusCode.OK,
+                "{\"id\": \"" + identityPath + "\", \"name\": \"id-margo-" + Key + "\", \"type\": \"Microsoft.ManagedIdentity/userAssignedIdentities\","
+                + " \"location\": \"westus\", \"properties\": {\"principalId\": \"" + principal + "\", \"clientId\": \"fictional\"}}"),
+            "DELETE" when request.RequestUri!.AbsolutePath.EndsWith("/a2", StringComparison.Ordinal) => Json(HttpStatusCode.OK,
+                Assignment(atGroup, principal)), // deleted now: ARM returns the assignment
+            "DELETE" when request.RequestUri!.AbsolutePath.Contains("roleAssignments", StringComparison.OrdinalIgnoreCase) =>
+                new HttpResponseMessage(HttpStatusCode.NoContent) { Content = new ByteArrayContent([]) }, // already gone
+            _ => new HttpResponseMessage(HttpStatusCode.OK),
+        };
+        await Cloud().DeleteIdentityAsync("id-margo-" + Key, Token);
+        string[] expected =
+            [
+                "GET " + Arm + identityPath + "?api-version=2023-01-31",
+                "GET " + Arm + list + "?$filter=principalId eq '" + principal + "'&api-version=2022-04-01",
+                "DELETE " + Arm + below + "?api-version=2022-04-01",
+                "DELETE " + Arm + atGroup + "?api-version=2022-04-01",
+                "GET " + Arm + list + "?$filter=principalId eq '" + principal + "'&api-version=2022-04-01&$skipToken=fictional-page-2",
+                "DELETE " + Arm + above + "?api-version=2022-04-01",
+                "DELETE " + Arm + managementGroup + "?api-version=2022-04-01",
+                "DELETE " + Arm + identityPath + "?api-version=2023-01-31",
+            ];
+        Assert.Equal(expected, _http.Requests.Select(request => request.Method + " " + Uri.UnescapeDataString(request.Url)), StringComparer.OrdinalIgnoreCase);
+        Assert.All(_http.Requests, request => Assert.Equal("Bearer fixture-access", request.Authorization));
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden)]
+    [InlineData(HttpStatusCode.NotFound)]
+    [InlineData(HttpStatusCode.Accepted)]
+    public async Task A_role_assignment_that_cannot_be_deleted_keeps_the_identity(HttpStatusCode status)
+    {
+        // Python's delete_by_id raised for anything but 200 or 204 (202 included: it does not poll),
+        // before the identity was deleted.
+        var principal = new Guid(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11).ToString();
+        var identityPath = GroupPath + "/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-margo-" + Key;
+        var assignment = GroupPath + "/providers/Microsoft.Authorization/roleAssignments/a1";
+        _http.Respond = request => request.Method.Method switch
+        {
+            "GET" when request.RequestUri!.AbsolutePath.EndsWith("roleAssignments", StringComparison.OrdinalIgnoreCase) => Json(HttpStatusCode.OK,
+                "{\"value\": [" + Assignment(assignment, principal) + "]}"),
+            "GET" => Json(HttpStatusCode.OK,
+                "{\"id\": \"" + identityPath + "\", \"name\": \"id-margo-" + Key + "\", \"properties\": {\"principalId\": \"" + principal + "\"}}"),
+            _ => Json(status, "{\"error\": {\"code\": \"AuthorizationFailed\", \"message\": \"fictional\"}}"),
+        };
+        Assert.Equal((int)status, (await Assert.ThrowsAsync<RequestFailedException>(() => Cloud().DeleteIdentityAsync("id-margo-" + Key, Token))).Status);
+        Assert.Equal(["GET", "GET", "DELETE"], _http.Requests.Select(request => request.Method));
+        Assert.Contains("/roleAssignments/a1", _http.Requests[^1].Url, StringComparison.Ordinal);
+        Assert.Equal("Bearer fixture-access", _http.Requests[^1].Authorization);
+    }
+
+    [Fact]
+    public async Task A_deployment_that_reports_failure_in_its_first_response_throws()
+    {
+        // Deliberate deviation (PORTING.md): azure-core's LROPoller never runs its polling loop when the
+        // PUT response is already terminal, so Python's .result() returned normally for a deployment
+        // whose first response said "Failed" and the route went to ready. Here the step fails.
+        var deployment = GroupPath + "/providers/Microsoft.Resources/deployments/margo-instance-" + Key;
+        _http.Respond = _ => Json(HttpStatusCode.OK, "{\"id\": \"" + deployment + "\", \"properties\": {\"provisioningState\": \"Failed\"}}");
+        await Assert.ThrowsAsync<RequestFailedException>(() => Cloud().DeployAsync("margo-instance-" + Key, new JsonObject(), new JsonObject(), Token));
+        Assert.Equal("PUT", Assert.Single(_http.Requests).Method);
+    }
+
+    [Fact]
+    public async Task A_container_app_whose_delete_poll_answers_404_counts_as_deleted()
+    {
+        // Deliberate deviation (PORTING.md): Azure.Core ends a DELETE whose Location poll answers 404 as
+        // done; Python's ARMPolling raised HttpResponseError, the step failed and the next attempt's
+        // DELETE got 404 and went on. Both end with the app gone.
+        var location = Arm + "/subscriptions/" + Subscription + "/providers/Microsoft.App/locations/fictional/operationResults/op-1?api-version=2024-03-01";
+        _http.Respond = request =>
+        {
+            if (request.Method == HttpMethod.Delete)
+            {
+                var accepted = new HttpResponseMessage(HttpStatusCode.Accepted) { Content = new ByteArrayContent([]) };
+                accepted.Headers.TryAddWithoutValidation("Location", location);
+                accepted.Headers.TryAddWithoutValidation("Retry-After", "0");
+                return accepted;
+            }
+
+            return Json(HttpStatusCode.NotFound, "{\"error\": {\"code\": \"ResourceNotFound\", \"message\": \"fictional\"}}");
+        };
+        await Cloud().DeleteAppAsync("margo-" + Key, Token);
+        Assert.Equal(["DELETE", "GET"], _http.Requests.Select(request => request.Method));
+    }
+
+    [Fact]
     public async Task A_missing_identity_is_not_an_error_and_deletes_nothing()
     {
         _http.Respond = _ => Json(HttpStatusCode.NotFound, "{\"error\": {\"code\": \"ResourceNotFound\", \"message\": \"fictional\"}}");

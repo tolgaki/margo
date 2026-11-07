@@ -50,8 +50,9 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
   `processed N message(s)` is logged at the end.
 - **Retiring.** `route_retired`, then delete the Container App (404 ignored), then the identity:
   read its `principalId` (404: nothing to do), list the resource group's role assignments with
-  `$filter=principalId eq '...'`, delete each by id, then delete the identity. Storage is never
-  deleted: `ICloud` has no call that could.
+  `$filter=principalId eq '...'`, delete each by id as its page is read (200 deleted and 204
+  already gone both succeed, anything else throws, as `delete_by_id` did), then delete the
+  identity. Storage is never deleted: `ICloud` has no call that could.
 - **Deploying.** `margo-instance-KEY`, `{"properties": {"mode": "Incremental", "template": ...,
   "parameters": ...}}` into the job's resource group, waiting until the deployment ends; a failed
   deployment throws. API versions are pinned to what Python used: Container Apps `2024-03-01`,
@@ -118,6 +119,26 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
    `Azure.ResourceManager.Resources.Deployments` 1.0.0 (added to `cloud/Directory.Packages.props`;
    it needs no newer Azure.Core than the solution already resolves) instead of
    `Azure.ResourceManager.Resources`, which nothing else here used.
+8. **A deployment whose first response is already "Failed" fails the step.** azure-core's
+   `LROPoller` never runs its polling loop when the PUT response is already terminal, so Python's
+   `.result()` returned normally for `provisioningState: Failed` in the first response and the
+   route went to `ready`. The .NET operation throws `RequestFailedException`; the step is recorded
+   as failed and retried. Kept on purpose: reproducing it would report a failed deployment as
+   ready (AGENTS.md: no success-shaped results). ARM normally answers a deployment PUT with
+   `Accepted` and an `Azure-AsyncOperation` header, where both agree.
+9. **A 404 while polling a Container App delete counts as deleted.** Azure.Core ends a DELETE
+   whose `Location` poll answers 404 as complete; Python's `ARMPolling` raised
+   `HttpResponseError`, the step failed and the next attempt's DELETE got 404 (ignored) and went
+   on to the identity. Both end with the app and identity gone; C# one attempt sooner. A 404 on
+   the initial DELETE is ignored in both.
+10. **JSON the Core reader refuses reaches the provisioner as a malformed message.**
+    `PythonJson.Loads` (Margo.Cloud.Core) rejects `NaN`, `Infinity`, `-Infinity`, escaped lone
+    surrogates and nesting deeper than 1000, which Python's `json.loads` accepts. A queue message
+    holding one of these (for example `"redeploy": NaN` or `"event": "\udc00"`) is dropped here
+    and handled in Python; a route table holding one stops the job here and is read in Python.
+    Neither the Python nor the C# router or provisioner writes such JSON (identifiers with lone
+    surrogates are dropped by both, as they cannot form a key). Owned by Margo.Cloud.Core; not
+    changed here.
 
 ## Not ported
 
@@ -147,10 +168,44 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
 - `AzureCloudTests`: `AzureCloud` and `AzureProvisioningQueueClient` through the real Azure SDK
   pipelines against canned ARM, Blob and Queue HTTP responses (an `HttpMessageHandler`, no
   network): URLs, API versions, deployment body, long-running deployment polling, the deletion
-  order, ETag conditions and conflict mapping, queue paging parameters and plain-text messages.
+  order, ETag conditions and conflict mapping, queue paging parameters and plain-text messages,
+  role assignments answered with 204 and listed in pages, refused role assignment deletes, and
+  deviations 8 and 9.
 
 What these do not show: behaviour against real Azure (permissions, real LRO headers, throttling
 and retries), and that the C# job and a Python router agree on a live queue. Neither was run.
+
+## Review (independent, after the port)
+
+Evidence gathered outside the repository (scratch harnesses, not committed):
+
+- **Differential fuzz of `handle`:** 23,000 generated cases (messages with odd actions,
+  identifiers, `redeploy` values and raw JSON; route tables with every state, odd revisions, extra
+  fields and invalid tables; configurations with missing, falsy and odd values; conflicts, failing
+  steps, failing reads, dequeue counts) run through `provision/core.py` and this `Provisioner` with
+  equivalent scripted clouds. Outcomes, log lines, cloud calls (deployment parameters and template
+  text included), every route blob written and the final ETag were identical, except exception
+  type names (deviation 2) and messages holding JSON the Core reader refuses (deviation 10).
+- **Differential fuzz of the commands:** 15,000 generated `main` command lines, environments, route
+  tables and queue pages through `provision/azure.py` (SDK clients replaced by fakes) and
+  `ProvisionerCommands`: exit codes, standard error (timestamps and program name aside), clients
+  created, messages sent, receives, deletes, cloud calls and route writes were identical, except
+  the default template path (deviation 1) and exception type names.
+- **HTTP-level differential:** `AzureCloud` and `AzureProvisioningQueueClient` against the real
+  Python job's `AzureCloud` and `QueueClient` (azure-mgmt-resource 23.4.0, azure-mgmt-authorization
+  4.0.0, azure-storage-blob 12.31.1, azure-storage-queue 12.18.1) with the same 28 canned response
+  scripts. Methods, URLs, query strings, conditional headers and bodies matched, except: Python's
+  first blob GET carries `x-ms-range` (and an empty blob costs it a second GET; same result), the
+  queue body's XML declaration, deviations 8 and 9, and the defect below.
+- **Defect fixed:** a role assignment DELETE answered 204 No Content made
+  `RoleAssignmentResource.DeleteAsync` throw `NullReferenceException` after the request had
+  succeeded. Retiring an instance whose assignment list still showed an already deleted
+  assignment failed that attempt (route `failed`, error `NullReferenceException`), and every
+  later one while the list still showed it; after the fifth the message was dropped and the
+  identity left behind. Python went on to the next assignment and the identity.
+  Role assignments are now deleted with a plain `DELETE {id}?api-version=2022-04-01` on the ARM
+  pipeline that succeeds on 200 or 204 and throws otherwise, as `delete_by_id` did (a generic
+  resource delete would refuse assignments above a subscription and poll a 202).
 
 ## Open questions
 
@@ -158,3 +213,7 @@ and retries), and that the C# job and a Python router agree on a live queue. Nei
   SIGTERM)? Python did not handle it; neither does `Program.cs`.
 - `main.bicep` and the image build must switch the provisioner job to this binary and include
   `instance.json` next to it (or set `MARGO_INSTANCE_TEMPLATE`).
+- Inherited from Python, unchanged: a page of 16 messages is hidden for 900 seconds, but 16
+  deployments can take longer. A message handled after its visibility timeout may already have
+  been received again (new pop receipt), so its delete fails and the job exits 1 (`replicaTimeout`
+  is 1800 seconds). Should the job receive fewer messages per page, or renew visibility?
