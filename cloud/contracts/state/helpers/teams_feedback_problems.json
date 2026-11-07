@@ -1,0 +1,26 @@
+{
+  "description": "teams_feedback.py partial results: unreadable files (missing, directory, not a directory, name too long, invalid JSON, empty, BOM), missing or empty results, HTTP errors per page (int, str, float and bool statusCode, error text from the page or its data), pages without a value array; WARNING and (PARTIAL) in the table, partial=true in JSON, exit status 1; undecodable path bytes (JSON escapes them, the table cannot print them); invalid UTF-8 is an uncaught error.",
+  "steps": [
+    {"script": "helpers_probe.py", "args": ["write", "ok.json"], "stdin": {"results": [{"statusCode": 200, "data": {"value": [{"id": "1", "messageType": "message", "createdDateTime": "2026-03-01T00:00:00Z", "lastModifiedDateTime": "2026-03-01T00:00:00Z", "deletedDateTime": null, "subject": null, "replyToId": null, "from": {"user": {"displayName": "Avery Example", "id": "user-avery-example"}}, "body": {"contentType": "html", "content": "hello"}, "reactions": [], "mentions": [], "webUrl": "https://teams.example.com/l/message/19%3Achannel%40thread.example.com/1"}]}}]}, "expect_exit": 0},
+    {"script": "helpers_probe.py", "args": ["write", "not-json.json"], "stdin": "{not json", "expect_exit": 0},
+    {"script": "helpers_probe.py", "args": ["write", "empty.json"], "stdin": "", "expect_exit": 0},
+    {"script": "helpers_probe.py", "args": ["write", "no-results.json"], "stdin": {"value": []}, "expect_exit": 0},
+    {"script": "helpers_probe.py", "args": ["write", "empty-results.json"], "stdin": {"results": []}, "expect_exit": 0},
+    {"script": "helpers_probe.py", "args": ["write", "null-results.json"], "stdin": {"results": null}, "expect_exit": 0},
+    {"script": "helpers_probe.py", "args": ["write", "pages.json"], "stdin": {"results": [{"statusCode": 500, "error": "Internal Server Error"}, {"statusCode": "404", "data": {"error": {"code": "NotFound", "message": "gone"}}}, {"statusCode": 429.9}, {"statusCode": true, "data": {"value": [{"id": "2", "messageType": "message", "createdDateTime": "2026-03-02T00:00:00Z", "lastModifiedDateTime": "2026-03-02T00:00:00Z", "deletedDateTime": null, "subject": null, "replyToId": null, "from": {"user": {"displayName": "Blake Sample", "id": "user-blake-sample"}}, "body": {"contentType": "html", "content": "status true"}, "reactions": [], "mentions": [], "webUrl": "https://teams.example.com/l/message/19%3Achannel%40thread.example.com/2"}]}}, {"statusCode": 399, "data": {"value": [{"id": "3", "messageType": "message", "createdDateTime": "2026-03-03T00:00:00Z", "lastModifiedDateTime": "2026-03-03T00:00:00Z", "deletedDateTime": null, "subject": null, "replyToId": null, "from": {"user": {"displayName": "Casey Demo", "id": "user-casey-demo"}}, "body": {"contentType": "html", "content": "status 399"}, "reactions": [], "mentions": [], "webUrl": "https://teams.example.com/l/message/19%3Achannel%40thread.example.com/3"}]}}, {"statusCode": null, "data": {"value": []}}, {"data": {"values": []}}, {"data": null}, {}, {"statusCode": 400, "error": "", "data": {"error": ""}}, {"statusCode": " 503 ", "error": ["a", 1]}, {"statusCode": 401, "error": {"code": 1}}]}, "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["ok.json", "missing.json", "not-json.json", "empty.json", "no-results.json", "empty-results.json", "null-results.json", "pages.json", "{root}", "ok.json/child"], "expect_exit": 1},
+    {"script": "teams_feedback.py", "args": ["ok.json", "missing.json", "pages.json", "--format", "json"], "expect_exit": 1},
+    {"script": "teams_feedback.py", "args": ["missing.json", "--replies", "also-missing.json", "--format", "json"], "expect_exit": 1},
+    {"script": "teams_feedback.py", "args": ["ok.json", "--replies", "missing.json"], "expect_exit": 1},
+    {"script": "teams_feedback.py", "args": ["ok.json", "--since", "2099-01-01"], "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["\udcff-missing.json", "--format", "json"], "expect_exit": 1},
+    {"script": "teams_feedback.py", "args": ["\udcff-missing.json"], "expect_exit": 1},
+    {"script": "teams_feedback.py", "args": ["ok.json", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"], "expect_exit": 1},
+    {"script": "helpers_probe.py", "args": ["write-hex", "latin1.json"], "stdin": "7b22726573756c7473223a205b5d2c202278223a2022e9227d", "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["ok.json", "latin1.json"], "expect_exit": 1},
+    {"script": "helpers_probe.py", "args": ["write-hex", "bom.json"], "stdin": "efbbbf7b7d", "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["bom.json"], "expect_exit": 1},
+    {"script": "helpers_probe.py", "args": ["write", "crlf.json"], "stdin": "{\r\n\"results\": [\r\n{\"data\": {\"value\": []}}\r\n]\r\n}\r\n", "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["crlf.json", "--format", "json"], "expect_exit": 0}
+  ]
+}
