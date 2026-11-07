@@ -1,0 +1,23 @@
+{
+  "description": "teams_feedback.py command line: help with COLUMNS wrapping, missing paths, invalid --format choice, --replies (nargs='*') swallowing the paths, empty --replies, repeated and abbreviated options, --opt=value, '--', unknown options.",
+  "steps": [
+    {"script": "helpers_probe.py", "args": ["write", "a.json"], "stdin": {"results": [{"statusCode": 200, "data": {"value": [{"id": "1", "messageType": "message", "createdDateTime": "2026-03-01", "lastModifiedDateTime": "2026-03-01", "deletedDateTime": null, "subject": null, "replyToId": null, "from": {"user": {"displayName": "Avery Example", "id": "user-avery-example"}}, "body": {"contentType": "html", "content": "first post"}, "reactions": [], "mentions": [], "webUrl": "https://teams.example.com/l/message/19%3Achannel%40thread.example.com/1"}]}}]}, "expect_exit": 0},
+    {"script": "helpers_probe.py", "args": ["write", "r.json"], "stdin": {"results": [{"statusCode": 200, "data": {"value": [{"id": "2", "messageType": "message", "createdDateTime": "2026-03-02", "lastModifiedDateTime": "2026-03-02", "deletedDateTime": null, "subject": null, "replyToId": "1", "from": {"user": {"displayName": "Blake Sample", "id": "user-blake-sample"}}, "body": {"contentType": "html", "content": "reply"}, "reactions": [], "mentions": [], "webUrl": "https://teams.example.com/l/message/19%3Achannel%40thread.example.com/2"}]}}]}, "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["-h"], "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["--help"], "expect_exit": 0, "env": {"COLUMNS": "50"}},
+    {"script": "teams_feedback.py", "args": [], "expect_exit": 2},
+    {"script": "teams_feedback.py", "args": ["--format", "xml", "a.json"], "expect_exit": 2},
+    {"script": "teams_feedback.py", "args": ["--replies", "r.json", "a.json"], "expect_exit": 2},
+    {"script": "teams_feedback.py", "args": ["a.json", "--replies"], "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["a.json", "--replies", "r.json", "--rep", "r.json"], "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["a.json", "--re", "r.json"], "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["a.json", "--form", "json", "--si", "2026-01-01"], "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["a.json", "--since"], "expect_exit": 2},
+    {"script": "teams_feedback.py", "args": ["a.json", "--unknown"], "expect_exit": 2},
+    {"script": "teams_feedback.py", "args": ["--", "a.json"], "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["a.json", "--format=json", "--replies=r.json"], "expect_exit": 0},
+    {"script": "teams_feedback.py", "args": ["a.json", "-x"], "expect_exit": 2},
+    {"script": "teams_feedback.py", "args": ["-", "a.json"], "expect_exit": 1},
+    {"script": "teams_feedback.py", "args": ["a.json", "--since", "-1"], "expect_exit": 0}
+  ]
+}
