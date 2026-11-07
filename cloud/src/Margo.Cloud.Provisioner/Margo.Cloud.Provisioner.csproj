@@ -11,8 +11,17 @@
     <PackageReference Include="Azure.Storage.Blobs" />
     <PackageReference Include="Azure.Storage.Queues" />
     <PackageReference Include="Azure.ResourceManager" />
-    <PackageReference Include="Azure.ResourceManager.Resources" />
+    <PackageReference Include="Azure.ResourceManager.Resources.Deployments" />
     <PackageReference Include="Azure.ResourceManager.Authorization" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.Provisioner.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The one instance template, deployed for each hired Margo; the default for MARGO_INSTANCE_TEMPLATE. -->
+    <None Include="../../../autopilot/infra/instance.json" Link="instance.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

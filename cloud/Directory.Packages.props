@@ -13,6 +13,8 @@
     <PackageVersion Include="Azure.Storage.Queues" Version="12.28.1" />
     <PackageVersion Include="Azure.ResourceManager" Version="1.14.0" />
     <PackageVersion Include="Azure.ResourceManager.Resources" Version="1.12.0" />
+    <!-- ARM deployments moved here from Azure.ResourceManager.Resources (whose copies are obsolete and fail at run time). -->
+    <PackageVersion Include="Azure.ResourceManager.Resources.Deployments" Version="1.0.0" />
     <PackageVersion Include="Azure.ResourceManager.Authorization" Version="1.1.7" />
     <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.6.0" />
     <!-- Tokens (router and voice page sign-in checks) -->
