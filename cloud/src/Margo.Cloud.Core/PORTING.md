@@ -99,10 +99,11 @@ shapes). The C# output is compared to them exactly.
    provisioner would record `RouteException` where Python recorded `TypeError`. That field is
    diagnostic and already differs for Azure SDK exceptions.
 3. **JSON the reader refuses.** `PythonJson.Loads` uses `System.Text.Json`, which cannot hold the
-   literals `NaN`, `Infinity` and `-Infinity` or an escaped lone surrogate; these and nesting
-   deeper than 1000 are reported as not JSON ("route table is not JSON", "provisioning message is
-   not JSON"). Python accepts them, but no Python writer of the shared formats produces them
-   (nothing stores a float or a lone surrogate there).
+   literals `NaN`, `Infinity` and `-Infinity` or a lone surrogate (escaped, or raw in the C#
+   string); these and nesting deeper than 1000 are reported as not JSON ("route table is not
+   JSON", "provisioning message is not JSON"), always as a `JsonException` from `Loads`. Python
+   accepts them (its C scanner nests to several thousand levels), but no Python writer of the
+   shared formats produces them (nothing stores a float or a lone surrogate there).
 4. **`ParseMessage` is a composition.** Python's provisioner does `check_message(json.loads(raw))`
    and drops a message on `ValueError`. `ParseMessage` does both and throws `RouteException`
    ("provisioning message is not JSON") where Python raised `JSONDecodeError`; both are dropped.
@@ -133,7 +134,13 @@ shapes). The C# output is compared to them exactly.
     left empty there); `Instances.Plan(action, redeploy, state)`; `CheckMessage(ProvisioningMessage)`
     for operator enqueues.
 
-Kept as Python does it, though it may look odd: `RouteTable.Put` does not validate the key (a later
+Kept as Python does it, though it may look odd: Python 3.13 limits int/text conversion to 4300
+digits (`sys.get_int_max_str_digits()`), so `PythonJson.Loads` refuses a longer int literal (a
+route table or queue message holding one is not JSON), `int()` of a longer revision or
+`minReplicas` string fails, and `PythonJson.Dumps`/`RouteTable.Dumps` throw `ArgumentException`
+for a longer int (Python: `ValueError` from `json.dumps`). The last can happen after `Put`
+increments a 4300-digit revision: Python's `put` succeeds and its `dumps` fails, and so do these,
+so C# never writes a blob that Python cannot read. `RouteTable.Put` does not validate the key (a later
 load refuses it); `schema_version` equal to `1.0` or `true` is accepted (`1 == 1.0 == True`); an
 empty `agenticUserId` falls back to `aadObjectId`, and an empty `agenticAppId` is returned by
 `ActivityIdentity` (it fails later at `InstanceKey`); any action other than ensure or suspend is
@@ -141,8 +148,11 @@ planned as a retirement; `config.get("voiceName", "")` keeps a present `null`.
 
 ## Not ported
 
-- `InstanceBinding.open_ledger`: the binding supplies `Account`; the Guard and Orchestrator build
-  ledgers through `Margo.Cloud.State.Work`, so Core stays free of state code.
+- `InstanceBinding.open_ledger`: the binding supplies `Account`; its Python callers are
+  `orchestrator.py` (manager turns and the office queue) and `voice/server.py` (first use and the
+  office reader), so `Margo.Cloud.Orchestrator` and `Margo.Cloud.Voice` open the ledger through
+  `Margo.Cloud.State.Work` (Voice reaches it through Guard) with `binding.Account`. Core stays free
+  of state code.
 - `router/core.py` (`decide`, `voice_target`) and `provision/core.py` (`Provisioner`): they belong
   to `Margo.Cloud.Router` and `Margo.Cloud.Provisioner`, which call this project.
 
@@ -172,3 +182,23 @@ planned as a retirement; `config.get("voiceName", "")` keeps a present `null`.
   `cloud/contracts/` is outside its write scope.
 - Queue message encoding (text or Base64) must match between the Python and .NET Queue SDK
   clients; that is configured in the Router and Provisioner, not here, and is not verified here.
+- `PythonValues.TryNumber` (used by truthiness, `int()` and `Dumps`) reads numbers parsed by
+  `PythonJson.Loads`/`JsonNode.Parse` and C# `int`, `long` and `double` values. A node a caller
+  builds from another CLR type (`float`, `decimal`, `short`, `ulong`, ...) throws
+  `InvalidOperationException`. Python has no such values; build configuration from JSON text or
+  from `int`/`long`/`double`.
+
+## Review notes
+
+An independent review compared this port with the Python code by differential testing (about
+90,000 generated cases: float formatting, `json` round trips with and without `sort_keys`,
+`indent` and `ensure_ascii`, identifiers, keys, bindings, lifecycle messages, `check_message`,
+`deployment_parameters`, route-table load/put/dump and `stable_ids`/`is_email`). It fixed:
+
+- A raw lone surrogate in the text made `PythonJson.Loads` throw a bare `ArgumentException`, so
+  `RouteTable.Loads` and `Instances.ParseMessage` did not throw their documented `RouteException`.
+- Ints beyond Python's 4300-digit limit were accepted and written (see above).
+- `Instances.Lifecycle` could be cast back to a mutable `Dictionary`; it is now read-only.
+- `BindingException` and `RouteException` were not sealed (cloud/README.md: sealed by default).
+
+The only remaining difference the generated cases found is deviation 3 (lone surrogates).

@@ -99,6 +99,49 @@ public sealed class PythonJsonTests
     }
 
     [Fact]
+    public void Raw_lone_surrogates_are_a_json_exception_like_escaped_ones()
+    {
+        // Documented deviation: Python accepts both; System.Text.Json refuses to transcode a raw one
+        // (an ArgumentException) and to materialise an escaped one. Callers catch JsonException only.
+        Assert.ThrowsAny<JsonException>(() => PythonJson.Loads("[\"" + LoneSurrogate + "\"]"));
+        Assert.ThrowsAny<JsonException>(() => PythonJson.Loads("{\"" + LoneSurrogate + "\": 1}"));
+        Assert.ThrowsAny<JsonException>(() => PythonJson.Loads("{\"\\ud800\": 1}"));
+        Assert.Throws<ArgumentNullException>(() => PythonJson.Loads(null!));
+    }
+
+    [Fact]
+    public void Integers_beyond_pythons_digit_limit_are_refused_like_python()
+    {
+        // Python 3.13 limits int/str conversion to 4300 digits (sys.get_int_max_str_digits()):
+        // json.loads raises ValueError for a longer int literal, json.dumps for a longer int.
+        var limit = new string('9', 4300);
+        Assert.Equal(limit, PythonJson.Dumps(PythonJson.Loads(limit)));
+        Assert.Equal("[-" + limit + "]", PythonJson.Dumps(PythonJson.Loads("[-" + limit + "]")));
+        Assert.ThrowsAny<JsonException>(() => PythonJson.Loads("1" + limit));
+        Assert.ThrowsAny<JsonException>(() => PythonJson.Loads("{\"n\": [-1" + limit + "]}"));
+        Assert.Equal("Infinity", PythonJson.Dumps(PythonJson.Loads("1" + limit + ".0"))); // a float: no digit limit
+        Assert.Equal("Infinity", PythonJson.Dumps(PythonJson.Loads("1" + limit + "e0")));
+        var error = Assert.Throws<ArgumentException>(() => PythonJson.Dumps(JsonNode.Parse("[1" + limit + "]")));
+        Assert.StartsWith("Exceeds the limit (4300 digits) for integer string conversion", error.Message, StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() => PythonJson.Dumps(JsonNode.Parse("-1" + new string('0', 4300))));
+    }
+
+    [Fact]
+    public void Int_of_text_has_pythons_digit_limit()
+    {
+        // Python: int() of text with more than 4300 digits raises ValueError; underscores, signs and
+        // surrounding spaces are not digits, leading zeros are.
+        var limit = new string('1', 4300);
+        Assert.True(PythonValues.TryParseInt(limit, out var parsed));
+        Assert.Equal(limit, parsed.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        Assert.True(PythonValues.TryParseInt(" -" + limit + new string(' ', 5000), out _));
+        Assert.False(PythonValues.TryParseInt(limit + "1", out _));
+        Assert.False(PythonValues.TryParseInt("0" + limit, out _));
+        Assert.False(PythonValues.TryParseInt(string.Concat(Enumerable.Repeat("1_", 4300)) + "1", out _));
+        Assert.True(PythonValues.TryParseInt(string.Concat(Enumerable.Repeat("1_", 4299)) + "1", out _));
+    }
+
+    [Fact]
     public void Deep_nesting_up_to_the_limit_is_accepted()
     {
         var depth = PythonJson.MaxDepth;

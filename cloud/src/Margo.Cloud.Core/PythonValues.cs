@@ -93,7 +93,8 @@ internal static class PythonValues
         }
     }
 
-    /// <summary>Python's <c>int(text)</c> in base 10: stripped, signed, digits with single underscores.</summary>
+    /// <summary>Python's <c>int(text)</c> in base 10: stripped, signed, digits with single underscores,
+    /// at most <see cref="PythonJson.MaxIntDigits"/> digits (leading zeros count, underscores do not).</summary>
     internal static bool TryParseInt(string text, out BigInteger result)
     {
         result = BigInteger.Zero;
@@ -143,9 +144,9 @@ internal static class PythonValues
             index += consumed;
         }
 
-        if (digits.Length == 0 || !previousWasDigit)
+        if (digits.Length == 0 || !previousWasDigit || digits.Length > PythonJson.MaxIntDigits)
         {
-            return false;
+            return false; // the last: Python's ValueError beyond sys.get_int_max_str_digits()
         }
 
         result = BigInteger.Parse(digits.ToString(), NumberStyles.None, CultureInfo.InvariantCulture);

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -41,18 +42,20 @@ public sealed record AgentIdentity(string AgentIdentityId, string AgentUserId);
 public static class Instances
 {
     /// <summary>Agent 365 lifecycle notifications (activity name <c>agentLifecycle</c>), by lower-cased
-    /// <c>valueType</c>, and the provisioning action each one causes.</summary>
-    public static IReadOnlyDictionary<string, string> Lifecycle { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
-    {
-        ["agenticuseridentitycreated"] = ProvisioningActions.Ensure,
-        ["agenticuseridentityupdated"] = ProvisioningActions.Ensure,
-        ["agenticuserworkloadonboardingupdated"] = ProvisioningActions.Ensure,
-        ["agenticusermanagerupdated"] = ProvisioningActions.Ensure, // same container; the new manager gets a new account
-        ["agenticuserundeleted"] = ProvisioningActions.Ensure,
-        ["agenticuserenabled"] = ProvisioningActions.Ensure,
-        ["agenticuserdisabled"] = ProvisioningActions.Suspend,
-        ["agenticuserdeleted"] = ProvisioningActions.Retire,
-    };
+    /// <c>valueType</c>, and the provisioning action each one causes, in Python's order. Read-only:
+    /// it decides which platform events suspend or retire an instance.</summary>
+    public static IReadOnlyDictionary<string, string> Lifecycle { get; } = new ReadOnlyDictionary<string, string>(
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["agenticuseridentitycreated"] = ProvisioningActions.Ensure,
+            ["agenticuseridentityupdated"] = ProvisioningActions.Ensure,
+            ["agenticuserworkloadonboardingupdated"] = ProvisioningActions.Ensure,
+            ["agenticusermanagerupdated"] = ProvisioningActions.Ensure, // same container; the new manager gets a new account
+            ["agenticuserundeleted"] = ProvisioningActions.Ensure,
+            ["agenticuserenabled"] = ProvisioningActions.Ensure,
+            ["agenticuserdisabled"] = ProvisioningActions.Suspend,
+            ["agenticuserdeleted"] = ProvisioningActions.Retire,
+        });
 
     /// <summary>Provisioner configuration that <see cref="DeploymentParameters(string, string, string, JsonObject)"/>
     /// requires to be present and truthy, in Python's order (the order of the "missing" message).</summary>

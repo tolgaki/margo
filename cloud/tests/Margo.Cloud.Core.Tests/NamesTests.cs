@@ -121,6 +121,16 @@ public sealed class NamesTests
     }
 
     [Fact]
+    public void Error_types_are_sealed_value_errors()
+    {
+        // cloud/README.md: sealed by default. Python's BindingError and RouteError are unrelated ValueErrors.
+        Assert.True(typeof(BindingException).IsSealed);
+        Assert.True(typeof(RouteException).IsSealed);
+        Assert.Equal(typeof(ArgumentException), typeof(BindingException).BaseType);
+        Assert.Equal(typeof(ArgumentException), typeof(RouteException).BaseType);
+    }
+
+    [Fact]
     public void Resource_names_fit_azure_limits_for_any_key()
     {
         var names = Instances.ResourceNames(Key);

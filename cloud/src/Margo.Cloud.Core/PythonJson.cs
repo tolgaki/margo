@@ -15,16 +15,28 @@ namespace Margo.Cloud.Core;
 /// default separators, <c>ensure_ascii</c> escaping with lower-case hex, Python <c>int</c> text and
 /// <c>float.__repr__</c> (<c>1e+16</c>, <c>1e-05</c>, <c>100.0</c>, <c>-0.0</c>, <c>Infinity</c>).</para>
 /// <para><see cref="Loads"/> keeps Python's typing (a number with a fraction or exponent is a float,
-/// otherwise an int of any size) and resolves a repeated key as Python does: the last value wins at
-/// the key's first position. It rejects what <c>System.Text.Json</c> cannot represent and Python
-/// would accept: the literals <c>NaN</c>, <c>Infinity</c> and <c>-Infinity</c>, escaped lone
-/// surrogates, and nesting deeper than <see cref="MaxDepth"/>. Python never writes these for the data
-/// above.</para>
+/// otherwise an int of up to <see cref="MaxIntDigits"/> digits) and resolves a repeated key as
+/// Python does: the last value wins at the key's first position. It rejects what
+/// <c>System.Text.Json</c> cannot represent and Python would accept: the literals <c>NaN</c>,
+/// <c>Infinity</c> and <c>-Infinity</c>, lone surrogates (escaped or raw), and nesting deeper than
+/// <see cref="MaxDepth"/>. Python never writes these for the data above.</para>
+/// <para>Like Python 3.13, both directions refuse an int of more than <see cref="MaxIntDigits"/>
+/// digits: <see cref="Loads"/> with a <see cref="JsonException"/> (Python: <c>ValueError</c> from
+/// <c>json.loads</c>), <see cref="Dumps"/> with an <see cref="ArgumentException"/> (Python:
+/// <c>ValueError</c> from <c>json.dumps</c>), so C# never writes a number Python cannot read back.</para>
 /// </remarks>
 public static class PythonJson
 {
     /// <summary>The deepest nesting <see cref="Loads"/> accepts.</summary>
     public const int MaxDepth = 1000;
+
+    /// <summary>Python's default <c>sys.get_int_max_str_digits()</c>: the most digits an int may have
+    /// when it is converted from or to decimal text.</summary>
+    public const int MaxIntDigits = 4300;
+
+    /// <summary>Python's message for an int beyond <see cref="MaxIntDigits"/>.</summary>
+    internal const string IntDigitsMessage =
+        "Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit";
 
     private static readonly JsonDocumentOptions DocumentOptions = new() { MaxDepth = MaxDepth };
 
@@ -43,9 +55,16 @@ public static class PythonJson
             // System.Text.Json refuses to materialise a string with an escaped lone surrogate.
             throw new JsonException("JSON text holds a string that is not valid UTF-16", exc);
         }
+        catch (ArgumentException exc)
+        {
+            // ... and to transcode text that holds a raw lone surrogate.
+            throw new JsonException("JSON text holds a string that is not valid UTF-16", exc);
+        }
     }
 
     /// <summary>Serialise as Python's <c>json.dumps(value, sort_keys=..., indent=..., ensure_ascii=...)</c>.</summary>
+    /// <exception cref="ArgumentException">An int has more than <see cref="MaxIntDigits"/> digits
+    /// (Python raises <c>ValueError</c>).</exception>
     public static string Dumps(JsonNode? value, bool sortKeys = false, int? indent = null, bool ensureAscii = true)
     {
         var builder = new StringBuilder();
@@ -131,7 +150,13 @@ public static class PythonJson
             case JsonValueKind.String:
                 return JsonValue.Create(element.GetString()!);
             case JsonValueKind.Number:
-                return JsonValue.Create(element.Clone()); // keeps the number's text: int or float, any size
+                var raw = element.GetRawText();
+                if (raw.AsSpan().IndexOfAny('.', 'e', 'E') < 0 && raw.Length - (raw[0] == '-' ? 1 : 0) > MaxIntDigits)
+                {
+                    throw new JsonException(IntDigitsMessage); // Python: ValueError from int()
+                }
+
+                return JsonValue.Create(element.Clone()); // keeps the number's text: int or float
             case JsonValueKind.True:
                 return JsonValue.Create(true);
             case JsonValueKind.False:
@@ -258,9 +283,19 @@ public static class PythonJson
                     output.Append("false");
                     break;
                 case JsonValueKind.Number:
-                    output.Append(PythonValues.TryNumber(value, out var integer, out var real)
-                        ? integer.ToString(CultureInfo.InvariantCulture)
-                        : FormatFloat(real));
+                    if (!PythonValues.TryNumber(value, out var integer, out var real))
+                    {
+                        output.Append(FormatFloat(real));
+                        break;
+                    }
+
+                    var digits = integer.ToString(CultureInfo.InvariantCulture);
+                    if (digits.Length - (integer.Sign < 0 ? 1 : 0) > MaxIntDigits)
+                    {
+                        throw new ArgumentException(IntDigitsMessage); // Python: ValueError from str(int)
+                    }
+
+                    output.Append(digits);
                     break;
                 case JsonValueKind.Null:
                     output.Append("null");

@@ -131,6 +131,34 @@ public sealed class LifecycleTests
     }
 
     [Fact]
+    public void Unreadable_queue_text_is_not_json()
+    {
+        // Python's provisioner drops these (UnicodeEncodeError or ValueError); a raw lone surrogate
+        // used to escape ParseMessage as a plain ArgumentException.
+        var lone = "{\"action\": \"ensure\", \"agent_identity_id\": \"a" + LoneSurrogate + "\", \"agent_user_id\": \"b\"}";
+        Assert.Equal("provisioning message is not JSON", Assert.Throws<RouteException>(() => Instances.ParseMessage(lone)).Message);
+        var huge = "{\"action\": \"ensure\", \"agent_identity_id\": \"a\", \"agent_user_id\": \"b\", \"n\": 1" + new string('0', 4300) + "}";
+        Assert.Equal("provisioning message is not JSON", Assert.Throws<RouteException>(() => Instances.ParseMessage(huge)).Message);
+    }
+
+    [Fact]
+    public void Shared_tables_cannot_be_changed_by_callers()
+    {
+        // The lifecycle map decides which platform events retire an instance; Python's order is kept.
+        Assert.True(((ICollection<KeyValuePair<string, string>>)Instances.Lifecycle).IsReadOnly);
+        Assert.False(Instances.Lifecycle is IDictionary<string, string> { IsReadOnly: false });
+        Assert.Equal(
+            [
+                "agenticuseridentitycreated", "agenticuseridentityupdated", "agenticuserworkloadonboardingupdated",
+                "agenticusermanagerupdated", "agenticuserundeleted", "agenticuserenabled", "agenticuserdisabled", "agenticuserdeleted",
+            ],
+            Instances.Lifecycle.Keys);
+        Assert.True(((ICollection<string>)Instances.RequiredConfig).IsReadOnly);
+        Assert.True(((ICollection<string>)RouteStates.All).IsReadOnly);
+        Assert.True(((ICollection<string>)ProvisioningActions.All).IsReadOnly);
+    }
+
+    [Fact]
     public void Check_message_keeps_what_the_provisioner_reads()
     {
         var parsed = Instances.ParseMessage("""{"action": "ensure", "agent_identity_id": "a", "agent_user_id": "b", "event": 5, "redeploy": "yes", "key": "forged"}""");

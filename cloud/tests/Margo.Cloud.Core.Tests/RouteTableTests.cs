@@ -309,6 +309,46 @@ public sealed class RouteTableTests
     }
 
     [Fact]
+    public void Raw_lone_surrogates_are_refused_as_not_json_too()
+    {
+        // A raw lone surrogate (not an escape) used to escape as a plain ArgumentException.
+        var text = "{\"schema_version\": 1, \"routes\": {\"" + Key + "\": {\"state\": \"ready\", \"note\": \"" + LoneSurrogate + "\"}}}";
+        Assert.Equal("route table is not JSON", Assert.Throws<RouteException>(() => RouteTable.Loads(text)).Message);
+        var key = "{\"schema_version\": 1, \"routes\": {\"" + LoneSurrogate + "\": {\"state\": \"ready\"}}}";
+        Assert.Equal("route table is not JSON", Assert.Throws<RouteException>(() => RouteTable.Loads(key)).Message);
+    }
+
+    [Fact]
+    public void Integers_python_cannot_convert_are_refused_as_python_does()
+    {
+        // Expected results from Python 3.13 (int/str conversion limited to 4300 digits).
+        var nines = new string('9', 4300);
+        string Blob(string revision) => "{\"schema_version\": 1, \"routes\": {\"" + Key + "\": {\"state\": \"ready\", \"revision\": " + revision + "}}}";
+
+        // json.loads raises ValueError for a longer int literal: the table is not JSON.
+        Assert.Equal("route table is not JSON", Assert.Throws<RouteException>(() => RouteTable.Loads(Blob("1" + nines))).Message);
+
+        // int() of a longer revision string raises ValueError in put; nothing changes.
+        var longText = RouteTable.Loads(Blob("\"1" + nines + "\""));
+        var before = longText.Dumps();
+        Assert.Equal("malformed route entry", Assert.Throws<RouteException>(() => longText.Put(Key, Identity, User, RouteStates.Ready)).Message);
+        Assert.Equal(before, longText.Dumps());
+
+        // A 4300-digit revision loads and is incremented, but json.dumps cannot write the 4301-digit
+        // result (ValueError), so no blob that Python cannot read is ever written.
+        foreach (var revision in new[] { nines, "\"" + nines + "\"" })
+        {
+            var table = RouteTable.Loads(Blob(revision), new FixedTime(Now));
+            Assert.Contains(nines, table.Dumps(), StringComparison.Ordinal);
+            var entry = table.Put(Key, Identity, User, RouteStates.Suspended);
+            Assert.Null(entry.Revision); // does not fit a long
+            Assert.Equal(RouteStates.Suspended, table.Get(Key)!.State);
+            var error = Assert.Throws<ArgumentException>(() => table.Dumps());
+            Assert.StartsWith("Exceeds the limit (4300 digits) for integer string conversion", error.Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void States_and_raw_entries_are_exposed()
     {
         Assert.Equal(["ready", "provisioning", "suspended", "retired", "failed"], RouteStates.All);

@@ -154,6 +154,9 @@ public sealed class RouteTable
     }
 
     /// <summary>The blob text: Python's <c>json.dumps({"schema_version": 1, "routes": ...}, sort_keys=True, indent=1)</c>.</summary>
+    /// <exception cref="ArgumentException">An int in the table has more than
+    /// <see cref="PythonJson.MaxIntDigits"/> digits, which Python could not read back (Python raises
+    /// <c>ValueError</c> here too).</exception>
     public string Dumps()
     {
         var root = new JsonObject
@@ -235,8 +238,16 @@ public sealed class RouteTable
         return new RouteEntry(entry);
     }
 
-    private static JsonNode Integer(BigInteger value) =>
-        value >= long.MinValue && value <= long.MaxValue
-            ? JsonValue.Create((long)value)
-            : PythonJson.Loads(value.ToString(CultureInfo.InvariantCulture))!;
+    /// <summary>An int node of any size. Python's <c>put</c> computes a revision past the digit limit
+    /// without complaint; <see cref="Dumps"/> then refuses it, as <c>json.dumps</c> does.</summary>
+    private static JsonValue Integer(BigInteger value)
+    {
+        if (value >= long.MinValue && value <= long.MaxValue)
+        {
+            return JsonValue.Create((long)value);
+        }
+
+        using var document = JsonDocument.Parse(value.ToString(CultureInfo.InvariantCulture));
+        return JsonValue.Create(document.RootElement.Clone())!; // a number, never JSON null
+    }
 }
