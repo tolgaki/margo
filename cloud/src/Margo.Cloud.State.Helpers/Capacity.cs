@@ -356,7 +356,8 @@ public sealed class CapacityScript : IStateScript
         {
             var input = args.GetString("input")!;
             var text = input == "-" ? PyProcess.ReadStdin(stdin) : PyIO.ReadTextFile(PyPath.Normalize(input));
-            PyIO.Print(stdout, PyJson.Dumps(Capacity.Calculate(PyJson.Loads(text)), indent: 2, allowNan: false));
+            // json.loads from main(): PyJsonLoad also models the C recursion budget near the nesting limit.
+            PyIO.Print(stdout, PyJson.Dumps(Capacity.Calculate(PyJsonLoad.Loads(text)), indent: 2, allowNan: false));
         }
         catch (Exception ex) when (ex is PyValueError or PyOSError)
         {

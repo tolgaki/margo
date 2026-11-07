@@ -197,6 +197,12 @@ def cmd_write(path, data):
     target.chmod(0o600)
 
 
+def cmd_write_nested(path, depth):
+    """Write prefix + depth '[' + inner + depth ']' + suffix (stdin: a JSON [prefix, inner, suffix])."""
+    prefix, inner, suffix = _stdin_json()
+    cmd_write(path, (prefix + "[" * depth + inner + "]" * depth + suffix).encode("utf-8"))
+
+
 def main():
     parser = argparse.ArgumentParser(description="contract probe for the stateless helpers (not a Margo command)")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -211,6 +217,9 @@ def main():
     for name in ("write", "write-hex"):
         command = sub.add_parser(name)
         command.add_argument("path")
+    command = sub.add_parser("write-nested")
+    command.add_argument("path")
+    command.add_argument("depth", type=int)
     args = parser.parse_args()
     if args.command == "dump":
         # Called straight from main(), as teams_feedback.py and engage_parse.py call it, so the
@@ -227,6 +236,8 @@ def main():
         cmd_write(args.path, sys.stdin.read().encode("utf-8"))
     elif args.command == "write-hex":
         cmd_write(args.path, bytes.fromhex(sys.stdin.read()))
+    elif args.command == "write-nested":
+        cmd_write_nested(args.path, args.depth)
     else:
         {"ops": cmd_ops, "compare": cmd_compare, "numbers": cmd_numbers, "capacity": cmd_capacity}[args.command]()
     return 0

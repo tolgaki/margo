@@ -363,7 +363,8 @@ public static class EngageParse
             JsonNode? parsed;
             try
             {
-                parsed = PyJson.Loads(Unescape(blob));
+                // Near the nesting limit CPython raises RecursionError instead (PyJsonLoad), which is not salvaged.
+                parsed = PyJsonLoad.Loads(Unescape(blob));
             }
             catch (PyJsonDecodeError)
             {
