@@ -1,0 +1,120 @@
+{
+  "description": "A surfaced duplicate group is not resurfaced member by member on later or smaller pages.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "duplicate-0",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "Same exact synthetic observation",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:duplicate-0"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "duplicate-1",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "Same exact synthetic observation",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:duplicate-1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "duplicate-2",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "Same exact synthetic observation",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:duplicate-2"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 1,
+            "scan_limit": 3
+          },
+          "save": "first"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${first}"
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 1,
+            "scan_limit": 1,
+            "after": "${first.next_after}"
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "scan_limit": 1
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "scan_limit": 2
+          }
+        }
+      ]
+    }
+  ]
+}

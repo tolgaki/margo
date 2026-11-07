@@ -1,0 +1,433 @@
+{
+  "description": "End to end: constants, a tool inventory, synthetic failure then success, a replay, an existing execution receipt, a lesson proposed and activated, a trend, and one consolidation page delivered once.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "const": "MAX_OBSERVATIONS"
+        },
+        {
+          "const": "TREND_TYPES"
+        },
+        {
+          "const": "DEFAULT_TREND"
+        },
+        {
+          "const": "__doc__"
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "b": 1,
+              "a": [
+                1.5,
+                "é"
+              ]
+            }
+          ]
+        },
+        {
+          "write": "tools.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/tools.json"
+          },
+          "save": "cap_observed"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${cap_observed.memory_ids.0}"
+          ],
+          "save": "cap"
+        },
+        {
+          "write": "good.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${cap.metadata.environment_requirements}",
+            "capability_id": "${cap.id}",
+            "input": {
+              "query": "synthetic query"
+            }
+          },
+          "save": "good_sha"
+        },
+        {
+          "write": "bad.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${cap.metadata.environment_requirements}",
+            "capability_id": "${cap.id}",
+            "input": {
+              "query": 42
+            }
+          },
+          "save": "bad_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/bad.json",
+                "sha256": "${bad_sha}"
+              }
+            }
+          ],
+          "save": "v1"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            2,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "${good_sha}"
+              }
+            }
+          ],
+          "save": "v2"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            3,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "${good_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "synthetic",
+            "test",
+            "fixture-1",
+            "v1",
+            {
+              "synthetic": true
+            },
+            "https://example.com/synthetic"
+          ],
+          "save": "src1"
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Synthetic action receipt fixture",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                "${src1}"
+              ]
+            },
+            "claim-1"
+          ],
+          "save": "item1"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message-1",
+                "recipients": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic fixture; never delivered."
+              },
+              "why": "Local receipt regression test, not a live tool call",
+              "source_refs": [
+                "${src1}"
+              ],
+              "target_fingerprint": "synthetic-v1",
+              "work_item_id": "${item1.id}"
+            }
+          ],
+          "save": "act1"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act1.id}",
+            1,
+            "${act1.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act1.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}",
+              "action_hash": "${act1.action_hash}"
+            },
+            "${now+30m}"
+          ]
+        },
+        {
+          "call": "begin",
+          "on": "ledger",
+          "args": [
+            "${act1.id}",
+            1,
+            {
+              "checked_at": "${now}",
+              "target_fingerprint": "synthetic-v1",
+              "source_refs": [
+                "${src1}"
+              ]
+            }
+          ],
+          "save": "att1"
+        },
+        {
+          "call": "finish",
+          "on": "ledger",
+          "args": [
+            "${att1.attempt_id}",
+            "succeeded",
+            {
+              "kind": "tool_result",
+              "reference": "tool:synthetic-existing-receipt",
+              "outcome": "succeeded",
+              "recorded_at": "2026-08-01T00:00:00Z",
+              "environment": "${cap.metadata.environment_requirements}",
+              "capability_id": "${cap.id}",
+              "capability_hash": "${cap.metadata.content_hash}"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET id=? WHERE id=?",
+          "params": [
+            "exec_att1",
+            "${att1.attempt_id}"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            3,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att1"
+            }
+          ],
+          "save": "v3"
+        },
+        {
+          "call": "lesson_plan",
+          "on": "learning",
+          "args": [
+            "lesson-a",
+            {
+              "title": "Use the exposed synthetic query input shape",
+              "scope": "synthetic query preparation",
+              "trigger": "Before preparing the synthetic query",
+              "goal": "Avoid an invalid input shape",
+              "preconditions": [
+                "Use the pinned host and tool schema"
+              ],
+              "procedure": [
+                "Provide a nonempty string query.",
+                "Keep every external action behind its existing approval."
+              ],
+              "risk": "read_only",
+              "capability_refs": [
+                {
+                  "id": "${cap.id}",
+                  "revision": 4
+                }
+              ],
+              "evidence": [
+                {
+                  "capability_id": "${cap.id}",
+                  "observation": {
+                    "kind": "synthetic_observation",
+                    "fixture": {
+                      "path": "${dir}/good.json",
+                      "sha256": "${good_sha}"
+                    }
+                  }
+                }
+              ],
+              "counterexamples": []
+            }
+          ],
+          "save": "lesson"
+        },
+        {
+          "call": "activate_lesson",
+          "on": "learning",
+          "args": [
+            "${lesson.id}",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${lesson.id}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "t1",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "tool_failures",
+              "window_start": "2026-08-01T00:00:00Z",
+              "window_end": "2026-09-01T00:00:00Z",
+              "population": 10,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "save": "t"
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "plan"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${plan}"
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${plan}"
+          ]
+        }
+      ]
+    }
+  ]
+}

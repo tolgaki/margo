@@ -1,0 +1,155 @@
+{
+  "description": "preference_sections and _preference_file: missing files and directories, symlinks (resolved), the 1 MiB source budget, invalid UTF-8, a kept BOM, placeholder errors, NUL and unknown-user paths.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "write": "preferences.md",
+          "text": "# Profile template\n## About me\n- **Name:** Dana\n- **Role:** {fill me in}\n- **Hours:** (e.g. 9 to 5)\n\n## Scheduling defaults\nKeep 90-minute focus blocks where possible.\n"
+        },
+        {
+          "call": "preference_sections",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md"
+          ]
+        },
+        {
+          "call": "_preference_file",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md"
+          ]
+        },
+        {
+          "call": "preference_sections",
+          "on": "learning",
+          "args": [
+            "${dir}/missing.md"
+          ]
+        },
+        {
+          "call": "preference_sections",
+          "on": "learning",
+          "args": [
+            "${dir}"
+          ]
+        },
+        {
+          "symlink": "linked.md",
+          "target": "${dir}/preferences.md"
+        },
+        {
+          "call": "preference_sections",
+          "on": "learning",
+          "args": [
+            "${dir}/linked.md"
+          ]
+        },
+        {
+          "call": "_preference_file",
+          "on": "learning",
+          "args": [
+            "${dir}/linked.md"
+          ]
+        },
+        {
+          "write": "large.md",
+          "text": "x",
+          "repeat": 1048577
+        },
+        {
+          "call": "preference_sections",
+          "on": "learning",
+          "args": [
+            "${dir}/large.md"
+          ]
+        },
+        {
+          "call": "preferences_plan",
+          "on": "learning",
+          "args": [
+            "${dir}/large.md"
+          ]
+        },
+        {
+          "sql": "SELECT COUNT(*) FROM memory_meta"
+        },
+        {
+          "write": "latin1.md",
+          "hex": "232320c3a974c3a90a6361666520e9"
+        },
+        {
+          "call": "preference_sections",
+          "on": "learning",
+          "args": [
+            "${dir}/latin1.md"
+          ]
+        },
+        {
+          "write": "bom.md",
+          "hex": "efbbbf232320424f4d0a626f64790a"
+        },
+        {
+          "call": "preference_sections",
+          "on": "learning",
+          "args": [
+            "${dir}/bom.md"
+          ]
+        },
+        {
+          "write": "bom-heading.md",
+          "hex": "efbbbf746578740a23232041667465720a626f64790a"
+        },
+        {
+          "call": "preference_sections",
+          "on": "learning",
+          "args": [
+            "${dir}/bom-heading.md"
+          ]
+        },
+        {
+          "write": "brace.md",
+          "text": "## A\n}\n"
+        },
+        {
+          "call": "preference_sections",
+          "on": "learning",
+          "args": [
+            "${dir}/brace.md"
+          ]
+        },
+        {
+          "call": "preferences_plan",
+          "on": "learning",
+          "args": [
+            "${dir}/brace.md"
+          ]
+        },
+        {
+          "call": "preference_sections",
+          "on": "learning",
+          "args": [
+            "${dir}/a\u0000b.md"
+          ]
+        },
+        {
+          "call": "preference_sections",
+          "on": "learning",
+          "args": [
+            "~nosuchuser-synthetic/preferences.md"
+          ]
+        }
+      ]
+    }
+  ]
+}

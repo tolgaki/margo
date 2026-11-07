@@ -1,0 +1,681 @@
+{
+  "description": "validation with pinned synthetic fixtures: asserted successes and malformed evidence are refused, the fixture is pinned by hash and must name the exact capability and environment, a bad input degrades and a good one validates (synthetic only, not runtime), known evidence replays without a revision, an old success cannot erase a newer failure, and a changed fixture or inventory file is refused.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "write": "tools.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/tools.json"
+          },
+          "save": "cap_observed"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${cap_observed.memory_ids.0}"
+          ],
+          "save": "cap"
+        },
+        {
+          "write": "good.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${cap.metadata.environment_requirements}",
+            "capability_id": "${cap.id}",
+            "input": {
+              "query": "synthetic query"
+            }
+          },
+          "save": "good_sha"
+        },
+        {
+          "write": "bad.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${cap.metadata.environment_requirements}",
+            "capability_id": "${cap.id}",
+            "input": {
+              "query": 42
+            }
+          },
+          "save": "bad_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "outcome": "succeeded"
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "tool_result",
+              "ref": "fictional"
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "nonexistent"
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "${good_sha}"
+              },
+              "outcome": "succeeded"
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            null
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            "succeeded"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": "path"
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json"
+              }
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "${good_sha}",
+                "x": 1
+              }
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": ""
+              }
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": 5
+              }
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/none.json",
+                "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": ""
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "x",
+              "extra": 1
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            2,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "${good_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            null,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "${good_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            true,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "${good_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "mem_unknown",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "${good_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "${good_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "write": "unpinned.json",
+          "json": {
+            "synthetic": 1,
+            "environment": "${cap.metadata.environment_requirements}",
+            "capability_id": "${cap.id}",
+            "input": {
+              "query": "synthetic query"
+            }
+          },
+          "save": "unpinned_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/unpinned.json",
+                "sha256": "${unpinned_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "write": "other-cap.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${cap.metadata.environment_requirements}",
+            "capability_id": "mem_other",
+            "input": {
+              "query": "synthetic query"
+            }
+          },
+          "save": "other-cap_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/other-cap.json",
+                "sha256": "${other-cap_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "write": "other-env.json",
+          "json": {
+            "synthetic": true,
+            "environment": {
+              "host": "other-host",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "capability_id": "${cap.id}",
+            "input": {
+              "query": "synthetic query"
+            }
+          },
+          "save": "other-env_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/other-env.json",
+                "sha256": "${other-env_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "write": "no-input.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${cap.metadata.environment_requirements}",
+            "capability_id": "${cap.id}"
+          },
+          "save": "no-input_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/no-input.json",
+                "sha256": "${no-input_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "write": "array.json",
+          "text": "[]",
+          "save": "array_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/array.json",
+                "sha256": "${array_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/bad.json",
+                "sha256": "${bad_sha}"
+              }
+            }
+          ],
+          "save": "degraded"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            2,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "${good_sha}"
+              }
+            }
+          ],
+          "save": "validated"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            3,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "${good_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            3,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/bad.json",
+                "sha256": "${bad_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "write": "second-good.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${cap.metadata.environment_requirements}",
+            "capability_id": "${cap.id}",
+            "input": {
+              "query": "another synthetic query"
+            }
+          },
+          "save": "second-good_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            3,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/second-good.json",
+                "sha256": "${second-good_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/tools.json"
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${cap.id}"
+          ]
+        },
+        {
+          "write": "good.json",
+          "json": {
+            "synthetic": true,
+            "changed": true
+          }
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            4,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/good.json",
+                "sha256": "${good_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "write": "tools.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-02T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            4,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/bad.json",
+                "sha256": "${bad_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${cap.id}"
+          ]
+        }
+      ]
+    }
+  ]
+}
