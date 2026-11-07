@@ -1,0 +1,101 @@
+{
+  "description": "An evidence-only bootstrap source stays a candidate with partial coverage: replay returns the same item, nothing is confirmed, the canonical id stays null and no action is proposed (test_evidence_only_bootstrap).",
+  "steps": [
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "review-evidence",
+        "scope": "fictional-bootstrap",
+        "external_id": "evidence:5ec195243e523a6ac2c5f0686f6bb39a6ca1a41a213eb430e9e182b1b6831aac",
+        "revision": "5ec195243e523a6ac2c5f0686f6bb39a6ca1a41a213eb430e9e182b1b6831aac",
+        "evidence": {
+          "identity_kind": "evidence_only",
+          "canonical_id": null,
+          "excerpt": "A fictional review was requested.",
+          "coverage": {
+            "later_resolution": "partial",
+            "sent_mail": "partial"
+          }
+        },
+        "web_link": "https://example.com/evidence-only"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "bootstrap-claim",
+        "data": {
+          "title": "Review a possible obligation",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_44113827b62acdb35fb957a0bcd71adc",
+              "revision": "5ec195243e523a6ac2c5f0686f6bb39a6ca1a41a213eb430e9e182b1b6831aac",
+              "fingerprint": "fb1631650d57e1b8acd1be0c18f08b5a4039ab6a13eda043664b7f285544c9f7"
+            }
+          ],
+          "notes": "Review only. Current obligation status unknown; later-resolution and sent-mail coverage partial."
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "bootstrap-claim",
+        "data": {
+          "title": "Review a possible obligation",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_44113827b62acdb35fb957a0bcd71adc",
+              "revision": "5ec195243e523a6ac2c5f0686f6bb39a6ca1a41a213eb430e9e182b1b6831aac",
+              "fingerprint": "fb1631650d57e1b8acd1be0c18f08b5a4039ab6a13eda043664b7f285544c9f7"
+            }
+          ],
+          "notes": "Review only. Current obligation status unknown; later-resolution and sent-mail coverage partial."
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "all",
+        "--json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "decisions"
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

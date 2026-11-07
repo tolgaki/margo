@@ -1,0 +1,175 @@
+{
+  "description": "work_state.py: Python exceptions outside the JSON error handler (OverflowError from astimezone and from binding a huge int, AttributeError from .get() on non-dict meeting/feedback data and recap_retry) exit 1, and nothing is written.",
+  "steps": [
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-1",
+        "revision": "v1",
+        "evidence": {
+          "quote": "Please review the fictional specification."
+        },
+        "web_link": "https://example.com/mail/1"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 1,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-2",
+        "revision": "v1",
+        "evidence": {
+          "quote": "Please review the fictional specification."
+        },
+        "web_link": "https://example.com/mail/1",
+        "observed_at": "0001-01-01T00:00:00+01:00"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 1,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-2",
+        "revision": "v1",
+        "evidence": {
+          "quote": "Please review the fictional specification."
+        },
+        "web_link": "https://example.com/mail/1",
+        "observed_at": "9999-12-31T23:59:59-01:00"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "occurrence-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 1,
+      "stdin": {
+        "data": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "feedback-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 1,
+      "stdin": {
+        "data": "text",
+        "state": "recorded"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "goal-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "occurrence-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 1,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "occurrence-1",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "recap_retry": "soon"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 1,
+      "stdin": {
+        "claim_key": "big",
+        "data": {
+          "title": "Review fictional specification",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "outcome_id": 1180591620717411303424
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "all"
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

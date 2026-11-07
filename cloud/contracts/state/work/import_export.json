@@ -1,0 +1,1004 @@
+{
+  "description": "work_state.py import-preview/import-commitments/export-commitments: Markdown is never parsed or confirmed, structured legacy JSON needs the reviewed digest and exact human import evidence, imports are transactional and replay-safe, every structured validation error, json.loads quirks (duplicate keys, NaN in the output, BOM, CRLF translation before hashing), read errors, and the confirmed-only view: managed replacement, hand-edit and unmanaged-file refusal, adopting a reviewed digest, symlink refusal, missing directories, ~ and relative paths (tests: import_preview_repeat_and_hand_edit_detection, import_is_atomic_and_changes_require_explicit_review).",
+  "steps": [
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-1",
+        "revision": "v1",
+        "evidence": {
+          "quote": "Please review the fictional specification."
+        },
+        "web_link": "https://example.com/mail/1"
+      }
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "write": "legacy.md",
+          "text": "# Commitments\n- Maybe a promise someday.\n"
+        },
+        {
+          "write": "reviewed.json",
+          "json": {
+            "schema_version": 1,
+            "items": [
+              {
+                "legacy_id": "legacy-1",
+                "state": "confirmed",
+                "data": {
+                  "title": "Confirmed fictional commitment",
+                  "owner": "alex@example.com",
+                  "direction": "owe",
+                  "due": null,
+                  "source_refs": [
+                    {
+                      "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                      "revision": "v1",
+                      "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "write": "bad.json",
+          "json": {
+            "schema_version": 1,
+            "items": [
+              {
+                "legacy_id": "one",
+                "state": "confirmed",
+                "data": {
+                  "title": "Fictional",
+                  "owner": null,
+                  "due": null,
+                  "direction": "own",
+                  "source_refs": [
+                    {
+                      "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                      "revision": "v1",
+                      "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                    }
+                  ]
+                }
+              },
+              {
+                "legacy_id": "two",
+                "state": "confirmed",
+                "data": {
+                  "title": "Missing required data"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "write": "multi.json",
+          "json": {
+            "schema_version": 1,
+            "items": [
+              {
+                "legacy_id": "m-candidate",
+                "state": "candidate",
+                "data": {
+                  "title": "Unreviewed line\nwith a newline",
+                  "owner": null,
+                  "due": null,
+                  "direction": "own",
+                  "source_refs": [
+                    {
+                      "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                      "revision": "v1",
+                      "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                    }
+                  ]
+                }
+              },
+              {
+                "legacy_id": "m-resolved",
+                "state": "resolved",
+                "data": {
+                  "title": "Done fictional work",
+                  "owner": "blair@example.com",
+                  "due": "2026-09-30",
+                  "direction": "waiting_on",
+                  "source_refs": [
+                    {
+                      "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                      "revision": "v1",
+                      "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                    }
+                  ]
+                }
+              },
+              {
+                "legacy_id": "m-cancelled",
+                "state": "cancelled",
+                "data": {
+                  "title": "Cancelled fictional work",
+                  "owner": null,
+                  "due": null,
+                  "direction": "owe",
+                  "confirmation_source": "conversation:fictional/9",
+                  "source_refs": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "write": "dup.json",
+          "json": {
+            "schema_version": 1,
+            "items": [
+              {
+                "legacy_id": "same",
+                "state": "confirmed",
+                "data": {
+                  "title": "Confirmed fictional commitment",
+                  "owner": "alex@example.com",
+                  "direction": "owe",
+                  "due": null,
+                  "source_refs": [
+                    {
+                      "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                      "revision": "v1",
+                      "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                    }
+                  ]
+                }
+              },
+              {
+                "legacy_id": "same",
+                "state": "confirmed",
+                "data": {
+                  "title": "Confirmed fictional commitment",
+                  "owner": "alex@example.com",
+                  "direction": "owe",
+                  "due": null,
+                  "source_refs": [
+                    {
+                      "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                      "revision": "v1",
+                      "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "write": "v2.json",
+          "json": {
+            "schema_version": 2,
+            "items": [
+              {
+                "legacy_id": "x",
+                "state": "confirmed",
+                "data": {
+                  "title": "Confirmed fictional commitment",
+                  "owner": "alex@example.com",
+                  "direction": "owe",
+                  "due": null,
+                  "source_refs": [
+                    {
+                      "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                      "revision": "v1",
+                      "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "write": "v1-float.json",
+          "json": {
+            "schema_version": 1.0,
+            "items": []
+          }
+        },
+        {
+          "write": "v-true.json",
+          "json": {
+            "schema_version": true,
+            "items": []
+          }
+        },
+        {
+          "write": "noitems.json",
+          "json": {
+            "schema_version": 1,
+            "items": {
+              "x": 1
+            }
+          }
+        },
+        {
+          "write": "array.json",
+          "json": [
+            1,
+            2
+          ]
+        },
+        {
+          "write": "missingkey.json",
+          "json": {
+            "schema_version": 1,
+            "items": [
+              {
+                "legacy_id": "x",
+                "state": "confirmed"
+              }
+            ]
+          }
+        },
+        {
+          "write": "emptyid.json",
+          "json": {
+            "schema_version": 1,
+            "items": [
+              {
+                "legacy_id": " ",
+                "state": "confirmed",
+                "data": {
+                  "title": "Confirmed fictional commitment",
+                  "owner": "alex@example.com",
+                  "direction": "owe",
+                  "due": null,
+                  "source_refs": [
+                    {
+                      "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                      "revision": "v1",
+                      "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "write": "intid.json",
+          "json": {
+            "schema_version": 1,
+            "items": [
+              {
+                "legacy_id": 7,
+                "state": "confirmed",
+                "data": {
+                  "title": "Confirmed fictional commitment",
+                  "owner": "alex@example.com",
+                  "direction": "owe",
+                  "due": null,
+                  "source_refs": [
+                    {
+                      "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                      "revision": "v1",
+                      "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "write": "badstate.json",
+          "json": {
+            "schema_version": 1,
+            "items": [
+              {
+                "legacy_id": "x",
+                "state": "done",
+                "data": {
+                  "title": "Confirmed fictional commitment",
+                  "owner": "alex@example.com",
+                  "direction": "owe",
+                  "due": null,
+                  "source_refs": [
+                    {
+                      "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                      "revision": "v1",
+                      "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "write": "liststate.json",
+          "json": {
+            "schema_version": 1,
+            "items": [
+              {
+                "legacy_id": "x",
+                "state": [
+                  "confirmed"
+                ],
+                "data": {
+                  "title": "Confirmed fictional commitment",
+                  "owner": "alex@example.com",
+                  "direction": "owe",
+                  "due": null,
+                  "source_refs": [
+                    {
+                      "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                      "revision": "v1",
+                      "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "write": "datastr.json",
+          "json": {
+            "schema_version": 1,
+            "items": [
+              {
+                "legacy_id": "x",
+                "state": "confirmed",
+                "data": "title"
+              }
+            ]
+          }
+        },
+        {
+          "write": "rowlist.json",
+          "json": {
+            "schema_version": 1,
+            "items": [
+              [
+                1
+              ]
+            ]
+          }
+        },
+        {
+          "write": "nan.json",
+          "text": "{\"schema_version\": 1, \"items\": [{\"legacy_id\": \"n\", \"state\": \"candidate\", \"data\": {\"x\": NaN}}]}"
+        },
+        {
+          "write": "dupkeys.json",
+          "text": "{\"schema_version\": 1, \"items\": [], \"items\": [{\"legacy_id\": \"dk\", \"state\": \"confirmed\", \"data\": {\"title\": \"Confirmed fictional commitment\", \"owner\": \"alex@example.com\", \"direction\": \"owe\", \"due\": null, \"source_refs\": [{\"source_id\": \"src_a5c99fb8406e7b79f1280431b36e9fd1\", \"revision\": \"v1\", \"fingerprint\": \"102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4\"}]}}]}"
+        },
+        {
+          "write": "crlf.json",
+          "text": "{\"schema_version\": 1,\r\n \"items\": []}\r\n"
+        },
+        {
+          "write": "bom.json",
+          "text": "﻿{\"schema_version\": 1, \"items\": []}"
+        },
+        {
+          "write": "bad-utf8.json",
+          "hex": "7b22ff227d"
+        },
+        {
+          "write": "evidence-md.json",
+          "json": {
+            "kind": "human_confirmation",
+            "actor": "alex@example.com",
+            "statement": "I reviewed this exact revision and approve the stated change.",
+            "evidence_ref": "conversation:fictional/session/turn/42",
+            "subject_id": "import:f3c49c866dff464554237c5c4aa1a0d7fd40a4b793fe93e89ae2d88fd9c116f2",
+            "revision": 1,
+            "decision": "import",
+            "decided_at": "2026-01-02T03:04:05Z"
+          }
+        },
+        {
+          "write": "evidence-reviewed.json",
+          "json": {
+            "kind": "human_confirmation",
+            "actor": "alex@example.com",
+            "statement": "I reviewed this exact revision and approve the stated change.",
+            "evidence_ref": "conversation:fictional/session/turn/42",
+            "subject_id": "import:bac0e2e59b82c3ee2ad0a4031b3379e034195500760eafbf0bb6581b0c651101",
+            "revision": 1,
+            "decision": "import",
+            "decided_at": "2026-01-02T03:04:05Z"
+          }
+        },
+        {
+          "write": "evidence-wrong.json",
+          "json": {
+            "kind": "human_confirmation",
+            "actor": "alex@example.com",
+            "statement": "I reviewed this exact revision and approve the stated change.",
+            "evidence_ref": "conversation:fictional/session/turn/42",
+            "subject_id": "import:f3c49c866dff464554237c5c4aa1a0d7fd40a4b793fe93e89ae2d88fd9c116f2",
+            "revision": 1,
+            "decision": "import",
+            "decided_at": "2026-01-02T03:04:05Z"
+          }
+        },
+        {
+          "write": "evidence-confirm.json",
+          "json": {
+            "kind": "human_confirmation",
+            "actor": "alex@example.com",
+            "statement": "I reviewed this exact revision and approve the stated change.",
+            "evidence_ref": "conversation:fictional/session/turn/42",
+            "subject_id": "import:bac0e2e59b82c3ee2ad0a4031b3379e034195500760eafbf0bb6581b0c651101",
+            "revision": 1,
+            "decision": "confirm",
+            "decided_at": "2026-01-02T03:04:05Z"
+          }
+        },
+        {
+          "write": "evidence-bad.json",
+          "json": {
+            "kind": "human_confirmation",
+            "actor": "alex@example.com",
+            "statement": "I reviewed this exact revision and approve the stated change.",
+            "evidence_ref": "conversation:fictional/session/turn/42",
+            "subject_id": "import:aaf4bb25347f35cfddc5146441858a111b7fa21e0c9b542cd4b34302b0f9eb5e",
+            "revision": 1,
+            "decision": "import",
+            "decided_at": "2026-01-02T03:04:05Z"
+          }
+        },
+        {
+          "write": "evidence-multi.json",
+          "json": {
+            "kind": "human_confirmation",
+            "actor": "alex@example.com",
+            "statement": "I reviewed this exact revision and approve the stated change.",
+            "evidence_ref": "conversation:fictional/session/turn/42",
+            "subject_id": "import:45b3d5341b2af7dea0b08d3585e9b0778fd2bda90d542b2e5fd66de6ee9ae488",
+            "revision": 1,
+            "decision": "import",
+            "decided_at": "2026-01-02T03:04:05Z"
+          }
+        },
+        {
+          "write": "evidence-list.json",
+          "json": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "import:45b3d5341b2af7dea0b08d3585e9b0778fd2bda90d542b2e5fd66de6ee9ae488",
+              "revision": 1,
+              "decision": "import",
+              "decided_at": "2026-01-02T03:04:05Z"
+            }
+          ]
+        },
+        {
+          "write": "view-hand.md",
+          "text": "# Hand-maintained commitments\n- Hand edit\n"
+        },
+        {
+          "symlink": "link.md",
+          "target": "{root}/probe/view.md"
+        }
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/legacy.md"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-commitments",
+        "{root}/probe/legacy.md",
+        "--digest",
+        "f3c49c866dff464554237c5c4aa1a0d7fd40a4b793fe93e89ae2d88fd9c116f2",
+        "--evidence",
+        "{root}/probe/evidence-md.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/reviewed.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-commitments",
+        "{root}/probe/reviewed.json",
+        "--digest",
+        "f3c49c866dff464554237c5c4aa1a0d7fd40a4b793fe93e89ae2d88fd9c116f2",
+        "--evidence",
+        "{root}/probe/evidence-reviewed.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-commitments",
+        "{root}/probe/reviewed.json",
+        "--digest",
+        "bac0e2e59b82c3ee2ad0a4031b3379e034195500760eafbf0bb6581b0c651101",
+        "--evidence",
+        "{root}/probe/evidence-wrong.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-commitments",
+        "{root}/probe/reviewed.json",
+        "--digest",
+        "bac0e2e59b82c3ee2ad0a4031b3379e034195500760eafbf0bb6581b0c651101",
+        "--evidence",
+        "{root}/probe/evidence-confirm.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-commitments",
+        "{root}/probe/reviewed.json",
+        "--digest",
+        "bac0e2e59b82c3ee2ad0a4031b3379e034195500760eafbf0bb6581b0c651101",
+        "--evidence",
+        "{root}/probe/evidence-list.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-commitments",
+        "{root}/probe/reviewed.json",
+        "--digest",
+        "bac0e2e59b82c3ee2ad0a4031b3379e034195500760eafbf0bb6581b0c651101",
+        "--evidence",
+        "{root}/probe/missing-evidence.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-commitments",
+        "{root}/probe/reviewed.json",
+        "--digest",
+        "bac0e2e59b82c3ee2ad0a4031b3379e034195500760eafbf0bb6581b0c651101",
+        "--evidence",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "kind": "human_confirmation",
+        "actor": "alex@example.com",
+        "statement": "I reviewed this exact revision and approve the stated change.",
+        "evidence_ref": "conversation:fictional/session/turn/42",
+        "subject_id": "import:bac0e2e59b82c3ee2ad0a4031b3379e034195500760eafbf0bb6581b0c651101",
+        "revision": 1,
+        "decision": "import",
+        "decided_at": "2026-01-02T03:04:05Z"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-commitments",
+        "{root}/probe/reviewed.json",
+        "--digest",
+        "bac0e2e59b82c3ee2ad0a4031b3379e034195500760eafbf0bb6581b0c651101",
+        "--evidence",
+        "{root}/probe/evidence-reviewed.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "all"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-commitments",
+        "{root}/probe/bad.json",
+        "--digest",
+        "aaf4bb25347f35cfddc5146441858a111b7fa21e0c9b542cd4b34302b0f9eb5e",
+        "--evidence",
+        "{root}/probe/evidence-bad.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "all"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-commitments",
+        "{root}/probe/multi.json",
+        "--digest",
+        "45b3d5341b2af7dea0b08d3585e9b0778fd2bda90d542b2e5fd66de6ee9ae488",
+        "--evidence",
+        "{root}/probe/evidence-multi.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "all"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/dup.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/v2.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/v1-float.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/v-true.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/noitems.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/array.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/missingkey.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/emptyid.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/intid.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/badstate.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/liststate.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/datastr.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/rowlist.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/nan.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/dupkeys.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/crlf.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/bom.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/bad-utf8.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/missing.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "{root}/probe/./reviewed.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "probe/legacy.md"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "{root}/probe/view.md"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "{root}/probe/view.md"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "{root}/probe/legacy.md"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "{root}/probe/view.md",
+        "--expected-digest",
+        "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "{root}/probe/missing-view.md",
+        "--expected-digest",
+        "329616a1762b92511081c06f6e91d97c6a4248061bab3137f02790f9ef38b0f3"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "{root}/probe/view-hand.md"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "{root}/probe/view-hand.md",
+        "--expected-digest",
+        "329616a1762b92511081c06f6e91d97c6a4248061bab3137f02790f9ef38b0f3"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "{root}/probe/view-hand.md"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "{root}/probe/link.md"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "{root}/probe/nodir/view.md"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "{root}/probe"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "~/view.md"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "view-relative.md",
+        "--expected-digest",
+        ""
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "./probe/../view-dotdot.md"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "write": "view.md",
+          "text": "# Commitments\n- Hand edit\n"
+        }
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "{root}/probe/view.md"
+      ],
+      "expect_exit": 2
+    }
+  ]
+}

@@ -1,0 +1,791 @@
+{
+  "description": "work_state.py record for private Markdown artifacts: prepared/approved content versions with human approval, edits of approved content must be saved as prepared, validation of every field (kind, text fields, open_questions, source refs, work item, receipt-only sharing) and staleness after a source revision (test_artifact_private_versioning_approval_delivery_and_staleness, without the delivery part, which work_ledger_probe covers).",
+  "steps": [
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-1",
+        "revision": "v1",
+        "evidence": {
+          "quote": "Please review the fictional specification."
+        },
+        "web_link": "https://example.com/mail/1"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "claim-1",
+        "data": {
+          "title": "Review fictional specification",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "memo-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "memo-1",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "approved"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "memo-1",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "approved",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "artifact_01462074501c13f31647c4c02dfcd727",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "memo-1",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Revised private decision",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "approved",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "artifact_01462074501c13f31647c4c02dfcd727",
+          "revision": 2,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "memo-1",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Revised private decision",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "prepared"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "memo-1",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Revised private decision",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "approved",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "artifact_01462074501c13f31647c4c02dfcd727",
+          "revision": 3,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "memo-1",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Revised private decision",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "prepared"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": "poem",
+          "title": "Fictional review decision",
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": [
+            "decision_memo"
+          ],
+          "title": "Fictional review decision",
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": null,
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": "none",
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_missing",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "sharing": {
+            "state": "shared"
+          }
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "shared"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "v-no-item",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "artifact_kind": "status_update",
+          "title": "Fictional review decision",
+          "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": null,
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "artifact_01462074501c13f31647c4c02dfcd727"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-1",
+        "revision": "v2",
+        "evidence": "Changed question",
+        "web_link": "https://example.com/mail/1"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "artifact_01462074501c13f31647c4c02dfcd727"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "artifact",
+        "memo-1",
+        "--revision",
+        "5",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "artifact_kind": "decision_memo",
+          "title": "Fictional review decision",
+          "markdown": "# Revised private decision",
+          "audience": "Alex",
+          "purpose": "Choose the next review step",
+          "sensitivity": "unknown",
+          "proposed_next_action": "Review privately",
+          "open_questions": [
+            "No due date stated"
+          ],
+          "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "approved",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "artifact_01462074501c13f31647c4c02dfcd727",
+          "revision": 5,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "decisions"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "problems"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "history",
+        "artifact_01462074501c13f31647c4c02dfcd727"
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

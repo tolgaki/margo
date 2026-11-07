@@ -1,0 +1,2040 @@
+{
+  "description": "work_state.py record/recap-check for meetings: identity equals the occurrence, persisted bounded recap retries (exhausted budget, policy blocks stop retries, eligibility time, future next check), recap_retry(**data) binding and errors, immutable meeting identity, and every meeting validation rule (times, attendance evidence, topics, decision refs, retry policy) (tests: meeting_recap_persistence_budget_and_series, recap_policy_blocked_stops_and_retry_time_is_enforced).",
+  "steps": [
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-1",
+        "revision": "v1",
+        "evidence": {
+          "quote": "Please review the fictional specification."
+        },
+        "web_link": "https://example.com/mail/1"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "claim-1",
+        "data": {
+          "title": "Review fictional specification",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "other-identity",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "occurrence-1",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "occurrence-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "occurrence-1",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "occurrence-1",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "occurrence-1",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 0,
+            "max_attempts": 1,
+            "status": "pending",
+            "next_check_at": "2020-01-01T00:00:00+00:00"
+          }
+        },
+        "state": "recap_pending"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_9388a6db68da7568349331006b98a1b6",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:fictional-no-recap",
+        "next_check_at": "2999-01-01T00:00:00Z"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_9388a6db68da7568349331006b98a1b6",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:fictional-no-recap",
+        "next_check_at": "2999-01-01T00:00:00Z"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "all"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "occurrence-1",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-2",
+          "occurrence_id": "occurrence-1",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 1,
+            "max_attempts": 1,
+            "status": "exhausted",
+            "next_check_at": null
+          }
+        },
+        "state": "recap_pending"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "occurrence-1",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "different",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 1,
+            "max_attempts": 1,
+            "status": "exhausted",
+            "next_check_at": null
+          }
+        },
+        "state": "recap_pending"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "occurrence-2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "occurrence-2",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 0,
+            "max_attempts": 3,
+            "status": "pending",
+            "next_check_at": "2999-01-01T00:00:00Z"
+          }
+        },
+        "state": "recap_pending"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_dcd765ff0d0bb3a407be680ffd9b3557",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:too-early",
+        "next_check_at": "2999-01-01T00:00:00Z"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "occurrence-2",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "occurrence-2",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 0,
+            "max_attempts": 3,
+            "status": "pending",
+            "next_check_at": "2020-01-01T00:00:00+00:00"
+          }
+        },
+        "state": "recap_pending"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_dcd765ff0d0bb3a407be680ffd9b3557",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "result": "blocked",
+        "evidence_ref": "tool:fictional-policy-denial"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_dcd765ff0d0bb3a407be680ffd9b3557",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:retry-denial",
+        "next_check_at": "2999-01-01T00:00:00Z"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "occurrence-3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "occurrence-3",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 0,
+            "max_attempts": 3,
+            "status": "pending",
+            "next_check_at": "2020-01-01T00:00:00+00:00"
+          }
+        },
+        "state": "recap_pending"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_457fa7e8df55819f066aba8fdb321090",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:retry",
+        "next_check_at": "2020-01-01T00:00:00+00:00"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_457fa7e8df55819f066aba8fdb321090",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:retry"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_457fa7e8df55819f066aba8fdb321090",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "unknown",
+        "evidence_ref": "tool:retry"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_457fa7e8df55819f066aba8fdb321090",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": [
+          "pending"
+        ],
+        "evidence_ref": "tool:retry"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_457fa7e8df55819f066aba8fdb321090",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": ""
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_457fa7e8df55819f066aba8fdb321090",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_457fa7e8df55819f066aba8fdb321090",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:retry",
+        "next_check": "2999-01-01T00:00:00Z"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_457fa7e8df55819f066aba8fdb321090",
+        "--revision",
+        "7",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:retry",
+        "next_check_at": "2999-01-01T00:00:00Z"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_457fa7e8df55819f066aba8fdb321090",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:retry",
+        "next_check_at": "2999-01-01T00:00:00Z"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_457fa7e8df55819f066aba8fdb321090",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "available",
+        "evidence_ref": "tool:retry"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:retry"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "src_a5c99fb8406e7b79f1280431b36e9fd1",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:retry"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_missing",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:retry"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "occurrence-4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "occurrence-4",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "meeting_50ad52d193f274a83e80c568c12c8e55",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "result": "pending",
+        "evidence_ref": "tool:retry"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T09:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "noon",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "late",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": [
+            "present"
+          ],
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "present",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v-present",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v-present",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "present",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "attendance_evidence": "calendar:fictional"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v-default",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v-default",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_missing"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "topics": "x"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "topics": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "topics": [
+            {
+              "id": "t1",
+              "title": "Review issue",
+              "owner": null,
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "",
+              "state": "open"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "topics": [
+            {
+              "id": "t1",
+              "title": "Review issue",
+              "owner": null,
+              "created_at": "yesterday",
+              "why": "No decision yet",
+              "state": "open"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "topics": [
+            {
+              "id": "t1",
+              "title": "Review issue",
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "No decision yet",
+              "state": "open"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "topics": [
+            {
+              "id": "t1",
+              "title": "Review issue",
+              "owner": null,
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "No decision yet",
+              "state": "closed"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "topics": [
+            {
+              "id": "t1",
+              "title": "Review issue",
+              "owner": null,
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "No decision yet",
+              "state": [
+                "open"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "topics": [
+            {
+              "id": "t1",
+              "title": "Review issue",
+              "owner": null,
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "No decision yet",
+              "state": "open"
+            },
+            {
+              "id": "t1",
+              "title": "Again",
+              "owner": null,
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "No decision yet",
+              "state": "open"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "decision_refs": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "decision_refs": "x"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "decision_refs": 5
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "decision_refs": [
+            {
+              "canonical_id": "decision:1",
+              "web_link": "https://example.com/d/1",
+              "status": "maybe"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "decision_refs": [
+            {
+              "canonical_id": "decision:1",
+              "status": "current"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v-decisions",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v-decisions",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "topics": [
+            {
+              "id": "t1",
+              "title": "Review issue",
+              "owner": null,
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "No decision yet",
+              "state": "open"
+            },
+            {
+              "id": "t2",
+              "title": "Review issue",
+              "owner": null,
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "No decision yet",
+              "state": "resolved"
+            }
+          ],
+          "decision_refs": [
+            {
+              "canonical_id": "decision:1",
+              "web_link": "https://example.com/d/1",
+              "status": "superseded"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        },
+        "state": "recap_pending"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": [
+            1
+          ]
+        },
+        "state": "recap_pending"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": "0",
+            "max_attempts": 1,
+            "status": "pending",
+            "next_check_at": "2020-01-01T00:00:00+00:00"
+          }
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": true,
+            "max_attempts": 1,
+            "status": "pending",
+            "next_check_at": "2020-01-01T00:00:00+00:00"
+          }
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 11,
+            "max_attempts": 11,
+            "status": "exhausted",
+            "next_check_at": "2020-01-01T00:00:00+00:00"
+          }
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 2,
+            "max_attempts": 1,
+            "status": "exhausted",
+            "next_check_at": "2020-01-01T00:00:00+00:00"
+          }
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 0,
+            "max_attempts": 1,
+            "status": "waiting",
+            "next_check_at": "2020-01-01T00:00:00+00:00"
+          }
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 0,
+            "max_attempts": 1,
+            "status": [
+              "pending"
+            ],
+            "next_check_at": "2020-01-01T00:00:00+00:00"
+          }
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 1,
+            "max_attempts": 1,
+            "status": "pending",
+            "next_check_at": "2020-01-01T00:00:00+00:00"
+          }
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 0,
+            "max_attempts": 1,
+            "status": "pending",
+            "next_check_at": null
+          }
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v-exhausted",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v-exhausted",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {
+            "attempts": 3,
+            "max_attempts": 3,
+            "status": "exhausted",
+            "next_check_at": null
+          }
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v-empty-retry",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v-empty-retry",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "recap_retry": {}
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        },
+        "state": "reviewed"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-1",
+          "occurrence_id": "v",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        },
+        "state": "met"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "meeting_9388a6db68da7568349331006b98a1b6"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "history",
+        "meeting_dcd765ff0d0bb3a407be680ffd9b3557"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "waiting"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "decisions"
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

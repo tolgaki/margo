@@ -1,0 +1,1569 @@
+{
+  "description": "work_state.py record for feedback and rules: feedback needs exact human evidence, is immutable, may name an older stored subject revision, and an opt-out keeps only the do_not_learn marker (no correction or reason text in data or history); rules are advisory_only, need recorded (not opted-out) feedback, human activation/revocation/supersession, immutable accepted text, no overlapping active rules and no supersession cycles (tests: feedback_opt_out_and_rule_activation_revoke, feedback_can_reference_old_revision_but_never_silent_learning, rule_supersession_cycle_is_rejected, explicit_opt_out_state_strips_learning_text_without_flag).",
+  "steps": [
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-1",
+        "revision": "v1",
+        "evidence": {
+          "quote": "Please review the fictional specification."
+        },
+        "web_link": "https://example.com/mail/1"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "claim-1",
+        "data": {
+          "title": "Review fictional specification",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "patch": {
+          "notes": "Second revision"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "feedback-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 1,
+          "correction": "Use shorter invitations for this project only.",
+          "reason": null
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "feedback-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 1,
+          "correction": "Use shorter invitations for this project only.",
+          "reason": null
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_8d434d2984a478cb6fe8d63c4ef15d80",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "feedback-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 1,
+          "correction": "Use shorter invitations for this project only.",
+          "reason": null
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "feedback-1",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 1,
+          "correction": "Use shorter invitations for this project only.",
+          "reason": null
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_8d434d2984a478cb6fe8d63c4ef15d80",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "feedback-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 1,
+          "correction": "Changed",
+          "reason": null
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 99,
+          "correction": "Use shorter invitations for this project only.",
+          "reason": null
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_c9dd0a234969af681b36210b7d3105cc",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": "1",
+          "correction": "Use shorter invitations for this project only.",
+          "reason": null
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_c9dd0a234969af681b36210b7d3105cc",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": true,
+          "correction": "Use shorter invitations for this project only.",
+          "reason": null
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_c9dd0a234969af681b36210b7d3105cc",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "subject_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+          "subject_revision": 1,
+          "correction": "Use shorter invitations for this project only.",
+          "reason": null
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_c9dd0a234969af681b36210b7d3105cc",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "subject_id": "item_missing",
+          "subject_revision": 1,
+          "correction": "Use shorter invitations for this project only.",
+          "reason": null
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_c9dd0a234969af681b36210b7d3105cc",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "correction": "x"
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_c9dd0a234969af681b36210b7d3105cc",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 1,
+          "correction": "",
+          "reason": null
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_c9dd0a234969af681b36210b7d3105cc",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 1,
+          "correction": "Use shorter invitations for this project only.",
+          "reason": 5
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_c9dd0a234969af681b36210b7d3105cc",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 1,
+          "correction": "Use shorter invitations for this project only.",
+          "reason": null
+        },
+        "state": "learned",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_c9dd0a234969af681b36210b7d3105cc",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "v-reason",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 1,
+          "correction": "Use shorter invitations for this project only.",
+          "reason": "Fictional reason"
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_11440f82acb8c017a4abece882d07f72",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "omitted",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 1,
+          "correction": "Use shorter invitations for this project only.",
+          "reason": null,
+          "do_not_learn": true
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_12c1fa5c78964cde36d9130050e2a749",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "explicit-opt-out",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 1,
+          "correction": "PRIVATE_CORRECTION_SENTINEL",
+          "reason": "PRIVATE_REASON_SENTINEL"
+        },
+        "state": "do_not_learn",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_276f5c96e5bd276685a9673057efc889",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "feedback",
+        "opt-out-2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "subject_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+          "subject_revision": 1,
+          "do_not_learn": 1
+        },
+        "state": "recorded",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "feedback_45012677c768420085419a2b4ab9eb0e",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "feedback_276f5c96e5bd276685a9673057efc889"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "history",
+        "feedback_276f5c96e5bd276685a9673057efc889"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "history",
+        "feedback_12c1fa5c78964cde36d9130050e2a749"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "invalid",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_12c1fa5c78964cde36d9130050e2a749"
+          ],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "invalid",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "invalid",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "allow_sending",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "invalid",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "invalid",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "",
+            "x"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "invalid",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": "meeting-prep",
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "invalid",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "invalid",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": "feedback",
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "invalid",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": null,
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "invalid",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": " ",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "invalid",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_missing"
+          ],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "short-invites",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "short-invites",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        },
+        "state": "active"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "short-invites",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        },
+        "state": "active",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "rule_1f03c23308521152b80a2fc8fca6f297",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "short-invites",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Changed wording",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "rule_1f03c23308521152b80a2fc8fca6f297",
+          "revision": 2,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "short-invites",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        },
+        "state": "revoked",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "rule_1f03c23308521152b80a2fc8fca6f297",
+          "revision": 2,
+          "decision": "revoke",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "short-invites",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        },
+        "state": "active",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "rule_1f03c23308521152b80a2fc8fca6f297",
+          "revision": 3,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "short-invites",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        },
+        "state": "proposed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "rule_1f03c23308521152b80a2fc8fca6f297",
+          "revision": 4,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "overlap",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "inbox",
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "overlap",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "inbox",
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        },
+        "state": "active",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "rule_f486c178cadd596e4dbf5f4c50335c38",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "other-scope",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:other",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        },
+        "state": "active",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "rule_5b5e80b6bc68c0b71d68ae8ff72b4dcf",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "overlap",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "inbox",
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        },
+        "state": "rejected"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "overlap",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "inbox"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        },
+        "state": "proposed"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "first-rule",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "second-rule",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": [],
+          "supersedes": "rule_e7ef060b7eb4ce860baa066880328721"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "first-rule",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": [],
+          "supersedes": "rule_6762538027a5736f174148c248de23bb"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "third-rule",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": [],
+          "supersedes": "rule_5b5e80b6bc68c0b71d68ae8ff72b4dcf"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "third-rule",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": [],
+          "supersedes": "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "third-rule",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": [],
+          "supersedes": "rule_missing"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "third-rule",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": [],
+          "supersedes": "rule_6762538027a5736f174148c248de23bb"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "second-rule",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": [],
+          "supersedes": "rule_e7ef060b7eb4ce860baa066880328721"
+        },
+        "state": "superseded",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "rule_6762538027a5736f174148c248de23bb",
+          "revision": 1,
+          "decision": "supersede",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "rule",
+        "short-invites",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "wording": "Use concise invitations for fictional project syncs.",
+          "scope": "project:fictional",
+          "routines": [
+            "meeting-prep"
+          ],
+          "authority": "advisory_only",
+          "conflict_check": "No conflicts found",
+          "feedback_ids": [
+            "feedback_8d434d2984a478cb6fe8d63c4ef15d80"
+          ],
+          "source_refs": []
+        },
+        "state": "superseded",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "rule_1f03c23308521152b80a2fc8fca6f297",
+          "revision": 4,
+          "decision": "supersede",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "rule_1f03c23308521152b80a2fc8fca6f297"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "history",
+        "rule_1f03c23308521152b80a2fc8fca6f297"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "all"
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

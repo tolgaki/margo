@@ -2,10 +2,16 @@
 
   <PropertyGroup>
     <RootNamespace>Margo.Cloud.State.Work</RootNamespace>
+    <!-- LibraryImport (PosixFiles.rename) generates marshalling code that needs unsafe blocks. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.State.Tests" />
   </ItemGroup>
 
 </Project>
