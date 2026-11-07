@@ -1,0 +1,543 @@
+{
+  "description": "validation and _observation by capability shape: unbound skills need a named host, skills and undocumented schemas cannot be exercised synthetically, unsupported schema keywords fail closed without changing the record, nested input checks, and only active capability records can be validated.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "write": "unused.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/unused.json"
+          },
+          "save": "skillcap_observed"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${skillcap_observed.memory_ids.0}"
+          ],
+          "save": "skillcap"
+        },
+        {
+          "mkdir": "skills/example"
+        },
+        {
+          "write": "skills/example/SKILL.md",
+          "text": "# Example\n"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills"
+          ],
+          "save": "skills"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${skills.memory_ids.0}"
+          ],
+          "save": "unbound"
+        },
+        {
+          "write": "unbound-fixture.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${unbound.metadata.environment_requirements}",
+            "capability_id": "${unbound.id}",
+            "input": {
+              "query": "synthetic query"
+            }
+          },
+          "save": "unbound-fixture_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${unbound.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/unbound-fixture.json",
+                "sha256": "${unbound-fixture_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills",
+            {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            }
+          ],
+          "save": "hosted"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${hosted.memory_ids.0}"
+          ],
+          "save": "skill"
+        },
+        {
+          "write": "skill-fixture.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${skill.metadata.environment_requirements}",
+            "capability_id": "${skill.id}",
+            "input": {
+              "query": "synthetic query"
+            }
+          },
+          "save": "skill-fixture_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${skill.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/skill-fixture.json",
+                "sha256": "${skill-fixture_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "write": "oneof.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "oneof-tool",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "oneOf": [
+                    {
+                      "required": [
+                        "query"
+                      ]
+                    }
+                  ]
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/oneof.json"
+          },
+          "save": "oneof_observed"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${oneof_observed.memory_ids.0}"
+          ],
+          "save": "oneof"
+        },
+        {
+          "write": "oneof-fixture.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${oneof.metadata.environment_requirements}",
+            "capability_id": "${oneof.id}",
+            "input": {
+              "query": "synthetic query"
+            }
+          },
+          "save": "oneof-fixture_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${oneof.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/oneof-fixture.json",
+                "sha256": "${oneof-fixture_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${oneof.id}"
+          ]
+        },
+        {
+          "write": "loose.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "loose-tool",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "description": "anything"
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/loose.json"
+          },
+          "save": "loose_observed"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${loose_observed.memory_ids.0}"
+          ],
+          "save": "loose"
+        },
+        {
+          "write": "loose-fixture.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${loose.metadata.environment_requirements}",
+            "capability_id": "${loose.id}",
+            "input": {
+              "query": "synthetic query"
+            }
+          },
+          "save": "loose-fixture_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${loose.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/loose-fixture.json",
+                "sha256": "${loose-fixture_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "write": "listy.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "listy-tool",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "properties": {
+                    "query": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/listy.json"
+          },
+          "save": "listy_observed"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${listy_observed.memory_ids.0}"
+          ],
+          "save": "listy"
+        },
+        {
+          "write": "listy-fixture.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${listy.metadata.environment_requirements}",
+            "capability_id": "${listy.id}",
+            "input": {
+              "query": [
+                "a",
+                1
+              ]
+            }
+          },
+          "save": "listy-fixture_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${listy.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/listy-fixture.json",
+                "sha256": "${listy-fixture_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "plain-episode",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "title": "Synthetic episode",
+              "text": "Episode.",
+              "authority": "source_observed",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:episode"
+                }
+              ]
+            }
+          ],
+          "save": "episode"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${episode.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/loose-fixture.json",
+                "sha256": "${loose-fixture_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-capability",
+            {
+              "domain": "agent",
+              "kind": "capability",
+              "title": "Candidate capability",
+              "text": "Candidate.",
+              "authority": "source_observed",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:candidate"
+                }
+              ]
+            }
+          ],
+          "save": "candidate"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${candidate.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/loose-fixture.json",
+                "sha256": "${loose-fixture_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_observation",
+          "on": "learning",
+          "args": [
+            "${listy}",
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/listy-fixture.json",
+                "sha256": "${listy-fixture_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_observation",
+          "on": "learning",
+          "args": [
+            "${listy}",
+            null
+          ]
+        },
+        {
+          "call": "_observation",
+          "on": "learning",
+          "args": [
+            {
+              "id": "x",
+              "metadata": {
+                "environment_requirements": {
+                  "host": "unbound",
+                  "account": "${account}"
+                }
+              }
+            },
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/listy-fixture.json",
+                "sha256": "${listy-fixture_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_observation",
+          "on": "learning",
+          "args": [
+            {
+              "id": "x",
+              "metadata": {}
+            },
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/listy-fixture.json",
+                "sha256": "${listy-fixture_sha}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

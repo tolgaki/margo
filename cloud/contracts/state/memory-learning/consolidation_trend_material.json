@@ -1,0 +1,543 @@
+{
+  "description": "Trend window, configured definition, coverage and independent events are each material for re-review; _trend_evidence over hand-made metadata (deduplicated sorted outcomes, missing keys, unhashable and unorderable values).",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "material-trend",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "tool_failures",
+              "window_start": "2026-08-01T00:00:00Z",
+              "window_end": "2026-09-01T00:00:00Z",
+              "population": 10,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "save": "m1"
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "q1"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${q1}"
+          ]
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "material-trend",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "tool_failures",
+              "window_start": "2026-08-01T00:00:00Z",
+              "window_end": "2026-09-02T00:00:00Z",
+              "population": 10,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            1
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "q2"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${q2}"
+          ]
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 0.5,
+              "require_complete": false
+            }
+          ],
+          "save": "preview"
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 0.5,
+              "require_complete": false
+            }
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${preview.subject_id}",
+              "revision": 1,
+              "decision": "configure",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "material-trend",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "tool_failures",
+              "window_start": "2026-08-01T00:00:00Z",
+              "window_end": "2026-09-02T00:00:00Z",
+              "population": 10,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            2
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "q3"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${q3}"
+          ]
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "material-trend",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "tool_failures",
+              "window_start": "2026-08-01T00:00:00Z",
+              "window_end": "2026-09-02T00:00:00Z",
+              "population": 10,
+              "coverage": {
+                "status": "partial",
+                "observed_population": 10,
+                "expected_population": 12
+              },
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            3
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "q4"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${q4}"
+          ]
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "material-trend",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "tool_failures",
+              "window_start": "2026-08-01T00:00:00Z",
+              "window_end": "2026-09-02T00:00:00Z",
+              "population": 10,
+              "coverage": {
+                "status": "partial",
+                "observed_population": 10,
+                "expected_population": 12
+              },
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-3",
+                  "independence_key": "execution-3",
+                  "occurred_at": "2026-08-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-3"
+                    }
+                  ]
+                }
+              ]
+            },
+            4
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "q5"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${q5}"
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${m1.id}"
+          ]
+        },
+        {
+          "call": "_trend_evidence",
+          "on": "consolidation",
+          "args": [
+            "${m1}"
+          ]
+        },
+        {
+          "call": "_trend_evidence",
+          "on": "consolidation",
+          "args": [
+            {
+              "metadata": {}
+            }
+          ]
+        },
+        {
+          "call": "_trend_evidence",
+          "on": "consolidation",
+          "args": [
+            {
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "independence_key": "b",
+                    "matched": true
+                  },
+                  {
+                    "independence_key": "a",
+                    "matched": false
+                  },
+                  {
+                    "independence_key": "a",
+                    "matched": true
+                  },
+                  {
+                    "independence_key": "b",
+                    "matched": 1
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "call": "_trend_evidence",
+          "on": "consolidation",
+          "args": [
+            {
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "independence_key": "a"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "call": "_trend_evidence",
+          "on": "consolidation",
+          "args": [
+            {
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "independence_key": [
+                      "a"
+                    ],
+                    "matched": true
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "call": "_trend_evidence",
+          "on": "consolidation",
+          "args": [
+            {
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "independence_key": "a",
+                    "matched": true
+                  },
+                  {
+                    "independence_key": 1,
+                    "matched": true
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "call": "_trend_evidence",
+          "on": "consolidation",
+          "args": [
+            {
+              "metadata": "text"
+            }
+          ]
+        },
+        {
+          "call": "_trend_evidence",
+          "on": "consolidation",
+          "args": [
+            {}
+          ]
+        }
+      ]
+    }
+  ]
+}

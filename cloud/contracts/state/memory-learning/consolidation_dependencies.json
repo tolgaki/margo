@@ -1,0 +1,467 @@
+{
+  "description": "Memory-record dependencies are followed to a bounded depth; a lesson beyond the limit (or on an inferred parent) is proposed for revalidation.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-0",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 0",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic-root"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c0"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-1",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 1",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c0.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c1"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-2",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 2",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c1.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c2"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-3",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 3",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c2.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c3"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-4",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 4",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c3.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c4"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-5",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 5",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c4.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c5"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-6",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 6",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c5.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c6"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-7",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 7",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c6.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c7"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-8",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 8",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c7.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c8"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-9",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 9",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c8.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c9"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-10",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 10",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c9.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c10"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-11",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 11",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c10.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c11"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-12",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 12",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c11.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c12"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-13",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 13",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c12.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c13"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-14",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic dependency",
+              "text": "Synthetic layer 14",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c13.id}",
+                  "revision": "1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "c14"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bounded-chain-lesson",
+            {
+              "domain": "agent",
+              "kind": "lesson",
+              "authority": "inferred",
+              "title": "Synthetic bounded proposal",
+              "text": "Review this deeply derived candidate.",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c14.id}",
+                  "revision": "1"
+                }
+              ]
+            }
+          ],
+          "save": "lesson"
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "p1"
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            "${lesson}"
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            "${c3}"
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "memory_record",
+                  "ref": "x",
+                  "revision": "1"
+                },
+                [
+                  "x",
+                  1,
+                  "active",
+                  true,
+                  []
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "shallow-lesson",
+            {
+              "domain": "agent",
+              "kind": "lesson",
+              "authority": "inferred",
+              "title": "Shallow",
+              "text": "Review this shallow candidate.",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${c1.id}",
+                  "revision": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation"
+        }
+      ]
+    }
+  ]
+}

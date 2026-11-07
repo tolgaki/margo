@@ -1,0 +1,57 @@
+{
+  "description": "Delivery markers keep only hashes and IDs, never source wording, and no usage is recorded.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "private-candidate",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "Private synthetic wording should not be in delivery markers.",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:private-candidate"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "p1"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${p1}"
+          ]
+        },
+        {
+          "sql": "SELECT key, value FROM memory_meta WHERE key LIKE 'learning:surfaced:%' OR key LIKE 'learning:delivery:%' OR key LIKE 'learning:target-surfaced:%' ORDER BY key"
+        },
+        {
+          "sql": "SELECT COUNT(*) FROM memory_usage"
+        }
+      ]
+    }
+  ]
+}

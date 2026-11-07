@@ -1,0 +1,402 @@
+{
+  "description": "activate_lesson: exact human confirmation of the current candidate revision activates a reviewed scoped recipe that is recalled only in its pinned environment; a version change of the capability makes it ineligible without changing the record, and reviewed lessons cannot be re-proposed.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "write": "tools.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/tools.json"
+          },
+          "save": "cap0_observed"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${cap0_observed.memory_ids.0}"
+          ],
+          "save": "cap0"
+        },
+        {
+          "write": "success-cap.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${cap0.metadata.environment_requirements}",
+            "capability_id": "${cap0.id}",
+            "input": {
+              "query": "synthetic query"
+            }
+          },
+          "save": "success-cap_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap0.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/success-cap.json",
+                "sha256": "${success-cap_sha}"
+              }
+            }
+          ],
+          "save": "cap"
+        },
+        {
+          "call": "lesson_plan",
+          "on": "learning",
+          "args": [
+            "synthetic-lesson",
+            {
+              "title": "Use the exposed synthetic query input shape",
+              "scope": "synthetic query preparation",
+              "trigger": "Before preparing the synthetic query",
+              "goal": "Avoid an invalid input shape",
+              "preconditions": [
+                "Use the pinned host and tool schema"
+              ],
+              "procedure": [
+                "Provide a nonempty string query.",
+                "Keep every external action behind its existing approval."
+              ],
+              "risk": "read_only",
+              "capability_refs": [
+                {
+                  "id": "${cap.id}",
+                  "revision": "${cap.revision}"
+                }
+              ],
+              "evidence": [
+                {
+                  "capability_id": "${cap.id}",
+                  "observation": {
+                    "kind": "synthetic_observation",
+                    "fixture": {
+                      "path": "${dir}/success-cap.json",
+                      "sha256": "${success-cap_sha}"
+                    }
+                  }
+                }
+              ],
+              "counterexamples": []
+            }
+          ],
+          "save": "candidate"
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "environment": "${cap.metadata.environment_requirements}"
+          }
+        },
+        {
+          "call": "activate_lesson",
+          "on": "learning",
+          "args": [
+            "${candidate.id}",
+            1,
+            {}
+          ]
+        },
+        {
+          "call": "activate_lesson",
+          "on": "learning",
+          "args": [
+            "${candidate.id}",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${candidate.id}",
+              "revision": 2,
+              "decision": "confirm",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "activate_lesson",
+          "on": "learning",
+          "args": [
+            "${candidate.id}",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${candidate.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "activate_lesson",
+          "on": "learning",
+          "args": [
+            "${candidate.id}",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${candidate.id}",
+              "revision": 2,
+              "decision": "confirm",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "activate_lesson",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${cap.id}",
+              "revision": 2,
+              "decision": "confirm",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "activate_lesson",
+          "on": "learning",
+          "args": [
+            "mem_unknown",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "mem_unknown",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "activate_lesson",
+          "on": "learning",
+          "args": [
+            "${candidate.id}",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${candidate.id}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ],
+          "save": "accepted"
+        },
+        {
+          "call": "activate_lesson",
+          "on": "learning",
+          "args": [
+            "${candidate.id}",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${candidate.id}",
+              "revision": 2,
+              "decision": "confirm",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "environment": "${cap.metadata.environment_requirements}"
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "environment": {
+              "host": "other-host",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            }
+          }
+        },
+        {
+          "call": "lesson_plan",
+          "on": "learning",
+          "args": [
+            "synthetic-lesson",
+            {
+              "title": "Use the exposed synthetic query input shape",
+              "scope": "synthetic query preparation",
+              "trigger": "Before preparing the synthetic query",
+              "goal": "Avoid an invalid input shape",
+              "preconditions": [
+                "Use the pinned host and tool schema"
+              ],
+              "procedure": [
+                "Provide a nonempty string query.",
+                "Keep every external action behind its existing approval."
+              ],
+              "risk": "read_only",
+              "capability_refs": [
+                {
+                  "id": "${cap.id}",
+                  "revision": "${cap.revision}"
+                }
+              ],
+              "evidence": [
+                {
+                  "capability_id": "${cap.id}",
+                  "observation": {
+                    "kind": "synthetic_observation",
+                    "fixture": {
+                      "path": "${dir}/success-cap.json",
+                      "sha256": "${success-cap_sha}"
+                    }
+                  }
+                }
+              ],
+              "counterexamples": []
+            },
+            2
+          ]
+        },
+        {
+          "write": "tools.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-02T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v2",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/tools.json"
+          }
+        },
+        {
+          "call": "eligible",
+          "on": "store",
+          "kwargs": {
+            "environment": "${cap.metadata.environment_requirements}"
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${accepted.id}"
+          ]
+        }
+      ]
+    }
+  ]
+}

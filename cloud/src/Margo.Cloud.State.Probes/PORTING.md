@@ -11,6 +11,7 @@ any directory they are given, so they must never ship.
 | `work_ledger_probe.py` | `WorkLedgerProbeScript` | `work_state.main(argv)` in process with templated input, the ledger library, SQL and fixture files (State.Work) |
 | `proactive_probe.py` | `ProactiveProbeScript` | `proactive_state.main()` under a fixed clock, library calls on one connection, SQL, legacy files (State.Proactive) |
 | `memory_probe.py` | `MemoryProbeScript` | `MemoryStore`, `memory_governance`, Dream source helpers, `memory_encoder` status, held transactions, SQL, files (State.Memory) |
+| `memory_learning_probe.py` | `MemoryLearningProbeScript` | `memory_learning`/`memory_consolidation` functions, `MemoryStore`, Work `Ledger`/`Productivity` fixtures, held transactions, SQL, files (State.MemoryLearning) |
 | `helpers_probe.py` | `HelpersProbeScript` | the stateless helpers' libraries and the Python semantics layer; input-file writers (State.Helpers) |
 
 Each project's own PORTING.md documents what its probe covers and which scenarios use it.

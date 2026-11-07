@@ -1,0 +1,1369 @@
+{
+  "description": "validation with existing execution receipts from the Work ledger: a settled receipt for the exact capability, hash and host validates at runtime; another host, environment, hash, capability or account is refused; failures are classified (policy denial, confirmed defects only with a reference); older evidence cannot supersede a newer outcome; an inventory refresh keeps the scoped failure history; unsettled, empty or invalid stored receipts are refused.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "write": "tools.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/tools.json"
+          },
+          "save": "cap_observed"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${cap_observed.memory_ids.0}"
+          ],
+          "save": "cap"
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "synthetic",
+            "test",
+            "fixture-1",
+            "v1",
+            {
+              "synthetic": true
+            },
+            "https://example.com/synthetic"
+          ],
+          "save": "src1"
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Synthetic action receipt fixture",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                "${src1}"
+              ]
+            },
+            "claim-1"
+          ],
+          "save": "item1"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message-1",
+                "recipients": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic fixture; never delivered."
+              },
+              "why": "Local receipt regression test, not a live tool call",
+              "source_refs": [
+                "${src1}"
+              ],
+              "target_fingerprint": "synthetic-v1",
+              "work_item_id": "${item1.id}"
+            }
+          ],
+          "save": "act1"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act1.id}",
+            1,
+            "${act1.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act1.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}",
+              "action_hash": "${act1.action_hash}"
+            },
+            "${now+30m}"
+          ]
+        },
+        {
+          "call": "begin",
+          "on": "ledger",
+          "args": [
+            "${act1.id}",
+            1,
+            {
+              "checked_at": "${now}",
+              "target_fingerprint": "synthetic-v1",
+              "source_refs": [
+                "${src1}"
+              ]
+            }
+          ],
+          "save": "att1"
+        },
+        {
+          "call": "finish",
+          "on": "ledger",
+          "args": [
+            "${att1.attempt_id}",
+            "succeeded",
+            {
+              "kind": "tool_result",
+              "reference": "tool:synthetic-existing-receipt",
+              "outcome": "succeeded",
+              "recorded_at": "2026-08-01T00:00:00Z",
+              "environment": "${cap.metadata.environment_requirements}",
+              "capability_id": "${cap.id}",
+              "capability_hash": "${cap.metadata.content_hash}"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET id=? WHERE id=?",
+          "params": [
+            "exec_att1",
+            "${att1.attempt_id}"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att1"
+            }
+          ],
+          "save": "validated"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            2,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att1"
+            }
+          ]
+        },
+        {
+          "write": "other.json",
+          "json": {
+            "environment": {
+              "host": "other-host",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/other.json"
+          },
+          "save": "other_observed"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${other_observed.memory_ids.0}"
+          ],
+          "save": "other"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${other.id}",
+            1,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att1"
+            }
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "synthetic",
+            "test",
+            "fixture-2",
+            "v1",
+            {
+              "synthetic": true
+            },
+            "https://example.com/synthetic"
+          ],
+          "save": "src2"
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Synthetic action receipt fixture",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                "${src2}"
+              ]
+            },
+            "claim-2"
+          ],
+          "save": "item2"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message-2",
+                "recipients": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic fixture; never delivered."
+              },
+              "why": "Local receipt regression test, not a live tool call",
+              "source_refs": [
+                "${src2}"
+              ],
+              "target_fingerprint": "synthetic-v1",
+              "work_item_id": "${item2.id}"
+            }
+          ],
+          "save": "act2"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act2.id}",
+            1,
+            "${act2.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act2.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}",
+              "action_hash": "${act2.action_hash}"
+            },
+            "${now+30m}"
+          ]
+        },
+        {
+          "call": "begin",
+          "on": "ledger",
+          "args": [
+            "${act2.id}",
+            1,
+            {
+              "checked_at": "${now}",
+              "target_fingerprint": "synthetic-v1",
+              "source_refs": [
+                "${src2}"
+              ]
+            }
+          ],
+          "save": "att2"
+        },
+        {
+          "call": "finish",
+          "on": "ledger",
+          "args": [
+            "${att2.attempt_id}",
+            "succeeded",
+            {
+              "kind": "tool_result",
+              "reference": "tool:synthetic-existing-receipt",
+              "outcome": "succeeded",
+              "recorded_at": "2026-08-01T00:00:00Z",
+              "environment": {
+                "host": "synthetic-cli",
+                "account": "${account}",
+                "runtime": "python-synthetic"
+              },
+              "capability_id": "${other.id}",
+              "capability_hash": "${other.metadata.content_hash}"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET id=? WHERE id=?",
+          "params": [
+            "exec_att2",
+            "${att2.attempt_id}"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${other.id}",
+            1,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att2"
+            }
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "synthetic",
+            "test",
+            "fixture-3",
+            "v1",
+            {
+              "synthetic": true
+            },
+            "https://example.com/synthetic"
+          ],
+          "save": "src3"
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Synthetic action receipt fixture",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                "${src3}"
+              ]
+            },
+            "claim-3"
+          ],
+          "save": "item3"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message-3",
+                "recipients": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic fixture; never delivered."
+              },
+              "why": "Local receipt regression test, not a live tool call",
+              "source_refs": [
+                "${src3}"
+              ],
+              "target_fingerprint": "synthetic-v1",
+              "work_item_id": "${item3.id}"
+            }
+          ],
+          "save": "act3"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act3.id}",
+            1,
+            "${act3.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act3.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}",
+              "action_hash": "${act3.action_hash}"
+            },
+            "${now+30m}"
+          ]
+        },
+        {
+          "call": "begin",
+          "on": "ledger",
+          "args": [
+            "${act3.id}",
+            1,
+            {
+              "checked_at": "${now}",
+              "target_fingerprint": "synthetic-v1",
+              "source_refs": [
+                "${src3}"
+              ]
+            }
+          ],
+          "save": "att3"
+        },
+        {
+          "call": "finish",
+          "on": "ledger",
+          "args": [
+            "${att3.attempt_id}",
+            "succeeded",
+            {
+              "kind": "tool_result",
+              "reference": "tool:synthetic-existing-receipt",
+              "outcome": "succeeded",
+              "recorded_at": "2026-08-01T00:00:00Z",
+              "environment": "${other.metadata.environment_requirements}",
+              "capability_id": "${other.id}",
+              "capability_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET id=? WHERE id=?",
+          "params": [
+            "exec_att3",
+            "${att3.attempt_id}"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${other.id}",
+            1,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att3"
+            }
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "synthetic",
+            "test",
+            "fixture-4",
+            "v1",
+            {
+              "synthetic": true
+            },
+            "https://example.com/synthetic"
+          ],
+          "save": "src4"
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Synthetic action receipt fixture",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                "${src4}"
+              ]
+            },
+            "claim-4"
+          ],
+          "save": "item4"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message-4",
+                "recipients": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic fixture; never delivered."
+              },
+              "why": "Local receipt regression test, not a live tool call",
+              "source_refs": [
+                "${src4}"
+              ],
+              "target_fingerprint": "synthetic-v1",
+              "work_item_id": "${item4.id}"
+            }
+          ],
+          "save": "act4"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act4.id}",
+            1,
+            "${act4.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act4.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}",
+              "action_hash": "${act4.action_hash}"
+            },
+            "${now+30m}"
+          ]
+        },
+        {
+          "call": "begin",
+          "on": "ledger",
+          "args": [
+            "${act4.id}",
+            1,
+            {
+              "checked_at": "${now}",
+              "target_fingerprint": "synthetic-v1",
+              "source_refs": [
+                "${src4}"
+              ]
+            }
+          ],
+          "save": "att4"
+        },
+        {
+          "call": "finish",
+          "on": "ledger",
+          "args": [
+            "${att4.attempt_id}",
+            "succeeded",
+            {
+              "kind": "tool_result",
+              "reference": "tool:synthetic-existing-receipt",
+              "outcome": "succeeded",
+              "recorded_at": "2026-08-01T00:00:00Z",
+              "environment": "${other.metadata.environment_requirements}",
+              "capability_id": "mem_other",
+              "capability_hash": "${other.metadata.content_hash}"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET id=? WHERE id=?",
+          "params": [
+            "exec_att4",
+            "${att4.attempt_id}"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${other.id}",
+            1,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att4"
+            }
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            2,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att1"
+            }
+          ],
+          "account": "other-synthetic@example.com"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${cap.id}"
+          ],
+          "account": "other-synthetic@example.com"
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "synthetic",
+            "test",
+            "fixture-5",
+            "v1",
+            {
+              "synthetic": true
+            },
+            "https://example.com/synthetic"
+          ],
+          "save": "src5"
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Synthetic action receipt fixture",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                "${src5}"
+              ]
+            },
+            "claim-5"
+          ],
+          "save": "item5"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message-5",
+                "recipients": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic fixture; never delivered."
+              },
+              "why": "Local receipt regression test, not a live tool call",
+              "source_refs": [
+                "${src5}"
+              ],
+              "target_fingerprint": "synthetic-v1",
+              "work_item_id": "${item5.id}"
+            }
+          ],
+          "save": "act5"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act5.id}",
+            1,
+            "${act5.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act5.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}",
+              "action_hash": "${act5.action_hash}"
+            },
+            "${now+30m}"
+          ]
+        },
+        {
+          "call": "begin",
+          "on": "ledger",
+          "args": [
+            "${act5.id}",
+            1,
+            {
+              "checked_at": "${now}",
+              "target_fingerprint": "synthetic-v1",
+              "source_refs": [
+                "${src5}"
+              ]
+            }
+          ],
+          "save": "att5"
+        },
+        {
+          "call": "finish",
+          "on": "ledger",
+          "args": [
+            "${att5.attempt_id}",
+            "failed",
+            {
+              "kind": "tool_result",
+              "reference": "tool:synthetic-existing-receipt",
+              "outcome": "failed",
+              "recorded_at": "2026-08-02T00:00:00Z",
+              "environment": "${validated.metadata.environment_requirements}",
+              "capability_id": "${validated.id}",
+              "capability_hash": "${validated.metadata.content_hash}",
+              "definitive_no_effect": true,
+              "error_code": "policy_denied"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET id=? WHERE id=?",
+          "params": [
+            "exec_att5",
+            "${att5.attempt_id}"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            2,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att5"
+            }
+          ],
+          "save": "degraded"
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "synthetic",
+            "test",
+            "fixture-6",
+            "v1",
+            {
+              "synthetic": true
+            },
+            "https://example.com/synthetic"
+          ],
+          "save": "src6"
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Synthetic action receipt fixture",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                "${src6}"
+              ]
+            },
+            "claim-6"
+          ],
+          "save": "item6"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message-6",
+                "recipients": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic fixture; never delivered."
+              },
+              "why": "Local receipt regression test, not a live tool call",
+              "source_refs": [
+                "${src6}"
+              ],
+              "target_fingerprint": "synthetic-v1",
+              "work_item_id": "${item6.id}"
+            }
+          ],
+          "save": "act6"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act6.id}",
+            1,
+            "${act6.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act6.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}",
+              "action_hash": "${act6.action_hash}"
+            },
+            "${now+30m}"
+          ]
+        },
+        {
+          "call": "begin",
+          "on": "ledger",
+          "args": [
+            "${act6.id}",
+            1,
+            {
+              "checked_at": "${now}",
+              "target_fingerprint": "synthetic-v1",
+              "source_refs": [
+                "${src6}"
+              ]
+            }
+          ],
+          "save": "att6"
+        },
+        {
+          "call": "finish",
+          "on": "ledger",
+          "args": [
+            "${att6.attempt_id}",
+            "succeeded",
+            {
+              "kind": "tool_result",
+              "reference": "tool:synthetic-existing-receipt",
+              "outcome": "succeeded",
+              "recorded_at": "2026-07-30T00:00:00Z",
+              "environment": "${degraded.metadata.environment_requirements}",
+              "capability_id": "${degraded.id}",
+              "capability_hash": "${degraded.metadata.content_hash}"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET id=? WHERE id=?",
+          "params": [
+            "exec_att6",
+            "${att6.attempt_id}"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            3,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att6"
+            }
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "synthetic",
+            "test",
+            "fixture-7",
+            "v1",
+            {
+              "synthetic": true
+            },
+            "https://example.com/synthetic"
+          ],
+          "save": "src7"
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Synthetic action receipt fixture",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                "${src7}"
+              ]
+            },
+            "claim-7"
+          ],
+          "save": "item7"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message-7",
+                "recipients": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic fixture; never delivered."
+              },
+              "why": "Local receipt regression test, not a live tool call",
+              "source_refs": [
+                "${src7}"
+              ],
+              "target_fingerprint": "synthetic-v1",
+              "work_item_id": "${item7.id}"
+            }
+          ],
+          "save": "act7"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act7.id}",
+            1,
+            "${act7.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act7.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}",
+              "action_hash": "${act7.action_hash}"
+            },
+            "${now+30m}"
+          ]
+        },
+        {
+          "call": "begin",
+          "on": "ledger",
+          "args": [
+            "${act7.id}",
+            1,
+            {
+              "checked_at": "${now}",
+              "target_fingerprint": "synthetic-v1",
+              "source_refs": [
+                "${src7}"
+              ]
+            }
+          ],
+          "save": "att7"
+        },
+        {
+          "call": "finish",
+          "on": "ledger",
+          "args": [
+            "${att7.attempt_id}",
+            "failed",
+            {
+              "kind": "tool_result",
+              "reference": "tool:synthetic-existing-receipt",
+              "outcome": "failed",
+              "recorded_at": "2026-08-03T00:00:00Z",
+              "environment": "${degraded.metadata.environment_requirements}",
+              "capability_id": "${degraded.id}",
+              "capability_hash": "${degraded.metadata.content_hash}",
+              "definitive_no_effect": true,
+              "error_code": "CONFIRMED-defect",
+              "defect_reference": "issue:synthetic/1"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET id=? WHERE id=?",
+          "params": [
+            "exec_att7",
+            "${att7.attempt_id}"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            3,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att7"
+            }
+          ],
+          "save": "defect"
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "synthetic",
+            "test",
+            "fixture-8",
+            "v1",
+            {
+              "synthetic": true
+            },
+            "https://example.com/synthetic"
+          ],
+          "save": "src8"
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Synthetic action receipt fixture",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                "${src8}"
+              ]
+            },
+            "claim-8"
+          ],
+          "save": "item8"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message-8",
+                "recipients": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic fixture; never delivered."
+              },
+              "why": "Local receipt regression test, not a live tool call",
+              "source_refs": [
+                "${src8}"
+              ],
+              "target_fingerprint": "synthetic-v1",
+              "work_item_id": "${item8.id}"
+            }
+          ],
+          "save": "act8"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act8.id}",
+            1,
+            "${act8.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act8.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}",
+              "action_hash": "${act8.action_hash}"
+            },
+            "${now+30m}"
+          ]
+        },
+        {
+          "call": "begin",
+          "on": "ledger",
+          "args": [
+            "${act8.id}",
+            1,
+            {
+              "checked_at": "${now}",
+              "target_fingerprint": "synthetic-v1",
+              "source_refs": [
+                "${src8}"
+              ]
+            }
+          ],
+          "save": "att8"
+        },
+        {
+          "call": "finish",
+          "on": "ledger",
+          "args": [
+            "${att8.attempt_id}",
+            "failed",
+            {
+              "kind": "tool_result",
+              "reference": "tool:synthetic-existing-receipt",
+              "outcome": "failed",
+              "recorded_at": "2026-08-04T00:00:00Z",
+              "environment": "${defect.metadata.environment_requirements}",
+              "capability_id": "${defect.id}",
+              "capability_hash": "${defect.metadata.content_hash}",
+              "definitive_no_effect": true,
+              "error_code": "confirmed_defect"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET id=? WHERE id=?",
+          "params": [
+            "exec_att8",
+            "${att8.attempt_id}"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            4,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att8"
+            }
+          ]
+        },
+        {
+          "write": "tools.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-05T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/tools.json"
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${cap.id}"
+          ],
+          "save": "refreshed"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            "${refreshed.revision}",
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att1"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET state='running' WHERE id=?",
+          "params": [
+            "exec_att1"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            "${refreshed.revision}",
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att1"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET state='succeeded', receipt='' WHERE id=?",
+          "params": [
+            "exec_att1"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            "${refreshed.revision}",
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att1"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET receipt='{\"kind\":\"tool_result\"}' WHERE id=?",
+          "params": [
+            "exec_att1"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            "${refreshed.revision}",
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att1"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE work_executions SET receipt='{\"kind\":\"tool_result\",\"reference\":\"r\",\"outcome\":\"failed\",\"recorded_at\":\"2026-08-01T00:00:00Z\"}' WHERE id=?",
+          "params": [
+            "exec_att1"
+          ]
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            "${refreshed.revision}",
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_att1"
+            }
+          ]
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${cap.id}"
+          ]
+        }
+      ]
+    }
+  ]
+}

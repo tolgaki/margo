@@ -1,0 +1,147 @@
+{
+  "description": "A degraded capability is proposed for failure review once per evidence state.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "write": "tools.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/tools.json"
+          },
+          "save": "cap_observed"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${cap_observed.memory_ids.0}"
+          ],
+          "save": "cap"
+        },
+        {
+          "write": "bad.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${cap.metadata.environment_requirements}",
+            "capability_id": "${cap.id}",
+            "input": {
+              "query": 42
+            }
+          },
+          "save": "bad_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/bad.json",
+                "sha256": "${bad_sha}"
+              }
+            }
+          ],
+          "save": "degraded"
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "p1"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${p1}"
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation"
+        },
+        {
+          "write": "second-bad.json",
+          "json": {
+            "synthetic": true,
+            "environment": "${degraded.metadata.environment_requirements}",
+            "capability_id": "${degraded.id}",
+            "input": {
+              "query": 7
+            }
+          },
+          "save": "second-bad_sha"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            2,
+            {
+              "kind": "synthetic_observation",
+              "fixture": {
+                "path": "${dir}/second-bad.json",
+                "sha256": "${second-bad_sha}"
+              }
+            }
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation"
+        }
+      ]
+    }
+  ]
+}

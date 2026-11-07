@@ -1,0 +1,205 @@
+{
+  "description": "Exact page-local duplicates (same domain, kind, scope, text and environment; only candidates) are proposed together for review, never merged or linked; an active twin is not a duplicate target.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "duplicate-a",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "Identical synthetic observation",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:duplicate-a"
+                }
+              ]
+            }
+          ],
+          "save": "a"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "duplicate-b",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "Identical synthetic observation",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:duplicate-b"
+                }
+              ]
+            }
+          ],
+          "save": "b"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "duplicate-c",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "Identical synthetic observation",
+              "scope": "other scope",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:duplicate-c"
+                }
+              ]
+            }
+          ],
+          "save": "c"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "duplicate-active",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Active twin",
+              "text": "Identical synthetic observation",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:active"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "p1"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${p1}"
+          ]
+        },
+        {
+          "call": "list",
+          "on": "store"
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation"
+        },
+        {
+          "call": "links",
+          "on": "store",
+          "args": [
+            "${a.id}"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "same-0",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "Same exact synthetic observation",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:same-0"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "same-1",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "Same exact synthetic observation",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:same-1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "same-2",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "Same exact synthetic observation",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:same-2"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 1,
+            "scan_limit": 3
+          },
+          "save": "g1"
+        }
+      ]
+    }
+  ]
+}
