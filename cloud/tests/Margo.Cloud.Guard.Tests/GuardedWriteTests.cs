@@ -148,7 +148,7 @@ public sealed class GuardedWriteTests
             ["owner"] = null,
             ["due"] = null,
             ["direction"] = "owe",
-            ["source_refs"] = new JsonArray(PyDynamic.Clone(desk.Reference)),
+            ["source_refs"] = new JsonArray(PyNode.Copy(desk.Reference)),
         }, "legacy-claim");
         var action = desk.Ledger.Propose(new JsonObject
         {
@@ -156,9 +156,9 @@ public sealed class GuardedWriteTests
             ["target"] = new JsonObject { ["message_id"] = "message-1" },
             ["payload"] = new JsonObject { ["body"] = "Fictional reply." },
             ["why"] = "Legacy shape",
-            ["source_refs"] = new JsonArray(PyDynamic.Clone(desk.Reference)),
+            ["source_refs"] = new JsonArray(PyNode.Copy(desk.Reference)),
             ["target_fingerprint"] = "target-v1",
-            ["work_item_id"] = PyDynamic.Clone(item["id"]),
+            ["work_item_id"] = PyNode.Copy(item["id"]),
         });
         var (actionId, attemptId) = desk.Begin(action, "principal-1", "host-interaction:fictional/teams-card/2", "Send it.");
         var guard = Guard(desk, new FakeTransport("""{"statusCode": 202}"""));
@@ -209,7 +209,7 @@ public sealed class GuardedWriteTests
         Assert.Equal("refused", result.Status);
         Assert.Contains("reconcile", result.Reason, StringComparison.Ordinal);
         Assert.Empty(_transport.Calls);
-        var partial = new ExecutionClaim(desk.Ledger.Account, actionId, attemptId, null, PyDynamic.Clone(desk.Ledger.Show(actionId)["action_hash"]),
+        var partial = new ExecutionClaim(desk.Ledger.Account, actionId, attemptId, null, PyNode.Copy(desk.Ledger.Show(actionId)["action_hash"]),
                                          null, LedgerClaimJournal.WorkIQCallKey, new JsonObject(), null);
         Assert.Throws<ClaimException>(() => journal.MarkDispatched(partial));
     }
@@ -267,5 +267,5 @@ public sealed class GuardedWriteTests
         Assert.Equal("refused", (await guard.CallAsync("do_action", arguments, RunModes.Attended, TestContext.Current.CancellationToken)).Status);
     }
 
-    private static JsonNode? Copy(JsonNode node) => PyDynamic.Clone(node);
+    private static JsonNode? Copy(JsonNode node) => PyNode.Copy(node);
 }

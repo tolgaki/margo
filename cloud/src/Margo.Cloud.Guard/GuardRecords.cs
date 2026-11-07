@@ -1,3 +1,4 @@
+using Margo.Cloud.State.Core;
 using System.Text.Json.Nodes;
 using Margo.Cloud.State.Work;
 
@@ -26,7 +27,7 @@ public sealed record GuardResult(string Status, string? ReadAs, string? Tool, st
 
         if (Data is not null)
         {
-            response["data"] = PyDynamic.Clone(Data);
+            response["data"] = PyNode.Copy(Data);
         }
 
         return response;
@@ -90,7 +91,7 @@ public sealed record GuardReceipt
             ["on_data_of"] = OnDataOf,
             ["read_as"] = ReadAs,
             ["paths"] = new JsonArray(Paths.Select(path => (JsonNode?)JsonValue.Create(path)).ToArray()),
-            ["status_codes"] = new JsonArray(StatusCodes.Select(code => PyDynamic.Clone(code)).ToArray()),
+            ["status_codes"] = new JsonArray(StatusCodes.Select(code => PyNode.Copy(code)).ToArray()),
         };
         if (ActionId is not null)
         {

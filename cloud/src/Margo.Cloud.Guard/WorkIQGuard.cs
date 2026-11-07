@@ -131,7 +131,7 @@ public sealed class WorkIQGuard
     public async Task<GuardResult> CallAsync(string? tool, JsonNode? arguments, string? mode, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var intent = arguments is JsonObject given ? PyDynamic.AsString(PyDynamic.Get(given, "on_data_of")) : null;
+        var intent = arguments is JsonObject given ? PyNode.AsString(PyNode.Get(given, "on_data_of")) : null;
         var receipt = new Draft
         {
             At = StateStore.UtcNow(),
@@ -300,7 +300,7 @@ public sealed class WorkIQGuard
         {
             if (!ControlArgs.Contains(key))
             {
-                args[key] = PyDynamic.Clone(value);
+                args[key] = PyNode.Copy(value);
             }
         }
 
@@ -347,7 +347,7 @@ public sealed class WorkIQGuard
 
         if (!claimed && IsPrincipalChatPost(tool, intent, paths))
         {
-            if (PyDynamic.AsString(PyDynamic.Get(args, "jsonBody")) is not { } body || PyJson.Loads(body) is not JsonObject)
+            if (PyNode.AsString(PyNode.Get(args, "jsonBody")) is not { } body || PyJson.Loads(body) is not JsonObject)
             {
                 throw new RefusedException("a chat message needs a JSON object body");
             }
@@ -370,7 +370,7 @@ public sealed class WorkIQGuard
         {
             lock (_journalGate)
             {
-                claim = Journal.Load(PyDynamic.Get(given, "action_id"), PyDynamic.Get(given, "attempt_id"));
+                claim = Journal.Load(PyNode.Get(given, "action_id"), PyNode.Get(given, "attempt_id"));
             }
         }
         catch (Exception exc) // ClaimException or ledger failure
@@ -391,17 +391,17 @@ public sealed class WorkIQGuard
             throw new RefusedException("execution claim belongs to another instance");
         }
 
-        if (!PyDynamic.Is(claim.ApprovedBy, Binding.PrincipalId))
+        if (!PyNode.Is(claim.ApprovedBy, Binding.PrincipalId))
         {
             throw new RefusedException("the approval was not given by this instance's manager");
         }
 
-        if (!PyDynamic.Is(claim.OnDataOf, intent))
+        if (!PyNode.Is(claim.OnDataOf, intent))
         {
-            throw new RefusedException("approved action was for on_data_of=" + PyDynamic.ToStr(claim.OnDataOf));
+            throw new RefusedException("approved action was for on_data_of=" + PyNode.Str(claim.OnDataOf));
         }
 
-        var requested = new JsonObject { ["tool"] = tool, ["arguments"] = PyDynamic.Clone(args) };
+        var requested = new JsonObject { ["tool"] = tool, ["arguments"] = PyNode.Copy(args) };
         if (claim.CallKey != LedgerClaimJournal.WorkIQCallKey || Canonical(claim.Call) != Canonical(requested))
         {
             throw new RefusedException("call differs from the approved Work IQ call; revise and re-approve");
@@ -431,7 +431,7 @@ public sealed class WorkIQGuard
             return args;
         }
 
-        var rewritten = PyDynamic.CloneObject(args);
+        var rewritten = PyNode.CopyObject(args);
         foreach (var key in PathKeys)
         {
             if (rewritten.TryGetPropertyValue(key, out var value))
@@ -448,7 +448,7 @@ public sealed class WorkIQGuard
     private string Rewrite(JsonNode? value)
     {
         // Only paths _validate accepted reach here, so the value is a string starting with one "/".
-        var path = PyDynamic.AsString(value) ?? throw new InvalidOperationException("path argument is not a string");
+        var path = PyNode.AsString(value) ?? throw new InvalidOperationException("path argument is not a string");
         var segments = path.Split('?', 2)[0].Trim('/').Split('/');
         if (segments.Length < 2 || LowerAscii(segments[0]) != "me" || !Delegable.Contains(LowerAscii(segments[1])))
         {

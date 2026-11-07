@@ -108,7 +108,7 @@ public sealed partial class GuardParityTests
         foreach (var pair in Fixture.Value["checks"]!["status_codes"]!.AsArray())
         {
             var codes = GuardPolicy.StatusCodes(pair![0]);
-            Assert.Equal(PyJson.Dumps(pair[1]), PyJson.Dumps(new JsonArray(codes.Select(PyDynamic.Clone).ToArray())));
+            Assert.Equal(PyJson.Dumps(pair[1]), PyJson.Dumps(new JsonArray(codes.Select(PyNode.Copy).ToArray())));
         }
     }
 
@@ -117,14 +117,14 @@ public sealed partial class GuardParityTests
     public async Task Guard_matches_python(string name)
     {
         var c = Cases.Value[name];
-        var binding = new InstanceBinding("agent-identity-1", "margo-user-1", "principal-1", PyDynamic.AsString(c["principal_chat_id"]));
+        var binding = new InstanceBinding("agent-identity-1", "margo-user-1", "principal-1", PyNode.AsString(c["principal_chat_id"]));
         var tokens = new ParityTokens(c["tokens"] as JsonObject);
         var transport = new ParityTransport(c["transport"] as JsonObject);
         var journal = c["journal"] is JsonObject spec ? new ParityJournal(spec) : null;
         var budget = c["budget"] is { } limit ? new CallBudget((int)PyJson.AsInt(limit)) : null;
         var guard = new WorkIQGuard(binding, tokens, transport, journal, budget: budget,
-                                    principalAccess: PyDynamic.AsString(c["principal_access"]) ?? PrincipalAccessModes.Obo,
-                                    triggerMessageId: PyDynamic.AsString(c["trigger_message_id"]));
+                                    principalAccess: PyNode.AsString(c["principal_access"]) ?? PrincipalAccessModes.Obo,
+                                    triggerMessageId: PyNode.AsString(c["trigger_message_id"]));
         var calls = c["calls"]!.AsArray();
         var expected = c["expect"]!["calls"]!.AsArray();
         Assert.Equal(expected.Count, calls.Count);
@@ -132,8 +132,8 @@ public sealed partial class GuardParityTests
         {
             var call = calls[i]!;
             var before = transport.Sent.Count;
-            var result = await guard.CallAsync(PyDynamic.AsString(call["tool"]), PyDynamic.Clone(call["arguments"]),
-                                               PyDynamic.AsString(call["mode"]), TestContext.Current.CancellationToken);
+            var result = await guard.CallAsync(PyNode.AsString(call["tool"]), PyNode.Copy(call["arguments"]),
+                                               PyNode.AsString(call["mode"]), TestContext.Current.CancellationToken);
             Assert.Equal(PyJson.Dumps(expected[i]!["response"]), PyJson.Dumps(result.ToJsonObject()));
 
             var receipt = guard.Receipts[^1].ToJsonObject();
@@ -179,8 +179,8 @@ public sealed partial class GuardParityTests
 
     private sealed class ParityTokens(JsonObject? spec) : ITokenProvider
     {
-        private readonly HashSet<string> _missing = PyDynamic.Iter(spec?["missing"] ?? new JsonArray())
-                                                              .Select(s => PyDynamic.AsString(s)!).ToHashSet(StringComparer.Ordinal);
+        private readonly HashSet<string> _missing = PyNode.Iter(spec?["missing"] ?? new JsonArray())
+                                                              .Select(s => PyNode.AsString(s)!).ToHashSet(StringComparer.Ordinal);
 
         private readonly bool _broken = spec?["broken"] is { } broken && PyJson.Truthy(broken);
 
@@ -211,8 +211,8 @@ public sealed partial class GuardParityTests
 
         public Task<JsonObject> CallAsync(string tool, JsonObject arguments, string bearer, CancellationToken cancellationToken = default)
         {
-            Sent.Add(new JsonArray(tool, PyDynamic.Clone(arguments), bearer));
-            switch (PyDynamic.AsString(spec?["error"]))
+            Sent.Add(new JsonArray(tool, PyNode.Copy(arguments), bearer));
+            switch (PyNode.AsString(spec?["error"]))
             {
                 case "timeout":
                     throw new TransportTimeoutException("no response");
@@ -222,7 +222,7 @@ public sealed partial class GuardParityTests
                 case "other":
                     throw new IOException("reset by peer");
                 default:
-                    return Task.FromResult(spec?["result"] is JsonObject result ? PyDynamic.CloneObject(result) : new JsonObject { ["statusCode"] = 200 });
+                    return Task.FromResult(spec?["result"] is JsonObject result ? PyNode.CopyObject(result) : new JsonObject { ["statusCode"] = 200 });
             }
         }
     }
@@ -234,27 +234,27 @@ public sealed partial class GuardParityTests
 
         public ExecutionClaim Load(JsonNode? actionId, JsonNode? attemptId, string callKey = "workiq")
         {
-            Log.Add(new JsonArray("load", PyDynamic.Clone(actionId), PyDynamic.Clone(attemptId)));
-            if (PyDynamic.AsString(actionId) is not { } action || PyDynamic.AsString(attemptId) is not { } attempt)
+            Log.Add(new JsonArray("load", PyNode.Copy(actionId), PyNode.Copy(attemptId)));
+            if (PyNode.AsString(actionId) is not { } action || PyNode.AsString(attemptId) is not { } attempt)
             {
                 throw new ClaimException("action_id and attempt_id are required for a guarded write");
             }
 
-            if (PyDynamic.AsString(spec["load_error"]) is { Length: > 0 } error)
+            if (PyNode.AsString(spec["load_error"]) is { Length: > 0 } error)
             {
                 throw new ClaimException(error);
             }
 
             return new ExecutionClaim(
-                PyDynamic.AsString(spec["account"]) ?? "autopilot:agent-identity-1:principal-1",
+                PyNode.AsString(spec["account"]) ?? "autopilot:agent-identity-1:principal-1",
                 action,
                 attempt,
                 1,
                 "hash-1",
-                PyDynamic.Clone(spec["on_data_of"]),
-                PyDynamic.AsString(spec["call_key"]) ?? "workiq",
-                spec["call"] is JsonObject call ? PyDynamic.CloneObject(call) : [],
-                PyDynamic.Clone(spec["approved_by"]));
+                PyNode.Copy(spec["on_data_of"]),
+                PyNode.AsString(spec["call_key"]) ?? "workiq",
+                spec["call"] is JsonObject call ? PyNode.CopyObject(call) : [],
+                PyNode.Copy(spec["approved_by"]));
         }
 
         public void MarkDispatched(ExecutionClaim claim)

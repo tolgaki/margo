@@ -158,18 +158,18 @@ public static class GuardPolicy
         }
 
         var codes = new List<JsonNode>();
-        if (PyDynamic.Get(payload, "statusCode") is { } code && PyJson.IsIntOrBool(code))
+        if (PyNode.Get(payload, "statusCode") is { } code && PyJson.IsIntOrBool(code))
         {
-            codes.Add(PyDynamic.Clone(code)!);
+            codes.Add(PyNode.Copy(code)!);
         }
 
-        if (PyDynamic.Get(payload, "results") is JsonArray results)
+        if (PyNode.Get(payload, "results") is JsonArray results)
         {
             foreach (var entry in results)
             {
-                if (entry is JsonObject item && PyDynamic.Get(item, "statusCode") is { } entryCode && PyJson.IsIntOrBool(entryCode))
+                if (entry is JsonObject item && PyNode.Get(item, "statusCode") is { } entryCode && PyJson.IsIntOrBool(entryCode))
                 {
-                    codes.Add(PyDynamic.Clone(entryCode)!);
+                    codes.Add(PyNode.Copy(entryCode)!);
                 }
             }
         }
@@ -200,7 +200,7 @@ public static class GuardPolicy
     /// </summary>
     internal static string CheckPath(JsonNode? value, string intent, bool write, string? delegatedTo = null)
     {
-        if (PyDynamic.AsString(value) is not { } text || text.Length == 0 || PyRepr.Length(text) > MaxPath)
+        if (PyNode.AsString(value) is not { } text || text.Length == 0 || PyRepr.Length(text) > MaxPath)
         {
             throw new RefusedException("resource path must be a non-empty string");
         }
@@ -285,7 +285,7 @@ public static class GuardPolicy
             return;
         }
 
-        if (PyDynamic.AsString(value) is not { } text)
+        if (PyNode.AsString(value) is not { } text)
         {
             throw new RefusedException("jsonBody must be a JSON-encoded string");
         }
@@ -305,8 +305,8 @@ public static class GuardPolicy
     {
         foreach (var key in MustBeEmpty)
         {
-            var routed = PyDynamic.Get(args, key);
-            if (!IsNone(routed) && !PyDynamic.Is(routed, ""))
+            var routed = PyNode.Get(args, key);
+            if (!IsNone(routed) && !PyNode.Is(routed, ""))
             {
                 throw new RefusedException("'" + key + "' would route outside the built-in Work IQ path");
             }
@@ -315,7 +315,7 @@ public static class GuardPolicy
         switch (tool)
         {
             case "fetch":
-                if (PyDynamic.Get(args, "entityUrls") is not JsonArray urls || urls.Count == 0 || urls.Count > MaxFetchPaths)
+                if (PyNode.Get(args, "entityUrls") is not JsonArray urls || urls.Count == 0 || urls.Count > MaxFetchPaths)
                 {
                     throw new RefusedException("entityUrls must list 1-" + MaxFetchPaths + " paths");
                 }
@@ -341,11 +341,11 @@ public static class GuardPolicy
 
         if (SinglePathArg.TryGetValue(tool, out var pathArg))
         {
-            CheckJsonBody(PyDynamic.Get(args, "jsonBody"));
-            return [CheckPath(PyDynamic.Get(args, pathArg), intent, write, delegatedTo)];
+            CheckJsonBody(PyNode.Get(args, "jsonBody"));
+            return [CheckPath(PyNode.Get(args, pathArg), intent, write, delegatedTo)];
         }
 
-        if (tool == "get_schema" && !In(PyDynamic.Get(args, "operationType"), OperationTypes, allowNone: false))
+        if (tool == "get_schema" && !In(PyNode.Get(args, "operationType"), OperationTypes, allowNone: false))
         {
             throw new RefusedException("get_schema needs operationType fetch, create, update, action or function");
         }
@@ -353,7 +353,7 @@ public static class GuardPolicy
         if (tool == "search_paths")
         {
             var present = SearchKeys.Where(args.ContainsKey).ToList();
-            if (present.Count != 1 || PyDynamic.AsString(args[present[0]]) is not { } query || PyRepr.Strip(query).Length == 0)
+            if (present.Count != 1 || PyNode.AsString(args[present[0]]) is not { } query || PyRepr.Strip(query).Length == 0)
             {
                 throw new RefusedException("search_paths needs exactly one non-empty query");
             }
@@ -365,27 +365,27 @@ public static class GuardPolicy
     private static void ValidateRetrieve(JsonObject args)
     {
         // Work IQ takes a list of queries, as the playbooks write it; a single string also works.
-        var query = PyDynamic.Get(args, "query");
-        List<JsonNode?>? queries = PyDynamic.AsString(query) is not null ? [query] : (query as JsonArray)?.ToList();
+        var query = PyNode.Get(args, "query");
+        List<JsonNode?>? queries = PyNode.AsString(query) is not null ? [query] : (query as JsonArray)?.ToList();
         if (queries is null || queries.Count < 1 || queries.Count > MaxRetrieveQueries
-            || !queries.All(item => PyDynamic.AsString(item) is { } text && PyRepr.Strip(text).Length > 0))
+            || !queries.All(item => PyNode.AsString(item) is { } text && PyRepr.Strip(text).Length > 0))
         {
             throw new RefusedException("retrieve needs a query: a string or a list of 1-" + MaxRetrieveQueries + " strings");
         }
 
-        if (!In(PyDynamic.Get(args, "strategy"), Strategies, allowNone: true))
+        if (!In(PyNode.Get(args, "strategy"), Strategies, allowNone: true))
         {
             throw new RefusedException("unknown retrieve strategy");
         }
 
-        if (PyDynamic.Get(args, "capabilities", new JsonArray()) is not JsonArray capabilities)
+        if (PyNode.Get(args, "capabilities", new JsonArray()) is not JsonArray capabilities)
         {
             throw new RefusedException("capabilities must be a list");
         }
 
         foreach (var capability in capabilities)
         {
-            if (capability is not JsonObject fields || PyDynamic.AsString(PyDynamic.Get(fields, "name")) is not { } name
+            if (capability is not JsonObject fields || PyNode.AsString(PyNode.Get(fields, "name")) is not { } name
                 || !RetrieveCapabilities.Contains(name))
             {
                 throw new RefusedException("unsupported retrieve capability");
@@ -397,7 +397,7 @@ public static class GuardPolicy
             }
         }
 
-        if (!PyJson.IsBool(PyDynamic.Get(args, "includeDeveloperCard", JsonValue.Create(false))))
+        if (!PyJson.IsBool(PyNode.Get(args, "includeDeveloperCard", JsonValue.Create(false))))
         {
             throw new RefusedException("includeDeveloperCard must be a boolean");
         }
@@ -405,20 +405,20 @@ public static class GuardPolicy
 
     private static void ValidateAsk(JsonObject args)
     {
-        if (PyDynamic.AsString(PyDynamic.Get(args, "question")) is not { } question || PyRepr.Strip(question).Length == 0)
+        if (PyNode.AsString(PyNode.Get(args, "question")) is not { } question || PyRepr.Strip(question).Length == 0)
         {
             throw new RefusedException("ask needs a question");
         }
 
-        if (PyDynamic.Get(args, "fileUrls", new JsonArray()) is not JsonArray urls
-            || !urls.All(url => PyDynamic.AsString(url) is { } text && text.StartsWith("https://", StringComparison.Ordinal)))
+        if (PyNode.Get(args, "fileUrls", new JsonArray()) is not JsonArray urls
+            || !urls.All(url => PyNode.AsString(url) is { } text && text.StartsWith("https://", StringComparison.Ordinal)))
         {
             throw new RefusedException("fileUrls must be https document URLs");
         }
 
         foreach (var key in AskStrings)
         {
-            if (args.TryGetPropertyValue(key, out var value) && PyDynamic.AsString(value) is null)
+            if (args.TryGetPropertyValue(key, out var value) && PyNode.AsString(value) is null)
             {
                 throw new RefusedException(key + " must be a string");
             }
@@ -458,7 +458,7 @@ public static class GuardPolicy
 
     /// <summary><c>value in (None, "a", "b")</c> (or without <c>None</c>): a tuple test by equality, so lists and dicts are simply not in it.</summary>
     private static bool In(JsonNode? value, IReadOnlySet<string> options, bool allowNone) =>
-        IsNone(value) ? allowNone : PyDynamic.AsString(value) is { } text && options.Contains(text);
+        IsNone(value) ? allowNone : PyNode.AsString(value) is { } text && options.Contains(text);
 
     /// <summary>Python <c>None</c>: a missing key, a JSON <c>null</c>, or a value node holding one.</summary>
     internal static bool IsNone(JsonNode? value) => value is null || (value is JsonValue && PyJson.KindOf(value) == PyKind.None);

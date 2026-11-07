@@ -46,7 +46,7 @@ public sealed class LedgerClaimJournal : IClaimJournal
     public ExecutionClaim Load(JsonNode? actionId, JsonNode? attemptId, string callKey = WorkIQCallKey)
     {
         ArgumentNullException.ThrowIfNull(callKey);
-        if (PyDynamic.AsString(actionId) is not { } actionText || PyDynamic.AsString(attemptId) is not { } attemptText)
+        if (PyNode.AsString(actionId) is not { } actionText || PyNode.AsString(attemptId) is not { } attemptText)
         {
             throw new ClaimException("action_id and attempt_id are required for a guarded write");
         }
@@ -61,22 +61,22 @@ public sealed class LedgerClaimJournal : IClaimJournal
             throw new ClaimException("unknown action", exc);
         }
 
-        if (!PyDynamic.Is(PyDynamic.Get(action, "type"), "action") || !PyDynamic.Is(PyDynamic.Get(action, "state"), "executing"))
+        if (!PyNode.Is(PyNode.Get(action, "type"), "action") || !PyNode.Is(PyNode.Get(action, "state"), "executing"))
         {
             throw new ClaimException("action has no live execution claim");
         }
 
         var attempt = FindAttempt(action, attemptText);
-        if (attempt is null || !PyDynamic.Is(PyDynamic.Get(attempt, "state"), "executing")
-            || !PyDynamic.Eq(PyDynamic.Get(attempt, "revision"), PyDynamic.Index(action, "revision")))
+        if (attempt is null || !PyNode.Is(PyNode.Get(attempt, "state"), "executing")
+            || !PyJson.PyEquals(PyNode.Get(attempt, "revision"), PyNode.Index(action, "revision")))
         {
             throw new ClaimException("execution attempt is not live for the current revision");
         }
 
-        var target = PyDynamic.Get(action, "target");
-        var payload = PyDynamic.Get(action, "payload");
+        var target = PyNode.Get(action, "target");
+        var payload = PyNode.Get(action, "payload");
         if (target is not JsonObject targetObject || payload is not JsonObject payloadObject
-            || PyDynamic.Get(payloadObject, callKey) is not JsonObject call)
+            || PyNode.Get(payloadObject, callKey) is not JsonObject call)
         {
             throw new ClaimException("approved action does not carry an exact " + callKey + " call");
         }
@@ -86,18 +86,18 @@ public sealed class LedgerClaimJournal : IClaimJournal
             throw new ClaimException("attempt was already dispatched; reconcile it, never resend");
         }
 
-        var revision = PyDynamic.Index(action, "revision");
-        var actionHash = PyDynamic.Index(action, "action_hash");
+        var revision = PyNode.Index(action, "revision");
+        var actionHash = PyNode.Index(action, "action_hash");
         return new ExecutionClaim(
             Ledger.Account,
             actionText,
             attemptText,
-            PyDynamic.Clone(revision),
-            PyDynamic.Clone(actionHash),
-            PyDynamic.Clone(PyDynamic.Get(targetObject, "on_data_of")),
+            PyNode.Copy(revision),
+            PyNode.Copy(actionHash),
+            PyNode.Copy(PyNode.Get(targetObject, "on_data_of")),
             callKey,
-            PyDynamic.CloneObject(call),
-            PyDynamic.Clone(Approver(actionText, revision, actionHash)));
+            PyNode.CopyObject(call),
+            PyNode.Copy(Approver(actionText, revision, actionHash)));
     }
 
     /// <inheritdoc/>
@@ -112,9 +112,9 @@ public sealed class LedgerClaimJournal : IClaimJournal
         {
             var action = Ledger.Show(claim.ActionId);
             var attempt = FindAttempt(action, claim.AttemptId);
-            if (!PyDynamic.Is(PyDynamic.Get(action, "state"), "executing") || attempt is null
-                || !PyDynamic.Is(PyDynamic.Get(attempt, "state"), "executing")
-                || !PyDynamic.Eq(PyDynamic.Get(action, "action_hash"), claim.ActionHash))
+            if (!PyNode.Is(PyNode.Get(action, "state"), "executing") || attempt is null
+                || !PyNode.Is(PyNode.Get(attempt, "state"), "executing")
+                || !PyJson.PyEquals(PyNode.Get(action, "action_hash"), claim.ActionHash))
             {
                 throw new ClaimException("execution claim is no longer live");
             }
@@ -161,9 +161,9 @@ public sealed class LedgerClaimJournal : IClaimJournal
     private static JsonObject? FindAttempt(JsonObject action, string attemptId)
     {
         // next((row for row in action.get("executions", []) if row.get("id") == attempt_id), None)
-        foreach (var row in PyDynamic.Iter(PyDynamic.Get(action, "executions", new JsonArray())))
+        foreach (var row in PyNode.Iter(PyNode.Get(action, "executions", new JsonArray())))
         {
-            if (PyDynamic.Is(PyDynamic.Get(PyDynamic.Dict(row), "id"), attemptId))
+            if (PyNode.Is(PyNode.Get(PyNode.Dict(row), "id"), attemptId))
             {
                 return (JsonObject)row!;
             }
@@ -178,16 +178,16 @@ public sealed class LedgerClaimJournal : IClaimJournal
         JsonNode? actor = null;
         foreach (var @event in Events(actionId))
         {
-            if (!PyDynamic.Is(PyDynamic.Get(@event, "event"), "approved"))
+            if (!PyNode.Is(PyNode.Get(@event, "event"), "approved"))
             {
                 continue;
             }
 
-            var evidence = PyDynamic.Get(PyDynamic.Dict(PyDynamic.Get(@event, "data", new JsonObject())), "evidence", new JsonObject());
-            var fields = PyDynamic.Dict(evidence);
-            if (PyDynamic.Eq(PyDynamic.Get(fields, "revision"), revision) && PyDynamic.Eq(PyDynamic.Get(fields, "action_hash"), actionHash))
+            var evidence = PyNode.Get(PyNode.Dict(PyNode.Get(@event, "data", new JsonObject())), "evidence", new JsonObject());
+            var fields = PyNode.Dict(evidence);
+            if (PyJson.PyEquals(PyNode.Get(fields, "revision"), revision) && PyJson.PyEquals(PyNode.Get(fields, "action_hash"), actionHash))
             {
-                actor = PyDynamic.Get(fields, "actor");
+                actor = PyNode.Get(fields, "actor");
             }
         }
 
@@ -195,9 +195,9 @@ public sealed class LedgerClaimJournal : IClaimJournal
     }
 
     private bool Dispatched(string actionId, string attemptId) =>
-        Events(actionId).Any(@event => PyDynamic.Is(PyDynamic.Get(@event, "event"), DispatchedEvent)
-                                       && PyDynamic.Is(PyDynamic.Get(PyDynamic.Dict(PyDynamic.Get(@event, "data", new JsonObject())), "attempt_id"), attemptId));
+        Events(actionId).Any(@event => PyNode.Is(PyNode.Get(@event, "event"), DispatchedEvent)
+                                       && PyNode.Is(PyNode.Get(PyNode.Dict(PyNode.Get(@event, "data", new JsonObject())), "attempt_id"), attemptId));
 
     private IEnumerable<JsonObject> Events(string actionId) =>
-        PyDynamic.Iter(PyDynamic.Index(Ledger.History(actionId), "events")).Select(@event => PyDynamic.Dict(@event));
+        PyNode.Iter(PyNode.Index(Ledger.History(actionId), "events")).Select(@event => PyNode.Dict(@event));
 }

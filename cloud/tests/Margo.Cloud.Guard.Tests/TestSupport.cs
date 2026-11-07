@@ -90,7 +90,7 @@ internal sealed class FakeTransport : IWorkIQTransport
     {
         lock (Calls) // Concurrent_calls_never_exceed_the_budget calls this from several threads
         {
-            Calls.Add((tool, PyDynamic.CloneObject(arguments), bearer));
+            Calls.Add((tool, PyNode.CopyObject(arguments), bearer));
         }
 
         During?.Invoke();
@@ -100,7 +100,7 @@ internal sealed class FakeTransport : IWorkIQTransport
             throw _error();
         }
 
-        return Task.FromResult(PyDynamic.CloneObject(_result));
+        return Task.FromResult(PyNode.CopyObject(_result));
     }
 }
 
@@ -200,17 +200,17 @@ internal sealed class ApprovalDesk : IDisposable
             ["owner"] = null,
             ["due"] = null,
             ["direction"] = "owe",
-            ["source_refs"] = new JsonArray(PyDynamic.Clone(Reference)),
+            ["source_refs"] = new JsonArray(PyNode.Copy(Reference)),
         }, "claim-" + Guid.NewGuid().ToString("N"));
         var action = Ledger.Propose(new JsonObject
         {
             ["kind"] = "mail.send",
             ["target"] = new JsonObject { ["message_id"] = "draft-1", ["on_data_of"] = onDataOf },
-            ["payload"] = payload is not null ? PyDynamic.CloneObject(payload) : new JsonObject { ["workiq"] = PyDynamic.CloneObject(workiq ?? Send) },
+            ["payload"] = payload is not null ? PyNode.CopyObject(payload) : new JsonObject { ["workiq"] = PyNode.CopyObject(workiq ?? Send) },
             ["why"] = "Explicit request",
-            ["source_refs"] = new JsonArray(PyDynamic.Clone(Reference)),
+            ["source_refs"] = new JsonArray(PyNode.Copy(Reference)),
             ["target_fingerprint"] = "target-v1",
-            ["work_item_id"] = PyDynamic.Clone(item["id"]),
+            ["work_item_id"] = PyNode.Copy(item["id"]),
         });
         return Begin(action, actor, "host-interaction:fictional/teams-card/1", "Send this exact message.");
     }
@@ -237,7 +237,7 @@ internal sealed class ApprovalDesk : IDisposable
         {
             ["checked_at"] = Fixtures.Stamp(),
             ["target_fingerprint"] = "target-v1",
-            ["source_refs"] = new JsonArray(PyDynamic.Clone(Reference)),
+            ["source_refs"] = new JsonArray(PyNode.Copy(Reference)),
         });
         return (id, (string)attempt["attempt_id"]!);
     }

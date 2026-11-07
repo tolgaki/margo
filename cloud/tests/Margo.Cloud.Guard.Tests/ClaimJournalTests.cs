@@ -35,18 +35,18 @@ public sealed class ClaimJournalTests
             ["owner"] = null,
             ["due"] = null,
             ["direction"] = "owe",
-            ["source_refs"] = new JsonArray(PyDynamic.Clone(desk.Reference)),
+            ["source_refs"] = new JsonArray(PyNode.Copy(desk.Reference)),
         }, "item-claim");
         Refused("action has no live execution claim", () => journal.Load((string)item["id"]!, "attempt-1"));
         var proposed = desk.Ledger.Propose(new JsonObject
         {
             ["kind"] = "mail.send",
             ["target"] = new JsonObject { ["message_id"] = "draft-1", ["on_data_of"] = "principal" },
-            ["payload"] = new JsonObject { ["workiq"] = PyDynamic.CloneObject(ApprovalDesk.Send) },
+            ["payload"] = new JsonObject { ["workiq"] = PyNode.CopyObject(ApprovalDesk.Send) },
             ["why"] = "w",
-            ["source_refs"] = new JsonArray(PyDynamic.Clone(desk.Reference)),
+            ["source_refs"] = new JsonArray(PyNode.Copy(desk.Reference)),
             ["target_fingerprint"] = "target-v1",
-            ["work_item_id"] = PyDynamic.Clone(item["id"]),
+            ["work_item_id"] = PyNode.Copy(item["id"]),
         });
         Refused("action has no live execution claim", () => journal.Load((string)proposed["id"]!, "attempt-1"));
 
@@ -125,17 +125,17 @@ public sealed class ClaimJournalTests
             ["owner"] = null,
             ["due"] = null,
             ["direction"] = "owe",
-            ["source_refs"] = new JsonArray(PyDynamic.Clone(desk.Reference)),
+            ["source_refs"] = new JsonArray(PyNode.Copy(desk.Reference)),
         }, "approver-claim");
         JsonObject Data(string why) => new()
         {
             ["kind"] = "mail.send",
             ["target"] = new JsonObject { ["message_id"] = "draft-1" },
-            ["payload"] = new JsonObject { ["workiq"] = PyDynamic.CloneObject(ApprovalDesk.Send) },
+            ["payload"] = new JsonObject { ["workiq"] = PyNode.CopyObject(ApprovalDesk.Send) },
             ["why"] = why,
-            ["source_refs"] = new JsonArray(PyDynamic.Clone(desk.Reference)),
+            ["source_refs"] = new JsonArray(PyNode.Copy(desk.Reference)),
             ["target_fingerprint"] = "target-v1",
-            ["work_item_id"] = PyDynamic.Clone(item["id"]),
+            ["work_item_id"] = PyNode.Copy(item["id"]),
         };
         var action = desk.Ledger.Propose(Data("w"));
         var id = (string)action["id"]!;
@@ -149,7 +149,7 @@ public sealed class ClaimJournalTests
         {
             ["checked_at"] = Stamp(),
             ["target_fingerprint"] = "target-v1",
-            ["source_refs"] = new JsonArray(PyDynamic.Clone(desk.Reference)),
+            ["source_refs"] = new JsonArray(PyNode.Copy(desk.Reference)),
         });
         var claim = journal.Load(id, (string)attempt["attempt_id"]!);
         Assert.Equal("\"principal-1\"", PyJson.Dumps(claim.ApprovedBy));
@@ -165,7 +165,7 @@ public sealed class ClaimJournalTests
         using var desk = ApprovalDesk.Open();
         var journal = new LedgerClaimJournal(desk.Ledger);
         var reply = Args("""{"to": "colleague-1", "text": "Dana can meet on Thursday."}""");
-        var (actionId, attemptId) = desk.Started(payload: new JsonObject { ["reply"] = PyDynamic.CloneObject(reply) });
+        var (actionId, attemptId) = desk.Started(payload: new JsonObject { ["reply"] = PyNode.CopyObject(reply) });
         Refused("approved action does not carry an exact workiq call", () => journal.Load(actionId, attemptId));
         var claim = journal.Load(actionId, attemptId, LedgerClaimJournal.ReplyCallKey);
         Assert.Equal(Binding.Account, claim.Account);
