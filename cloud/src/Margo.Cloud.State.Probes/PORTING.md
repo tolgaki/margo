@@ -11,6 +11,7 @@ any directory they are given, so they must never ship.
 | `work_ledger_probe.py` | `WorkLedgerProbeScript` | `work_state.main(argv)` in process with templated input, the ledger library, SQL and fixture files (State.Work) |
 | `proactive_probe.py` | `ProactiveProbeScript` | `proactive_state.main()` under a fixed clock, library calls on one connection, SQL, legacy files (State.Proactive) |
 | `memory_probe.py` | `MemoryProbeScript` | `MemoryStore`, `memory_governance`, Dream source helpers, `memory_encoder` status, held transactions, SQL, files (State.Memory) |
+| `tasks_probe.py` | `TasksProbeScript` | `task_state.main(argv)` in process with clock- and result-templated input, a replaceable `task_runs.clock`, `TaskStore` methods (borrowed, read-only, inside a rolled-back outer transaction), the module functions, the ledger and coverage journal on the store's connection, SQL and input files (State.Tasks) |
 | `helpers_probe.py` | `HelpersProbeScript` | the stateless helpers' libraries and the Python semantics layer; input-file writers (State.Helpers) |
 
 Each project's own PORTING.md documents what its probe covers and which scenarios use it.
@@ -19,9 +20,9 @@ Each project's own PORTING.md documents what its probe covers and which scenario
 
 1. **Separate assembly.** Every `*ProbeScript` class lives here (namespace `Margo.Cloud.State.Probes`) and
    implements `IStateProbeScript`, State.Core's marker interface. No production project references this one;
-   State.Work and State.Memory grant it `InternalsVisibleTo` for the internal entry points the Python probes reach
-   (`WorkStateScript.Main` for `work_state.main(argv)`, `Ledger.SourceCore` for `source(..., sensitivity=None)`,
-   `MemoryStore.Item`).
+   State.Work, State.Memory and State.Tasks grant it `InternalsVisibleTo` for the internal entry points the Python
+   probes reach (`WorkStateScript.Main` for `work_state.main(argv)`, `Ledger.SourceCore` for `source(..., sensitivity=None)`,
+   `MemoryStore.Item`, `TaskStateScript.Main` for `task_state.main(argv)`).
 2. **Build switch.** `Margo.Cloud.StateCli` references this project only when the MSBuild property
    `MargoStateProbes` is `true`. The Debug configuration sets it by default; Release does not (pass
    `-p:MargoStateProbes=true` to override, never for a deployed image). `tools/state_parity.py` uses the Debug

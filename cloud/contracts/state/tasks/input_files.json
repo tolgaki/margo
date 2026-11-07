@@ -1,0 +1,232 @@
+{
+  "description": "tasks_probe: --input files read as open(path, encoding='utf-8').read(262145): universal newlines (also a CR/LF pair split across decoder chunks), a UTF-8 BOM (invalid JSON), undecodable and truncated UTF-8, the 256 KiB bound in characters (262144 accepted, 262145 refused, an undecodable byte after the bound never read, two-byte text), decoding positions relative to the second chunk, paths normalised as pathlib does, an empty path, stdin.",
+  "steps": [
+    {
+      "script": "tasks_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "write": "crlf.json",
+          "text": "{\r\n\"run_id\": \"r\",\r\n\"revision\": 1, \"binding\": {}}\r\n"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/crlf.json"
+          ]
+        },
+        {
+          "write": "bom.json",
+          "hex": "efbbbf7b7d"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/bom.json"
+          ]
+        },
+        {
+          "write": "bad.json",
+          "hex": "7b22a0223a20317d"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/bad.json"
+          ]
+        },
+        {
+          "write": "truncated.json",
+          "hex": "7b2261223a2022e282"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/truncated.json"
+          ]
+        },
+        {
+          "write": "limit.json",
+          "prefix": "{}",
+          "text": " ",
+          "repeat": 262142
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/limit.json"
+          ]
+        },
+        {
+          "write": "over.json",
+          "prefix": "{}",
+          "text": " ",
+          "repeat": 262143
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/over.json"
+          ]
+        },
+        {
+          "write": "late.json",
+          "text": " ",
+          "repeat": 262145,
+          "suffix_hex": "ff"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/late.json"
+          ]
+        },
+        {
+          "write": "early.json",
+          "text": " ",
+          "repeat": 262144,
+          "suffix_hex": "ff"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/early.json"
+          ]
+        },
+        {
+          "write": "multibyte.json",
+          "prefix": "{\"a\": \"",
+          "text": "é",
+          "repeat": 262130,
+          "suffix": "\"}"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/multibyte.json"
+          ]
+        },
+        {
+          "write": "chunk.json",
+          "text": "é",
+          "repeat": 131072,
+          "suffix": "a          ",
+          "suffix_hex": "ff"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/chunk.json"
+          ]
+        },
+        {
+          "write": "split.json",
+          "prefix": "{\"a\": \"",
+          "text": "é",
+          "repeat": 131000,
+          "suffix": "\"                                                                                                                                        \r\n}"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/split.json"
+          ]
+        },
+        {
+          "write": "split-cr.json",
+          "prefix": "{\"a\": \"",
+          "text": "é",
+          "repeat": 131000,
+          "suffix": "\"                                                                                                                                        \r}"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/split-cr.json"
+          ]
+        },
+        {
+          "write": "nul.json",
+          "text": "{\"a\": \"\\u0000\"}"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/nul.json"
+          ]
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}/../probe/./crlf.json"
+          ]
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "${dir}//crlf.json/"
+          ]
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            ""
+          ]
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "-"
+          ],
+          "stdin": "          {}"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "-"
+          ],
+          "stdin": "[1, 2"
+        },
+        {
+          "cli": [
+            "resume",
+            "--input",
+            "-"
+          ],
+          "stdin": "{\"run_id\": \"é\", \"revision\": 1, \"binding\": {}}"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

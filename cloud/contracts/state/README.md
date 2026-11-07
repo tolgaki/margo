@@ -22,6 +22,7 @@ table names every folder and probe).
 | `work/` | `work_state.py`, `work_ledger_probe.py` | the CLI parser and errors, sources and ingest, items, relations, the five record kinds, import/export, actions from proposal to execution, the library API, schema contracts, account isolation (see `cloud/src/Margo.Cloud.State.Work/PORTING.md`) |
 | `proactive/` | `proactive_state.py`, `proactive_probe.py` | every subcommand: queue, delivery and receipts, leases, publications, coverage pages/finish/tokens/health/retirement, legacy import, library composition, damaged and tampered state, BLOB values (`json.loads(bytes)`), big ints (see `cloud/src/Margo.Cloud.State.Proactive/PORTING.md`) |
 | `memory/` | `memory_probe.py` | `memory_store.py`, `memory_governance.py` and `memory_encoder.py` status as libraries: normalisation, identities, put/revise, transitions, links, eligibility, file and work sources, forgetting, schema and migration, read-only stores, governance policy/capture/retention/usage/tombstones/export, Dream sources (see `cloud/src/Margo.Cloud.State.Memory/PORTING.md`) |
+| `tasks/` | `task_state.py`, `tasks_probe.py` | every subcommand and option: help and argparse errors, account resolution, read commands that never initialize, `--input` loading (stdin and files read as `read(262145)`), the `**data` dispatch, plan validation, local, read and action steps, claims, tokens and charges, settlement and receipts, recovery, retry and backoff under a replaced `task_runs.clock`, reconciliation, sync, pause/cancel/resume, replanning with human evidence, list/show/history/health, untrusted JSON types, the library API and schema contracts (see `cloud/src/Margo.Cloud.State.Tasks/PORTING.md`) |
 | `helpers/` | `capacity.py`, `teams_feedback.py`, `engage_parse.py`, `helpers_probe.py` | the three stateless helpers' command lines, reports, errors and untrusted JSON types, and the Python semantics layer (sort traces, comparisons, numbers, text, `json.dump`, the JSON recursion budget) on its own (see `cloud/src/Margo.Cloud.State.Helpers/PORTING.md`) |
 
 ### Contract probes
@@ -39,9 +40,10 @@ one only when `MARGO_STATE_PROBES=1`, which the judge sets for every step. The h
 | `probes/work_ledger_probe.py` | `WorkLedgerProbeScript` | `work_state.main(argv)` in process with clock- and result-templated input (approvals, preflights, random action IDs), the ledger library API, SQL and fixture files |
 | `probes/proactive_probe.py` | `ProactiveProbeScript` | `proactive_state.main()` under a fixed clock, library calls on one connection inside an outer transaction, SQL fixtures, legacy files and symlinks |
 | `probes/memory_probe.py` | `MemoryProbeScript` | `MemoryStore`, `memory_governance`, `memory_dream` source helpers and `memory_encoder` calls on fresh or held stores, held transactions, SQL, constants and file fixtures |
+| `probes/tasks_probe.py` | `TasksProbeScript` | `task_state.main(argv)` in process with clock- and result-templated input (fresh bindings, deadlines, claim tokens), a replaceable `task_runs.clock`, `TaskStore` methods (also `from_connection` and inside a rolled-back outer transaction), the `task_runs` module functions, the ledger and coverage journal on the store's connection, SQL and input files |
 | `probes/helpers_probe.py` | `HelpersProbeScript` | the library code of the three stateless helpers and the Python semantics they rely on; `write`/`write-hex`/`write-nested` create input files (also for other scripts' scenarios) |
 
-Later ports add a folder per script family (`tasks/`, `memory_commands/`, ...) and, where a library needs it,
+Later ports add a folder per script family (`memory_commands/`, ...) and, where a library needs it,
 a probe pair; add both to these tables.
 
 ## Scenario schema

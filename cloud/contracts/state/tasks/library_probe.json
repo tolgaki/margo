@@ -1,0 +1,786 @@
+{
+  "description": "tasks_probe: the task_runs library other ports call: read-only stores and from_connection before initialization, from_connection with another account, zero, task_identity, resource_cost, environment (sorted capabilities, freshness, offsets), binding_hash, text (code points, Unicode whitespace), integer (bool and float refused), when, the replaceable clock, list/history limits without argparse, ledger and coverage writes and a create rolled back with the caller's transaction (test_nested_ledger_and_coverage_operations_rollback_with_the_caller), idempotent library create, borrowed and read-only stores (a read-only store cannot write), and account isolation (test_read_views_never_initialize_and_account_ids_cannot_cross).",
+  "steps": [
+    {
+      "script": "tasks_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "task_missing"
+          ],
+          "read_only": true
+        },
+        {
+          "call": null,
+          "on": "borrowed",
+          "args": []
+        },
+        {
+          "call": "health",
+          "on": "borrowed",
+          "args": []
+        },
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "call": null,
+          "on": "borrowed",
+          "args": []
+        },
+        {
+          "call": "health",
+          "on": "borrowed",
+          "args": []
+        },
+        {
+          "call": null,
+          "on": "borrowed",
+          "args": [],
+          "borrow_account": "other@example.com"
+        },
+        {
+          "call": "zero",
+          "on": "module",
+          "args": []
+        },
+        {
+          "call": "task_identity",
+          "on": "module",
+          "args": [
+            "${account}",
+            "note"
+          ]
+        },
+        {
+          "call": "task_identity",
+          "on": "module",
+          "args": [
+            "${account}",
+            " "
+          ]
+        },
+        {
+          "call": "task_identity",
+          "on": "module",
+          "args": [
+            "${account}",
+            [
+              "note"
+            ]
+          ]
+        },
+        {
+          "call": "resource_cost",
+          "on": "module",
+          "args": [
+            {
+              "tool_calls": 2,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          ]
+        },
+        {
+          "call": "resource_cost",
+          "on": "module",
+          "args": [
+            {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0,
+              "extra": 1
+            }
+          ]
+        },
+        {
+          "call": "resource_cost",
+          "on": "module",
+          "args": [
+            [
+              1
+            ]
+          ]
+        },
+        {
+          "call": "resource_cost",
+          "on": "module",
+          "args": [
+            {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": -1,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          ]
+        },
+        {
+          "call": "resource_cost",
+          "on": "module",
+          "args": [
+            {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 2.0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          ]
+        },
+        {
+          "call": "resource_cost",
+          "on": "module",
+          "args": [
+            {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 1000000000000000000000000000000,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          ]
+        },
+        {
+          "call": "environment",
+          "on": "module",
+          "args": [
+            {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "z": "1",
+                "a": "2",
+                "é": "3",
+                "B": "4"
+              },
+              "observed_at": "${now}"
+            },
+            "${account}"
+          ]
+        },
+        {
+          "call": "environment",
+          "on": "module",
+          "args": [
+            {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now-10m}"
+            },
+            "${account}",
+            true
+          ]
+        },
+        {
+          "call": "environment",
+          "on": "module",
+          "args": [
+            {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now-10m}"
+            },
+            "${account}"
+          ]
+        },
+        {
+          "call": "environment",
+          "on": "module",
+          "args": [
+            {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "2026-01-01T00:00:00+24:00"
+            },
+            "${account}"
+          ]
+        },
+        {
+          "call": "environment",
+          "on": "module",
+          "args": [
+            {
+              "account": [
+                "x"
+              ],
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "${account}"
+          ]
+        },
+        {
+          "call": "environment",
+          "on": "module",
+          "args": [
+            {
+              "account": "${account}",
+              "host": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "${account}"
+          ]
+        },
+        {
+          "call": "environment",
+          "on": "module",
+          "args": [
+            {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "c": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+              },
+              "observed_at": "${now}"
+            },
+            "${account}"
+          ]
+        },
+        {
+          "call": "binding_hash",
+          "on": "module",
+          "args": [
+            {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "binding_hash",
+          "on": "module",
+          "args": [
+            {
+              "account": "x"
+            }
+          ]
+        },
+        {
+          "call": "text",
+          "on": "module",
+          "args": [
+            "value",
+            "field"
+          ]
+        },
+        {
+          "call": "text",
+          "on": "module",
+          "args": [
+            "éééé",
+            "field",
+            4
+          ]
+        },
+        {
+          "call": "text",
+          "on": "module",
+          "args": [
+            "ééééé",
+            "field",
+            4
+          ]
+        },
+        {
+          "call": "text",
+          "on": "module",
+          "args": [
+            "　",
+            "field"
+          ]
+        },
+        {
+          "call": "text",
+          "on": "module",
+          "args": [
+            null,
+            "field"
+          ]
+        },
+        {
+          "call": "integer",
+          "on": "module",
+          "args": [
+            5,
+            "n"
+          ]
+        },
+        {
+          "call": "integer",
+          "on": "module",
+          "args": [
+            true,
+            "n"
+          ]
+        },
+        {
+          "call": "integer",
+          "on": "module",
+          "args": [
+            5.0,
+            "n"
+          ]
+        },
+        {
+          "call": "integer",
+          "on": "module",
+          "args": [
+            -1,
+            "n"
+          ]
+        },
+        {
+          "call": "integer",
+          "on": "module",
+          "args": [
+            11,
+            "n",
+            1,
+            10
+          ]
+        },
+        {
+          "call": "when",
+          "on": "module",
+          "args": [
+            "2026-01-01T00:00:00Z"
+          ]
+        },
+        {
+          "call": "when",
+          "on": "module",
+          "args": [
+            "2026-01-01T00:00:00.5-05:30"
+          ]
+        },
+        {
+          "call": "when",
+          "on": "module",
+          "args": [
+            "2026-02-30T00:00:00Z"
+          ]
+        },
+        {
+          "call": "when",
+          "on": "module",
+          "args": [
+            5
+          ]
+        },
+        {
+          "clock": "2030-01-01T00:00:00.000001+00:00"
+        },
+        {
+          "call": "clock",
+          "on": "module",
+          "args": []
+        },
+        {
+          "clock": "2030-01-01T00:00:00+02:00",
+          "offset": "+1d"
+        },
+        {
+          "call": "clock",
+          "on": "module",
+          "args": []
+        },
+        {
+          "clock": null
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            true
+          ]
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            1.0
+          ]
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            5,
+            ""
+          ]
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            5,
+            null
+          ]
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "task_missing",
+            0
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "test",
+            "temporary",
+            "v1",
+            {
+              "quote": "Synthetic"
+            },
+            "https://example.com/test"
+          ],
+          "outer": "rollback"
+        },
+        {
+          "call": "coverage_start",
+          "on": "proactive",
+          "args": [
+            {
+              "family": "mail",
+              "scope": {
+                "folder": "synthetic"
+              },
+              "run_id": "synthetic-rollback",
+              "capability": "mail.read",
+              "query_version": "v1",
+              "window": {
+                "start": "${now-1m}",
+                "end": "${now}"
+              }
+            }
+          ],
+          "outer": "rollback"
+        },
+        {
+          "call": "create",
+          "on": "store",
+          "args": [
+            "rolled-back",
+            {
+              "goal": "Prepare a useful synthetic result",
+              "routine": "daily-brief",
+              "request_ref": "conversation:synthetic-task-test",
+              "mode": "foreground",
+              "environment": {
+                "account": "${account}",
+                "host": "synthetic-cli",
+                "capabilities": {
+                  "mail.read": "v1",
+                  "local.prepare": "v1",
+                  "mail.reply": "v1"
+                },
+                "observed_at": "${now}"
+              },
+              "window": {
+                "start": "${now-1h}",
+                "end": "${now}"
+              },
+              "limits": {
+                "max_steps": 10,
+                "max_attempts_per_step": 3,
+                "max_parallel": 3,
+                "tool_calls": 10,
+                "pages": 10,
+                "items": 100,
+                "model_calls": 2,
+                "output_chars": 10000,
+                "deadline_at": "${now+10m}",
+                "lease_seconds": 30
+              },
+              "steps": [
+                {
+                  "key": "prepare",
+                  "title": "Prepare private output",
+                  "kind": "local",
+                  "capability": "local.prepare",
+                  "depends_on": [],
+                  "allow_partial": false,
+                  "cost": {
+                    "tool_calls": 0,
+                    "pages": 0,
+                    "items": 0,
+                    "model_calls": 0,
+                    "output_chars": 1000
+                  }
+                }
+              ]
+            }
+          ],
+          "outer": "rollback"
+        },
+        {
+          "sql": "SELECT (SELECT count(*) FROM work_sources), (SELECT count(*) FROM proactive_attempts), (SELECT count(*) FROM task_runs)"
+        },
+        {
+          "call": "create",
+          "on": "store",
+          "args": [
+            "kept",
+            {
+              "goal": "Prepare a useful synthetic result",
+              "routine": "daily-brief",
+              "request_ref": "conversation:synthetic-task-test",
+              "mode": "foreground",
+              "environment": {
+                "account": "${account}",
+                "host": "synthetic-cli",
+                "capabilities": {
+                  "mail.read": "v1",
+                  "local.prepare": "v1",
+                  "mail.reply": "v1"
+                },
+                "observed_at": "${now}"
+              },
+              "window": {
+                "start": "${now-1h}",
+                "end": "${now}"
+              },
+              "limits": {
+                "max_steps": 10,
+                "max_attempts_per_step": 3,
+                "max_parallel": 3,
+                "tool_calls": 10,
+                "pages": 10,
+                "items": 100,
+                "model_calls": 2,
+                "output_chars": 10000,
+                "deadline_at": "${now+10m}",
+                "lease_seconds": 30
+              },
+              "steps": [
+                {
+                  "key": "prepare",
+                  "title": "Prepare private output",
+                  "kind": "local",
+                  "capability": "local.prepare",
+                  "depends_on": [],
+                  "allow_partial": false,
+                  "cost": {
+                    "tool_calls": 0,
+                    "pages": 0,
+                    "items": 0,
+                    "model_calls": 0,
+                    "output_chars": 1000
+                  }
+                }
+              ]
+            }
+          ],
+          "save": "kept"
+        },
+        {
+          "call": "create",
+          "on": "store",
+          "args": [
+            "kept",
+            "${kept.plan}"
+          ]
+        },
+        {
+          "call": "create",
+          "on": "store",
+          "args": [
+            "kept",
+            {
+              "goal": "Prepare a useful synthetic result",
+              "routine": "daily-brief",
+              "request_ref": "conversation:synthetic-task-test",
+              "mode": "foreground",
+              "environment": {
+                "account": "${account}",
+                "host": "synthetic-cli",
+                "capabilities": {
+                  "mail.read": "v1",
+                  "local.prepare": "v1",
+                  "mail.reply": "v1"
+                },
+                "observed_at": "${now}"
+              },
+              "window": {
+                "start": "${now-1h}",
+                "end": "${now}"
+              },
+              "limits": {
+                "max_steps": 10,
+                "max_attempts_per_step": 3,
+                "max_parallel": 3,
+                "tool_calls": 10,
+                "pages": 10,
+                "items": 100,
+                "model_calls": 2,
+                "output_chars": 10000,
+                "deadline_at": "${now+10m}",
+                "lease_seconds": 30
+              },
+              "steps": [
+                {
+                  "key": "prepare",
+                  "title": "Prepare private output",
+                  "kind": "local",
+                  "capability": "local.prepare",
+                  "depends_on": [],
+                  "allow_partial": false,
+                  "cost": {
+                    "tool_calls": 0,
+                    "pages": 0,
+                    "items": 0,
+                    "model_calls": 0,
+                    "output_chars": 1000
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "show",
+          "on": "borrowed",
+          "args": [
+            "${kept.id}"
+          ]
+        },
+        {
+          "call": "pause",
+          "on": "borrowed",
+          "args": [
+            "${kept.id}",
+            "Borrowed pause"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${kept.id}"
+          ],
+          "read_only": true
+        },
+        {
+          "call": "pause",
+          "on": "store",
+          "args": [
+            "${kept.id}",
+            "Read-only pause"
+          ],
+          "read_only": true
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${kept.id}",
+            2
+          ]
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            1,
+            "${kept.id}"
+          ]
+        },
+        {
+          "call": "health",
+          "on": "store",
+          "args": []
+        },
+        {
+          "cli": [
+            "--account",
+            "other@example.com",
+            "init"
+          ]
+        },
+        {
+          "cli": [
+            "--account",
+            "other@example.com",
+            "show",
+            "${kept.id}"
+          ]
+        },
+        {
+          "cli": [
+            "--account",
+            "other@example.com",
+            "pause",
+            "${kept.id}",
+            "--reason",
+            "Not mine"
+          ]
+        },
+        {
+          "cli": [
+            "--account",
+            "other@example.com",
+            "health"
+          ]
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

@@ -1,0 +1,272 @@
+{
+  "description": "tasks_probe: the task schema contract: marker versions in margo_meta and task_meta, column and foreign-key drift (PRAGMA table_info/foreign_key_list against the reference schema), extra and missing task tables (LIKE 'task_%' matches any character after 'task'), a marker without tables, tables without a marker, read-only commands refusing an uninitialized task namespace, from_connection on it, re-creation by init, an equivalent table created with different SQL text, and a broken proactive schema found by init but not by reads.",
+  "steps": [
+    {
+      "script": "tasks_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "kept"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "prepare",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          },
+          "save": "run"
+        },
+        {
+          "sql": "UPDATE margo_meta SET value='2' WHERE key='task_schema_version'"
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "sql": "UPDATE margo_meta SET value='1' WHERE key='task_schema_version'"
+        },
+        {
+          "sql": "UPDATE task_meta SET value='2' WHERE key='schema_version'"
+        },
+        {
+          "cli": [
+            "show",
+            "${run.id}"
+          ]
+        },
+        {
+          "sql": "DELETE FROM task_meta"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "sql": "INSERT INTO task_meta VALUES('schema_version','1')"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "sql": "ALTER TABLE task_events ADD COLUMN extra TEXT"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "sql": "ALTER TABLE task_events DROP COLUMN extra"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "sql": "CREATE TABLE task_extra (x)"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "sql": "DROP TABLE task_extra"
+        },
+        {
+          "sql": "CREATE TABLE taskXextra (x)"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "sql": "DROP TABLE taskXextra"
+        },
+        {
+          "sql": "DROP TABLE task_charges"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "sql": "DELETE FROM margo_meta WHERE key='task_schema_version'"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "sql": "DROP TABLE task_events"
+        },
+        {
+          "sql": "DROP TABLE task_attempts"
+        },
+        {
+          "sql": "DROP TABLE task_steps"
+        },
+        {
+          "sql": "DROP TABLE task_runs"
+        },
+        {
+          "sql": "DROP TABLE task_meta"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "call": null,
+          "on": "borrowed",
+          "args": []
+        },
+        {
+          "sql": "INSERT INTO margo_meta VALUES('task_schema_version','1')"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "sql": "DELETE FROM margo_meta WHERE key='task_schema_version'"
+        },
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "sql": "CREATE TABLE task_charges_old AS SELECT * FROM task_charges"
+        },
+        {
+          "sql": "DROP TABLE task_charges_old"
+        },
+        {
+          "sql": "DROP TABLE task_charges"
+        },
+        {
+          "sql": "CREATE TABLE task_charges (attempt_id TEXT NOT NULL,event_id TEXT NOT NULL,cost TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(attempt_id,event_id))"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "sql": "DROP TABLE task_charges"
+        },
+        {
+          "sql": "CREATE TABLE task_charges (\n attempt_id TEXT NOT NULL REFERENCES task_attempts(id),event_id TEXT NOT NULL,\n cost TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(attempt_id,event_id)\n)"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "sql": "DROP TABLE proactive_pages"
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "cli": [
+            "init"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

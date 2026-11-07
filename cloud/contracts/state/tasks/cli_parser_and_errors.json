@@ -1,0 +1,894 @@
+{
+  "description": "task_state.py: help for the root parser and all 19 subcommands (also COLUMNS=60), argparse errors, record-id without storage and account resolution (--account, MARGO_ACCOUNT, missing or invalid principal), read commands refusing to initialize (code not_initialized), init and replays, list/history limits and cursors, unknown runs and attempts, reasons, --input loading (stdin and files: invalid, duplicate keys, NaN, non-object, missing, directory, ~ paths, lone surrogates) and the **data dispatch's TypeErrors (missing, unexpected with suggestion, self), cost/outcome validation (test_task_cli: test_read_setup_and_full_local_workflow_across_processes, the read-only part).",
+  "steps": [
+    {
+      "script": "task_state.py",
+      "args": [
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "--help"
+      ],
+      "env": {
+        "COLUMNS": "60"
+      },
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "init",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "health",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "record-id",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "create",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "list",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "show",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "history",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "recover",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "sync",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "pause",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "cancel",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "start",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "charge",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "finish",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "resume",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "retry",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "reconcile",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "replan-preview",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "replan",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "bogus"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "create",
+        "key"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "list",
+        "--limit",
+        "x"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "history"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "pause",
+        "x"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "list",
+        "--l",
+        "5"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "record-id",
+        "note"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "record-id",
+        "   "
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "record-id",
+        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "record-id",
+        "note"
+      ],
+      "env": {
+        "MARGO_ACCOUNT": null
+      },
+      "state_args": false,
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "record-id",
+        "note"
+      ],
+      "env": {
+        "MARGO_ACCOUNT": "dana example.com"
+      },
+      "state_args": false,
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "record-id",
+        "note"
+      ],
+      "env": {
+        "MARGO_ACCOUNT": "env-owner@example.com"
+      },
+      "state_args": false,
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "list"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "show",
+        "task_missing"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "history",
+        "task_missing"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "health"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "replan-preview",
+        "task_missing",
+        "--input",
+        "-"
+      ],
+      "stdin": "{}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "health"
+      ],
+      "env": {
+        "MARGO_ACCOUNT": null
+      },
+      "state_args": false,
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "init"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "init"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "list"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "health"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "list",
+        "--limit",
+        "0"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "list",
+        "--limit",
+        "101"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "list",
+        "--limit",
+        "100",
+        "--after",
+        ""
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "list",
+        "--after",
+        "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "list",
+        "--after",
+        "task_"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "show",
+        "task_missing"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "history",
+        "task_missing",
+        "--limit",
+        "0"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "recover",
+        "task_missing"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "sync",
+        "task_missing"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "pause",
+        "task_missing",
+        "--reason",
+        "Review"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "pause",
+        "task_missing",
+        "--reason",
+        " "
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "cancel",
+        "task_missing",
+        "--reason",
+        ""
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "cancel",
+        "task_missing",
+        "--reason",
+        "Stop"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "replan-preview",
+        "task_missing",
+        "--input",
+        "-"
+      ],
+      "stdin": "{}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "replan",
+        "task_missing",
+        "--input",
+        "-",
+        "--evidence",
+        "-"
+      ],
+      "stdin": "{}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "create",
+        "note",
+        "--input",
+        "-"
+      ],
+      "stdin": "",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "create",
+        "note",
+        "--input",
+        "-"
+      ],
+      "stdin": "[]",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "create",
+        "note",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"a\": 1, \"a\": 2}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "create",
+        "note",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"a\": NaN}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "create",
+        "note",
+        "--input",
+        "-"
+      ],
+      "stdin": "{}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "create",
+        " ",
+        "--input",
+        "-"
+      ],
+      "stdin": "{}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "create",
+        "note",
+        "--input",
+        "{root}/missing.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "create",
+        "note",
+        "--input",
+        "{root}"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "create",
+        "note",
+        "--input",
+        "~/missing.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "create",
+        "note",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"x\": \"\\ud800\"}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "start",
+        "--input",
+        "-"
+      ],
+      "stdin": "{}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "charge",
+        "--input",
+        "-"
+      ],
+      "stdin": "{}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "finish",
+        "--input",
+        "-"
+      ],
+      "stdin": "{}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "resume",
+        "--input",
+        "-"
+      ],
+      "stdin": "{}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "retry",
+        "--input",
+        "-"
+      ],
+      "stdin": "{}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "reconcile",
+        "--input",
+        "-"
+      ],
+      "stdin": "{}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "start",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"run_id\": \"x\", \"bogus\": 1}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "start",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"runid\": \"x\"}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "start",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"self\": 1}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "start",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"run_id\": \"task_missing\", \"step_key\": \"mail\", \"revision\": 1, \"plan_hash\": \"h\", \"binding\": {}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "charge",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"attempt_id\": \"a\", \"token\": \"t\", \"event_id\": \"e\", \"cost\": {}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "charge",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"attempt_id\": \"a\", \"token\": \"t\", \"event_id\": \"e\", \"cost\": {\"tool_calls\": 0, \"pages\": 0, \"items\": 0, \"model_calls\": 0, \"output_chars\": 0}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "charge",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"attempt_id\": \"a\", \"token\": \"t\", \"event_id\": \"\", \"cost\": {\"tool_calls\": 1, \"pages\": 0, \"items\": 0, \"model_calls\": 0, \"output_chars\": 0}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "charge",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"attempt_id\": \"a\", \"token\": \"t\", \"event_id\": \"e\", \"cost\": {\"tool_calls\": true, \"pages\": 0, \"items\": 0, \"model_calls\": 0, \"output_chars\": 0}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "charge",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"attempt_id\": \"a\", \"token\": \"t\", \"event_id\": \"e\", \"cost\": {\"tool_calls\": 1000001, \"pages\": 0, \"items\": 0, \"model_calls\": 0, \"output_chars\": 0}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "charge",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"attempt_id\": \"a\", \"token\": \"t\", \"event_id\": \"e\", \"cost\": {\"tool_calls\": 1, \"pages\": 0, \"items\": 0, \"model_calls\": 0, \"output_chars\": 0}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "charge",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"attempt_id\": [\"a\"], \"token\": \"t\", \"event_id\": \"e\", \"cost\": {\"tool_calls\": 1, \"pages\": 0, \"items\": 0, \"model_calls\": 0, \"output_chars\": 0}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "finish",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"attempt_id\": \"a\", \"token\": \"t\", \"outcome\": \"bogus\", \"result\": {}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "finish",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"attempt_id\": \"a\", \"token\": \"t\", \"outcome\": [\"x\"], \"result\": {}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "finish",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"attempt_id\": \"a\", \"token\": \"t\", \"outcome\": \"failed\", \"result\": {}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "reconcile",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"run_id\": \"r\", \"step_key\": \"s\", \"revision\": 1, \"outcome\": \"outcome_unknown\", \"result\": {}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "reconcile",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"run_id\": \"r\", \"step_key\": \"s\", \"revision\": 1, \"outcome\": {}, \"result\": {}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "reconcile",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"run_id\": \"r\", \"step_key\": \"s\", \"revision\": 1, \"outcome\": \"partial\", \"result\": {}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "resume",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"run_id\": \"r\", \"revision\": 1, \"binding\": {}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "retry",
+        "--input",
+        "-"
+      ],
+      "stdin": "{\"run_id\": \"r\", \"step_key\": \"s\", \"revision\": 1, \"binding\": {}}",
+      "expect_exit": 2
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "record-id",
+        "note"
+      ],
+      "env": {
+        "MARGO_ACCOUNT": "other@example.com"
+      },
+      "state_args": false,
+      "expect_exit": 0
+    },
+    {
+      "script": "task_state.py",
+      "args": [
+        "list",
+        "--account",
+        "other@example.com"
+      ],
+      "env": {
+        "MARGO_STATE_DIR": "{state_dir}"
+      },
+      "state_args": false,
+      "expect_exit": 2
+    }
+  ]
+}

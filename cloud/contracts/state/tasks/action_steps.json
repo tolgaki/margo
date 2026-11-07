@@ -1,0 +1,1494 @@
+{
+  "description": "tasks_probe: action steps (tests: preflight_failure_preserves_canonical_approval_invalidation, action_claim_receipt_and_unknown_reconciliation_never_reexecute, cancel_revokes_unused_approval_but_preserves_completed_results, misrouted_action_receipt_cannot_settle_either_journal): a changed preflight journals preflight_blocked and invalidates the approval before failing; claims return the exact gated execution once and forbid further charges; recovery records outcome_unknown in both journals; reconciliation with a receipt (never retry); receipts contradicting the claim (account, ids, revision types, hash) or the outcome; partial effects only move forward; sync adopts a canonical execution finished in the ledger; cancel revokes unused approvals; expired approvals, edited actions and stale sources block pending steps.",
+  "steps": [
+    {
+      "script": "tasks_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            "synthetic-message",
+            "1",
+            {
+              "summary": "Synthetic ask."
+            },
+            "https://example.com/source"
+          ],
+          "save": "src"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message",
+                "to": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic draft, never sent."
+              },
+              "why": "Fixture only",
+              "source_refs": [
+                "${src}"
+              ],
+              "target_fingerprint": "target-v1",
+              "work_item_id": null
+            }
+          ],
+          "save": "act"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act.id}",
+            1,
+            "${act.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "Confirm this exact synthetic fixture.",
+              "evidence_ref": "conversation:synthetic-task-test",
+              "decided_at": "${now}",
+              "action_hash": "${act.action_hash}"
+            },
+            "${now+5m}"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "stale-action"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "reply",
+                "title": "Deliver the approved reply",
+                "kind": "action",
+                "capability": "mail.reply",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "action_id": "${act.id}",
+                "action_revision": 1,
+                "action_hash": "${act.action_hash}"
+              }
+            ]
+          },
+          "save": "stale"
+        },
+        {
+          "cli": [
+            "show",
+            "${stale.id}"
+          ]
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${stale.id}",
+            "step_key": "reply",
+            "revision": 1,
+            "plan_hash": "${stale.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "preflight": {
+              "checked_at": "${now}",
+              "target_fingerprint": "changed",
+              "source_refs": [
+                "${src}"
+              ]
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "ledger",
+          "args": [
+            "${act.id}"
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "${stale.id}"
+          ]
+        },
+        {
+          "cli": [
+            "history",
+            "${stale.id}"
+          ]
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${stale.id}",
+            "step_key": "reply",
+            "revision": 1,
+            "plan_hash": "${stale.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "preflight": {
+              "checked_at": "${now}",
+              "target_fingerprint": "target-v1",
+              "source_refs": [
+                "${src}"
+              ]
+            }
+          }
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            "synthetic-message",
+            "1",
+            {
+              "summary": "Synthetic ask."
+            },
+            "https://example.com/source"
+          ],
+          "save": "src"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message",
+                "to": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic draft, never sent."
+              },
+              "why": "Fixture only",
+              "source_refs": [
+                "${src}"
+              ],
+              "target_fingerprint": "target-v1",
+              "work_item_id": null
+            }
+          ],
+          "save": "act"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act.id}",
+            1,
+            "${act.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "Confirm this exact synthetic fixture.",
+              "evidence_ref": "conversation:synthetic-task-test",
+              "decided_at": "${now}",
+              "action_hash": "${act.action_hash}"
+            },
+            "${now+5m}"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "action"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 1
+            },
+            "steps": [
+              {
+                "key": "reply",
+                "title": "Deliver the approved reply",
+                "kind": "action",
+                "capability": "mail.reply",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "action_id": "${act.id}",
+                "action_revision": 1,
+                "action_hash": "${act.action_hash}"
+              }
+            ]
+          },
+          "save": "run"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "reply",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "reply",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "preflight": {
+              "checked_at": "${now-1h}",
+              "target_fingerprint": "target-v1",
+              "source_refs": [
+                "${src}"
+              ]
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "reply",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "preflight": {
+              "checked_at": "${now}",
+              "target_fingerprint": "target-v1",
+              "source_refs": [
+                "${src}"
+              ]
+            }
+          },
+          "save": "claim"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "reply",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "preflight": {
+              "checked_at": "${now}",
+              "target_fingerprint": "target-v1",
+              "source_refs": [
+                "${src}"
+              ]
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "event_id": "extra",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${run.id}"
+          ]
+        },
+        {
+          "clock": "${now}",
+          "offset": "+2s"
+        },
+        {
+          "cli": [
+            "recover",
+            "${run.id}"
+          ],
+          "save": "unknown"
+        },
+        {
+          "clock": null
+        },
+        {
+          "call": "show",
+          "on": "ledger",
+          "args": [
+            "${act.id}"
+          ]
+        },
+        {
+          "cli": [
+            "retry"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "reply",
+            "revision": "${unknown.steps.0.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "reconcile"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "reply",
+            "revision": "${unknown.steps.0.revision}",
+            "outcome": "failed",
+            "result": {
+              "kind": "reconciliation_read",
+              "reference": "synthetic:actual-result",
+              "recorded_at": "${now}",
+              "outcome": "failed"
+            }
+          }
+        },
+        {
+          "cli": [
+            "reconcile"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "reply",
+            "revision": 99,
+            "outcome": "succeeded",
+            "result": {}
+          }
+        },
+        {
+          "cli": [
+            "reconcile"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "reply",
+            "revision": "${unknown.steps.0.revision}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "reconciliation_read",
+              "reference": "synthetic:actual-result",
+              "recorded_at": "${now}",
+              "outcome": "succeeded"
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "ledger",
+          "args": [
+            "${act.id}"
+          ]
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            "synthetic-message",
+            "1",
+            {
+              "summary": "Synthetic ask."
+            },
+            "https://example.com/source"
+          ],
+          "save": "src"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message",
+                "to": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic draft, never sent."
+              },
+              "why": "Fixture only",
+              "source_refs": [
+                "${src}"
+              ],
+              "target_fingerprint": "target-v1",
+              "work_item_id": null
+            }
+          ],
+          "save": "act"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act.id}",
+            1,
+            "${act.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "Confirm this exact synthetic fixture.",
+              "evidence_ref": "conversation:synthetic-task-test",
+              "decided_at": "${now}",
+              "action_hash": "${act.action_hash}"
+            },
+            "${now+5m}"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "receipt-routing"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "reply",
+                "title": "Deliver the approved reply",
+                "kind": "action",
+                "capability": "mail.reply",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "action_id": "${act.id}",
+                "action_revision": 1,
+                "action_hash": "${act.action_hash}"
+              }
+            ]
+          },
+          "save": "rr"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${rr.id}",
+            "step_key": "reply",
+            "revision": 1,
+            "plan_hash": "${rr.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "preflight": {
+              "checked_at": "${now}",
+              "target_fingerprint": "target-v1",
+              "source_refs": [
+                "${src}"
+              ]
+            }
+          },
+          "save": "rc"
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${rc.attempt_id}",
+            "token": "${rc.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "provider_receipt",
+              "reference": "synthetic:receipt",
+              "recorded_at": "${now}",
+              "outcome": "succeeded",
+              "account": "other@example.com"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${rc.attempt_id}",
+            "token": "${rc.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "provider_receipt",
+              "reference": "synthetic:receipt",
+              "recorded_at": "${now}",
+              "outcome": "succeeded",
+              "action_id": "act_other"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${rc.attempt_id}",
+            "token": "${rc.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "provider_receipt",
+              "reference": "synthetic:receipt",
+              "recorded_at": "${now}",
+              "outcome": "succeeded",
+              "attempt_id": "exec_other"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${rc.attempt_id}",
+            "token": "${rc.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "provider_receipt",
+              "reference": "synthetic:receipt",
+              "recorded_at": "${now}",
+              "outcome": "succeeded",
+              "revision": 999
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${rc.attempt_id}",
+            "token": "${rc.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "provider_receipt",
+              "reference": "synthetic:receipt",
+              "recorded_at": "${now}",
+              "outcome": "succeeded",
+              "revision": true
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${rc.attempt_id}",
+            "token": "${rc.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "provider_receipt",
+              "reference": "synthetic:receipt",
+              "recorded_at": "${now}",
+              "outcome": "succeeded",
+              "action_revision": 1.0
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${rc.attempt_id}",
+            "token": "${rc.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "provider_receipt",
+              "reference": "synthetic:receipt",
+              "recorded_at": "${now}",
+              "outcome": "succeeded",
+              "action_hash": "different"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${rc.attempt_id}",
+            "token": "${rc.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "provider_receipt",
+              "reference": "synthetic:receipt",
+              "recorded_at": "${now}",
+              "outcome": "partial"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${rc.attempt_id}",
+            "token": "${rc.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "provider_receipt",
+              "reference": "synthetic:receipt",
+              "recorded_at": "${now}",
+              "outcome": "failed"
+            }
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${rr.id}"
+          ]
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${rc.attempt_id}",
+            "token": "${rc.token}",
+            "outcome": "partial",
+            "result": {
+              "kind": "provider_receipt",
+              "reference": "synthetic:receipt",
+              "recorded_at": "${now}",
+              "outcome": "partial",
+              "account": "${account}",
+              "revision": 1
+            }
+          },
+          "save": "partial"
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${rc.attempt_id}",
+            "token": "${rc.token}",
+            "outcome": "outcome_unknown",
+            "result": {
+              "kind": "provider_receipt",
+              "reference": "synthetic:receipt",
+              "recorded_at": "${now}",
+              "outcome": "outcome_unknown"
+            }
+          }
+        },
+        {
+          "cli": [
+            "reconcile"
+          ],
+          "input": {
+            "run_id": "${rr.id}",
+            "step_key": "reply",
+            "revision": "${partial.steps.0.revision}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "provider_receipt",
+              "reference": "synthetic:receipt",
+              "recorded_at": "${now}",
+              "outcome": "succeeded"
+            }
+          }
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "cli": [
+            "cancel",
+            "${rr.id}",
+            "--reason",
+            "Done"
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            "synthetic-message",
+            "1",
+            {
+              "summary": "Synthetic ask."
+            },
+            "https://example.com/source"
+          ],
+          "save": "src"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message",
+                "to": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic draft, never sent."
+              },
+              "why": "Fixture only",
+              "source_refs": [
+                "${src}"
+              ],
+              "target_fingerprint": "target-v1",
+              "work_item_id": null
+            }
+          ],
+          "save": "act"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act.id}",
+            1,
+            "${act.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "Confirm this exact synthetic fixture.",
+              "evidence_ref": "conversation:synthetic-task-test",
+              "decided_at": "${now}",
+              "action_hash": "${act.action_hash}"
+            },
+            "${now+5m}"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "sync"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "reply",
+                "title": "Deliver the approved reply",
+                "kind": "action",
+                "capability": "mail.reply",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "action_id": "${act.id}",
+                "action_revision": 1,
+                "action_hash": "${act.action_hash}"
+              }
+            ]
+          },
+          "save": "sy"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${sy.id}",
+            "step_key": "reply",
+            "revision": 1,
+            "plan_hash": "${sy.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "preflight": {
+              "checked_at": "${now}",
+              "target_fingerprint": "target-v1",
+              "source_refs": [
+                "${src}"
+              ]
+            }
+          },
+          "save": "sc"
+        },
+        {
+          "call": "finish",
+          "on": "ledger",
+          "args": [
+            "${sc.execution.attempt_id}",
+            "succeeded",
+            {
+              "kind": "provider_receipt",
+              "reference": "synthetic:direct",
+              "recorded_at": "${now}",
+              "outcome": "succeeded"
+            }
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "${sy.id}"
+          ]
+        },
+        {
+          "cli": [
+            "sync",
+            "${sy.id}"
+          ]
+        },
+        {
+          "cli": [
+            "sync",
+            "${sy.id}"
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            "synthetic-message",
+            "1",
+            {
+              "summary": "Synthetic ask."
+            },
+            "https://example.com/source"
+          ],
+          "save": "src"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message",
+                "to": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic draft, never sent."
+              },
+              "why": "Fixture only",
+              "source_refs": [
+                "${src}"
+              ],
+              "target_fingerprint": "target-v1",
+              "work_item_id": null
+            }
+          ],
+          "save": "act"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act.id}",
+            1,
+            "${act.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "Confirm this exact synthetic fixture.",
+              "evidence_ref": "conversation:synthetic-task-test",
+              "decided_at": "${now}",
+              "action_hash": "${act.action_hash}"
+            },
+            "${now+5m}"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "cancel"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "reply",
+                "title": "Deliver the approved reply",
+                "kind": "action",
+                "capability": "mail.reply",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "action_id": "${act.id}",
+                "action_revision": 1,
+                "action_hash": "${act.action_hash}"
+              },
+              {
+                "key": "prepare",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          },
+          "save": "ca"
+        },
+        {
+          "cli": [
+            "cancel",
+            "${ca.id}",
+            "--reason",
+            "The user will handle it."
+          ],
+          "save": "cancelled"
+        },
+        {
+          "call": "show",
+          "on": "ledger",
+          "args": [
+            "${act.id}"
+          ]
+        },
+        {
+          "cli": [
+            "resume"
+          ],
+          "input": {
+            "run_id": "${ca.id}",
+            "revision": "${cancelled.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "cancel",
+            "${ca.id}",
+            "--reason",
+            "Again"
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "${ca.id}"
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            "synthetic-message",
+            "1",
+            {
+              "summary": "Synthetic ask."
+            },
+            "https://example.com/source"
+          ],
+          "save": "src"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message",
+                "to": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic draft, never sent."
+              },
+              "why": "Fixture only",
+              "source_refs": [
+                "${src}"
+              ],
+              "target_fingerprint": "target-v1",
+              "work_item_id": null
+            }
+          ],
+          "save": "act"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act.id}",
+            1,
+            "${act.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "Confirm this exact synthetic fixture.",
+              "evidence_ref": "conversation:synthetic-task-test",
+              "decided_at": "${now}",
+              "action_hash": "${act.action_hash}"
+            },
+            "${now+5m}"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "waiting"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "reply",
+                "title": "Deliver the approved reply",
+                "kind": "action",
+                "capability": "mail.reply",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "action_id": "${act.id}",
+                "action_revision": 1,
+                "action_hash": "${act.action_hash}"
+              }
+            ]
+          },
+          "save": "wa"
+        },
+        {
+          "clock": "${now}",
+          "offset": "+6m"
+        },
+        {
+          "cli": [
+            "show",
+            "${wa.id}"
+          ]
+        },
+        {
+          "clock": null
+        },
+        {
+          "call": "edit_action",
+          "on": "ledger",
+          "args": [
+            "${act.id}",
+            1,
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message",
+                "to": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Edited."
+              },
+              "why": "Fixture only",
+              "source_refs": [
+                "${src}"
+              ],
+              "target_fingerprint": "target-v1",
+              "work_item_id": null
+            }
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "${wa.id}"
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            "synthetic-message",
+            "2",
+            {
+              "summary": "Changed ask."
+            },
+            "https://example.com/source"
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "${wa.id}"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

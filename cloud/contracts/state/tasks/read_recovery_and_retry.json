@@ -1,0 +1,1426 @@
+{
+  "description": "tasks_probe: recovery and retry of reads under a replaced task_runs.clock (tests: expired_read_is_recoverable_but_obeys_backoff, partial_cost_cannot_refund_durable_pages_or_items, error_free_partial_page_can_continue_without_fabricating_an_error, own_provider_backoff_survives_another_run_collecting_the_source, completed_source_can_be_reconciled_after_lost_task_bookmark): expired claims and their interrupted coverage, exponential and provider backoff (retry_after_seconds, next_retry_at), retry conditions (binding, revision, state, budget, attempts), continuation from the previous coverage attempt with base pages/items, reconciliation of a completed source, and recovery refusing an uncharged completed read.",
+  "steps": [
+    {
+      "script": "tasks_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "recover-read"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 1
+            },
+            "steps": [
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              }
+            ]
+          },
+          "save": "run"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "claim"
+        },
+        {
+          "cli": [
+            "recover",
+            "${run.id}"
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "${run.id}"
+          ]
+        },
+        {
+          "clock": "${now}",
+          "offset": "+2s"
+        },
+        {
+          "cli": [
+            "show",
+            "${run.id}"
+          ]
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "cli": [
+            "recover",
+            "${run.id}"
+          ],
+          "save": "rec"
+        },
+        {
+          "cli": [
+            "retry"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "mail",
+            "revision": "${rec.steps.0.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "clock": "${rec.steps.0.next_retry_at}",
+          "offset": "+1s"
+        },
+        {
+          "cli": [
+            "show",
+            "${run.id}"
+          ]
+        },
+        {
+          "cli": [
+            "retry"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "mail",
+            "revision": "${rec.steps.0.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "other",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "retry"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "mail",
+            "revision": "${rec.steps.0.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "ready"
+        },
+        {
+          "cli": [
+            "retry"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "mail",
+            "revision": "${ready.steps.0.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "clock": null
+        },
+        {
+          "cli": [
+            "history",
+            "${run.id}"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "partial-cost"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 1,
+              "items": 5,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              }
+            ]
+          },
+          "save": "pc"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${pc.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${pc.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "pcc"
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${pcc.attempt_id}",
+            "token": "${pcc.token}",
+            "event_id": "fetch",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 5,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "call": "coverage_page",
+          "on": "proactive",
+          "args": [
+            "${pcc.coverage_attempt_id}",
+            {
+              "page": 1,
+              "observations": [
+                {
+                  "id": "seen",
+                  "revision": "1"
+                }
+              ],
+              "final": false,
+              "continuation": "synthetic-page-2"
+            }
+          ]
+        },
+        {
+          "call": "coverage_finish",
+          "on": "proactive",
+          "args": [
+            "${pcc.coverage_attempt_id}",
+            {
+              "status": "partial",
+              "error_class": "timeout"
+            }
+          ]
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${pcc.attempt_id}",
+            "token": "${pcc.token}",
+            "outcome": "partial",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${pcc.coverage_attempt_id}",
+              "coverage": "partial",
+              "summary": "A sourced read result."
+            },
+            "actual": {
+              "tool_calls": 1,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${pcc.attempt_id}",
+            "token": "${pcc.token}",
+            "outcome": "partial",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${pcc.coverage_attempt_id}",
+              "coverage": "partial",
+              "summary": "A sourced read result."
+            },
+            "actual": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 1,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          },
+          "save": "pcs"
+        },
+        {
+          "clock": "${pcs.steps.0.next_retry_at}",
+          "offset": "+1s"
+        },
+        {
+          "cli": [
+            "retry"
+          ],
+          "input": {
+            "run_id": "${pc.id}",
+            "step_key": "mail",
+            "revision": "${pcs.steps.0.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "clock": null
+        },
+        {
+          "cli": [
+            "create",
+            "pagination"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              }
+            ]
+          },
+          "save": "pg"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${pg.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${pg.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "pgc"
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${pgc.attempt_id}",
+            "token": "${pgc.token}",
+            "event_id": "page1",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 5,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "call": "coverage_page",
+          "on": "proactive",
+          "args": [
+            "${pgc.coverage_attempt_id}",
+            {
+              "page": 1,
+              "observations": [],
+              "final": false,
+              "continuation": "synthetic-page-2"
+            }
+          ]
+        },
+        {
+          "call": "coverage_finish",
+          "on": "proactive",
+          "args": [
+            "${pgc.coverage_attempt_id}",
+            {
+              "status": "partial"
+            }
+          ]
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${pgc.attempt_id}",
+            "token": "${pgc.token}",
+            "outcome": "partial",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${pgc.coverage_attempt_id}",
+              "coverage": "partial",
+              "summary": null
+            }
+          },
+          "save": "pgs"
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${pgc.attempt_id}",
+            "token": "${pgc.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${pgc.coverage_attempt_id}",
+              "coverage": "partial",
+              "summary": "A sourced read result."
+            }
+          }
+        },
+        {
+          "clock": "${pgs.steps.0.next_retry_at}",
+          "offset": "+1s"
+        },
+        {
+          "cli": [
+            "retry"
+          ],
+          "input": {
+            "run_id": "${pg.id}",
+            "step_key": "mail",
+            "revision": "${pgs.steps.0.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "pgr"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${pg.id}",
+            "step_key": "mail",
+            "revision": "${pgr.steps.0.revision}",
+            "plan_hash": "${pg.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "pgc2"
+        },
+        {
+          "clock": null
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${pgc2.attempt_id}",
+            "token": "${pgc2.token}",
+            "event_id": "page2",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 5,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "call": "coverage_page",
+          "on": "proactive",
+          "args": [
+            "${pgc2.coverage_attempt_id}",
+            {
+              "page": 2,
+              "observations": [
+                {
+                  "id": "two",
+                  "revision": "1"
+                }
+              ],
+              "final": true,
+              "continuation": null
+            }
+          ]
+        },
+        {
+          "call": "coverage_finish",
+          "on": "proactive",
+          "args": [
+            "${pgc2.coverage_attempt_id}",
+            {
+              "status": "complete",
+              "checkpoint_at": "${now}"
+            }
+          ]
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${pgc2.attempt_id}",
+            "token": "${pgc2.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${pgc2.coverage_attempt_id}",
+              "coverage": "complete",
+              "summary": "A sourced read result."
+            },
+            "actual": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 1,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${pgc2.attempt_id}",
+            "token": "${pgc2.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${pgc2.coverage_attempt_id}",
+              "coverage": "complete",
+              "summary": "A sourced read result."
+            }
+          }
+        },
+        {
+          "cli": [
+            "create",
+            "throttle-a"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              }
+            ]
+          },
+          "save": "ta"
+        },
+        {
+          "cli": [
+            "create",
+            "throttle-b"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              }
+            ]
+          },
+          "save": "tb"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${ta.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${ta.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "tac"
+        },
+        {
+          "call": "coverage_finish",
+          "on": "proactive",
+          "args": [
+            "${tac.coverage_attempt_id}",
+            {
+              "status": "failed",
+              "error_class": "throttled",
+              "retry_after_seconds": 3600
+            }
+          ]
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${tb.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${tb.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "tbc"
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${tac.attempt_id}",
+            "token": "${tac.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:throttle",
+              "coverage_attempt_id": "${tac.coverage_attempt_id}",
+              "coverage": "failed",
+              "summary": "A sourced read result."
+            }
+          },
+          "save": "tas"
+        },
+        {
+          "clock": "${now}",
+          "offset": "+3s"
+        },
+        {
+          "cli": [
+            "retry"
+          ],
+          "input": {
+            "run_id": "${ta.id}",
+            "step_key": "mail",
+            "revision": "${tas.steps.0.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "clock": null
+        },
+        {
+          "cli": [
+            "create",
+            "next-retry"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 1,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              }
+            ]
+          },
+          "save": "nr"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${nr.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${nr.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "nrc"
+        },
+        {
+          "call": "coverage_finish",
+          "on": "proactive",
+          "args": [
+            "${nrc.coverage_attempt_id}",
+            {
+              "status": "failed",
+              "error_class": "network",
+              "next_retry_at": "${now+2h}"
+            }
+          ]
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${nrc.attempt_id}",
+            "token": "${nrc.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${nrc.coverage_attempt_id}",
+              "coverage": "failed",
+              "summary": "A sourced read result."
+            }
+          },
+          "save": "nrs"
+        },
+        {
+          "clock": "${nrs.steps.0.next_retry_at}",
+          "offset": "+1s"
+        },
+        {
+          "cli": [
+            "retry"
+          ],
+          "input": {
+            "run_id": "${nr.id}",
+            "step_key": "mail",
+            "revision": "${nrs.steps.0.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "clock": null
+        },
+        {
+          "cli": [
+            "create",
+            "lost-bookmark"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 1
+            },
+            "steps": [
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              }
+            ]
+          },
+          "save": "lb"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${lb.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${lb.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "lbc"
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${lbc.attempt_id}",
+            "token": "${lbc.token}",
+            "event_id": "fetch",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 5,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "call": "coverage_page",
+          "on": "proactive",
+          "args": [
+            "${lbc.coverage_attempt_id}",
+            {
+              "page": 1,
+              "observations": [],
+              "final": true,
+              "continuation": null
+            }
+          ]
+        },
+        {
+          "call": "coverage_finish",
+          "on": "proactive",
+          "args": [
+            "${lbc.coverage_attempt_id}",
+            {
+              "status": "complete",
+              "checkpoint_at": "${now}"
+            }
+          ]
+        },
+        {
+          "clock": "${now}",
+          "offset": "+2s"
+        },
+        {
+          "cli": [
+            "recover",
+            "${lb.id}"
+          ],
+          "save": "lbr"
+        },
+        {
+          "clock": null
+        },
+        {
+          "cli": [
+            "reconcile"
+          ],
+          "input": {
+            "run_id": "${lb.id}",
+            "step_key": "mail",
+            "revision": "${lbr.steps.0.revision}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:restored-bookmark",
+              "coverage": "complete",
+              "coverage_attempt_id": "${lbc.coverage_attempt_id}",
+              "summary": "The recorded source had no matches."
+            }
+          }
+        },
+        {
+          "cli": [
+            "reconcile"
+          ],
+          "input": {
+            "run_id": "${lb.id}",
+            "step_key": "mail",
+            "revision": "${lbr.steps.0.revision}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "tool_result",
+              "reference": "x",
+              "coverage": "complete",
+              "coverage_attempt_id": "${lbc.coverage_attempt_id}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "create",
+            "uncharged"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 1
+            },
+            "steps": [
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              }
+            ]
+          },
+          "save": "un"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${un.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${un.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "unc"
+        },
+        {
+          "call": "coverage_page",
+          "on": "proactive",
+          "args": [
+            "${unc.coverage_attempt_id}",
+            {
+              "page": 1,
+              "observations": [],
+              "final": true,
+              "continuation": null
+            }
+          ]
+        },
+        {
+          "call": "coverage_finish",
+          "on": "proactive",
+          "args": [
+            "${unc.coverage_attempt_id}",
+            {
+              "status": "complete",
+              "checkpoint_at": "${now}"
+            }
+          ]
+        },
+        {
+          "clock": "${now}",
+          "offset": "+2s"
+        },
+        {
+          "cli": [
+            "recover",
+            "${un.id}"
+          ]
+        },
+        {
+          "clock": null
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

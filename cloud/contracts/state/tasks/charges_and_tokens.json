@@ -1,0 +1,906 @@
+{
+  "description": "tasks_probe: charges and claim tokens (tests: charges_are_bounded_nonempty_and_never_granted_twice, pause_stops_new_charges_and_resume_requires_fresh_binding, parallel_claims_reserve_global_budget_and_one_step_has_one_winner): empty grants, exact replay and changed replay, per-attempt reservations per metric, wrong, blank, oversized, non-string and unencodable tokens, unknown attempts, paused and expired claims, stale and fresh bindings on resume, one winner per step with max_parallel, and run budgets blocking further claims.",
+  "steps": [
+    {
+      "script": "tasks_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "charges"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              },
+              {
+                "key": "prep",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 1,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          },
+          "save": "run"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "claim"
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "event_id": "empty",
+            "cost": {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "event_id": "one",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "event_id": "one",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "event_id": "one",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "event_id": "two",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "wrong-token",
+            "event_id": "other",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 5,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": " ",
+            "event_id": "other",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 5,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+            "event_id": "other",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 5,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": 5,
+            "event_id": "x",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge",
+            "--input",
+            "-"
+          ],
+          "stdin": "{\"attempt_id\": \"${claim.attempt_id}\", \"token\": \"\\udc80\", \"event_id\": \"x\", \"cost\": {\"tool_calls\": 1, \"pages\": 0, \"items\": 0, \"model_calls\": 0, \"output_chars\": 0}}"
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "task_attempt_missing",
+            "token": "x",
+            "event_id": "x",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "event_id": "pages",
+            "cost": {
+              "tool_calls": 0,
+              "pages": 1,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "event_id": "items",
+            "cost": {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 6,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "event_id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 5,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "prep",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "local"
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${local.attempt_id}",
+            "token": "${local.token}",
+            "event_id": "model",
+            "cost": {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 1,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${local.attempt_id}",
+            "token": "${local.token}",
+            "event_id": "model2",
+            "cost": {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 1,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${local.attempt_id}",
+            "token": "${local.token}",
+            "event_id": "chars",
+            "cost": {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 500
+            }
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${run.id}"
+          ]
+        },
+        {
+          "cli": [
+            "pause",
+            "${run.id}",
+            "--reason",
+            "Review the plan."
+          ],
+          "save": "paused"
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${local.attempt_id}",
+            "token": "${local.token}",
+            "event_id": "fetch",
+            "cost": {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 100
+            }
+          }
+        },
+        {
+          "cli": [
+            "resume"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "revision": "${paused.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now-10m}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "resume"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "revision": "${paused.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${local.attempt_id}",
+            "token": "${local.token}",
+            "event_id": "fetch",
+            "cost": {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 100
+            }
+          }
+        },
+        {
+          "cli": [
+            "history",
+            "${run.id}",
+            "--limit",
+            "3"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "parallel"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 1,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "prepare",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          },
+          "save": "par"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${par.id}",
+            "step_key": "prepare",
+            "revision": 1,
+            "plan_hash": "${par.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "win"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${par.id}",
+            "step_key": "prepare",
+            "revision": 1,
+            "plan_hash": "${par.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "claim"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${par.id}",
+            "step_key": "second",
+            "revision": 1,
+            "plan_hash": "${par.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "claim"
+        },
+        {
+          "cli": [
+            "show",
+            "${par.id}"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "budget"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 1000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "a",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 600
+                }
+              },
+              {
+                "key": "b",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 600
+                }
+              }
+            ]
+          },
+          "save": "bud"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${bud.id}",
+            "step_key": "a",
+            "revision": 1,
+            "plan_hash": "${bud.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "ba"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${bud.id}",
+            "step_key": "b",
+            "revision": 1,
+            "plan_hash": "${bud.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "claim"
+        },
+        {
+          "cli": [
+            "show",
+            "${bud.id}"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "expiring"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 1
+            },
+            "steps": [
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              }
+            ]
+          },
+          "save": "exp"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${exp.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${exp.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "ec"
+        },
+        {
+          "clock": "${now}",
+          "offset": "+5s"
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${ec.attempt_id}",
+            "token": "${ec.token}",
+            "event_id": "fetch",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 5,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "clock": "${now}",
+          "offset": "+11m"
+        },
+        {
+          "cli": [
+            "show",
+            "${exp.id}"
+          ]
+        },
+        {
+          "clock": null
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}
