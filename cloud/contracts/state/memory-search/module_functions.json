@@ -1,0 +1,3162 @@
+{
+  "description": "memory_search/memory_context module functions on literal values: representation and text hashes, vector normalisation and float32 packing (ints, floats, mixed and big ints with CPython's sum(), overflow, zero, bools, strings, dicts, non-sized values), vector decoding, identity keys, entity keys, validity windows, bounds, memory entries, mandatory constraints, sections, sized packets and the complete-JSON budget (dropping optional entries, then edges, then gaps; blocking when mandatory content does not fit).",
+  "compare_db": false,
+  "steps": [
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "representation",
+          "on": "module",
+          "args": [
+            {
+              "id": "mem_1",
+              "revision": 2,
+              "domain": "user",
+              "kind": "project",
+              "title": "Atlas launch",
+              "text": "Prepare the review",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "entities": [
+                "project:atlas",
+                "Dana",
+                "identity:[\"a\",\"b\",\"c\"]",
+                "user",
+                ""
+              ],
+              "routines": [
+                "calendar"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "representation",
+          "on": "module",
+          "args": [
+            {
+              "title": "Only title"
+            }
+          ]
+        },
+        {
+          "call": "representation",
+          "on": "module",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "representation",
+          "on": "module",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "representation",
+          "on": "module",
+          "args": [
+            {
+              "title": 5,
+              "text": "x"
+            }
+          ]
+        },
+        {
+          "call": "text_hash",
+          "on": "module",
+          "args": [
+            "Atlas launch\nPrepare"
+          ]
+        },
+        {
+          "call": "text_hash",
+          "on": "module",
+          "args": [
+            "café 😀"
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1,
+              0,
+              0
+            ],
+            3
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              0,
+              1,
+              0
+            ],
+            3
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              3,
+              4
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1.5,
+              -2.25,
+              0.125
+            ],
+            3
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1,
+              2.5,
+              3
+            ],
+            3
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              0.1,
+              0.2,
+              0.3
+            ],
+            3
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1e-300,
+              1e-300
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1e+200,
+              1e+200
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1e+308,
+              1e+308,
+              1e+308
+            ],
+            3
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              4611686018427387904,
+              4611686018427387904,
+              1.5
+            ],
+            3
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              9223372036854775808,
+              1.0,
+              2.0
+            ],
+            3
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1.0,
+              18446744073709551616,
+              3
+            ],
+            3
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,
+              1
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,
+              0.5
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,
+              1
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1,
+              10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              0,
+              0,
+              0
+            ],
+            3
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              0.0,
+              -0.0
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1,
+              true
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              true,
+              1
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              null,
+              1
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              "x",
+              1
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            "ab",
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            "abc",
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            {
+              "a": 1,
+              "b": 2
+            },
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            5,
+            1
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            null,
+            1
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            2.5,
+            1
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            true,
+            1
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1,
+              2,
+              3
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [],
+            0
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              [
+                1
+              ],
+              2
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1e-320,
+              0
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            4
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1,
+              0.1
+            ],
+            17
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1,
+              1e+16,
+              -1e+16,
+              3.5
+            ],
+            4
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              9007199254740993,
+              0.5
+            ],
+            2
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              123456789,
+              987654321,
+              1e-06
+            ],
+            3
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              -9223372036854775808,
+              9223372036854775807,
+              0.25
+            ],
+            3
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              7,
+              -9223372036854775809
+            ],
+            2
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000803f0000000000000000",
+            3
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000803f00000000",
+            3
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000c07f0000803f",
+            2
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000807f0000803f",
+            2
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000807f",
+            2
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "cdcccc3dcdcc4c3e9a99993e",
+            3
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "",
+            0
+          ]
+        },
+        {
+          "call": "identity_key",
+          "on": "module",
+          "args": [
+            {
+              "provider": "directory",
+              "scope": "scope:a",
+              "external_id": "person:\"one\""
+            }
+          ]
+        },
+        {
+          "call": "identity_key",
+          "on": "module",
+          "args": [
+            {
+              "provider": "DIRECTORY",
+              "scope": "é",
+              "external_id": "😀"
+            }
+          ]
+        },
+        {
+          "call": "identity_key",
+          "on": "module",
+          "args": [
+            {
+              "provider": "directory",
+              "scope": "one"
+            }
+          ]
+        },
+        {
+          "call": "identity_key",
+          "on": "module",
+          "args": [
+            {
+              "provider": "directory",
+              "scope": "one",
+              "external_id": " "
+            }
+          ]
+        },
+        {
+          "call": "identity_key",
+          "on": "module",
+          "args": [
+            {
+              "provider": "directory",
+              "scope": "one",
+              "external_id": 5
+            }
+          ]
+        },
+        {
+          "call": "identity_key",
+          "on": "module",
+          "args": [
+            {
+              "provider": "d",
+              "scope": "s",
+              "external_id": "e",
+              "extra": "x"
+            }
+          ]
+        },
+        {
+          "call": "identity_key",
+          "on": "module",
+          "args": [
+            [
+              "directory",
+              "one",
+              "person"
+            ]
+          ]
+        },
+        {
+          "call": "identity_key",
+          "on": "module",
+          "args": [
+            null
+          ]
+        },
+        {
+          "call": "entity_keys",
+          "on": "module",
+          "args": [
+            {
+              "id": "mem_1",
+              "revision": 2,
+              "domain": "user",
+              "kind": "project",
+              "title": "Atlas launch",
+              "text": "Prepare the review",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "entities": [
+                "project:atlas",
+                "Dana",
+                "identity:[\"a\",\"b\",\"c\"]",
+                "user",
+                ""
+              ],
+              "routines": [
+                "calendar"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "entity_keys",
+          "on": "module",
+          "args": [
+            {
+              "id": "mem_1",
+              "revision": 2,
+              "domain": "user",
+              "kind": "project",
+              "title": "Atlas launch",
+              "text": "Prepare the review",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "entities": [
+                "project:atlas",
+                "Dana",
+                "identity:[\"a\",\"b\",\"c\"]",
+                "user",
+                ""
+              ],
+              "routines": [
+                "calendar"
+              ],
+              "identity": {
+                "provider": "d",
+                "scope": "s",
+                "external_id": "e"
+              }
+            }
+          ]
+        },
+        {
+          "call": "entity_keys",
+          "on": "module",
+          "args": [
+            {
+              "entities": "project:atlas"
+            }
+          ]
+        },
+        {
+          "call": "entity_keys",
+          "on": "module",
+          "args": [
+            {
+              "identity": {
+                "provider": "d"
+              }
+            }
+          ]
+        },
+        {
+          "call": "entity_keys",
+          "on": "module",
+          "args": [
+            {
+              "identity": {}
+            }
+          ]
+        },
+        {
+          "call": "entity_keys",
+          "on": "module",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "entity_keys",
+          "on": "module",
+          "args": [
+            {
+              "entities": [
+                5,
+                null,
+                "mem_abc",
+                "item_0f",
+                "Display Name",
+                "x:y z"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "entity_keys",
+          "on": "module",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_from": "2999-01-01T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_to": "2020-01-01T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_to": "2999-01-01T00:00:00+05:00"
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "review_after": "2020-01-01T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "review_after": "2999-12-31T23:59:59.999999Z"
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_from": "2020-01-01T00:00:00"
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_from": "not a date"
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_from": "2020-01-01Z"
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_from": "2020-01-01T00:00:00ZZ"
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_from": ""
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_from": 0
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_from": 5
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_to": [
+                "2020"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "valid_to": "2999-01-01T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "call": "applicable",
+          "on": "module",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "bounds",
+          "on": "module",
+          "args": [
+            0,
+            1
+          ]
+        },
+        {
+          "call": "bounds",
+          "on": "module",
+          "args": [
+            3,
+            50
+          ]
+        },
+        {
+          "call": "bounds",
+          "on": "module",
+          "args": [
+            -1,
+            1
+          ]
+        },
+        {
+          "call": "bounds",
+          "on": "module",
+          "args": [
+            4,
+            1
+          ]
+        },
+        {
+          "call": "bounds",
+          "on": "module",
+          "args": [
+            true,
+            1
+          ]
+        },
+        {
+          "call": "bounds",
+          "on": "module",
+          "args": [
+            1.0,
+            1
+          ]
+        },
+        {
+          "call": "bounds",
+          "on": "module",
+          "args": [
+            "1",
+            1
+          ]
+        },
+        {
+          "call": "bounds",
+          "on": "module",
+          "args": [
+            1,
+            0
+          ]
+        },
+        {
+          "call": "bounds",
+          "on": "module",
+          "args": [
+            1,
+            51
+          ]
+        },
+        {
+          "call": "bounds",
+          "on": "module",
+          "args": [
+            1,
+            false
+          ]
+        },
+        {
+          "call": "bounds",
+          "on": "module",
+          "args": [
+            null,
+            null
+          ]
+        },
+        {
+          "call": "bounds",
+          "on": "module",
+          "args": [
+            1180591620717411303424,
+            1
+          ]
+        },
+        {
+          "call": "memory_entry",
+          "on": "module",
+          "args": [
+            {
+              "id": "mem_1",
+              "revision": 2,
+              "domain": "user",
+              "kind": "project",
+              "title": "Atlas launch",
+              "text": "Prepare the review",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "entities": [
+                "project:atlas",
+                "Dana",
+                "identity:[\"a\",\"b\",\"c\"]",
+                "user",
+                ""
+              ],
+              "routines": [
+                "calendar"
+              ]
+            },
+            [
+              "retrieval"
+            ]
+          ]
+        },
+        {
+          "call": "memory_entry",
+          "on": "module",
+          "args": [
+            {
+              "id": "mem_1",
+              "revision": 2,
+              "domain": "user",
+              "kind": "project",
+              "title": "Atlas launch",
+              "text": "Prepare the review",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "entities": [
+                "project:atlas",
+                "Dana",
+                "identity:[\"a\",\"b\",\"c\"]",
+                "user",
+                ""
+              ],
+              "routines": [
+                "calendar"
+              ],
+              "allowed_uses": [
+                "drafting",
+                "reasoning"
+              ],
+              "sensitivity": "public",
+              "identity": {
+                "provider": "d",
+                "scope": "s",
+                "external_id": "e"
+              }
+            },
+            [
+              "a",
+              "b"
+            ],
+            true
+          ]
+        },
+        {
+          "call": "memory_entry",
+          "on": "module",
+          "args": [
+            {
+              "id": "mem_1",
+              "revision": 2,
+              "domain": "user",
+              "kind": "project",
+              "title": "Atlas launch",
+              "text": "Prepare the review",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "entities": [
+                "project:atlas",
+                "Dana",
+                "identity:[\"a\",\"b\",\"c\"]",
+                "user",
+                ""
+              ],
+              "routines": [
+                "calendar"
+              ],
+              "allowed_uses": "drafting"
+            },
+            []
+          ]
+        },
+        {
+          "call": "memory_entry",
+          "on": "module",
+          "args": [
+            {
+              "id": "mem_1",
+              "revision": 2,
+              "domain": "user",
+              "kind": "project",
+              "title": "Atlas launch",
+              "text": "Prepare the review",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "entities": [
+                "project:atlas",
+                "Dana",
+                "identity:[\"a\",\"b\",\"c\"]",
+                "user",
+                ""
+              ],
+              "routines": [
+                "calendar"
+              ],
+              "identity": {}
+            },
+            []
+          ]
+        },
+        {
+          "call": "memory_entry",
+          "on": "module",
+          "args": [
+            {
+              "id": "mem_1"
+            },
+            []
+          ]
+        },
+        {
+          "call": "mandatory_constraint",
+          "on": "module",
+          "args": [
+            {
+              "kind": "preference",
+              "authority": "user_confirmed",
+              "domain": "agent"
+            }
+          ]
+        },
+        {
+          "call": "mandatory_constraint",
+          "on": "module",
+          "args": [
+            {
+              "kind": "preference",
+              "authority": "source_observed",
+              "domain": "agent"
+            }
+          ]
+        },
+        {
+          "call": "mandatory_constraint",
+          "on": "module",
+          "args": [
+            {
+              "kind": "profile",
+              "authority": "source_observed",
+              "domain": "user",
+              "metadata": {
+                "imported_configuration": true,
+                "source_heading": "ABOUT ME"
+              }
+            }
+          ]
+        },
+        {
+          "call": "mandatory_constraint",
+          "on": "module",
+          "args": [
+            {
+              "kind": "profile",
+              "authority": "source_observed",
+              "domain": "user",
+              "metadata": {
+                "imported_configuration": true,
+                "source_heading": "About  me"
+              }
+            }
+          ]
+        },
+        {
+          "call": "mandatory_constraint",
+          "on": "module",
+          "args": [
+            {
+              "kind": "profile",
+              "authority": "source_observed",
+              "domain": "user",
+              "metadata": {
+                "imported_configuration": true
+              }
+            }
+          ]
+        },
+        {
+          "call": "mandatory_constraint",
+          "on": "module",
+          "args": [
+            {
+              "kind": "profile",
+              "authority": "source_observed",
+              "domain": "user",
+              "metadata": {
+                "imported_configuration": true,
+                "source_heading": 5
+              }
+            }
+          ]
+        },
+        {
+          "call": "mandatory_constraint",
+          "on": "module",
+          "args": [
+            {
+              "kind": "profile",
+              "authority": "source_observed",
+              "domain": "user",
+              "metadata": {
+                "imported_configuration": true,
+                "source_heading": null
+              }
+            }
+          ]
+        },
+        {
+          "call": "mandatory_constraint",
+          "on": "module",
+          "args": [
+            {
+              "kind": "profile",
+              "authority": "source_observed",
+              "domain": "user",
+              "metadata": {
+                "imported_configuration": 0,
+                "source_heading": 5
+              }
+            }
+          ]
+        },
+        {
+          "call": "mandatory_constraint",
+          "on": "module",
+          "args": [
+            {
+              "kind": "profile",
+              "authority": "x",
+              "domain": "user",
+              "metadata": []
+            }
+          ]
+        },
+        {
+          "call": "mandatory_constraint",
+          "on": "module",
+          "args": [
+            {
+              "kind": "profile",
+              "authority": "x",
+              "domain": "agent",
+              "metadata": []
+            }
+          ]
+        },
+        {
+          "call": "mandatory_constraint",
+          "on": "module",
+          "args": [
+            {
+              "kind": "preference"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "preference"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "profile"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "person"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "project"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "decision"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "outcome"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "item"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "meeting"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "lesson"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "capability"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "episode"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "other"
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": 5
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": null
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "episode",
+              "mandatory": true
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": "episode",
+              "mandatory": 0
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "kind": [
+                "preference"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "sized",
+          "on": "module",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "sized",
+          "on": "module",
+          "args": [
+            {
+              "a": "é😀",
+              "used_chars": 99
+            }
+          ]
+        },
+        {
+          "call": "sized",
+          "on": "module",
+          "args": [
+            {
+              "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            }
+          ]
+        },
+        {
+          "call": "sized",
+          "on": "module",
+          "args": [
+            {
+              "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            }
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "parity-owner@example.com",
+              "entries": [],
+              "edges": [],
+              "gaps": []
+            },
+            1000
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "parity-owner@example.com",
+              "entries": [],
+              "edges": [],
+              "gaps": []
+            },
+            999
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "parity-owner@example.com",
+              "entries": [],
+              "edges": [],
+              "gaps": []
+            },
+            50001
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "parity-owner@example.com",
+              "entries": [],
+              "edges": [],
+              "gaps": []
+            },
+            true
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "parity-owner@example.com",
+              "entries": [],
+              "edges": [],
+              "gaps": []
+            },
+            1000.0
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "parity-owner@example.com",
+              "entries": [
+                {
+                  "id": "mem_00",
+                  "kind": "project",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_01",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_02",
+                  "kind": "item",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_03",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_04",
+                  "kind": "lesson",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_05",
+                  "kind": "person",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_06",
+                  "kind": "outcome",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_07",
+                  "kind": "episode",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_08",
+                  "kind": "project",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_09",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_10",
+                  "kind": "item",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_11",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                }
+              ],
+              "edges": [
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_01",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_01",
+                  "target_id": "mem_02",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_02",
+                  "target_id": "mem_03",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_03",
+                  "target_id": "mem_04",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_04",
+                  "target_id": "mem_05",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_05",
+                  "target_id": "mem_06",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_06",
+                  "target_id": "mem_07",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_07",
+                  "target_id": "mem_08",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_08",
+                  "target_id": "mem_09",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_09",
+                  "target_id": "mem_10",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_10",
+                  "target_id": "mem_11",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_missing",
+                  "relation": "about"
+                }
+              ],
+              "gaps": [
+                {
+                  "code": "gap_0",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_1",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_2",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_3",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_4",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_5",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_6",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_7",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_8",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_9",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                }
+              ]
+            },
+            50000
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "parity-owner@example.com",
+              "entries": [
+                {
+                  "id": "mem_00",
+                  "kind": "project",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_01",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_02",
+                  "kind": "item",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_03",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_04",
+                  "kind": "lesson",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_05",
+                  "kind": "person",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_06",
+                  "kind": "outcome",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_07",
+                  "kind": "episode",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_08",
+                  "kind": "project",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_09",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_10",
+                  "kind": "item",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_11",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                }
+              ],
+              "edges": [
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_01",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_01",
+                  "target_id": "mem_02",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_02",
+                  "target_id": "mem_03",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_03",
+                  "target_id": "mem_04",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_04",
+                  "target_id": "mem_05",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_05",
+                  "target_id": "mem_06",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_06",
+                  "target_id": "mem_07",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_07",
+                  "target_id": "mem_08",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_08",
+                  "target_id": "mem_09",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_09",
+                  "target_id": "mem_10",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_10",
+                  "target_id": "mem_11",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_missing",
+                  "relation": "about"
+                }
+              ],
+              "gaps": [
+                {
+                  "code": "gap_0",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_1",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_2",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_3",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_4",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_5",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_6",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_7",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_8",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_9",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                }
+              ]
+            },
+            3000
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "parity-owner@example.com",
+              "entries": [
+                {
+                  "id": "mem_00",
+                  "kind": "project",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_01",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_02",
+                  "kind": "item",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_03",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_04",
+                  "kind": "lesson",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_05",
+                  "kind": "person",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_06",
+                  "kind": "outcome",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_07",
+                  "kind": "episode",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_08",
+                  "kind": "project",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_09",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_10",
+                  "kind": "item",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_11",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                }
+              ],
+              "edges": [
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_01",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_01",
+                  "target_id": "mem_02",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_02",
+                  "target_id": "mem_03",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_03",
+                  "target_id": "mem_04",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_04",
+                  "target_id": "mem_05",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_05",
+                  "target_id": "mem_06",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_06",
+                  "target_id": "mem_07",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_07",
+                  "target_id": "mem_08",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_08",
+                  "target_id": "mem_09",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_09",
+                  "target_id": "mem_10",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_10",
+                  "target_id": "mem_11",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_missing",
+                  "relation": "about"
+                }
+              ],
+              "gaps": [
+                {
+                  "code": "gap_0",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_1",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_2",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_3",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_4",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_5",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_6",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_7",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_8",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_9",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                }
+              ]
+            },
+            2000
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "parity-owner@example.com",
+              "entries": [
+                {
+                  "id": "mem_00",
+                  "kind": "project",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_01",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_02",
+                  "kind": "item",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_03",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_04",
+                  "kind": "lesson",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_05",
+                  "kind": "person",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_06",
+                  "kind": "outcome",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_07",
+                  "kind": "episode",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_08",
+                  "kind": "project",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_09",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_10",
+                  "kind": "item",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_11",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                }
+              ],
+              "edges": [
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_01",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_01",
+                  "target_id": "mem_02",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_02",
+                  "target_id": "mem_03",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_03",
+                  "target_id": "mem_04",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_04",
+                  "target_id": "mem_05",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_05",
+                  "target_id": "mem_06",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_06",
+                  "target_id": "mem_07",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_07",
+                  "target_id": "mem_08",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_08",
+                  "target_id": "mem_09",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_09",
+                  "target_id": "mem_10",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_10",
+                  "target_id": "mem_11",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_missing",
+                  "relation": "about"
+                }
+              ],
+              "gaps": [
+                {
+                  "code": "gap_0",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_1",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_2",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_3",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_4",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_5",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_6",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_7",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_8",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_9",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                }
+              ]
+            },
+            1500
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "parity-owner@example.com",
+              "entries": [
+                {
+                  "id": "mem_00",
+                  "kind": "project",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_01",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_02",
+                  "kind": "item",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_03",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_04",
+                  "kind": "lesson",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_05",
+                  "kind": "person",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_06",
+                  "kind": "outcome",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_07",
+                  "kind": "episode",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_08",
+                  "kind": "project",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_09",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_10",
+                  "kind": "item",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_11",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                }
+              ],
+              "edges": [
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_01",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_01",
+                  "target_id": "mem_02",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_02",
+                  "target_id": "mem_03",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_03",
+                  "target_id": "mem_04",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_04",
+                  "target_id": "mem_05",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_05",
+                  "target_id": "mem_06",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_06",
+                  "target_id": "mem_07",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_07",
+                  "target_id": "mem_08",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_08",
+                  "target_id": "mem_09",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_09",
+                  "target_id": "mem_10",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_10",
+                  "target_id": "mem_11",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_missing",
+                  "relation": "about"
+                }
+              ],
+              "gaps": [
+                {
+                  "code": "gap_0",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_1",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_2",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_3",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_4",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_5",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_6",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_7",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_8",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_9",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                }
+              ]
+            },
+            1000
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "parity-owner@example.com",
+              "entries": [
+                {
+                  "id": "mem_req",
+                  "kind": "preference",
+                  "mandatory": true,
+                  "text": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+                }
+              ],
+              "edges": [
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_01",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_01",
+                  "target_id": "mem_02",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_02",
+                  "target_id": "mem_03",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_03",
+                  "target_id": "mem_04",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_04",
+                  "target_id": "mem_05",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_05",
+                  "target_id": "mem_06",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_06",
+                  "target_id": "mem_07",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_07",
+                  "target_id": "mem_08",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_08",
+                  "target_id": "mem_09",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_09",
+                  "target_id": "mem_10",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_10",
+                  "target_id": "mem_11",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_missing",
+                  "relation": "about"
+                }
+              ],
+              "gaps": [
+                {
+                  "code": "gap_0",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_1",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_2",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_3",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_4",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_5",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_6",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_7",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_8",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_9",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                }
+              ]
+            },
+            1000
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "parity-owner@example.com",
+              "entries": [
+                {
+                  "id": "mem_req",
+                  "kind": "preference",
+                  "mandatory": true,
+                  "text": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+                }
+              ],
+              "edges": [],
+              "gaps": [
+                {
+                  "code": "gap_0",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_1",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_2",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_3",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_4",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_5",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_6",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_7",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_8",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_9",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                }
+              ]
+            },
+            1000
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "a",
+              "nodes": [
+                {
+                  "id": "mem_00",
+                  "kind": "project",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_01",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_02",
+                  "kind": "item",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_03",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_04",
+                  "kind": "lesson",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_05",
+                  "kind": "person",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_06",
+                  "kind": "outcome",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_07",
+                  "kind": "episode",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_08",
+                  "kind": "project",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_09",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_10",
+                  "kind": "item",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_11",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                }
+              ],
+              "edges": [
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_01",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_01",
+                  "target_id": "mem_02",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_02",
+                  "target_id": "mem_03",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_03",
+                  "target_id": "mem_04",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_04",
+                  "target_id": "mem_05",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_05",
+                  "target_id": "mem_06",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_06",
+                  "target_id": "mem_07",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_07",
+                  "target_id": "mem_08",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_08",
+                  "target_id": "mem_09",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_09",
+                  "target_id": "mem_10",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_10",
+                  "target_id": "mem_11",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_missing",
+                  "relation": "about"
+                }
+              ],
+              "gaps": [
+                {
+                  "code": "gap_0",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_1",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_2",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_3",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_4",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_5",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_6",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_7",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_8",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_9",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                }
+              ]
+            },
+            2500
+          ],
+          "kwargs": {
+            "graph": true
+          }
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "status": "ready",
+              "account": "a",
+              "nodes": [
+                {
+                  "id": "mem_00",
+                  "kind": "project",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_01",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_02",
+                  "kind": "item",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_03",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_04",
+                  "kind": "lesson",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_05",
+                  "kind": "person",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_06",
+                  "kind": "outcome",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_07",
+                  "kind": "episode",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_08",
+                  "kind": "project",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_09",
+                  "kind": "decision",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_10",
+                  "kind": "item",
+                  "mandatory": true,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                },
+                {
+                  "id": "mem_11",
+                  "kind": "meeting",
+                  "mandatory": false,
+                  "text": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+                }
+              ],
+              "edges": [
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_01",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_01",
+                  "target_id": "mem_02",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_02",
+                  "target_id": "mem_03",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_03",
+                  "target_id": "mem_04",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_04",
+                  "target_id": "mem_05",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_05",
+                  "target_id": "mem_06",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_06",
+                  "target_id": "mem_07",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_07",
+                  "target_id": "mem_08",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_08",
+                  "target_id": "mem_09",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_09",
+                  "target_id": "mem_10",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_10",
+                  "target_id": "mem_11",
+                  "relation": "depends_on"
+                },
+                {
+                  "source_id": "mem_00",
+                  "target_id": "mem_missing",
+                  "relation": "about"
+                }
+              ],
+              "gaps": [
+                {
+                  "code": "gap_0",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_1",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_2",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_3",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_4",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_5",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_6",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_7",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_8",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                },
+                {
+                  "code": "gap_9",
+                  "detail": "gggggggggggggggggggggggggggggggggggggggg"
+                }
+              ]
+            },
+            1000,
+            true
+          ]
+        },
+        {
+          "call": "budget_packet",
+          "on": "module",
+          "args": [
+            {
+              "account": "a",
+              "edges": [],
+              "gaps": []
+            },
+            1000
+          ]
+        }
+      ]
+    }
+  ]
+}

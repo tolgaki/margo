@@ -13,6 +13,7 @@ any directory they are given, so they must never ship.
 | `memory_probe.py` | `MemoryProbeScript` | `MemoryStore`, `memory_governance`, Dream source helpers, `memory_encoder` status, held transactions, SQL, files (State.Memory) |
 | `tasks_probe.py` | `TasksProbeScript` | `task_state.main(argv)` in process with clock- and result-templated input, a replaceable `task_runs.clock`, `TaskStore` methods (borrowed, read-only, inside a rolled-back outer transaction), the module functions, the ledger and coverage journal on the store's connection, SQL and input files (State.Tasks) |
 | `helpers_probe.py` | `HelpersProbeScript` | the stateless helpers' libraries and the Python semantics layer; input-file writers (State.Helpers) |
+| `memory_search_probe.py` | `MemorySearchProbeScript` | `MemorySearch`, `ConnectedContext` and the `memory_search`/`memory_context` module functions with a deterministic fake encoder, held stores, store calls and SQL (State.MemorySearch) |
 
 Each project's own PORTING.md documents what its probe covers and which scenarios use it.
 

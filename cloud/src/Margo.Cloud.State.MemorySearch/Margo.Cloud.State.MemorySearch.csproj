@@ -8,4 +8,10 @@
     <ProjectReference Include="../Margo.Cloud.State.Memory/Margo.Cloud.State.Memory.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.State.Tests" />
+    <!-- The contract probe twin (never shipped in Release) reaches the internal helpers the Python probe reaches. -->
+    <InternalsVisibleTo Include="Margo.Cloud.State.Probes" />
+  </ItemGroup>
+
 </Project>

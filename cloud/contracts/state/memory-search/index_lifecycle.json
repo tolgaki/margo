@@ -1,0 +1,1594 @@
+{
+  "description": "MemorySearch.index/health/purge_unavailable with a deterministic fake encoder: first indexing (vectors, documents and FTS rows), idempotent re-runs, limits and read-only refusals, the absent local runtime, transient encoder failures keeping jobs retryable, every invalid encoder result, forgetting during encoding, model fingerprints never mixing until a rebuild, stale revisions, replayed/duplicated keyword text, corrupt vectors, orphan purges and forgetting.",
+  "steps": [
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "meeting",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "meeting",
+              "text": "Leave preparation time before decision reviews",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "meeting",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:meeting}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "lunch",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "lunch",
+              "text": "Food and lunch choices",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "lunch",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:lunch}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store"
+        },
+        {
+          "call": "health",
+          "on": "search"
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ],
+            "log": true
+          }
+        },
+        {
+          "call": "health",
+          "on": "search"
+        },
+        {
+          "sql": "SELECT memory_id,revision,model_fingerprint,text_hash,dimensions,hex(vector) FROM semantic_vectors ORDER BY memory_id",
+          "params": []
+        },
+        {
+          "sql": "SELECT memory_id,revision,content FROM semantic_documents ORDER BY memory_id",
+          "params": []
+        },
+        {
+          "sql": "SELECT memory_id,content FROM semantic_fts ORDER BY memory_id,content",
+          "params": []
+        },
+        {
+          "sql": "SELECT memory_id,revision,op,content_hash FROM memory_jobs ORDER BY memory_id",
+          "params": []
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "avoid rushed review"
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch"
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review lunch"
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [
+            0
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [
+            10001
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [
+            true
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [
+            "5"
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [
+            1.5
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [
+            null
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [
+            10000
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "limit": 1
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "read_only": true,
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:lunch}"
+          ],
+          "save": "_row"
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${id:user:lunch}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "lunch",
+              "text": "Food and lunch choices for the team",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active",
+            "${_row.revision}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:lunch}",
+              "revision": "${_row.revision}",
+              "decision": "edit",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": []
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch"
+          ]
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch"
+          ],
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store"
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "raise": "runtime unavailable"
+          }
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store"
+        },
+        {
+          "call": "blocked_jobs",
+          "on": "store"
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": []
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "dimensions": 3,
+              "vectors": [
+                [
+                  1,
+                  0,
+                  0
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": 5,
+              "dimensions": 3,
+              "vectors": [
+                [
+                  1,
+                  0,
+                  0
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "m",
+              "dimensions": true,
+              "vectors": [
+                [
+                  1
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "m",
+              "dimensions": 0,
+              "vectors": [
+                []
+              ]
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "m",
+              "dimensions": 4097,
+              "vectors": [
+                [
+                  1
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "m",
+              "dimensions": "3",
+              "vectors": [
+                [
+                  1,
+                  0,
+                  0
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "m",
+              "dimensions": 3.0,
+              "vectors": [
+                [
+                  1,
+                  0,
+                  0
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "m",
+              "dimensions": 3,
+              "vectors": [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "m",
+              "dimensions": 3,
+              "vectors": {
+                "a": 1
+              }
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "m",
+              "dimensions": 3,
+              "vectors": [
+                [
+                  1,
+                  0
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "m",
+              "dimensions": 3,
+              "vectors": [
+                [
+                  0,
+                  0,
+                  0
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "m",
+              "dimensions": 3,
+              "vectors": [
+                5
+              ]
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "m",
+              "dimensions": 3,
+              "vectors": [
+                [
+                  10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,
+                  0,
+                  0
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "result": {
+              "model_fingerprint": "m",
+              "dimensions": 1,
+              "vectors": [
+                [
+                  2.5
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "sql": "SELECT memory_id,revision,model_fingerprint,text_hash,dimensions,hex(vector) FROM semantic_vectors ORDER BY memory_id",
+          "params": []
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "transient",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "transient",
+              "text": "Preparation time",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "transient",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:transient}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ],
+            "before": [
+              {
+                "call": "show",
+                "on": "store",
+                "args": [
+                  "${id:user:transient}"
+                ],
+                "save": "_row"
+              },
+              {
+                "call": "forget",
+                "on": "store",
+                "args": [
+                  "${id:user:transient}",
+                  "${_row.revision}",
+                  {
+                    "kind": "human_confirmation",
+                    "actor": "dana@example.com",
+                    "subject_id": "${id:user:transient}",
+                    "revision": "${_row.revision}",
+                    "decision": "forget",
+                    "statement": "Confirm this synthetic fixture.",
+                    "evidence_ref": "conversation:fixture",
+                    "decided_at": "${now}"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "call": "health",
+          "on": "search"
+        },
+        {
+          "sql": "SELECT memory_id,revision,model_fingerprint,text_hash,dimensions,hex(vector) FROM semantic_vectors ORDER BY memory_id",
+          "params": []
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "sql": "SELECT memory_id,revision,model_fingerprint,text_hash,dimensions,hex(vector) FROM semantic_vectors ORDER BY memory_id",
+          "params": []
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:meeting}"
+          ],
+          "save": "_row"
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${id:user:meeting}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "meeting",
+              "text": "Entirely unrelated content now",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active",
+            "${_row.revision}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:meeting}",
+              "revision": "${_row.revision}",
+              "decision": "edit",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "preparation"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "unrelated"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "unrelated"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "sql": "UPDATE semantic_fts SET content='uniqueobsolete' WHERE memory_id=?",
+          "params": [
+            "${id:user:meeting}"
+          ]
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "uniqueobsolete"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "unrelated"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "sql": "SELECT memory_id,content FROM semantic_fts ORDER BY memory_id,content",
+          "params": []
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "unrelated"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,content) SELECT memory_id,content FROM semantic_fts WHERE memory_id=?",
+          "params": [
+            "${id:user:lunch}"
+          ]
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "sql": "UPDATE semantic_documents SET revision=99 WHERE memory_id=?",
+          "params": [
+            "${id:user:meeting}"
+          ]
+        },
+        {
+          "sql": "UPDATE semantic_vectors SET vector=x'0000c07f0000000000000000' WHERE memory_id=?",
+          "params": [
+            "${id:user:lunch}"
+          ]
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "lunch"
+          ],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "sql": "SELECT memory_id,revision,model_fingerprint,text_hash,dimensions,hex(vector) FROM semantic_vectors ORDER BY memory_id",
+          "params": []
+        },
+        {
+          "sql": "SELECT memory_id,revision,content FROM semantic_documents ORDER BY memory_id",
+          "params": []
+        },
+        {
+          "sql": "SELECT memory_id,content FROM semantic_fts ORDER BY memory_id,content",
+          "params": []
+        },
+        {
+          "sql": "INSERT INTO semantic_documents VALUES ('mem_orphan',1,'orphan text')",
+          "params": []
+        },
+        {
+          "sql": "INSERT INTO semantic_vectors VALUES ('mem_orphan2',1,'m','h',1,x'0000803f','2020-01-01T00:00:00+00:00')",
+          "params": []
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,content) VALUES ('mem_orphan3','orphan keyword')",
+          "params": []
+        },
+        {
+          "sql": "INSERT INTO semantic_fts(memory_id,content) VALUES (NULL,'null keyword')",
+          "params": []
+        },
+        {
+          "call": "purge_unavailable",
+          "on": "search"
+        },
+        {
+          "sql": "SELECT memory_id,revision,content FROM semantic_documents ORDER BY memory_id",
+          "params": []
+        },
+        {
+          "sql": "SELECT memory_id,content FROM semantic_fts ORDER BY memory_id,content",
+          "params": []
+        },
+        {
+          "sql": "DELETE FROM semantic_documents",
+          "params": []
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:lunch}"
+          ],
+          "save": "_row"
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${id:user:lunch}",
+            "${_row.revision}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:lunch}",
+              "revision": "${_row.revision}",
+              "decision": "forget",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "purge_unavailable",
+          "on": "search"
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "health",
+          "on": "search"
+        },
+        {
+          "sql": "SELECT memory_id,revision,model_fingerprint,text_hash,dimensions,hex(vector) FROM semantic_vectors ORDER BY memory_id",
+          "params": []
+        },
+        {
+          "sql": "SELECT memory_id,content FROM semantic_fts ORDER BY memory_id,content",
+          "params": []
+        },
+        {
+          "sql": "SELECT memory_id,revision,op,content_hash FROM memory_jobs ORDER BY memory_id",
+          "params": []
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "drifted",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "drifted",
+              "text": "Drifted preparation",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "drifted",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:drifted}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "sql": "UPDATE memory_jobs SET revision=7 WHERE memory_id=?",
+          "params": [
+            "${id:user:drifted}"
+          ]
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "gone",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "gone",
+              "text": "Gone soon",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "gone",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:gone}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:gone}"
+          ],
+          "save": "_row"
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${id:user:gone}",
+            "${_row.revision}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:gone}",
+              "revision": "${_row.revision}",
+              "decision": "forget",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE memory_jobs SET revision=9 WHERE memory_id=?",
+          "params": [
+            "${id:user:gone}"
+          ]
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "sql": "UPDATE memory_jobs SET revision=2 WHERE memory_id=?",
+          "params": [
+            "${id:user:gone}"
+          ]
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "different-model",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "sql": "SELECT memory_id,revision,op,content_hash FROM memory_jobs ORDER BY memory_id",
+          "params": []
+        }
+      ]
+    }
+  ]
+}

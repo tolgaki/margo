@@ -17,6 +17,7 @@
     <ProjectReference Include="../Margo.Cloud.State.Proactive/Margo.Cloud.State.Proactive.csproj" />
     <ProjectReference Include="../Margo.Cloud.State.Tasks/Margo.Cloud.State.Tasks.csproj" />
     <ProjectReference Include="../Margo.Cloud.State.Memory/Margo.Cloud.State.Memory.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.MemorySearch/Margo.Cloud.State.MemorySearch.csproj" />
     <ProjectReference Include="../Margo.Cloud.State.Helpers/Margo.Cloud.State.Helpers.csproj" />
   </ItemGroup>
 

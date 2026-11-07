@@ -1,0 +1,891 @@
+{
+  "description": "Context joins live work instead of copying it: memory work_refs and explicit work_ids read items afresh (state, current source link, open_work section), resolution removes the item with a work_not_open gap and no memory write; outcomes and meetings reach their sections through work_ids and item links; missing owners become unknown_work_field gaps; unknown, unconfirmed, another account's and source-changed or restricted work is withheld with explicit gaps.",
+  "account": "context-fixture@example.com",
+  "steps": [
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "1",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Prepare fictional review",
+              "owner": null,
+              "due": null,
+              "direction": "own",
+              "source_refs": [
+                "${src}"
+              ],
+              "confirmation_source": "conversation:fixture"
+            },
+            "fixture-1"
+          ],
+          "save": "item"
+        },
+        {
+          "call": "update_item",
+          "on": "ledger",
+          "save": "item",
+          "args": [
+            "${item.id}",
+            "${item.revision}"
+          ],
+          "kwargs": {
+            "state": "confirmed",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${item.id}",
+              "revision": "${item.revision}",
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "sql": "SELECT id,current_revision FROM work_sources ORDER BY id",
+          "save": "srcrow"
+        },
+        {
+          "sql": "SELECT id,state,confirmed FROM work_items ORDER BY created_at,id",
+          "save": "items"
+        },
+        {
+          "sql": "SELECT id,kind,state FROM work_records ORDER BY kind,id",
+          "save": "records"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "project",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "project",
+              "text": "Synthetic project",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "metadata": {
+                "work_refs": [
+                  "${items.rows.0.0}",
+                  {
+                    "id": "item_missing",
+                    "kind": "item"
+                  },
+                  5,
+                  {
+                    "kind": "item"
+                  }
+                ]
+              }
+            },
+            "active"
+          ],
+          "save": "project",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:project}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "sql": "SELECT count(*) FROM memory_records"
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "${id:user:project}"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "${id:user:project}"
+            ],
+            "work_ids": [
+              "${items.rows.0.0}",
+              "item_unknown",
+              "meeting_unknown"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:project}"
+          ]
+        }
+      ]
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "1",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Prepare fictional review",
+              "owner": null,
+              "due": null,
+              "direction": "own",
+              "source_refs": [
+                "${src}"
+              ],
+              "confirmation_source": "conversation:fixture"
+            },
+            "fixture-1"
+          ],
+          "save": "item"
+        },
+        {
+          "call": "update_item",
+          "on": "ledger",
+          "save": "item",
+          "args": [
+            "${item.id}",
+            "${item.revision}"
+          ],
+          "kwargs": {
+            "state": "resolved",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${item.id}",
+              "revision": "${item.revision}",
+              "decision": "resolve",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "sql": "SELECT id,current_revision FROM work_sources ORDER BY id",
+          "save": "srcrow"
+        },
+        {
+          "sql": "SELECT id,state,confirmed FROM work_items ORDER BY created_at,id",
+          "save": "items"
+        },
+        {
+          "sql": "SELECT id,kind,state FROM work_records ORDER BY kind,id",
+          "save": "records"
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "${id:user:project}"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "sql": "SELECT count(*) FROM memory_records"
+        }
+      ]
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "1",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Prepare fictional review",
+              "owner": null,
+              "due": null,
+              "direction": "own",
+              "source_refs": [],
+              "confirmation_source": "conversation:fixture"
+            },
+            "fixture-2"
+          ],
+          "save": "item"
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Prepare fictional review",
+              "owner": null,
+              "due": null,
+              "direction": "own",
+              "source_refs": [],
+              "confirmation_source": "conversation:fixture"
+            },
+            "fixture-3"
+          ],
+          "save": "item"
+        },
+        {
+          "call": "update_item",
+          "on": "ledger",
+          "save": "item",
+          "args": [
+            "${item.id}",
+            "${item.revision}"
+          ],
+          "kwargs": {
+            "state": "confirmed",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${item.id}",
+              "revision": "${item.revision}",
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "record_id",
+          "on": "products",
+          "args": [
+            "outcome",
+            "outcome-fixture"
+          ],
+          "save": "outcome_id"
+        },
+        {
+          "call": "put",
+          "on": "products",
+          "save": "outcome",
+          "args": [
+            "outcome",
+            "outcome-fixture",
+            {
+              "week": "2026-09-07",
+              "title": "Fictional outcome",
+              "owner": "person:fixture",
+              "definition_of_done": "Reviewed",
+              "due": "2026-09-11",
+              "effort": 60,
+              "next_step": "Prepare review",
+              "allocation": "focus:fixture",
+              "blocker": null,
+              "work_item_ids": [
+                "${item.id}"
+              ],
+              "source_refs": []
+            }
+          ],
+          "kwargs": {
+            "state": "agreed",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${outcome_id}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "products",
+          "args": [
+            "meeting",
+            "occurrence:fixture",
+            {
+              "series_id": "series:fixture",
+              "occurrence_id": "occurrence:fixture",
+              "scheduled_start": "2026-09-07T10:00:00Z",
+              "scheduled_end": "2026-09-07T11:00:00Z",
+              "source_refs": [
+                "${src}"
+              ],
+              "work_item_ids": [
+                "${item.id}"
+              ]
+            }
+          ],
+          "save": "meeting"
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "sql": "SELECT id,current_revision FROM work_sources ORDER BY id",
+          "save": "srcrow"
+        },
+        {
+          "sql": "SELECT id,state,confirmed FROM work_items ORDER BY created_at,id",
+          "save": "items"
+        },
+        {
+          "sql": "SELECT id,kind,state FROM work_records ORDER BY kind,id",
+          "save": "records"
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "${records.rows.1.0}",
+              "${records.rows.0.0}"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "${items.rows.1.0}"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x",
+              "x"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": "item_x",
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              ""
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              5
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${records.rows.1.0}"
+          ]
+        },
+        {
+          "sql": "UPDATE work_items SET account='other-fixture@example.com' WHERE id=?",
+          "params": [
+            "${items.rows.2.0}"
+          ]
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "${items.rows.2.0}"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "sql": "UPDATE work_items SET account=? WHERE id=?",
+          "params": [
+            "context-fixture@example.com",
+            "${items.rows.2.0}"
+          ]
+        }
+      ]
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "1",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "2",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "sql": "SELECT id,current_revision FROM work_sources ORDER BY id",
+          "save": "srcrow"
+        },
+        {
+          "sql": "SELECT id,state,confirmed FROM work_items ORDER BY created_at,id",
+          "save": "items"
+        },
+        {
+          "sql": "SELECT id,kind,state FROM work_records ORDER BY kind,id",
+          "save": "records"
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "${items.rows.0.0}"
+            ],
+            "mode": "lexical"
+          }
+        }
+      ]
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "1",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "3",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "confidential"
+          }
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "sql": "SELECT id,current_revision FROM work_sources ORDER BY id",
+          "save": "srcrow"
+        },
+        {
+          "sql": "SELECT id,state,confirmed FROM work_items ORDER BY created_at,id",
+          "save": "items"
+        },
+        {
+          "sql": "SELECT id,kind,state FROM work_records ORDER BY kind,id",
+          "save": "records"
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "${items.rows.0.0}"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "${records.rows.0.0}"
+            ],
+            "mode": "lexical"
+          }
+        }
+      ]
+    }
+  ]
+}

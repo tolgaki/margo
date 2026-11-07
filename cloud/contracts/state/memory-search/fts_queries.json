@@ -1,0 +1,1955 @@
+{
+  "description": "Keyword search through SQLite FTS5 (e_sqlite3 in C#, the system SQLite in CPython) judged by query results: a 20-record Unicode corpus (case, diacritics and combining accents, sharp s, dotted/dotless i, CJK, emoji, underscores and hyphens, apostrophes, digits and versions, final sigma, fullwidth letters, FTS operator words and punctuation, zero-width characters) indexed through FTS, two records found only by the bounded lexical fallback, and about 100 queries: casefolding and \\w word extraction, stopwords, deduplication, the 24-word cap, quoted phrase escaping (operator text is never interpreted), bm25 ranking and score values, ties broken by ID, and the result limit.",
+  "compare_db": false,
+  "steps": [
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "alpha",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "alpha",
+              "text": "Review preparation for the Atlas launch",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "alpha",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:alpha}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "bravo",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "bravo",
+              "text": "Reviews and previews of the launch plan",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "bravo",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:bravo}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "charlie",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "charlie",
+              "text": "Café meeting with the naïve vendor",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "charlie",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:charlie}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "delta",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "delta",
+              "text": "Cafe meeting with the naive vendor",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "delta",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:delta}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "echo",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "echo",
+              "text": "Straße address for the STRASSE office",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "echo",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:echo}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "foxtrot",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "foxtrot",
+              "text": "İstanbul trip and istanbul visa",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "foxtrot",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:foxtrot}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "golf",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "golf",
+              "text": "東京タワー visit and 東京 office",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "golf",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:golf}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "hotel",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "hotel",
+              "text": "Emoji 😀 feedback and 🚀 launch",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "hotel",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:hotel}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "india",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "india",
+              "text": "snake_case keys and kebab-case-keys",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "india",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:india}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "juliet",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "juliet",
+              "text": "Don't forget the 100% budget for 2026 v1.2",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "juliet",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:juliet}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "kilo",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "kilo",
+              "text": "ΣΟΦΟΣ and σοφός greek words",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "kilo",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:kilo}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "lima",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "lima",
+              "text": "café with a combining accent",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "lima",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:lima}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "mike",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "mike",
+              "text": "ＦＵＬＬＷＩＤＴＨ letters and fullwidth",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "mike",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:mike}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "november",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "november",
+              "text": "Review preparation for the Atlas launch",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "november",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:november}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "oscar",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "oscar",
+              "text": "Review preparation for the Atlas launch",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "oscar",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:oscar}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "papa",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "papa",
+              "text": "dotless ı and dotted i in names",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "papa",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:papa}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "quebec",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "quebec",
+              "text": "near or and not are operators NEAR OR AND NOT",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "quebec",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:quebec}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "romeo",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "romeo",
+              "text": "quoted \"phrase\" with star* and caret^ and col:value",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "romeo",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:romeo}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "sierra",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "sierra",
+              "text": "abc123 def456 mixed tokens 12345",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "sierra",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:sierra}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "tango",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "tango",
+              "text": "zero​width joiner‍text and tab\tseparated",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "tango",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:tango}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ],
+            "log": true
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "uniform",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "uniform",
+              "text": "Review preparation for the Atlas launch (not yet indexed)",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "uniform",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:uniform}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "victor",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "victor",
+              "text": "Café latte 東京 snake_case not yet indexed",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "victor",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:victor}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "sql": "SELECT memory_id,content FROM semantic_fts ORDER BY memory_id"
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "Review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "REVIEW"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "reviews"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "rev"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "preparation review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review review review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "Atlas launch"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "launch"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "the launch"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "the"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "a an of to"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "how can I do what"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            ""
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "café"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "cafe"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "CAFÉ"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "naïve"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "naive"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "café"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "straße"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "STRASSE"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "strasse"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "ß"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "ss"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "İstanbul"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "istanbul"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "ISTANBUL"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "ı"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "i"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "東京"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "東京タワー"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "タワー"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "京"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "😀"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "emoji 😀"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "🚀 launch"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "snake_case"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "snake"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "case"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "kebab-case-keys"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "kebab"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "keys"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "don't"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "don"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "t"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "100%"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "100"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "2026"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "v1.2"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "v1"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "2"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "σοφοσ"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "ΣΟΦΟΣ"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "σοφός"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "greek"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "ＦＵＬＬＷＩＤＴＨ"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "fullwidth"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "FULLWIDTH"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "NEAR"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "near"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "OR"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "AND NOT"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "NEAR(review preparation)"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review*"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "*"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "^review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "col:value"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "content:review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "memory_id:review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "\"phrase\""
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "\"quoted phrase\""
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "star*"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "caret^"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "XYZSPEC \" OR *"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review OR launch"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review AND launch"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "-review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "+review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "abc123"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "abc"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "123"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "12345"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "def456 abc123"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "zero"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "width"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "joiner"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "joiner‍text"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "tab"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "separated"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "word0 word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14 word15 word16 word17 word18 word19 word20 word21 word22 word23 word24 word25 word26 word27 word28 word29 review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 review launch"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review review review review review review review review review review review review review review review review review review review review review review review review review review review review review review "
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            " review "
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review\n\tlaunch"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "_"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "__review__"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review_"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "limit": 50
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "limit": 1,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "limit": 2,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "limit": 3,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "limit": 5,
+            "mode": "lexical"
+          }
+        }
+      ]
+    }
+  ]
+}
