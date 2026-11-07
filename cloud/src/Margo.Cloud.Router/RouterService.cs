@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -32,10 +34,20 @@ public sealed class RouterService
     internal const string NotFoundText = "404: Not Found";
     internal const string MethodNotAllowedText = "405: Method Not Allowed";
     internal const string ServerErrorText = "500 Internal Server Error\n\nServer got itself in trouble";
+
+    /// <summary>aiohttp's 500 body for a request whose <c>Accept</c> mentions <c>text/html</c>.</summary>
+    internal const string ServerErrorHtml = "<html><head><title>500 Internal Server Error</title></head><body>\n"
+        + "<h1>500 Internal Server Error</h1>\nServer got itself in trouble\n</body></html>\n";
+
     internal const string HealthJson = "{\"status\": \"ok\"}";
 
     private static readonly HashSet<string> HealthPaths = new(StringComparer.Ordinal) { "/", "/liveness", "/readiness" };
     private static readonly HashSet<string> ActivityPaths = new(StringComparer.Ordinal) { "/api/messages", "/activity/messages" };
+
+    /// <summary>aiohttp's HTTP parser refused a request that repeated one of these (its spelling of
+    /// each name, in its message).</summary>
+    private static readonly string[] SingletonHeaders =
+        ["Content-Length", "Content-Location", "Content-Range", "Content-Type", "Etag", "Host", "Max-Forwards", "Server", "Transfer-Encoding", "User-Agent"];
 
     private readonly RouteTableCache _routes;
     private readonly IProvisioningSink _queue;
@@ -67,19 +79,52 @@ public sealed class RouterService
         {
             await DispatchAsync(context);
         }
+        catch (InstanceTimeoutException) when (!context.Response.HasStarted)
+        {
+            // aiohttp answered a handler that raised asyncio.TimeoutError (its client timeouts are
+            // ones) with an empty 504, logging no exception.
+            _logger.LogError("Error handling request");
+            context.Response.Clear();
+            context.Response.StatusCode = 504;
+            context.Response.ContentType = "text/plain";
+            context.Response.ContentLength = 0;
+        }
         catch (Exception exc) when (!context.Response.HasStarted)
         {
-            // aiohttp: "Error handling request", then a plain 500.
+            // aiohttp: "Error handling request", then a 500: HTML when the caller accepts text/html.
             _logger.LogError(exc, "Error handling request");
             context.Response.Clear();
-            await WriteTextAsync(context, 500, ServerErrorText);
+            if (FirstHeader(context, "Accept") is { } accept && accept.Contains("text/html", StringComparison.Ordinal))
+            {
+                context.Response.StatusCode = 500;
+                context.Response.ContentType = "text/html; charset=utf-8";
+                await WriteBodyAsync(context, Encoding.UTF8.GetBytes(ServerErrorHtml));
+            }
+            else
+            {
+                await WriteTextAsync(context, 500, ServerErrorText);
+            }
         }
     }
 
     private async Task DispatchAsync(HttpContext context)
     {
+        // aiohttp's HTTP parser refused these before any routing.
+        if (ParserError(context.Request.Headers) is { } parserError)
+        {
+            await WriteTextAsync(context, 400, parserError);
+            return;
+        }
+
         var path = RequestPath.FromRawTarget(RawTarget(context));
         var method = context.Request.Method;
+
+        // aiohttp's default Expect handler ran for every route, before the middleware.
+        if (UnknownExpectation(context) is { } expectation)
+        {
+            await WriteTextAsync(context, 417, "Unknown Expect: " + expectation);
+            return;
+        }
 
         // The SDK middleware ran for these paths whatever the method, before routing.
         if (ActivityPaths.Contains(path.Decoded))
@@ -131,7 +176,18 @@ public sealed class RouterService
     /// <summary>Python: <c>Router.messages</c>.</summary>
     private async Task MessagesAsync(HttpContext context)
     {
-        var body = await ReadBodyAsync(context.Request.Body, RouterCore.MaxActivityBytes + 1, context.RequestAborted);
+        byte[] body;
+        try
+        {
+            body = await ReadActivityAsync(context, context.RequestAborted);
+        }
+        catch (BadHttpRequestException exc) when (exc.StatusCode == StatusCodes.Status413PayloadTooLarge)
+        {
+            // Kestrel's own limit (a declared length over 30 MB) is beyond this router's limit too.
+            await WriteEmptyAsync(context, 413);
+            return;
+        }
+
         if (body.Length > RouterCore.MaxActivityBytes)
         {
             await WriteEmptyAsync(context, 413);
@@ -202,8 +258,16 @@ public sealed class RouterService
         // the browser needs.
         if (FirstHeader(context, "Upgrade") is { } upgrade && PythonCompat.LowerEquals(upgrade, "websocket"))
         {
+            if (HandshakeError(context.Request.Headers) is { } handshakeError)
+            {
+                await WriteTextAsync(context, 400, handshakeError);
+                return;
+            }
+
             if (!context.WebSockets.IsWebSocketRequest)
             {
+                // aiohttp accepted this handshake (protocol version 7 or 8, or a key with stray
+                // characters); ASP.NET Core cannot (PORTING.md).
                 await WriteTextAsync(context, 400, "400: Bad Request");
                 return;
             }
@@ -290,6 +354,155 @@ public sealed class RouterService
         }
 
         return null;
+    }
+
+    /// <summary>aiohttp's HTTP parser errors that this router reproduces: a repeated singleton header,
+    /// then a <c>Content-Encoding</c> it had no decoder for (it had no Brotli or zstd module).</summary>
+    internal static string? ParserError(IHeaderDictionary headers)
+    {
+        foreach (var name in SingletonHeaders)
+        {
+            if (headers.TryGetValue(name, out var values) && values.Count > 1)
+            {
+                return "Duplicate '" + name + "' header found.";
+            }
+        }
+
+        return RequestContentEncoding(headers) switch
+        {
+            "br" => "Can not decode content-encoding: brotli (br). Please install `Brotli`",
+            "zstd" => "Can not decode content-encoding: zstandard (zstd). Please install `backports.zstd`",
+            _ => null,
+        };
+    }
+
+    /// <summary>The body encoding aiohttp decoded: the last <c>Content-Encoding</c> header, when it is
+    /// ASCII and, lower-cased, exactly <c>gzip</c>, <c>deflate</c>, <c>br</c> or <c>zstd</c>.</summary>
+    internal static string? RequestContentEncoding(IHeaderDictionary headers)
+    {
+        if (!headers.TryGetValue("Content-Encoding", out var values) || values.Count == 0 || values[^1] is not { } value || !Ascii.IsValid(value))
+        {
+            return null;
+        }
+
+        var lowered = value.ToLowerInvariant();
+        return lowered is "gzip" or "deflate" or "br" or "zstd" ? lowered : null;
+    }
+
+    /// <summary>aiohttp's <c>_default_expect_handler</c>: on HTTP/1.1, a first <c>Expect</c> value other
+    /// than <c>100-continue</c> (any case) is refused with 417.</summary>
+    private static string? UnknownExpectation(HttpContext context)
+    {
+        if (!HttpProtocol.IsHttp11(context.Request.Protocol) || FirstHeader(context, "Expect") is not { Length: > 0 } expect)
+        {
+            return null;
+        }
+
+        return PythonCompat.LowerEquals(expect, "100-continue") ? null : expect;
+    }
+
+    /// <summary>aiohttp's <c>WebSocketResponse._handshake</c> checks, in its order, for a request whose
+    /// <c>Upgrade</c> is <c>websocket</c>: the message of the 400 it raised, or <see langword="null"/>.</summary>
+    /// <exception cref="InvalidOperationException">The key is not ASCII (Python: <c>ValueError</c> from
+    /// <c>base64.b64decode</c>, which aiohttp did not catch; the request failed with 500).</exception>
+    internal static string? HandshakeError(IHeaderDictionary headers)
+    {
+        // llhttp's upgrade flag: a Connection header with the token "upgrade".
+        var upgradable = headers.TryGetValue("Connection", out var connection) && connection.Any(value =>
+            value is not null && value.Split(',').Any(token => token.Trim(' ', '\t').Equals("upgrade", StringComparison.OrdinalIgnoreCase)));
+        if (!upgradable)
+        {
+            return "No CONNECTION upgrade hdr: " + (First(headers, "Connection") ?? "None");
+        }
+
+        var version = First(headers, "Sec-WebSocket-Version") ?? string.Empty;
+        if (version is not ("13" or "8" or "7"))
+        {
+            return "Unsupported version: " + version;
+        }
+
+        var key = First(headers, "Sec-WebSocket-Key");
+        if (string.IsNullOrEmpty(key))
+        {
+            return "Handshake error: " + (key is null ? "None" : "''");
+        }
+
+        if (!Ascii.IsValid(key))
+        {
+            throw new InvalidOperationException("the WebSocket key is not ASCII");
+        }
+
+        return PythonBase64.TryA2b(Encoding.ASCII.GetBytes(key), out var decoded) && decoded.Length == 16
+            ? null
+            : "Handshake error: " + PythonRepr(key);
+    }
+
+    /// <summary>Python's <c>repr()</c> of an ASCII string.</summary>
+    internal static string PythonRepr(string text)
+    {
+        var quote = text.Contains('\'', StringComparison.Ordinal) && !text.Contains('"', StringComparison.Ordinal) ? '"' : '\'';
+        var builder = new StringBuilder(text.Length + 2).Append(quote);
+        foreach (var c in text)
+        {
+            _ = c switch
+            {
+                '\\' => builder.Append("\\\\"),
+                '\t' => builder.Append("\\t"),
+                '\n' => builder.Append("\\n"),
+                '\r' => builder.Append("\\r"),
+                _ when c == quote => builder.Append('\\').Append(c),
+                < ' ' or (char)0x7f => builder.Append("\\x").Append(((int)c).ToString("x2", System.Globalization.CultureInfo.InvariantCulture)),
+                _ => builder.Append(c),
+            };
+        }
+
+        return builder.Append(quote).ToString();
+    }
+
+    private static string? First(IHeaderDictionary headers, string name) =>
+        headers.TryGetValue(name, out var values) && values.Count > 0 ? values[0] : null;
+
+    /// <summary>The activity body, decoded as aiohttp decoded it: a <c>gzip</c> or <c>deflate</c>
+    /// <c>Content-Encoding</c> is decompressed (deflate with or without its zlib header, chosen by the
+    /// first byte), and at most the limit plus one byte is read. Data that does not decompress throws
+    /// (Python: <c>RequestPayloadError</c> from <c>read</c>, a 500).</summary>
+    private static async Task<byte[]> ReadActivityAsync(HttpContext context, CancellationToken cancellationToken)
+    {
+        const int limit = RouterCore.MaxActivityBytes + 1;
+        var reader = context.Request.BodyReader;
+        var encoding = RequestContentEncoding(context.Request.Headers);
+        await using var raw = reader.AsStream(leaveOpen: true);
+        if (encoding == "gzip")
+        {
+            await using var gzip = new GZipStream(raw, CompressionMode.Decompress, leaveOpen: true);
+            return await ReadBodyAsync(gzip, limit, cancellationToken);
+        }
+
+        if (encoding != "deflate")
+        {
+            return await ReadBodyAsync(raw, limit, cancellationToken);
+        }
+
+        // aiohttp: "bits 0..3 = CM = 0b1000 = 8 = deflate"; any other first byte is raw deflate data.
+        var peek = await reader.ReadAsync(cancellationToken);
+        var buffer = peek.Buffer;
+        var first = new byte[1];
+        var empty = buffer.IsEmpty;
+        if (!empty)
+        {
+            buffer.Slice(0, 1).CopyTo(first);
+        }
+
+        reader.AdvanceTo(buffer.Start, buffer.Start);
+        if (empty)
+        {
+            return [];
+        }
+
+        await using Stream deflate = (first[0] & 0x0F) == 8
+            ? new ZLibStream(raw, CompressionMode.Decompress, leaveOpen: true)
+            : new DeflateStream(raw, CompressionMode.Decompress, leaveOpen: true);
+        return await ReadBodyAsync(deflate, limit, cancellationToken);
     }
 
     /// <summary>Read at most <paramref name="limit"/> bytes of the body.</summary>

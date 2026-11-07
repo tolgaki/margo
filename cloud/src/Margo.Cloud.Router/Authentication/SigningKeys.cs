@@ -1,6 +1,5 @@
 using System.Numerics;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -42,7 +41,8 @@ public sealed class HttpJwksSource : IJwksSource, IDisposable
 
     public HttpJwksSource()
     {
-        _client = new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(30) };
+        // urllib sent no trace context; .NET would add the inbound request's.
+        _client = new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false, ActivityHeadersPropagator = null }) { Timeout = TimeSpan.FromSeconds(30) };
     }
 
     public async Task<byte[]> FetchAsync(string uri, CancellationToken cancellationToken)
@@ -311,13 +311,14 @@ internal sealed class JwksClient : IDisposable
             return null;
         }
 
+        // cryptography's RSAPublicNumbers(e, n).public_key(): e at least 3, below n, and odd.
         var n = new BigInteger(modulus, isUnsigned: true, isBigEndian: true);
         var e = new BigInteger(exponent, isUnsigned: true, isBigEndian: true);
-        return e < 3 || e >= n ? null : new SigningKey(jwk, algorithm, modulus, exponent, isPrivate: false);
+        return e < 3 || e >= n || e.IsEven ? null : new SigningKey(jwk, algorithm, modulus, exponent, isPrivate: false);
     }
 
     /// <summary>Python: <c>from_base64url_uint</c>, as big-endian bytes without leading zeros.</summary>
-    private static bool TryUnsignedFromBase64Url(JsonNode? node, out byte[] value)
+    internal static bool TryUnsignedFromBase64Url(JsonNode? node, out byte[] value)
     {
         value = [];
         if (PythonCompat.AsString(node) is not { } text)
@@ -325,33 +326,11 @@ internal sealed class JwksClient : IDisposable
             return false; // Python: TypeError from force_bytes
         }
 
-        var data = new StringBuilder(text.Length + 3);
-        foreach (var c in text)
+        if (!PythonBase64.TryUrlsafeDecode(text, out var bytes))
         {
-            if (c == '=')
-            {
-                break; // padding ends the data
-            }
-
-            if (c is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9') or '+' or '/')
-            {
-                data.Append(c);
-            }
-            else if (c is '-' or '_')
-            {
-                data.Append(c == '-' ? '+' : '/');
-            }
-
-            // Python's non-strict base64 skips any other character.
+            return false; // binascii.Error or UnicodeEncodeError: InvalidKeyError, the key is skipped
         }
 
-        if (data.Length % 4 == 1)
-        {
-            return false;
-        }
-
-        data.Append('=', (4 - (data.Length % 4)) % 4);
-        var bytes = Convert.FromBase64String(data.ToString());
         var start = 0;
         while (start < bytes.Length - 1 && bytes[start] == 0)
         {

@@ -77,6 +77,11 @@ internal sealed class FakeInstance : IAsyncDisposable
         }
         else
         {
+            if (context.Request.Path.Value!.EndsWith("/slow", StringComparison.Ordinal))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5), context.RequestAborted).ContinueWith(_ => { }, TaskScheduler.Default);
+            }
+
             context.Response.Headers.ContentType = "text/html; charset=utf-8";
             context.Response.Headers.CacheControl = "no-store, max-age=0";
             context.Response.Headers.ContentSecurityPolicy = "default-src 'self'";
@@ -88,6 +93,11 @@ internal sealed class FakeInstance : IAsyncDisposable
 
     private static async Task MessagesAsync(HttpContext context, string body)
     {
+        if (body.Contains("\"slow\"", StringComparison.Ordinal))
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5), context.RequestAborted).ContinueWith(_ => { }, TaskScheduler.Default);
+        }
+
         if (body.Contains("\"empty\"", StringComparison.Ordinal))
         {
             context.Response.StatusCode = 202;
@@ -241,7 +251,7 @@ internal sealed class RouterUnderTest : IAsyncDisposable
         return table.Dumps();
     }
 
-    public static async Task<RouterUnderTest> StartAsync(string routes = "", bool kestrel = false)
+    public static async Task<RouterUnderTest> StartAsync(string routes = "", bool kestrel = false, InstanceConnector? connector = null)
     {
         var time = new ManualTime();
         var source = new FakeRouteSource { Text = routes };
@@ -262,6 +272,11 @@ internal sealed class RouterUnderTest : IAsyncDisposable
         }
 
         builder.Services.AddMargoRouter(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId), source, sink, jwks, time);
+        if (connector is not null)
+        {
+            builder.Services.AddSingleton(connector); // the last registration wins
+        }
+
         var app = builder.Build();
         app.UseMargoRouter();
         await app.StartAsync();

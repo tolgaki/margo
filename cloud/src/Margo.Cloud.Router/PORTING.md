@@ -29,6 +29,9 @@ the voice page and its WebSocket. Instance names, the route table and lifecycle 
 | `json.loads(bytes)` (`detect_encoding`, `surrogatepass`) | `PythonJsonBytes` |
 | `request.path` / `rel_url.path_safe` (yarl) | `RequestPath.FromRawTarget` |
 | `str.isspace`, `str.lower`, truthiness, `int()` | `PythonCompat` (Core has the same helpers, but internal) |
+| `binascii.a2b_base64` (non-strict), PyJWT `base64url_decode` | `PythonBase64` |
+| aiohttp's parser checks (repeated singleton headers, `Content-Encoding`), `_default_expect_handler`, `WebSocketResponse._handshake`, `RequestHandler.handle_error` (500/504) | `RouterService.ParserError`, `RequestContentEncoding`, `UnknownExpectation`, `HandshakeError`, `HandleAsync` |
+| aiohttp's request decompression (`DeflateBuffer`) | `RouterService.ReadActivityAsync` |
 
 ## The token check
 
@@ -110,10 +113,16 @@ ingress target port) and `LOG_LEVEL` (default `INFO`; Python's level names).
    aiohttp's `StreamReader.read(n)` returns whatever is buffered, not `n` bytes. Driving the Python
    router showed it: a valid 1 MiB body and a 1 MiB + 11 byte one were both cut short and answered
    400; the 413 branch was unreachable for bodies sent normally. This port reads up to
-   `MAX + 1` bytes: at most 1 MiB is routed, more is 413. Smaller activities behave the same.
+   `MAX + 1` bytes: at most 1 MiB is routed, more is 413. Python's outcome depended on how the body
+   arrived: one larger than a single network read could be cut short at any size, and one shorter than
+   its declared `Content-Length` was routed as far as it had arrived (review: a 163-byte activity
+   declared as 40,000,000 bytes was forwarded); this port waits for the body or the limit, and a
+   declared length over Kestrel's 30 MB limit is 413 at once.
 2. **JSON that System.Text.Json cannot hold.** `NaN`, `Infinity` and `-Infinity` and nesting deeper
-   than 1000 are refused (activity: 400; token: 401; key set: refused). Python accepted the literals
-   and failed deeper nesting with `RecursionError` (500). Lone surrogates, which Core's
+   than 1000 are refused (activity: 400; token: 401; key set: refused). Python accepted the literals,
+   accepted nesting up to about 10,000 levels on 3.13 (review: an activity nested 1,200 deep was routed
+   and a token with a claim nested 1,500 deep was accepted) and failed deeper nesting with
+   `RecursionError` (500). Lone surrogates, which Core's
    `PythonJson.Loads` refuses, are kept here by a second reader, so an activity whose text holds a
    broken surrogate is still routed and one whose recipient holds one fails with 500, as in Python.
 3. **No access log.** aiohttp logged every request line at INFO, including the voice page's query string,
@@ -126,34 +135,63 @@ ingress target port) and `LOG_LEVEL` (default `INFO`; Python's level names).
    The console format is .NET's single-line format, not Python's.
 4. **Connections to instances.** aiohttp's session limits (100 connections across all instances,
    10 s to get one, 300 s in total) are kept: a semaphore of 100 slots held for a request or a voice
-   socket, waited for up to 10 s, then a 10 s TCP connect timeout (aiohttp shared one 10 s budget). The
+   socket, waited for up to 10 s, then a 10 s TCP connect timeout (aiohttp shared one 10 s budget). Any
+   of these timing out is answered with an empty 504 (`Content-Type: text/plain`), as aiohttp's server
+   answered the `asyncio.TimeoutError` its client raised. The
    session's cookie jar is not kept (the instance sets no cookies). Redirects are followed (at most 10);
    .NET drops `Authorization` on every redirect, aiohttp only across origins; the instance does not
    redirect these requests. Responses are decompressed (gzip, deflate) as aiohttp did. The JWKS fetch
-   has a 30 s total timeout; urllib's applied per socket operation.
+   has a 30 s total timeout; urllib's applied per socket operation. No trace context (`traceparent`,
+   `tracestate`, `baggage`) is added to any outgoing request (aiohttp and urllib sent none; .NET would
+   pass on the caller's). Header values are written as UTF-8, as aiohttp wrote them. aiohttp sent
+   `User-Agent: Python/3.13 aiohttp/3.14.5`; .NET sends no `User-Agent`. When the instance closes the
+   connection without answering the voice page GET, aiohttp tried twice and .NET up to four times (the
+   activity POST is sent once by both).
 5. **WebSockets.** No permessage-deflate is negotiated with the browser (aiohttp accepted it); the
    256 KiB limit applies to the uncompressed message (aiohttp: a message whose size reaches 256 KiB is
    refused, which is kept; with compression it checked compressed frames). aiohttp's limit of 1024
    fragments per message is not ported. Heartbeats: both sides ping every 20 s and give up 10 s
    without a pong; aiohttp pinged only after 20 s without a received message.
-6. **A WebSocket upgrade without a valid handshake** is answered 400 `400: Bad Request`; aiohttp's
-   text named the missing header.
+6. **A WebSocket upgrade that aiohttp would have accepted but ASP.NET Core cannot** (protocol version
+   7 or 8, or a key with characters Python's lenient Base64 skipped) is answered 400
+   `400: Bad Request`. Every handshake aiohttp refused gets aiohttp's 400 text, checked in its order:
+   `No CONNECTION upgrade hdr: <Connection>`, `Unsupported version: <version>`,
+   `Handshake error: <repr(key)>`; a key that is not ASCII is a 500 (Python's `b64decode` raised a
+   `ValueError` aiohttp did not catch).
 7. **A route whose `url` is truthy but not text** (the provisioner never writes one) makes `Decide` and
    `VoiceTargetFor` throw, so the request fails with 500. Python's `decide` returned it and the
    request failed with `TypeError` when the address was built; `voice_target` failed the same way.
 8. **Startup messages.** A missing `MARGO_ROUTES_URL` or `MARGO_PROVISION_QUEUE_URL` or a `PORT` that is
    not a port number prints one line and exits with 1; Python died with a traceback (`KeyError`,
    `ValueError`).
-9. **Key sets** (the documents Microsoft publishes, not caller input). RSA keys are read as PyJWT reads
-   them (`e` at least 3 and below `n`). Keys of other families (EC, oct, OKP) are kept by key type and
-   curve without checking their parameters; PyJWT skips one whose parameters are invalid, which could
-   change whether an unknown `kid` refreshes. A private RSA key in the set fails verification with 500
-   (PyJWT: `AttributeError`). Base64 of `n` and `e` skips stray characters as Python's non-strict
-   decoder does; its exact padding errors are not reproduced.
+9. **Key sets** (the documents Microsoft publishes, not caller input). RSA keys are read as PyJWT and
+   `cryptography` read them (`e` at least 3, below `n` and odd). Keys of other families (EC, oct, OKP)
+   are kept by key type and curve without checking their parameters; PyJWT skips one whose parameters
+   are invalid, which could change whether an unknown `kid` refreshes. A private RSA key in the set
+   fails verification with 500 (PyJWT: `AttributeError`), even one PyJWT could not build and skipped.
+   `n` and `e` are decoded exactly as `from_base64url_uint` decodes them on Python 3.13
+   (`PythonBase64`, checked against the venv with 20,000 generated inputs).
 10. **Request paths** are taken from the raw request target (Kestrel's `Request.Path` removes dot
     segments and Python's did not), decoded as yarl decodes them: `path_safe` for routing, the full
-    decoding for the activity check and `voice_target`. Kestrel refuses some targets aiohttp accepted
-    (for example a `#fragment`); browsers never send them.
+    decoding for the activity check and `voice_target`; `OPTIONS *` is the path `*` (404). Kestrel
+    itself refuses, with an empty 400, some requests aiohttp accepted: an absolute-form target whose
+    host is not the `Host` header, `%00` in the path, a header value that is not UTF-8 (Python decoded
+    it with `surrogateescape`; an `Authorization` like that was a 401), a repeated `Host`,
+    `Content-Length` or `Transfer-Encoding` (aiohttp's 400 named the header); and it answers a non-OPTIONS
+    `*` target with 405 (aiohttp: 400). Browsers and the platform never send these.
+11. **HTTP-level details aiohttp produced that Kestrel does not.** aiohttp answered its parser errors
+    with an `HTTP/1.0` status line and wrote some reason phrases differently (413 `Content Too Large`,
+    Kestrel `Payload Too Large`); it sent `100 Continue` for `Expect: 100-continue` before routing,
+    Kestrel when the body is first read; it closed the connection after a 500 or 504. Statuses, headers
+    and bodies are the same.
+12. **Compressed request bodies.** Like aiohttp, a last `Content-Encoding` of `gzip` or `deflate` (any
+    case; deflate with or without the zlib header, chosen by the first byte) is decompressed before the
+    size limit and JSON parsing, and the instance gets the decompressed body; data that does not
+    decompress is a 500; `br` and `zstd` are refused with aiohttp's 400 text (it had no Brotli or zstd
+    module) before anything else. Not reproduced: aiohttp failed gzip data followed by bytes that are
+    not another gzip member (500; .NET ignores them), decoded concatenated zlib streams (.NET reads the
+    first) and refused a deflate stream cut short with a 400 `deflate` (here the cut JSON is a 400 with
+    no body).
 
 ## Kept as Python does it, though it may look odd
 
@@ -170,6 +208,14 @@ ingress target port) and `LOG_LEVEL` (default `INFO`; Python's level names).
   cookie or the query string. HEAD on a voice path is 405 (`Allow: GET`); health paths accept HEAD.
 - An activity path with a wrong method is 401 without a valid token and 405 (`Allow: POST`) with one.
 - A close from either WebSocket peer is answered with 1000 whatever its code.
+- Before routing or the token check, as aiohttp's parser and default `Expect` handler did: a repeated
+  `Content-Location`, `Content-Range`, `Content-Type`, `Etag`, `Max-Forwards`, `Server` or
+  `User-Agent` header is a 400 `Duplicate '<Name>' header found.` (aiohttp's spelling, `Etag`
+  included), and on HTTP/1.1 a first `Expect` value other than `100-continue` is a 417
+  `Unknown Expect: <value>`, on every path.
+- An unexpected failure is aiohttp's HTML 500 page (`text/html; charset=utf-8`) when the first
+  `Accept` header contains `text/html` (case-sensitive), its plain-text 500 otherwise. A Kestrel
+  request-size refusal (a declared body over 30 MB) is this router's 413, not a 500.
 
 ## Not ported
 
@@ -200,6 +246,14 @@ clock, tokens signed with RSA keys generated in the test):
   encoding on the wire. `PythonCompatTests`: `json.detect_encoding`, `surrogatepass`, yarl path
   decoding, `int()` and `lower()`, checked against Python 3.13. `InstanceConnectorTests`: the limits.
 
+- `ReviewParityTests` (added in review): the differences an independent review found by sending the
+  same raw requests to the Python router (`build_app` in the venv) and to this one side by side, each
+  test failing before its fix: trace context passed on, non-ASCII header values (500), the HTML 500,
+  504 on instance timeouts, `Expect`, repeated singleton headers, `br`/`zstd` and compressed bodies,
+  Kestrel's 30 MB refusal (was 500), `OPTIONS *`, the WebSocket handshake texts, and `n`/`e` decoding
+  and the odd-exponent check of key sets. The side-by-side run (about 230 fixed requests, 13 WebSocket
+  scenarios and 700 generated tokens) left only the differences listed under the deviations above.
+
 `tests/test_autopilot_runtime.py` has no router tests (its only router reference is a voice URL in an
 orchestrator test); there is nothing more to port from it. The probe scripts that drove the Python
 router are not in the repository (they import the scratch venv); the outcomes are in the tests.
@@ -215,3 +269,11 @@ router are not in the repository (they import the scratch venv); the outcomes ar
   needs a different command (for example `dotnet Margo.Cloud.Router.dll`). The environment variables
   and port are unchanged.
 - **`HOST`** `0.0.0.0` listens on IPv4 only, as aiohttp did with that value.
+- **Which Python is the reference.** This port follows the venv (Python 3.13.16, aiohttp 3.14.5), but
+  `autopilot/Dockerfile` builds the image from `python:3.12-slim`. Where they differ the deployed
+  Python behaved otherwise: 3.12's `binascii.a2b_base64` stopped at the first complete padding (3.13
+  skips `=` before the end), which changes the WebSocket key and key set decoding for inputs with a `=`
+  inside, and 3.12's JSON nesting limit is lower. Neither matters for real browsers or Microsoft's keys.
+- **Configuration keys** are read through `IConfiguration`, which also takes `appsettings.json`,
+  command-line arguments and `DOTNET_`/`ASPNETCORE_`-prefixed variables, and ignores case; Python read
+  the exact environment variable names only. The infrastructure sets only the exact names.

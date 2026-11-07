@@ -15,6 +15,11 @@ internal sealed record RequestPath(string Safe, string Decoded)
     /// <summary>From the raw target (origin form <c>/a/b?q</c>, or absolute form <c>http://h/a/b?q</c>).</summary>
     internal static RequestPath FromRawTarget(string rawTarget)
     {
+        if (rawTarget == "*")
+        {
+            return new RequestPath("*", "*"); // asterisk form (OPTIONS *): yarl's path is "*", no route
+        }
+
         var path = rawTarget;
         if (!path.StartsWith('/'))
         {
