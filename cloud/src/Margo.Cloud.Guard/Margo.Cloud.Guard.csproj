@@ -10,4 +10,8 @@
     <ProjectReference Include="../Margo.Cloud.State.Work/Margo.Cloud.State.Work.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.Guard.Tests" />
+  </ItemGroup>
+
 </Project>
