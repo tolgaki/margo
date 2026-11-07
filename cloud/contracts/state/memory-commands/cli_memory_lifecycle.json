@@ -1,0 +1,1327 @@
+{
+ "description": "tests/test_memory_cli.py::test_fresh_session_inspection_and_scope_denial plus every lifecycle subcommand: put (stdin, conditional revisions, CPython's **data binding errors for MemoryStore.put, statuses, confirmation evidence), capture refused without a policy, show/inspect/history/forget-preview/usage, revise (exact keys, falsy --evidence, evidence, conflicts, immutable kind), link with --input/--target-revision and unlink with evidence, list with conflicted_ids, graph/explain with every option and bound, forget and its replays, tombstones/-preview/-restore, maintain bounds",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "cli": [
+      "put",
+      "explicit",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "active"
+     },
+     "save": "row"
+    },
+    {
+     "cli": [
+      "put",
+      "explicit",
+      "--input",
+      "-",
+      "--revision",
+      "1"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "Revised text.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "active"
+     },
+     "save": "row2"
+    },
+    {
+     "cli": [
+      "put",
+      "explicit",
+      "--input",
+      "-",
+      "--revision",
+      "1"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "active"
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "explicit",
+      "--input",
+      "-",
+      "--revision",
+      "2"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "revision": 1
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "key": "other"
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "self": 1
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "dat": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "status": "active"
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {}
+    },
+    {
+     "cli": [
+      "put",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": null
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "unknown"
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": "text"
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "evidence": {
+       "kind": "human_confirmation"
+      }
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "profile",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "profile",
+       "title": "Synthetic profile",
+       "text": "Prefers preparation time before reviews.",
+       "authority": "user_confirmed",
+       "scope": "personal",
+       "sensitivity": "private",
+       "allowed_uses": [
+        "reasoning"
+       ],
+       "entities": [
+        "project:cedar"
+       ],
+       "routines": [],
+       "source_refs": [
+        {
+         "kind": "user_statement",
+         "ref": "conversation:synthetic"
+        }
+       ]
+      },
+      "status": "active"
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "profile",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "profile",
+       "title": "Synthetic profile",
+       "text": "Prefers preparation time before reviews.",
+       "authority": "user_confirmed",
+       "scope": "personal",
+       "sensitivity": "private",
+       "allowed_uses": [
+        "reasoning"
+       ],
+       "entities": [
+        "project:cedar"
+       ],
+       "routines": [],
+       "source_refs": [
+        {
+         "kind": "user_statement",
+         "ref": "conversation:synthetic"
+        }
+       ]
+      },
+      "status": "active",
+      "evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "mem_a0e9e1c9e1d3a6c0ad7b6c2b6dbed14f4e6d3b49",
+       "revision": 1,
+       "decision": "confirm",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "record-id",
+      "user",
+      "profile"
+     ],
+     "save": "pid"
+    },
+    {
+     "cli": [
+      "put",
+      "profile",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "profile",
+       "title": "Synthetic profile",
+       "text": "Prefers preparation time before reviews.",
+       "authority": "user_confirmed",
+       "scope": "personal",
+       "sensitivity": "private",
+       "allowed_uses": [
+        "reasoning"
+       ],
+       "entities": [
+        "project:cedar"
+       ],
+       "routines": [],
+       "source_refs": [
+        {
+         "kind": "user_statement",
+         "ref": "conversation:synthetic"
+        }
+       ]
+      },
+      "status": "active",
+      "evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${pid.id}",
+       "revision": 1,
+       "decision": "confirm",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     },
+     "save": "profile"
+    },
+    {
+     "cli": [
+      "capture",
+      "blocked",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "domain": "user",
+      "kind": "episode",
+      "title": "Synthetic CLI memory",
+      "text": "A private fictional observation.",
+      "authority": "source_observed",
+      "scope": "personal",
+      "source_refs": [
+       {
+        "kind": "tool_result",
+        "ref": "synthetic:cli"
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "show",
+      "${row.id}"
+     ]
+    },
+    {
+     "cli": [
+      "show",
+      "mem_unknown"
+     ]
+    },
+    {
+     "cli": [
+      "inspect",
+      "${row.id}"
+     ]
+    },
+    {
+     "cli": [
+      "inspect",
+      "mem_unknown"
+     ]
+    },
+    {
+     "cli": [
+      "history",
+      "${row.id}"
+     ]
+    },
+    {
+     "cli": [
+      "history",
+      "mem_unknown"
+     ]
+    },
+    {
+     "cli": [
+      "forget-preview",
+      "${row.id}"
+     ]
+    },
+    {
+     "cli": [
+      "usage",
+      "${row.id}"
+     ]
+    },
+    {
+     "cli": [
+      "revise",
+      "${row.id}",
+      "--revision",
+      "2",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "cli": [
+      "revise",
+      "${row.id}",
+      "--revision",
+      "2",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "stale",
+      "x": 1
+     }
+    },
+    {
+     "cli": [
+      "revise",
+      "${row.id}",
+      "--revision",
+      "2",
+      "--input",
+      "-",
+      "--evidence",
+      ""
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "stale"
+     },
+     "save": "stale"
+    },
+    {
+     "cli": [
+      "revise",
+      "${row.id}",
+      "--revision",
+      "3",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "active"
+     }
+    },
+    {
+     "cli": [
+      "revise",
+      "${row.id}",
+      "--revision",
+      "3"
+     ],
+     "files": {
+      "--input": {
+       "data": {
+        "domain": "user",
+        "kind": "episode",
+        "title": "Synthetic CLI memory",
+        "text": "A private fictional observation.",
+        "authority": "source_observed",
+        "scope": "personal",
+        "source_refs": [
+         {
+          "kind": "tool_result",
+          "ref": "synthetic:cli"
+         }
+        ]
+       },
+       "status": "active"
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${row.id}",
+       "revision": 3,
+       "decision": "confirm",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "revise",
+      "${row.id}",
+      "--revision",
+      "9"
+     ],
+     "files": {
+      "--input": {
+       "data": {
+        "domain": "user",
+        "kind": "episode",
+        "title": "Synthetic CLI memory",
+        "text": "A private fictional observation.",
+        "authority": "source_observed",
+        "scope": "personal",
+        "source_refs": [
+         {
+          "kind": "tool_result",
+          "ref": "synthetic:cli"
+         }
+        ]
+       },
+       "status": "active"
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${row.id}",
+       "revision": 9,
+       "decision": "confirm",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "revise",
+      "mem_unknown",
+      "--revision",
+      "1",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "active"
+     }
+    },
+    {
+     "cli": [
+      "revise",
+      "${row.id}",
+      "--revision",
+      "4",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "profile",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "active"
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "second",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Second synthetic memory",
+       "text": "Another fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "active"
+     },
+     "save": "second"
+    },
+    {
+     "cli": [
+      "link",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "contradicts",
+      "--revision",
+      "4"
+     ]
+    },
+    {
+     "cli": [
+      "link",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "contradicts",
+      "--revision",
+      "4",
+      "--target-revision",
+      "1"
+     ],
+     "save": "linked"
+    },
+    {
+     "cli": [
+      "link",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "related_to",
+      "--revision",
+      "5",
+      "--target-revision",
+      "1"
+     ],
+     "files": {
+      "--input": {
+       "valid_from": "2020-01-01T00:00:00+00:00",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:link"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "cli": [
+      "link",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "related_to",
+      "--revision",
+      "6",
+      "--target-revision",
+      "1"
+     ],
+     "files": {
+      "--input": {
+       "unknown": 1
+      }
+     }
+    },
+    {
+     "cli": [
+      "link",
+      "${row.id}",
+      "${row.id}",
+      "--relation",
+      "about",
+      "--revision",
+      "6"
+     ]
+    },
+    {
+     "cli": [
+      "link",
+      "${row.id}",
+      "mem_unknown",
+      "--relation",
+      "about",
+      "--revision",
+      "6"
+     ]
+    },
+    {
+     "cli": [
+      "list"
+     ]
+    },
+    {
+     "cli": [
+      "list",
+      "--domain",
+      "user",
+      "--status",
+      "active"
+     ]
+    },
+    {
+     "cli": [
+      "inspect",
+      "${row.id}"
+     ]
+    },
+    {
+     "cli": [
+      "graph",
+      "${row.id}"
+     ]
+    },
+    {
+     "cli": [
+      "graph",
+      "${row.id}",
+      "--depth",
+      "1",
+      "--limit",
+      "2",
+      "--routine",
+      "weekly-review",
+      "--usage",
+      "drafting",
+      "--domain",
+      "user",
+      "--budget-chars",
+      "2000"
+     ],
+     "files": {
+      "--environment": {
+       "host": "fixture"
+      }
+     }
+    },
+    {
+     "cli": [
+      "graph",
+      "${row.id}",
+      "--depth",
+      "0"
+     ]
+    },
+    {
+     "cli": [
+      "graph",
+      "${row.id}",
+      "--depth",
+      "9"
+     ]
+    },
+    {
+     "cli": [
+      "graph",
+      "${row.id}",
+      "--limit",
+      "0"
+     ]
+    },
+    {
+     "cli": [
+      "graph",
+      "${row.id}",
+      "--budget-chars",
+      "10"
+     ]
+    },
+    {
+     "cli": [
+      "graph",
+      "mem_unknown"
+     ]
+    },
+    {
+     "cli": [
+      "graph",
+      " "
+     ]
+    },
+    {
+     "cli": [
+      "explain",
+      "${row.id}"
+     ]
+    },
+    {
+     "cli": [
+      "explain",
+      "${second.id}",
+      "--depth",
+      "2",
+      "--limit",
+      "3"
+     ],
+     "files": {
+      "--environment": {
+       "host": "fixture"
+      }
+     }
+    },
+    {
+     "cli": [
+      "unlink",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "contradicts",
+      "--revision",
+      "6"
+     ],
+     "files": {
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${row.id}",
+       "revision": 6,
+       "decision": "unlink",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "unlink",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "contradicts",
+      "--revision",
+      "6"
+     ],
+     "files": {
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${row.id}",
+       "revision": 6,
+       "decision": "unlink",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "unlink",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "owns",
+      "--revision",
+      "6"
+     ],
+     "files": {
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${row.id}",
+       "revision": 6,
+       "decision": "unlink",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "show",
+      "${row.id}"
+     ],
+     "save": "current"
+    },
+    {
+     "cli": [
+      "unlink",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "related_to",
+      "--revision",
+      "${current.revision}"
+     ],
+     "files": {
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${row.id}",
+       "revision": "${current.revision}",
+       "decision": "unlink",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "list"
+     ]
+    },
+    {
+     "cli": [
+      "forget",
+      "${second.id}",
+      "--revision",
+      "1",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${second.id}",
+      "revision": 1,
+      "decision": "confirm",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "forget",
+      "${second.id}",
+      "--revision",
+      "2",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${second.id}",
+      "revision": 2,
+      "decision": "forget",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "forget",
+      "${second.id}",
+      "--revision",
+      "1",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${second.id}",
+      "revision": 1,
+      "decision": "forget",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "forget",
+      "${second.id}",
+      "--revision",
+      "1",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${second.id}",
+      "revision": 1,
+      "decision": "forget",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "forget",
+      "mem_unknown",
+      "--revision",
+      "1",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "mem_unknown",
+      "revision": 1,
+      "decision": "forget",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "show",
+      "${second.id}"
+     ]
+    },
+    {
+     "cli": [
+      "history",
+      "${second.id}"
+     ]
+    },
+    {
+     "cli": [
+      "tombstones"
+     ],
+     "save": "bundle"
+    },
+    {
+     "cli": [
+      "tombstones-preview",
+      "--input",
+      "-"
+     ],
+     "stdin_json": "${bundle}",
+     "save": "tp"
+    },
+    {
+     "cli": [
+      "tombstones-preview",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "format": 2
+     }
+    },
+    {
+     "cli": [
+      "tombstones-restore",
+      "--input",
+      "-",
+      "--evidence",
+      "-"
+     ],
+     "stdin": "${bundle}"
+    },
+    {
+     "cli": [
+      "tombstones-restore"
+     ],
+     "files": {
+      "--input": "${bundle}",
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${tp.subject_id}",
+       "revision": 1,
+       "decision": "restore-erasures",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "tombstones-restore"
+     ],
+     "files": {
+      "--input": "${bundle}",
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${tp.subject_id}",
+       "revision": 1,
+       "decision": "confirm",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "maintain"
+     ]
+    },
+    {
+     "cli": [
+      "maintain",
+      "--limit",
+      "1",
+      "--after",
+      "mem_0"
+     ]
+    },
+    {
+     "cli": [
+      "maintain",
+      "--limit",
+      "0"
+     ]
+    },
+    {
+     "cli": [
+      "maintain",
+      "--limit",
+      "1001"
+     ]
+    },
+    {
+     "cli": [
+      "status"
+     ]
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  }
+ ]
+}

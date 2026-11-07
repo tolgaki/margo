@@ -1,0 +1,253 @@
+{
+ "description": "memory_dream.finish: a citation quote must be a substring of the cited text by Python code points; a lone surrogate (half of an astral character in the cited text, sent as a JSON escape) is refused as 'not present' before the payload is hashed, while the whole astral character is accepted",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "task_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "cli": [
+      "policy-preview",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capture": {
+       "enabled": true,
+       "domains": [
+        "user"
+       ],
+       "kinds": [
+        "episode",
+        "decision"
+       ],
+       "scopes": [
+        "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+       ],
+       "source_kinds": [
+        "session_checkpoint",
+        "memory_record"
+       ]
+      },
+      "allow_sensitive": false,
+      "usage_enabled": false,
+      "usage_retention_days": 30,
+      "retention_days": {},
+      "review_days": {}
+     },
+     "save": "pp21"
+    },
+    {
+     "cli": [
+      "policy-set"
+     ],
+     "files": {
+      "--input": {
+       "capture": {
+        "enabled": true,
+        "domains": [
+         "user"
+        ],
+        "kinds": [
+         "episode",
+         "decision"
+        ],
+        "scopes": [
+         "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+        ],
+        "source_kinds": [
+         "session_checkpoint",
+         "memory_record"
+        ]
+       },
+       "allow_sensitive": false,
+       "usage_enabled": false,
+       "usage_retention_days": 30,
+       "retention_days": {},
+       "review_days": {}
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${pp21.subject_id}",
+       "revision": 1,
+       "decision": "configure",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar 😀 option. Timing 𐍈 is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "event"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_daily"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "daily",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_daily.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "started"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin": "{\"snapshot_id\": \"${started.snapshot_id}\", \"attempt_id\": \"${started.claim.attempt_id}\", \"token\": \"${started.claim.token}\", \"claims\": [{\"key\": \"k\", \"type\": \"question\", \"text\": \"t\", \"citations\": [{\"id\": \"${event.id}\", \"revision\": ${event.revision}, \"quote\": \"\\ud83d\"}]}]}"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin": "{\"snapshot_id\": \"${started.snapshot_id}\", \"attempt_id\": \"${started.claim.attempt_id}\", \"token\": \"${started.claim.token}\", \"claims\": [{\"key\": \"k\", \"type\": \"question\", \"text\": \"t\", \"citations\": [{\"id\": \"${event.id}\", \"revision\": ${event.revision}, \"quote\": \"\\ude00 option\"}]}]}"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin": "{\"snapshot_id\": \"${started.snapshot_id}\", \"attempt_id\": \"${started.claim.attempt_id}\", \"token\": \"${started.claim.token}\", \"claims\": [{\"key\": \"k\", \"type\": \"question\", \"text\": \"t\", \"citations\": [{\"id\": \"${event.id}\", \"revision\": ${event.revision}, \"quote\": \"Cedar \\ud83d\"}]}]}"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin": "{\"snapshot_id\": \"${started.snapshot_id}\", \"attempt_id\": \"${started.claim.attempt_id}\", \"token\": \"${started.claim.token}\", \"claims\": [{\"key\": \"k\", \"type\": \"question\", \"text\": \"t\", \"citations\": [{\"id\": \"${event.id}\", \"revision\": ${event.revision}, \"quote\": \"\\ud800\"}]}]}"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin": "{\"snapshot_id\": \"${started.snapshot_id}\", \"attempt_id\": \"${started.claim.attempt_id}\", \"token\": \"${started.claim.token}\", \"claims\": [{\"key\": \"k\", \"type\": \"question\", \"text\": \"t\", \"citations\": [{\"id\": \"${event.id}\", \"revision\": ${event.revision}, \"quote\": \"\\udf48 is\"}]}]}"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin": "{\"snapshot_id\": \"${started.snapshot_id}\", \"attempt_id\": \"${started.claim.attempt_id}\", \"token\": \"${started.claim.token}\", \"claims\": [{\"key\": \"k\", \"type\": \"question\", \"text\": \"t\", \"citations\": [{\"id\": \"${event.id}\", \"revision\": ${event.revision}, \"quote\": \"Timing \\ud800\"}]}]}"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin": "{\"snapshot_id\": \"${started.snapshot_id}\", \"attempt_id\": \"${started.claim.attempt_id}\", \"token\": \"${started.claim.token}\", \"claims\": [{\"key\": \"k\", \"type\": \"question\", \"text\": \"t\", \"citations\": [{\"id\": \"${event.id}\", \"revision\": ${event.revision}, \"quote\": \"\\ud83d\\ude00 option\"}]}]}"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin": "{\"snapshot_id\": \"${started.snapshot_id}\", \"attempt_id\": \"${started.claim.attempt_id}\", \"token\": \"${started.claim.token}\", \"claims\": [{\"key\": \"k\", \"type\": \"question\", \"text\": \"t\", \"citations\": [{\"id\": \"${event.id}\", \"revision\": ${event.revision}, \"quote\": \"Timing \\ud800\\udf48 is\"}]}]}"
+    },
+    {
+     "call": "show",
+     "on": "tasks",
+     "args": [
+      "${started.claim.run_id}"
+     ]
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  }
+ ]
+}

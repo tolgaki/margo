@@ -1,0 +1,563 @@
+{
+ "description": "tests/test_memory_cli.py::test_learning_commands_preserve_evidence_and_review_boundaries and the other learning subcommands: capabilities from a host tool manifest and a skills directory (replay, missing files, environments), validate-capability with a pinned synthetic fixture (wrong hash, revision conflicts, replay), propose-lesson and activate-lesson (decision, revision, replay), export-preview and export of the confirmed lesson to a new private file (identifier markers, extra keys; an existing target names a random staging file, so governance_export in memory/ covers it), consolidate with every option and record-consolidation",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "write": "tools.json",
+     "json": {
+      "environment": {
+       "host": "synthetic-cli",
+       "account": "parity-owner@example.com"
+      },
+      "observed_at": "2020-08-01T00:00:00Z",
+      "complete": true,
+      "tools": [
+       {
+        "name": "fixture-query",
+        "version": "v1",
+        "exposed": true,
+        "input_schema": {
+         "type": "object",
+         "required": [
+          "query"
+         ],
+         "properties": {
+          "query": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      ]
+     }
+    },
+    {
+     "write": "skill.md",
+     "text": "unused"
+    },
+    {
+     "cli": [
+      "capabilities",
+      "--tools",
+      "${dir}/tools.json"
+     ],
+     "save": "inventory"
+    },
+    {
+     "cli": [
+      "capabilities",
+      "--tools",
+      "${dir}/tools.json"
+     ]
+    },
+    {
+     "cli": [
+      "capabilities",
+      "--tools",
+      "${dir}/missing.json"
+     ]
+    },
+    {
+     "cli": [
+      "capabilities",
+      "--tools",
+      ""
+     ]
+    },
+    {
+     "cli": [
+      "capabilities",
+      "--skills-dir",
+      "${dir}/no-skills"
+     ]
+    },
+    {
+     "cli": [
+      "capabilities",
+      "--skills-dir",
+      "${dir}",
+      "--tools",
+      "${dir}/tools.json"
+     ],
+     "files": {
+      "--environment": {
+       "host": "synthetic-cli"
+      }
+     }
+    },
+    {
+     "cli": [
+      "capabilities"
+     ],
+     "files": {
+      "--environment": [
+       "x"
+      ]
+     }
+    },
+    {
+     "cli": [
+      "show",
+      "${inventory.memory_ids.0}"
+     ],
+     "save": "cap"
+    },
+    {
+     "write": "exercise.json",
+     "json": {
+      "synthetic": true,
+      "capability_id": "${cap.id}",
+      "environment": "${cap.metadata.environment_requirements}",
+      "input": {
+       "query": "Synthetic query"
+      }
+     },
+     "save_sha256": "fixture_sha"
+    },
+    {
+     "write": "observation.json",
+     "json": {
+      "kind": "synthetic_observation",
+      "fixture": {
+       "path": "${dir}/exercise.json",
+       "sha256": "${fixture_sha}"
+      }
+     }
+    },
+    {
+     "write": "observation-bad.json",
+     "json": {
+      "kind": "synthetic_observation",
+      "fixture": {
+       "path": "${dir}/exercise.json",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+     }
+    },
+    {
+     "cli": [
+      "validate-capability",
+      "${cap.id}",
+      "--revision",
+      "1",
+      "--evidence",
+      "${dir}/observation-bad.json"
+     ]
+    },
+    {
+     "cli": [
+      "validate-capability",
+      "${cap.id}",
+      "--revision",
+      "2",
+      "--evidence",
+      "${dir}/observation.json"
+     ]
+    },
+    {
+     "cli": [
+      "validate-capability",
+      "mem_unknown",
+      "--revision",
+      "1",
+      "--evidence",
+      "${dir}/observation.json"
+     ]
+    },
+    {
+     "cli": [
+      "validate-capability",
+      "${cap.id}",
+      "--revision",
+      "1",
+      "--evidence",
+      "${dir}/observation.json"
+     ],
+     "save": "validated"
+    },
+    {
+     "cli": [
+      "validate-capability",
+      "${cap.id}",
+      "--revision",
+      "1",
+      "--evidence",
+      "${dir}/observation.json"
+     ]
+    },
+    {
+     "call": "show",
+     "on": "store",
+     "args": [
+      "${cap.id}"
+     ]
+    },
+    {
+     "cli": [
+      "propose-lesson",
+      "query-shape",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "title": "x"
+     }
+    },
+    {
+     "write": "observation-copy.json",
+     "json": {
+      "kind": "synthetic_observation",
+      "fixture": {
+       "path": "${dir}/exercise.json",
+       "sha256": "${fixture_sha}"
+      }
+     }
+    },
+    {
+     "write": "lesson.json",
+     "json": {
+      "title": "Prepare a valid query",
+      "scope": "synthetic query",
+      "trigger": "Before a query",
+      "goal": "Avoid invalid input",
+      "preconditions": [
+       "Use the scoped schema"
+      ],
+      "procedure": [
+       "Provide a string query"
+      ],
+      "risk": "read_only",
+      "capability_refs": [
+       {
+        "id": "${cap.id}",
+        "revision": "${validated.revision}"
+       }
+      ],
+      "evidence": [
+       {
+        "capability_id": "${cap.id}",
+        "observation": {
+         "kind": "synthetic_observation",
+         "fixture": {
+          "path": "${dir}/exercise.json",
+          "sha256": "${fixture_sha}"
+         }
+        }
+       }
+      ],
+      "counterexamples": []
+     }
+    },
+    {
+     "cli": [
+      "propose-lesson",
+      "query-shape",
+      "--input",
+      "${dir}/lesson.json"
+     ],
+     "save": "candidate"
+    },
+    {
+     "cli": [
+      "propose-lesson",
+      "query-shape",
+      "--input",
+      "${dir}/lesson.json"
+     ]
+    },
+    {
+     "cli": [
+      "propose-lesson",
+      "query-shape",
+      "--input",
+      "${dir}/lesson.json",
+      "--revision",
+      "7"
+     ]
+    },
+    {
+     "cli": [
+      "activate-lesson",
+      "${candidate.id}",
+      "--revision",
+      "1",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${candidate.id}",
+      "revision": 1,
+      "decision": "configure",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "activate-lesson",
+      "${candidate.id}",
+      "--revision",
+      "2",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${candidate.id}",
+      "revision": 2,
+      "decision": "confirm",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "activate-lesson",
+      "${candidate.id}",
+      "--revision",
+      "1",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${candidate.id}",
+      "revision": 1,
+      "decision": "confirm",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     },
+     "save": "active"
+    },
+    {
+     "cli": [
+      "activate-lesson",
+      "${candidate.id}",
+      "--revision",
+      "1",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${candidate.id}",
+      "revision": 1,
+      "decision": "confirm",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "export-preview",
+      "${candidate.id}",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "title": "Prepare a valid query",
+      "goal": "Avoid invalid input",
+      "preconditions": "Use the scoped schema",
+      "steps": "Provide a string query",
+      "limitations": "Synthetic fixture only"
+     },
+     "save": "ep"
+    },
+    {
+     "cli": [
+      "export-preview",
+      "${candidate.id}",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "title": "Prepare a valid query",
+      "goal": "Avoid invalid input",
+      "preconditions": "Use the scoped schema",
+      "steps": "Mail alex@example.com",
+      "limitations": "Synthetic fixture only"
+     }
+    },
+    {
+     "cli": [
+      "export-preview",
+      "${candidate.id}",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "title": "Prepare a valid query",
+      "goal": "Avoid invalid input",
+      "preconditions": "Use the scoped schema",
+      "steps": "Provide a string query",
+      "limitations": "Synthetic fixture only",
+      "extra": "x"
+     }
+    },
+    {
+     "cli": [
+      "export",
+      "${candidate.id}",
+      "--out",
+      "${dir}/exports/recipe.md"
+     ],
+     "files": {
+      "--input": {
+       "title": "Prepare a valid query",
+       "goal": "Avoid invalid input",
+       "preconditions": "Use the scoped schema",
+       "steps": "Provide a string query",
+       "limitations": "Synthetic fixture only"
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${ep.subject_id}",
+       "revision": 1,
+       "decision": "confirm",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "export",
+      "${candidate.id}",
+      "--out",
+      "${dir}/exports/recipe.md"
+     ],
+     "files": {
+      "--input": {
+       "title": "Prepare a valid query",
+       "goal": "Avoid invalid input",
+       "preconditions": "Use the scoped schema",
+       "steps": "Provide a string query",
+       "limitations": "Synthetic fixture only"
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${ep.subject_id}",
+       "revision": 1,
+       "decision": "export",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "consolidate",
+      "--limit",
+      "1",
+      "--scan-limit",
+      "10"
+     ],
+     "save": "page"
+    },
+    {
+     "cli": [
+      "consolidate",
+      "--limit",
+      "0"
+     ]
+    },
+    {
+     "cli": [
+      "consolidate",
+      "--scan-limit",
+      "0"
+     ]
+    },
+    {
+     "cli": [
+      "consolidate",
+      "--after",
+      "mem_0",
+      "--limit",
+      "5",
+      "--scan-limit",
+      "5"
+     ]
+    },
+    {
+     "cli": [
+      "consolidate"
+     ],
+     "files": {
+      "--environment": {
+       "host": "synthetic-cli",
+       "account": "parity-owner@example.com"
+      }
+     }
+    },
+    {
+     "cli": [
+      "consolidate"
+     ],
+     "files": {
+      "--environment": [
+       "x"
+      ]
+     }
+    },
+    {
+     "cli": [
+      "record-consolidation",
+      "--input",
+      "-"
+     ],
+     "stdin_json": "${page}"
+    },
+    {
+     "cli": [
+      "record-consolidation",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "page": 1
+     }
+    },
+    {
+     "cli": [
+      "list",
+      "--domain",
+      "agent"
+     ]
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  }
+ ]
+}

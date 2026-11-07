@@ -12,4 +12,10 @@
     <ProjectReference Include="../Margo.Cloud.State.Tasks/Margo.Cloud.State.Tasks.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.State.Tests" />
+    <!-- The contract probe twin (never shipped in Release) drives memory_state.main(argv) in process, as the Python probe does. -->
+    <InternalsVisibleTo Include="Margo.Cloud.State.Probes" />
+  </ItemGroup>
+
 </Project>

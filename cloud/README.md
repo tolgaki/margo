@@ -27,7 +27,7 @@ python3 ../tools/state_parity.py --check      # C# state commands vs the Python 
 | `Margo.Cloud.State.Memory` | `memory_store.py`, `memory_encoder.py` (status only), `memory_governance.py` | |
 | `Margo.Cloud.State.MemorySearch` | `memory_search.py`, `memory_context.py` | |
 | `Margo.Cloud.State.MemoryLearning` | `memory_learning.py`, `memory_consolidation.py` | |
-| `Margo.Cloud.State.MemoryCommands` | `memory_dream.py`, `memory_state.py` | |
+| `Margo.Cloud.State.MemoryCommands` | `memory_dream.py`, `memory_state.py` | Python `zoneinfo` semantics over the system TZif files (`PyZoneInfo`) for the Dream window |
 | `Margo.Cloud.State.Helpers` | `capacity.py`, `teams_feedback.py`, `engage_parse.py` | Stateless |
 | `Margo.Cloud.State.Probes` | `cloud/contracts/state/probes/*_probe.py` | Contract probes for the parity judge only: in `margo-state` only when built with `MargoStateProbes=true` (Debug default, never Release) and run only with `MARGO_STATE_PROBES=1` |
 | `Margo.Cloud.StateCli` (`margo-state`) | the script entry points | `margo-state SCRIPT.py --account A --state-dir D ARGS...` |
