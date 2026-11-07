@@ -20,6 +20,8 @@ python3 ../tools/state_parity.py --filter store -v    # unified diff of the firs
 | `core/probe_time.json` | `datetime`/`date`/`time.fromisoformat`, `isoformat` timespecs, `timedelta` text, `validate_timestamp`, hashing |
 | `core/probe_args.json` | argparse: abbreviations, ambiguity, choices, `type=int`, append, nargs, `--`, help and usage wrapping under `COLUMNS` |
 | `core/probe_store.json` | `margo_store.connect` (pragmas, identity rows, private modes), read-only before init, nested transactions, sqlite3 semantics, account resolution |
+| `core/margo_store_unicode.json` | `margo_store.py init` with names refused after `str.casefold()` and undecodable bytes in arguments and `MARGO_CONFIG` (surrogateescape) |
+| `core/probe_unicode.json` | Unicode 15.1 `int()`/`repr()`, astral digits in `validate_timestamp`, a state root of `/`, `~user` from the password database |
 | `probes/state_core_probe.py` | The Python reference of the contract probe. Its C# twin is `Margo.Cloud.State.Core.StateCoreProbeScript` |
 
 Later ports add a folder per script (`work_state/`, `proactive_state/`, ...).
@@ -69,8 +71,11 @@ One JSON object per file:
 
 ## What is compared
 
-Per step: the exit status, stdout after normalisation, and whether stderr is empty (stderr text
-is shown in `--verbose` diffs but not required to match: it carries Python tracebacks).
+Per step: the exit status, stdout after normalisation, whether stderr is empty, and the error the
+hosted tool reports from stderr (`statecmd._first_error`: the last non-empty line, which the model
+sees). For an uncaught exception only the exception class is compared (`sqlite3.IntegrityError`
+and `IntegrityError` match), because the C# port prints a traceback-shaped report, not a Python
+stack. The full stderr text is shown in `--verbose` diffs.
 
 After the last step:
 

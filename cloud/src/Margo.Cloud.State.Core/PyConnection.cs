@@ -265,7 +265,7 @@ public sealed class PyConnection : IDisposable
             throw new PySqliteError(PySqliteErrorKind.ProgrammingError, "embedded null character");
         }
 
-        if (IsolationLevel is not null && raw.sqlite3_get_autocommit(db) == 0)
+        if (raw.sqlite3_get_autocommit(db) == 0) // legacy control ends any open transaction, whatever isolation_level is
         {
             Check(raw.sqlite3_exec(db, "COMMIT"));
         }
@@ -307,7 +307,7 @@ public sealed class PyConnection : IDisposable
     public void Commit()
     {
         var db = Db;
-        if (IsolationLevel is not null && raw.sqlite3_get_autocommit(db) == 0)
+        if (raw.sqlite3_get_autocommit(db) == 0) // legacy control ends any open transaction, whatever isolation_level is
         {
             Check(raw.sqlite3_exec(db, "COMMIT"));
         }
@@ -317,7 +317,7 @@ public sealed class PyConnection : IDisposable
     public void Rollback()
     {
         var db = Db;
-        if (IsolationLevel is not null && raw.sqlite3_get_autocommit(db) == 0)
+        if (raw.sqlite3_get_autocommit(db) == 0) // legacy control ends any open transaction, whatever isolation_level is
         {
             Check(raw.sqlite3_exec(db, "ROLLBACK"));
         }

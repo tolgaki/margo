@@ -1,6 +1,5 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Microsoft.Win32.SafeHandles;
 
 namespace Margo.Cloud.State.Core;
 
@@ -50,16 +49,19 @@ public static partial class StateStore
             value = PyJson.Scalar(node);
         }
 
-        if (value is not string text || !TimestampPattern().IsMatch(text))
+        if (value is not string text || !IsTimestampShape(text))
         {
             throw new StateError("timestamp must be an ISO-8601 datetime with an explicit timezone");
         }
 
         try
         {
-            if (text.Length >= 6 && text[^6] is '+' or '-')
+            // value[-6:-5], value[-5:-3] and value[-2:] index code points (the pattern admits astral digits).
+            var points = PyRepr.CodePoints(text).ToArray();
+            string Slice(int from, int to) => string.Concat(points[^from..^to].Select(char.ConvertFromUtf32));
+            if (points[^6] is '+' or '-')
             {
-                if (PyArgumentParser.ParsePyInt(text[^5..^3]) > 23 || PyArgumentParser.ParsePyInt(text[^2..]) > 59)
+                if (PyArgumentParser.ParsePyInt(Slice(5, 3)) > 23 || PyArgumentParser.ParsePyInt(Slice(2, 0)) > 59)
                 {
                     throw new PyValueError("invalid offset");
                 }
@@ -300,7 +302,7 @@ public static partial class StateStore
             var ancestors = new[] { root }.Concat(PyPath.Parents(root)).ToList();
             foreach (var ancestor in ancestors)
             {
-                var name = PyPath.Name(ancestor).ToLowerInvariant();
+                var name = PyRepr.CaseFold(PyPath.Name(ancestor)); // str.casefold(): LONG S folds to 's', so a 'shared' spelled with it is still refused
                 if (PyPath.Exists(PyPath.Join(ancestor, ".git"))
                     || SyncedWords.Any(word => name.Contains(word, StringComparison.Ordinal))
                     || SharedNames.Contains(name, StringComparer.Ordinal))
@@ -444,10 +446,15 @@ public static partial class StateStore
                     open.ExecuteMany("INSERT INTO margo_meta VALUES (?,?)", [["account", principal], ["store_version", "1"]]);
                 }
 
+                // dict(rows): keys may be NULL or BLOBs in a damaged/foreign table; only the str keys
+                // 'account' and 'store_version' are looked up, and a later row wins, as in Python.
                 var metadata = new Dictionary<string, object?>(StringComparer.Ordinal);
                 foreach (var row in open.Execute("SELECT key,value FROM margo_meta"))
                 {
-                    metadata[(string)row[0]!] = row[1];
+                    if (row[0] is string key)
+                    {
+                        metadata[key] = row[1];
+                    }
                 }
 
                 if (!Equals(metadata.GetValueOrDefault("account"), principal) || !Equals(metadata.GetValueOrDefault("store_version"), "1"))
@@ -539,12 +546,18 @@ public static partial class StateStore
             staging = PyPath.Join(parent, "." + PyPath.Name(path) + "." + PyIds.Uuid4Hex() + ".new");
             var fd = PosixNative.Open(staging, PosixNative.OCreat | PosixNative.OExcl | PosixNative.OWrOnly | PosixNative.ONoFollow,
                                       Convert.ToUInt32("600", 8));
-            using (var handle = new SafeFileHandle(fd, ownsHandle: true))
-            using (var stream = new FileStream(handle, FileAccess.Write))
+            // with os.fdopen(fd, "w", encoding="utf-8"): write, flush, os.fsync. Write and fsync failures
+            // (ENOSPC, EDQUOT, EFBIG, EIO) are OSError, so they become "configuration unavailable"; a .NET
+            // FileStream would raise IOException instead and escape as an uncaught exception.
+            try
             {
                 var bytes = PyIO.EncodeUtf8(CanonicalJson(new JsonObject { ["account"] = principal }) + "\n");
-                stream.Write(bytes);
-                stream.Flush(flushToDisk: true);
+                PosixNative.WriteAll(fd, bytes);
+                PosixNative.Fsync(fd);
+            }
+            finally
+            {
+                PosixNative.Close(fd);
             }
 
             var created = true;
@@ -611,8 +624,74 @@ public static partial class StateStore
         public void Dispose() => LinkOverride.Value = outer;
     }
 
-    [GeneratedRegex(@"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})\z", RegexOptions.CultureInvariant)]
-    private static partial Regex TimestampPattern();
+    /// <summary>
+    /// <c>re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})", value)</c>. Python's
+    /// <c>\d</c> is any <c>str.isdecimal()</c> code point (astral ones included, Unicode 15.1); a .NET regex
+    /// sees UTF-16 units and newer tables, so the shape is matched by hand on code points.
+    /// </summary>
+    private static bool IsTimestampShape(string text)
+    {
+        var points = PyRepr.CodePoints(text).ToArray();
+        var index = 0;
+
+        bool Digits(int count)
+        {
+            for (var k = 0; k < count; k++, index++)
+            {
+                if (index >= points.Length || PyRepr.DecimalValue(points[index]) < 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        bool Literal(char expected)
+        {
+            if (index < points.Length && points[index] == expected)
+            {
+                index++;
+                return true;
+            }
+
+            return false;
+        }
+
+        if (!(Digits(4) && Literal('-') && Digits(2) && Literal('-') && Digits(2) && Literal('T')
+              && Digits(2) && Literal(':') && Digits(2) && Literal(':') && Digits(2)))
+        {
+            return false;
+        }
+
+        if (Literal('.'))
+        {
+            var fraction = 0;
+            while (fraction < 6 && index < points.Length && PyRepr.DecimalValue(points[index]) >= 0)
+            {
+                fraction++;
+                index++;
+            }
+
+            if (fraction == 0)
+            {
+                return false;
+            }
+        }
+
+        if (Literal('Z'))
+        {
+            return index == points.Length;
+        }
+
+        if (index < points.Length && points[index] is '+' or '-')
+        {
+            index++;
+            return Digits(2) && Literal(':') && Digits(2) && index == points.Length;
+        }
+
+        return false;
+    }
 
     [GeneratedRegex(@"[\x00-\x20\x7f{}]", RegexOptions.CultureInvariant)]
     private static partial Regex AccountForbidden();

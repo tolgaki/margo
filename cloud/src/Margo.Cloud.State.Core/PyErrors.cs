@@ -101,6 +101,7 @@ public class PyOSError : PyException
 
     public string? Filename { get; }
 
+    /// <summary>The <c>OSError</c> subclass CPython picks for the errno (Objects/exceptions.c, Linux values).</summary>
     public override string PythonType => Errno switch
     {
         PyErrno.ENOENT => "FileNotFoundError",
@@ -108,6 +109,15 @@ public class PyOSError : PyException
         PyErrno.EACCES or PyErrno.EPERM => "PermissionError",
         PyErrno.EISDIR => "IsADirectoryError",
         PyErrno.ENOTDIR => "NotADirectoryError",
+        4 => "InterruptedError", // EINTR
+        3 => "ProcessLookupError", // ESRCH
+        10 => "ChildProcessError", // ECHILD
+        11 or 114 or 115 => "BlockingIOError", // EAGAIN/EWOULDBLOCK, EALREADY, EINPROGRESS
+        32 or 108 => "BrokenPipeError", // EPIPE, ESHUTDOWN
+        103 => "ConnectionAbortedError",
+        104 => "ConnectionResetError",
+        111 => "ConnectionRefusedError",
+        110 => "TimeoutError", // ETIMEDOUT
         _ => "OSError",
     };
 

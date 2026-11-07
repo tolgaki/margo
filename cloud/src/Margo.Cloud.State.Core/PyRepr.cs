@@ -126,28 +126,73 @@ public static class PyRepr
         return builder.Append(quote).ToString();
     }
 
-    /// <summary>Python <c>str.isprintable()</c> for one code point.</summary>
-    public static bool IsPrintable(int codePoint)
+    /// <summary>
+    /// Python <c>str.isprintable()</c> for one code point, from CPython's own Unicode tables
+    /// (<see cref="PyUnicodeData"/>): .NET's tables are a newer Unicode version, so characters assigned
+    /// after Unicode 15.1 would otherwise print raw where Python's <c>repr()</c> escapes them.
+    /// </summary>
+    public static bool IsPrintable(int codePoint) => FindRun(PyUnicodeData.NonPrintableRanges, 2, codePoint) < 0;
+
+    /// <summary>
+    /// <c>unicodedata.decimal(chr(codePoint), -1)</c>: the value of a character for which <c>str.isdecimal()</c>
+    /// is true (what <c>int()</c>, <c>float()</c> and <c>re</c>'s <c>\d</c> accept), otherwise -1.
+    /// </summary>
+    public static int DecimalValue(int codePoint)
     {
-        if (codePoint == ' ')
+        var run = FindRun(PyUnicodeData.DecimalRuns, 3, codePoint);
+        return run < 0 ? -1 : PyUnicodeData.DecimalRuns[run + 2] + codePoint - PyUnicodeData.DecimalRuns[run];
+    }
+
+    /// <summary>Python <c>str.casefold()</c> (full case folding, CPython's Unicode version; lone surrogates kept).</summary>
+    public static string CaseFold(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        var builder = new StringBuilder(value.Length);
+        foreach (var codePoint in CodePoints(value))
         {
-            return true;
+            if (codePoint < 0x80)
+            {
+                builder.Append(codePoint is >= 'A' and <= 'Z' ? (char)(codePoint + 32) : (char)codePoint);
+                continue;
+            }
+
+            var index = Array.BinarySearch(PyUnicodeData.CaseFoldKeys, codePoint);
+            if (index >= 0)
+            {
+                builder.Append(PyUnicodeData.CaseFoldValues[index]);
+            }
+            else
+            {
+                AppendCodePoint(builder, codePoint);
+            }
         }
 
-        if (codePoint is >= 0xD800 and <= 0xDFFF)
+        return builder.ToString();
+    }
+
+    /// <summary>The offset of the run in <paramref name="table"/> (records of <paramref name="stride"/> ints starting with first, last) holding the code point, or -1.</summary>
+    private static int FindRun(int[] table, int stride, int codePoint)
+    {
+        int low = 0, high = (table.Length / stride) - 1;
+        while (low <= high)
         {
-            return false;
+            var middle = (low + high) >> 1;
+            var offset = middle * stride;
+            if (codePoint < table[offset])
+            {
+                high = middle - 1;
+            }
+            else if (codePoint > table[offset + 1])
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                return offset;
+            }
         }
 
-        var category = CharUnicodeInfo.GetUnicodeCategory(codePoint);
-        return category switch
-        {
-            UnicodeCategory.Control or UnicodeCategory.Format or UnicodeCategory.Surrogate
-                or UnicodeCategory.PrivateUse or UnicodeCategory.OtherNotAssigned
-                or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator
-                or UnicodeCategory.SpaceSeparator => false,
-            _ => true,
-        };
+        return -1;
     }
 
     /// <summary>

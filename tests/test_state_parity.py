@@ -62,6 +62,29 @@ class TokenTests(unittest.TestCase):
         self.assertEqual(parity.replace_roots("/tmp/x/y and /tmp/x", {"/tmp/x", "/tmp/x/y"}), "<ROOT> and <ROOT>")
 
 
+class ReasonTests(unittest.TestCase):
+    """The stderr line the hosted margo-state tool reports must match, not only stderr's emptiness."""
+
+    def test_last_non_empty_line_is_the_reported_error(self):
+        self.assertEqual(parity.reason(""), "")
+        self.assertEqual(parity.reason("ERROR: account must be explicit\n\n"), "ERROR: account must be explicit")
+        usage = "usage: x.py [-h]\nx.py: error: the following arguments are required: --account\n"
+        self.assertEqual(parity.reason(usage), "x.py: error: the following arguments are required: --account")
+
+    def test_uncaught_exceptions_compare_by_class_only(self):
+        python = ('Traceback (most recent call last):\n  File "x.py", line 1, in <module>\n'
+                  "sqlite3.IntegrityError: UNIQUE constraint failed: t.c\n")
+        csharp = "Traceback (most recent call last):\n  (C# port)\nIntegrityError: UNIQUE constraint failed: t.c\n"
+        self.assertEqual(parity.reason(python), "uncaught IntegrityError")
+        self.assertEqual(parity.reason(python), parity.reason(csharp))
+        self.assertEqual(parity.reason("Traceback (most recent call last):\n  ...\nKeyError\n"), "uncaught KeyError")
+
+    def test_a_different_message_is_a_difference(self):
+        self.assertNotEqual(
+            parity.reason("ERROR: repository/shared/synchronised state/config roots are forbidden\n"),
+            parity.reason("ERROR: state/config root has a group/world-writable ancestor\n"))
+
+
 class SnapshotTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

@@ -1,0 +1,86 @@
+{
+  "description": "Shared helpers that depend on Unicode tables and pathlib: int() and repr() follow CPython 3.13's Unicode 15.1 (not .NET's newer tables), validate_timestamp's \\d matches astral decimal digits, a state root of / joins without a doubled slash, and ~user expands from the password database (a HOME that still starts with ~ is RuntimeError).",
+  "steps": [
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--limit",
+        "\ud833\udcf1"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--limit",
+        "\ud835\udfcf\u0661"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--view",
+        "x\ud833\udc00\u0897\ud87a\udff0\u00ad\ud83e\udee9"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "timestamps",
+        "--",
+        "2024-01-01T00:00:0\ud835\udfcfZ",
+        "2024-01-01T00:00:0\ud833\udcf1Z",
+        "\ud801\udca0024-01-01T00:00:00+00:00",
+        "2024-01-01T00:00:00+0\ud835\udfcf:00"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--account",
+        "owner@example.com",
+        "--state-dir",
+        "/",
+        "store",
+        "state-path"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--account",
+        "owner@example.com",
+        "--state-dir",
+        "~root/x",
+        "store",
+        "state-path"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--account",
+        "owner@example.com",
+        "--state-dir",
+        "~/x",
+        "store",
+        "state-path"
+      ],
+      "env": {
+        "HOME": "~elsewhere"
+      },
+      "expect_exit": 1
+    }
+  ]
+}

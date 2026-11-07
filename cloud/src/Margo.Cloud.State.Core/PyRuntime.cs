@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Margo.Cloud.State.Core;
 
@@ -18,10 +19,17 @@ public static class PyRuntime
         var scope = Current.Value;
         if (scope?.Environment is { } environment)
         {
-            return environment.TryGetValue(name, out var value) ? value : null;
+            return environment.TryGetValue(name, out var overridden) ? overridden : null;
         }
 
-        return Environment.GetEnvironmentVariable(name);
+        var value = Environment.GetEnvironmentVariable(name);
+        if (value is not null && value.Contains('\uFFFD', StringComparison.Ordinal) && ProcessEnvironment.Value is { } block)
+        {
+            // An undecodable byte: recover CPython's surrogateescape string from the raw environment.
+            return DecodeEnvironmentValue(block, name, value);
+        }
+
+        return value;
     }
 
     /// <summary>The current UTC instant (the source of <c>datetime.now(timezone.utc)</c>).</summary>
@@ -70,6 +78,120 @@ public static class PyRuntime
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// <c>sys.argv[1:]</c> as CPython decodes it (UTF-8 with <c>surrogateescape</c>) from the process command line
+    /// (<c>/proc/self/cmdline</c>, NUL-separated). .NET hands <c>Main</c> arguments with undecodable bytes
+    /// replaced by U+FFFD, which would silently turn an invalid principal or path into a different valid one.
+    /// The last <paramref name="managed"/>.Count entries are used only when they decode (with replacement) to
+    /// exactly the managed arguments; otherwise the managed arguments are returned unchanged.
+    /// </summary>
+    public static string[] DecodeArguments(ReadOnlySpan<byte> commandLine, IReadOnlyList<string> managed)
+    {
+        ArgumentNullException.ThrowIfNull(managed);
+        var entries = SplitNul(commandLine);
+        if (entries.Count < managed.Count)
+        {
+            return [.. managed];
+        }
+
+        var result = new string[managed.Count];
+        var offset = entries.Count - managed.Count;
+        for (var i = 0; i < managed.Count; i++)
+        {
+            var raw = entries[offset + i];
+            if (!Corresponds(raw, managed[i]))
+            {
+                return [.. managed];
+            }
+
+            result[i] = PyIO.FsDecode(raw);
+        }
+
+        return result;
+    }
+
+    /// <summary><see cref="DecodeArguments"/> over this process's <c>/proc/self/cmdline</c> (the managed arguments elsewhere).</summary>
+    public static string[] CommandLineArguments(IReadOnlyList<string> managed) =>
+        DecodeArguments(ReadProcFile("/proc/self/cmdline") ?? [], managed);
+
+    /// <summary>
+    /// <c>os.environ[name]</c> as CPython decodes it (UTF-8 with <c>surrogateescape</c>) from the process environment
+    /// block (<c>/proc/self/environ</c>), when that entry still decodes (with replacement) to the managed value.
+    /// </summary>
+    public static string? DecodeEnvironmentValue(ReadOnlySpan<byte> environment, string name, string? managed)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        if (managed is null)
+        {
+            return null;
+        }
+
+        var prefix = Encoding.UTF8.GetBytes(name + "=");
+        foreach (var entry in SplitNul(environment))
+        {
+            if (entry.AsSpan().StartsWith(prefix))
+            {
+                // CPython keeps the first entry of a repeated name (PyDict_SetDefault).
+                var raw = entry.AsSpan(prefix.Length);
+                return Corresponds(raw, managed) ? PyIO.FsDecode(raw) : managed;
+            }
+        }
+
+        return managed;
+    }
+
+    private static readonly Lazy<byte[]?> ProcessEnvironment = new(() => ReadProcFile("/proc/self/environ"));
+
+    /// <summary>The raw bytes of a <c>/proc/self</c> file, or null where it cannot be read.</summary>
+    internal static byte[]? ReadProcFile(string path)
+    {
+        try
+        {
+            return OperatingSystem.IsLinux() ? File.ReadAllBytes(path) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Whether <paramref name="managed"/> is .NET's decoding of <paramref name="raw"/>: equal once replacement
+    /// characters (managed) and escaped bytes (raw) are dropped, since the runtime's decoder may emit a different
+    /// number of U+FFFD for one invalid sequence than <see cref="Encoding.UTF8"/> does.
+    /// </summary>
+    private static bool Corresponds(ReadOnlySpan<byte> raw, string managed)
+    {
+        var decoded = PyIO.FsDecode(raw);
+        if (string.Equals(decoded, managed, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        static string Valid(string text, char low, char high) =>
+            string.Concat(text.Where(c => c < low || c > high));
+        return string.Equals(Valid(decoded, '\udc80', '\udcff'), Valid(managed, '\ufffd', '\ufffd'), StringComparison.Ordinal);
+    }
+
+    private static List<byte[]> SplitNul(ReadOnlySpan<byte> block)
+    {
+        var entries = new List<byte[]>();
+        while (!block.IsEmpty)
+        {
+            var end = block.IndexOf((byte)0);
+            if (end < 0)
+            {
+                entries.Add(block.ToArray());
+                break;
+            }
+
+            entries.Add(block[..end].ToArray());
+            block = block[(end + 1)..];
+        }
+
+        return entries;
     }
 
     private sealed record Scope(IReadOnlyDictionary<string, string>? Environment, Func<DateTimeOffset>? Clock,

@@ -7,8 +7,9 @@ must be indistinguishable. This tool runs every scenario in
 ``cloud/contracts/state/**/*.json`` (schema: ``cloud/contracts/state/README.md``)
 three times, each in a fresh private temporary root: Python, C#, then Python
 again, with ``TZ=UTC LC_ALL=C.UTF-8 PYTHONHASHSEED=0``. For every step it
-compares the exit status, the normalised stdout and whether stderr is empty; at
-the end it compares a normalised dump of every SQLite database below the root
+compares the exit status, the normalised stdout, whether stderr is empty and the
+error the hosted margo-state tool would report from stderr (its last line, or
+the exception class of an uncaught exception); at the end it compares a normalised dump of every SQLite database below the root
 (schema SQL, ``PRAGMA user_version``, rows) and the file tree (paths, mode bits,
 content hashes of non-database files).
 
@@ -125,6 +126,18 @@ def replace_roots(text, roots):
 
 def decode(data):
     return data.decode("utf-8", errors="surrogateescape")
+
+
+def reason(stderr_text):
+    """The error the hosted margo-state tool reports from stderr (statecmd._first_error): the last non-empty
+    line, which the model sees. For an uncaught exception only its class counts (``module.`` prefix dropped),
+    because the C# port prints a traceback-shaped report, not a Python stack."""
+    lines = [line.strip() for line in stderr_text.splitlines() if line.strip()]
+    if not lines:
+        return ""
+    if any(line.startswith("Traceback (most recent call last):") for line in lines):
+        return "uncaught " + lines[-1].split(":", 1)[0].rsplit(".", 1)[-1]
+    return lines[-1]
 
 
 # ----------------------------------------------------------------------------- snapshots
@@ -372,8 +385,9 @@ def judge(name, scenario, cli):
         steps = []
         for index, (code, out, err) in enumerate(results):
             text = replace_roots(decode(out), roots)
+            error = replace_roots(reason(decode(err)), roots)
             steps.append((code, normaliser.apply(text, volatiles[index]), bool(err.strip()) if err else False,
-                          replace_roots(decode(err), roots)))
+                          replace_roots(decode(err), roots), normaliser.apply(error, error_volatiles[index])))
         db_text = normaliser.apply(replace_roots("\n".join(databases), roots), volatiles[-2])
         file_text = normaliser.apply(text_of_files(files, roots), volatiles[-1])
         return steps, db_text, file_text
@@ -390,6 +404,11 @@ def judge(name, scenario, cli):
             outcome.notes.append("python runs not token-aligned; all tokens normalised")
             positions = True
         volatiles.append(positions)
+    error_volatiles = []
+    for (_, _, err_a), (_, _, err_b) in zip(first[0], second[0]):
+        positions = volatile_positions(replace_roots(reason(decode(err_a)), first[3]),
+                                       replace_roots(reason(decode(err_b)), second[3]))
+        error_volatiles.append(True if positions is None else positions)
 
     steps_first, db_first, files_first = texts(first, norm_first, volatiles)
     steps_second, db_second, files_second = texts(second, norm_second, volatiles)
@@ -397,13 +416,15 @@ def judge(name, scenario, cli):
 
     for index, step in enumerate(scenario["steps"]):
         label = "step %d (%s %s)" % (index + 1, step["script"], " ".join(step.get("args", []))[:60])
-        (code_a, out_a, err_a, raw_err_a), (code_b, out_b, err_b, _) = steps_first[index], steps_second[index]
-        code_c, out_c, err_c, raw_err_c = steps_csharp[index]
+        label = label.encode("utf-8", "backslashreplace").decode("utf-8")
+        (code_a, out_a, err_a, raw_err_a, why_a), (code_b, out_b, err_b, _, why_b) = steps_first[index], steps_second[index]
+        code_c, out_c, err_c, raw_err_c, why_c = steps_csharp[index]
         if "expect_exit" in step and code_a != step["expect_exit"]:
             outcome.fail("%s: python exit %s, scenario expects %s" % (label, code_a, step["expect_exit"]),
                          "exit=%s\n" % step["expect_exit"], "exit=%s\n%s" % (code_a, raw_err_a))
-        if (code_a, out_a, err_a) != (code_b, out_b, err_b):
-            outcome.fail("%s: the two python runs disagree outside volatile tokens" % label, out_a, out_b)
+        if (code_a, out_a, err_a, why_a) != (code_b, out_b, err_b, why_b):
+            outcome.fail("%s: the two python runs disagree outside volatile tokens" % label,
+                         out_a + "\nerror: " + why_a + "\n", out_b + "\nerror: " + why_b + "\n")
         if code_c != code_a:
             outcome.fail("%s: exit %s, python %s" % (label, code_c, code_a),
                          "exit=%s\n%s" % (code_a, raw_err_a), "exit=%s\n%s" % (code_c, raw_err_c))
@@ -413,6 +434,8 @@ def judge(name, scenario, cli):
             outcome.fail("%s: stderr is %s, python's is %s" % (label, "non-empty" if err_c else "empty",
                                                                "non-empty" if err_a else "empty"),
                          raw_err_a, raw_err_c)
+        elif why_c != why_a:
+            outcome.fail("%s: reported error differs" % label, why_a + "\n", why_c + "\n")
     if scenario.get("compare_db", True):
         if db_first != db_second:
             outcome.fail("databases: the two python runs disagree", db_first, db_second)
@@ -461,6 +484,10 @@ def main(argv=None):
     parser.add_argument("--cli", help="margo-state executable or .dll (default: the Debug build)")
     parser.add_argument("--build", action="store_true", help="dotnet build the CLI first")
     arguments = parser.parse_args(argv)
+    # Labels and diffs may hold undecodable bytes (surrogate escapes) from scenario arguments or output.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="backslashreplace")
     if arguments.build:
         build_cli()
     cli = Path(arguments.cli).resolve() if arguments.cli else DEFAULT_CLI

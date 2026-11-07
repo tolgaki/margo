@@ -1288,10 +1288,9 @@ public sealed class PyArgumentParser
 
         var digits = new StringBuilder();
         var previousUnderscore = true;
-        for (; index < stripped.Length; index++)
+        foreach (var codePoint in PyRepr.CodePoints(stripped[index..]))
         {
-            var c = stripped[index];
-            if (c == '_')
+            if (codePoint == '_')
             {
                 if (previousUnderscore)
                 {
@@ -1302,17 +1301,8 @@ public sealed class PyArgumentParser
                 continue;
             }
 
-            int digit;
-            if (char.IsHighSurrogate(c) && index + 1 < stripped.Length)
-            {
-                digit = CharUnicodeInfo.GetDecimalDigitValue(stripped, index);
-                index++;
-            }
-            else
-            {
-                digit = CharUnicodeInfo.GetDecimalDigitValue(c);
-            }
-
+            // CPython's decimal table (Unicode 15.1), not .NET's newer one.
+            var digit = PyRepr.DecimalValue(codePoint);
             if (digit < 0)
             {
                 return false;
@@ -1345,7 +1335,33 @@ public sealed class PyArgumentParser
     /// <summary>Python <c>float(text)</c> for decimal text, <c>inf</c>/<c>nan</c> spellings and underscores.</summary>
     public static double ParsePyFloat(string text)
     {
-        var stripped = PyRepr.Strip(text);
+        ArgumentNullException.ThrowIfNull(text);
+
+        // _PyUnicode_TransformDecimalAndSpaceToASCII: Unicode spaces become ' ', decimal digits ASCII digits,
+        // any other non-ASCII character '?' (which then fails to parse).
+        var ascii = new StringBuilder(text.Length);
+        foreach (var codePoint in PyRepr.CodePoints(text))
+        {
+            if (codePoint < 127)
+            {
+                ascii.Append((char)codePoint);
+            }
+            else if (codePoint <= 0xFFFF && !char.IsSurrogate((char)codePoint) && PyRepr.IsSpace((char)codePoint))
+            {
+                ascii.Append(' ');
+            }
+            else if (PyRepr.DecimalValue(codePoint) is var digit and >= 0)
+            {
+                ascii.Append((char)('0' + digit));
+            }
+            else
+            {
+                ascii.Append('?');
+                break;
+            }
+        }
+
+        var stripped = ascii.ToString().Trim(' ', '\t', '\n', '\r', '\v', '\f');
         var lower = stripped.ToLowerInvariant();
         var sign = 1.0;
         var body = lower;
@@ -1365,7 +1381,7 @@ public sealed class PyArgumentParser
             return double.NaN;
         }
 
-        if (Regex.IsMatch(stripped, @"^[+-]?((\d(_?\d)*)?\.?\d(_?\d)*|\d(_?\d)*\.)([eE][+-]?\d(_?\d)*)?$", RegexOptions.CultureInvariant)
+        if (Regex.IsMatch(stripped, @"^[+-]?(([0-9](_?[0-9])*)?\.?[0-9](_?[0-9])*|[0-9](_?[0-9])*\.)([eE][+-]?[0-9](_?[0-9])*)?\z", RegexOptions.CultureInvariant)
             && double.TryParse(stripped.Replace("_", "", StringComparison.Ordinal), NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
         {
             return value;

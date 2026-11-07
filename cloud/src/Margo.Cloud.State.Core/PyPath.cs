@@ -49,30 +49,20 @@ public static class PyPath
 
         var slash = normalized.IndexOf('/', StringComparison.Ordinal);
         var first = slash < 0 ? normalized : normalized[..slash];
-        string? home;
-        if (first == "~")
-        {
-            // $HOME when set (even empty), otherwise the password database.
-            home = PyRuntime.GetEnv("HOME") ?? NullIfEmpty(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-        }
-        else
-        {
-            home = first[1..] == Environment.UserName
-                ? NullIfEmpty(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
-                : null;
-        }
 
-        if (home is null)
+        // posixpath.expanduser(first): $HOME when set (even empty), otherwise pwd.getpwuid(os.getuid()).pw_dir;
+        // "~name" is pwd.getpwnam(name).pw_dir. An unknown user leaves the component unchanged.
+        var home = first == "~" ? PyRuntime.GetEnv("HOME") ?? PosixNative.PasswdHome(PosixNative.GetUid()) : PosixNative.PasswdHome(first[1..]);
+        var expanded = home is null ? first : home.TrimEnd('/') is { Length: > 0 } trimmed ? trimmed : "/";
+        if (expanded.StartsWith('~'))
         {
-            // posixpath.expanduser leaves the path unchanged; pathlib then raises RuntimeError.
+            // pathlib: the expansion still starts with "~" (unknown user, or a HOME such as "~x").
             throw new InvalidOperationException("Could not determine home directory.");
         }
 
-        var result = home.TrimEnd('/') + (slash < 0 ? "" : normalized[slash..]);
-        return Normalize(result.Length == 0 ? "/" : result);
+        var tail = slash < 0 ? "" : normalized[(slash + 1)..];
+        return tail.Length == 0 ? Normalize(expanded) : Join(expanded, tail);
     }
-
-    private static string? NullIfEmpty(string value) => value.Length == 0 ? null : value;
 
     /// <summary><c>path.parent</c>.</summary>
     public static string Parent(string path)
@@ -144,7 +134,9 @@ public static class PyPath
             return Normalize(name);
         }
 
-        return Normalize(normalized + "/" + name);
+        // Path("/") / "x" is "/x": appending "/x" to the root would make "//x", which pathlib keeps as a
+        // distinct (implementation-defined) root.
+        return Normalize(normalized.EndsWith('/') ? normalized + name : normalized + "/" + name);
     }
 
     /// <summary><c>path.exists()</c> (follows links; ENOENT/ENOTDIR/EBADF/ELOOP mean false, other errors raise).</summary>

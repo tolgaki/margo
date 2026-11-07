@@ -11,7 +11,9 @@
 | `python3 -s scripts/SCRIPT.py ARGS` | `margo-state SCRIPT.py ARGS` (`StateCliHost.Run`) |
 | the script file | an `IStateScript` with `ScriptName == "SCRIPT.py"` in any `Margo.Cloud.State.*` assembly next to the program |
 | `sys.stdin` (UTF-8 under `LC_ALL=C.UTF-8`, no BOM stripping) | `PyIO.StdinReader` (strict UTF-8) |
-| `sys.stdout`/`sys.stderr` (UTF-8, `\n`) | `PyIO.OutputWriter`, flushed on exit |
+| `sys.stdout`/`sys.stderr` (UTF-8, `\n`; stderr `backslashreplace`) | `PyIO.OutputWriter` / `PyIO.ErrorWriter`, flushed on exit |
+| `sys.argv` (UTF-8 with `surrogateescape`) | `PyRuntime.CommandLineArguments(args)`: re-read from `/proc/self/cmdline`, because .NET replaces undecodable bytes with U+FFFD |
+| CPython ignoring SIGXFSZ | `PosixNative.IgnoreFileSizeLimitSignal()` at start-up, so writes past `RLIMIT_FSIZE` fail with `EFBIG` |
 | `sys.exit(status)`, argparse exit 2, uncaught exception exit 1 | `StateScripts.RunGuarded` |
 
 Discovery loads every `Margo.Cloud.State.*.dll` in the program folder (except `*.Tests.dll`, which a

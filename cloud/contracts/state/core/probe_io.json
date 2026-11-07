@@ -1,0 +1,20 @@
+{
+  "description": "margo_store.read_json on files that cannot be read: a read(2) error (EIO from /proc/self/mem) and a directory are OSError, reported as StateError 'cannot read valid JSON from PATH'; an empty file is invalid JSON.",
+  "steps": [
+    {
+      "script": "state_core_probe.py",
+      "args": ["store", "read-json", "--path", "/proc/self/mem"],
+      "expect_exit": 2
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": ["store", "read-json", "--path", "{root}"],
+      "expect_exit": 2
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": ["store", "read-json", "--path", "/dev/null"],
+      "expect_exit": 2
+    }
+  ]
+}
