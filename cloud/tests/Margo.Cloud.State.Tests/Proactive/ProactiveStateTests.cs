@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text.Json.Nodes;
 using Margo.Cloud.State.Core;
 using Margo.Cloud.State.Proactive;
@@ -82,6 +83,31 @@ public sealed class ProactiveStateTests : IDisposable
     private long Count(string sql) => (long)_conn.Execute(sql).FetchOne()![0]!;
 
     private static string Message(Action action) => Assert.ThrowsAny<StateError>(action).Message;
+
+    [Fact]
+    public void Python_ints_beyond_64_bits_keep_their_value_in_payloads_digests_and_pages()
+    {
+        // Review regression: JsonNode.DeepClone re-serialized BigInteger values as {"IsEven":...} objects, so the
+        // stored payload, the computed revision/item_key and the page fingerprint all differed from Python.
+        // Expected digests measured with CPython 3.13 (hashlib.sha256 of margo_store.canonical_json).
+        var added = ProactiveState.QueueAdd(_conn, new JsonObject { ["id"] = "big", ["count"] = PyJson.Int(BigInteger.Pow(10, 30)) });
+        Assert.Equal("f0c2837f50cca668cdaf115d7804e595920281f366b32b669b64a979b3449567", (string)added["revision"]!);
+        var item = _conn.Execute("SELECT item_key,payload FROM proactive_items WHERE stable_id='big'").FetchOne()!;
+        Assert.Equal("322fea145f0376ec6d6e842dd966d2aa05295a4f8114531c6aec7849ae804693", item["item_key"]);
+        Assert.Contains("\"count\":1000000000000000000000000000000,", (string)item["payload"]!, StringComparison.Ordinal);
+
+        var attempt = StartAttempt();
+        Page(attempt, observations: [new JsonObject { ["id"] = "m", ["revision"] = "1", ["size"] = PyJson.Int(-BigInteger.Pow(2, 64)) }]);
+        Assert.Equal("{\"id\":\"m\",\"revision\":\"1\",\"size\":-18446744073709551616}",
+                     _conn.Execute("SELECT payload FROM proactive_observations").FetchOne()![0]);
+        Assert.Equal("83b9137e55ef78c4229ccefd9fc3562512f00072e6d29d2de331d8e094fe5a3c",
+                     _conn.Execute("SELECT digest FROM proactive_pages").FetchOne()![0]);
+
+        var value = new JsonObject { ["a"] = new JsonArray(PyJson.Int(BigInteger.Pow(2, 63)), 1L, 1.5, "x", true, null) };
+        var copy = Py.Copy(value);
+        Assert.NotSame(value, copy);
+        Assert.Equal("{\"a\":[9223372036854775808,1,1.5,\"x\",true,null]}", StateStore.CanonicalJson(copy));
+    }
 
     [Fact]
     public void Reobserved_timestamp_is_not_content_revision()
