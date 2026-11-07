@@ -4,4 +4,8 @@
     <RootNamespace>Margo.Cloud.Core</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.Core.Tests" />
+  </ItemGroup>
+
 </Project>
