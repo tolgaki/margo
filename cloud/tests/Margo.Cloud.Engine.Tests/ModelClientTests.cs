@@ -141,13 +141,67 @@ public sealed class ModelClientTests
         using var neverHttp = new HttpClient(never);
         using var neverClient = new AzureOpenAIModelClient(neverHttp, Endpoint, new FakeCredential(), Options(delays));
         await Assert.ThrowsAsync<ModelApiException>(() => neverClient.CreateResponseAsync([], TestContext.Current.CancellationToken));
-        Assert.Single(never.Requests); // a retry-after above 60 seconds is not waited for
+        Assert.Single(never.Requests); // a retry-after above 120 seconds is not waited for
 
         var told = new FakeHandler((_, _) => WithHeader(Json(HttpStatusCode.BadRequest, "{}"), "x-should-retry", "true"));
         using var toldHttp = new HttpClient(told);
         using var toldClient = new AzureOpenAIModelClient(toldHttp, Endpoint, new FakeCredential(), Options(delays));
         await Assert.ThrowsAsync<ModelApiException>(() => toldClient.CreateResponseAsync([], TestContext.Current.CancellationToken));
         Assert.Equal(3, told.Requests.Count);
+    }
+
+    /// <summary>
+    /// The reference SDK (openai 2.54, <c>MAX_RETRY_AFTER_DELAY = 2 * 60</c>) waits for a server-directed delay of up to
+    /// 120 seconds and gives up only above it; measured with <c>httpx.MockTransport</c>: <c>retry-after: 61</c>,
+    /// <c>90</c> and <c>120</c> make three requests sleeping that long, <c>121</c> one request.
+    /// </summary>
+    [Theory]
+    [InlineData("retry-after", "61", 3, 61.0)]
+    [InlineData("retry-after", "90", 3, 90.0)]
+    [InlineData("retry-after", "120", 3, 120.0)]
+    [InlineData("retry-after-ms", "120000", 3, 120.0)]
+    [InlineData("retry-after", "121", 1, 0.0)]
+    [InlineData("retry-after-ms", "121000", 1, 0.0)]
+    public async Task Server_directed_delays_up_to_two_minutes_are_waited_for(string header, string value, int requests, double seconds)
+    {
+        var delays = new List<TimeSpan>();
+        var handler = new FakeHandler((_, _) => WithHeader(Json(HttpStatusCode.TooManyRequests, "{}"), header, value));
+        using var http = new HttpClient(handler);
+        using var client = new AzureOpenAIModelClient(http, Endpoint, new FakeCredential(), Options(delays));
+        var error = await Assert.ThrowsAsync<ModelApiException>(() => client.CreateResponseAsync([], TestContext.Current.CancellationToken));
+        Assert.Equal("Error code: 429 - {}", error.Message);
+        Assert.Equal(requests, handler.Requests.Count);
+        Assert.Equal(Enumerable.Repeat(TimeSpan.FromSeconds(seconds), requests - 1), delays);
+    }
+
+    /// <summary>
+    /// The SDK reads a date <c>retry-after</c> with <c>email.utils.parsedate_tz</c>, which refuses ISO 8601 and other
+    /// non-RFC 2822 forms: such a header is no delay at all, so the request is retried with the usual backoff. Several
+    /// values of one header are one comma-joined value (httpx <c>headers.get</c>), which is neither a number nor a date.
+    /// </summary>
+    [Theory]
+    [InlineData("2099-01-01T00:00:00Z")]
+    [InlineData("01/01/2099")]
+    [InlineData("Jan 1 2099")]
+    [InlineData("5", "6")]
+    public async Task Retry_after_values_the_sdk_cannot_read_leave_the_usual_backoff(params string[] values)
+    {
+        var delays = new List<TimeSpan>();
+        var handler = new FakeHandler((_, _) =>
+        {
+            var response = Json(HttpStatusCode.TooManyRequests, "{}");
+            foreach (var value in values)
+            {
+                response.Headers.TryAddWithoutValidation("retry-after", value);
+            }
+
+            return response;
+        });
+        using var http = new HttpClient(handler);
+        using var client = new AzureOpenAIModelClient(http, Endpoint, new FakeCredential(), Options(delays));
+        await Assert.ThrowsAsync<ModelApiException>(() => client.CreateResponseAsync([], TestContext.Current.CancellationToken));
+        Assert.Equal(3, handler.Requests.Count);
+        Assert.Equal([TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(1.0)], delays);
     }
 
     [Fact]

@@ -45,6 +45,64 @@ public sealed class GeneratedCaseTests
     private static Random Seeded(int seed) =>
         new(int.TryParse(Environment.GetEnvironmentVariable("MARGO_ENGINE_SEED"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var given) ? given + seed : seed);
 
+    // -- model client: retry-after ---------------------------------------------------------------------
+
+    private static readonly string[] RetryPieces =
+    [
+        "Wed,", "Wed", "wednesday,", "Fri,", "21", "01", "1", "Jan", "jan", "JANUARY", "Oct", "October", "Dec", "Foo", "2099", "99", "68",
+        "69", "0", "2015", "10000", "07:28:00", "7:28", "07.28.00", "07.28", "7.28.0.1", "12:00:00,", "25:61:61", "GMT", "UTC", "Z",
+        "PST", "pdt", "EST", "+0000", "-0000", "+0530", "-0800", "+5", "foo", "1_000", "+12", "21-Oct-99", "01-Jan-2099", "-", ",", "2099,",
+        "Jan,", "21,", "١٢", "²", "2099-01-01T00:00:00Z", "2099-01-01", "01/01/2099", "inf", "nan", "1e3", " ",
+        "5", "61", "120", "121", " ", "\t", "99999999999999999999999",
+    ];
+
+    [Fact]
+    public void Generated_retry_after_headers_are_read_as_the_sdk_does()
+    {
+        var random = Seeded(55);
+        var cases = new JsonArray
+        {
+            new JsonArray(null, "Wed, 21 Oct 2099 07:28:00 GMT", 1700000000.5),
+            new JsonArray(null, "2099-01-01T00:00:00Z", 1700000000.5),
+            new JsonArray(null, "Jan 1 2099", 1700000000.5),
+            new JsonArray("1_500", "9", 1700000000.5),
+            new JsonArray(null, "Friday, 01-Jan-99 00:00:00 GMT", 1700000000.5),
+            new JsonArray(null, "1 Jan 2099 00:00 -0800", 1700000000.5),
+            new JsonArray(null, "Wed, " + new string('9', 400) + " Jan 2099 00:00 GMT", 1700000000.5),
+        };
+        for (var i = 0; i < 4000; i++)
+        {
+            var count = random.Next(1, 7);
+            var text = string.Join(random.Next(4) == 0 ? "  " : " ", Enumerable.Range(0, count).Select(_ => RetryPieces[random.Next(RetryPieces.Length)]));
+            var ms = random.Next(8) == 0 ? RetryPieces[random.Next(RetryPieces.Length)] : null;
+            cases.Add(new JsonArray(ms, random.Next(20) == 0 ? null : text, 1700000000 + (random.Next(1000) / 1000.0)));
+        }
+
+        var python = (JsonArray)Programs.AskPython(new JsonObject { ["retry_after"] = PyNode.Copy(cases) })["retry_after"]!;
+        var failures = new List<string>();
+        var overflows = 0;
+        for (var i = 0; i < cases.Count; i++)
+        {
+            var item = (JsonArray)cases[i]!;
+            var now = DateTimeOffset.FromUnixTimeMilliseconds((long)Math.Round(item[2]!.GetValue<double>() * 1000));
+            var expected = python[i];
+            if (PyNode.AsString(expected) is { } overflow && overflow.StartsWith("OverflowError: ", StringComparison.Ordinal))
+            {
+                // The SDK lets an OverflowError escape for a date too large for a float; so does the port.
+                var error = Assert.Throws<PyOverflowError>(() => AzureOpenAIModelClient.ParseRetryAfter(PyNode.AsString(item[0]), PyNode.AsString(item[1]), now));
+                Assert.Equal(overflow["OverflowError: ".Length..], error.Message);
+                overflows++;
+                continue;
+            }
+
+            var seconds = AzureOpenAIModelClient.ParseRetryAfter(PyNode.AsString(item[0]), PyNode.AsString(item[1]), now);
+            Compare(failures, item, expected, seconds is { } value ? JsonValue.Create(value) : null);
+        }
+
+        Assert.True(failures.Count == 0, failures.Count + " of " + cases.Count + " differ:\n" + string.Join("\n\n", failures.Take(10)));
+        Assert.True(overflows > 0);
+    }
+
     // -- margo-state: the policy ----------------------------------------------------------------------
 
     [Fact]

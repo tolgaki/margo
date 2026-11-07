@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Numerics;
 using System.Text.Json.Nodes;
 using Azure.Core;
 using Azure.Identity;
@@ -98,8 +99,8 @@ public sealed class ModelConnectionException : HttpRequestException
 /// they expire, as Azure's bearer token policy does.</para>
 /// <para>Retries follow the SDK: up to <see cref="ModelClientOptions.MaxRetries"/> more attempts after a connection
 /// error, a timeout, or a 408, 409, 429 or 5xx answer (an <c>x-should-retry</c> header decides when present; a
-/// <c>retry-after</c> above 60 seconds stops retrying), waiting <c>retry-after-ms</c>/<c>retry-after</c> when it is
-/// between 0 and 60 seconds, else 0.5 s doubling up to 8 s, less up to 25% jitter. One idempotency key is sent with
+/// <c>retry-after</c> above 120 seconds stops retrying), waiting <c>retry-after-ms</c>/<c>retry-after</c> when it is
+/// between 0 and 120 seconds, else 0.5 s doubling up to 8 s, less up to 25% jitter. One idempotency key is sent with
 /// every attempt of a request. A model call is not an outward action, so a repeated attempt changes nothing outside.</para>
 /// </remarks>
 public sealed class AzureOpenAIModelClient : IModelClient, IDisposable
@@ -110,7 +111,8 @@ public sealed class AzureOpenAIModelClient : IModelClient, IDisposable
     /// <summary>The environment variable naming the account endpoint.</summary>
     public const string EndpointVariable = "AZURE_OPENAI_ENDPOINT";
 
-    private const double MaxRetryAfterSeconds = 60;
+    /// <summary><c>MAX_RETRY_AFTER_DELAY = 2 * 60</c> in the reference SDK (openai 2.54).</summary>
+    private const double MaxRetryAfterSeconds = 120;
     private static readonly TimeSpan RefreshMargin = TimeSpan.FromMinutes(5);
 
     private readonly HttpClient _http;
@@ -258,9 +260,8 @@ public sealed class AzureOpenAIModelClient : IModelClient, IDisposable
             return false;
         }
 
-        if (response.Headers.TryGetValues("x-should-retry", out var values))
+        if (Header(response, "x-should-retry") is { } value)
         {
-            var value = values.FirstOrDefault();
             if (value == "true")
             {
                 return true;
@@ -289,34 +290,70 @@ public sealed class AzureOpenAIModelClient : IModelClient, IDisposable
         return TimeSpan.FromSeconds(Math.Max(0, sleep * jitter));
     }
 
-    /// <summary><c>_parse_retry_after_header</c>: <c>retry-after-ms</c>, then <c>retry-after</c> as seconds or an HTTP date.</summary>
-    private static double? RetryAfter(HttpResponseMessage response)
+    private static double? RetryAfter(HttpResponseMessage response) =>
+        ParseRetryAfter(Header(response, "retry-after-ms"), Header(response, "retry-after"), DateTimeOffset.UtcNow);
+
+    /// <summary>
+    /// <c>_parse_retry_after_header</c>: seconds to wait from <c>retry-after-ms</c> (Python <c>float(value) / 1000</c>),
+    /// else <c>retry-after</c> as <c>float(value)</c>, else as a date (<c>email.utils.parsedate_tz</c> and
+    /// <c>mktime_tz</c>) less <paramref name="now"/>; null when none applies. Header values are as httpx's
+    /// <c>headers.get</c> gives them (several values joined with <c>", "</c>).
+    /// </summary>
+    public static double? ParseRetryAfter(string? retryAfterMs, string? retryAfter, DateTimeOffset now)
     {
-        if (Header(response, "retry-after-ms") is { } milliseconds && TryParseFloat(milliseconds, out var ms))
+        if (retryAfterMs is not null && TryParseFloat(retryAfterMs, out var ms))
         {
             return ms / 1000;
         }
 
-        if (Header(response, "retry-after") is not { } retry)
+        if (retryAfter is null)
         {
             return null;
         }
 
-        if (TryParseFloat(retry, out var seconds))
+        if (TryParseFloat(retryAfter, out var seconds))
         {
             return seconds;
         }
 
-        return DateTimeOffset.TryParse(retry, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var date)
-            ? (date - DateTimeOffset.UtcNow).TotalSeconds
-            : null;
+        if (EmailDate.ParseDateTz(retryAfter) is not { } parsed)
+        {
+            return null;
+        }
+
+        // mktime_tz: calendar.timegm(tuple) - offset; datetime.date(year, month, 1) refuses a year outside 1..9999.
+        var (year, month, day, hour, minute, second, offset) = parsed;
+        if (year < 1 || year > 9999)
+        {
+            return null;
+        }
+
+        var days = (BigInteger)(new DateOnly((int)year, month, 1).DayNumber - EpochDayNumber) + day - 1;
+        var timestamp = (((days * 24) + hour) * 60 + minute) * 60 + second - offset;
+        var nowSeconds = now.ToUnixTimeMilliseconds() / 1000.0;
+        return PyNumbers.IntToDouble(timestamp) - nowSeconds; // float(int - float): the int is rounded to a float first
     }
 
-    private static string? Header(HttpResponseMessage response, string name) =>
-        response.Headers.TryGetValues(name, out var values) ? values.FirstOrDefault() : null;
+    private static readonly int EpochDayNumber = new DateOnly(1970, 1, 1).DayNumber;
 
-    private static bool TryParseFloat(string text, out double value) =>
-        double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+    /// <summary><c>httpx.Headers.get(name)</c>: every value of the header joined with <c>", "</c>, or null.</summary>
+    private static string? Header(HttpResponseMessage response, string name) =>
+        response.Headers.TryGetValues(name, out var values) ? string.Join(", ", values) : null;
+
+    /// <summary>Python <c>float(text)</c>.</summary>
+    private static bool TryParseFloat(string text, out double value)
+    {
+        try
+        {
+            value = PyArgumentParser.ParsePyFloat(text);
+            return true;
+        }
+        catch (PyValueError)
+        {
+            value = 0;
+            return false;
+        }
+    }
 
     /// <summary>
     /// <c>_make_status_error_from_response</c>: <c>Error code: N - {body}</c> with the body's Python repr when it is

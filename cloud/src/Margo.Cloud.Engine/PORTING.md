@@ -39,8 +39,14 @@ listed under "Deliberate deviations" is meant to behave the same.
 `CreateResponseAsync` posts the request as JSON to `{AZURE_OPENAI_ENDPOINT}/openai/v1/responses` with
 `Authorization: Bearer <Entra token>`; no API key anywhere. It behaves as the SDK did: 600 s per attempt, 2 retries
 after a connection error, a timeout or a 408/409/429/5xx answer (`x-should-retry` decides when present; a
-`retry-after` over 60 s is not waited for), waiting `retry-after-ms`/`retry-after` when it is between 0 and 60 s,
-else 0.5 s doubling up to 8 s less up to 25% jitter, with one idempotency key for all attempts of a request. The error
+`retry-after` over 120 s is not waited for), waiting `retry-after-ms`/`retry-after` when it is between 0 and 120 s,
+else 0.5 s doubling up to 8 s less up to 25% jitter, with one idempotency key for all attempts of a request. The SDK
+reference is the version the Python autopilot ran with (openai 2.54, `MAX_RETRY_AFTER_DELAY = 2 * 60`;
+`requirements.txt` allows 2.8 and later, whose older releases had no such limit). Header values are read as httpx's
+`headers.get` gives them (repeated headers joined with `", "`); numbers as Python's `float()`; an HTTP-date
+`retry-after` with `email.utils.parsedate_tz`/`mktime_tz` (`EmailDate`, a port of `email/_parseaddr.py`), which refuses
+ISO 8601 and other forms .NET would read; a date too large for a float raises `OverflowError` out of the call, as in
+the SDK. The error
 message is the SDK's (`Error code: 503 - {'error': ...}` with the body's Python repr). The token is cached and
 refreshed five minutes before it expires, as `get_bearer_token_provider`'s policy does. `CreateHttpClient()` gives
 the SDK's 5 s connect timeout and redirect following.
@@ -272,6 +278,44 @@ this project alone 55 total, 51 passed, 4 skipped (rerun after the last edit, a 
 
 Not verified: anything against a real Azure OpenAI endpoint, Entra or Work IQ; model behaviour (these are contract
 tests, not model evaluations).
+
+## Second review (review-engine-review)
+
+A second, independent review re-read the sources against the Python modules and the SDK the Python autopilot ran
+with (the reference venv: openai 2.54, azure-identity), and confirmed the first review's account of `margo-state`,
+the engine loop, the skill library and the parity scan (every `*_state.py` mention a procedure makes that the scan
+does not take is prose, not a command). It found two defects, both in the model client's retry decisions, and fixed
+each with a test that failed first (8 of 21 `ModelClientTests` cases failed on the earlier code):
+
+1. **`retry-after` limit was 60 s; the SDK's is 120 s** (`ModelClient.cs`, `MaxRetryAfterSeconds`). openai 2.54 has
+   `MAX_RETRY_AFTER_DELAY = 2 * 60` in both `_should_retry` and `_calculate_retry_timeout`; measured against the real
+   SDK with `httpx.MockTransport`, `retry-after: 61`, `90` and `120` (and `retry-after-ms: 120000`) are waited for and
+   retried, `121` is not. The port gave up on 61-120 s, so a throttled turn failed where Python's waited. (Older 2.x
+   SDKs had no "give up" rule at all, so 60 matched no version.) Test:
+   `Server_directed_delays_up_to_two_minutes_are_waited_for`.
+2. **HTTP-date `retry-after` read by .NET's lenient parser** (`ModelClient.RetryAfter`). The SDK uses
+   `email.utils.parsedate_tz`, which refuses ISO 8601, `01/01/2099`, `Jan 1 2099` and so on; such a header is no delay
+   and the request is retried with the usual backoff. `DateTimeOffset.TryParse` read them as dates, so a future one
+   (over 120 s away) stopped retrying. Also: numbers are now Python `float()` (`1_500`, Unicode digits), and repeated
+   headers are one comma-joined value as httpx gives them (`x-should-retry` too). `EmailDate` ports
+   `_parsedate_tz`; `AzureOpenAIModelClient.ParseRetryAfter` is the SDK's `_parse_retry_after_header` with
+   `calendar.timegm`. Tests: `Retry_after_values_the_sdk_cannot_read_leave_the_usual_backoff` and
+   `Generated_retry_after_headers_are_read_as_the_sdk_does` (4,007 generated headers compared with the standard
+   library through `engine_cases.py`'s new `retry_after` mode, which copies the SDK's three-step function because the
+   SDK is not installed for the tests; seeds 11 and 4321 also agree).
+
+Checked and left as they are: `InvariantGlobalization` (Directory.Build.props) already stops `TimeZoneInfo` accepting
+Windows zone IDs that `zoneinfo` refuses (now asserted in `An_unknown_time_zone_fails_like_zoneinfo`). Receipts can
+carry a long model-chosen `script` or first argument when a call is refused early, exactly as Python's do; that is the
+specification, not a port defect, but receipts are not content-free in that case. httpx's `timeout=600` is a
+per-read timeout where the port's is per attempt; for a non-streamed response the difference is not observable.
+Header text outside Latin-1 is not case-mapped exactly as Python's `str.lower`/`upper` would; no month, day or zone
+name depends on it.
+
+Verification at the second review's commit: `dotnet build cloud/Margo.Cloud.slnx` 0 warnings; `dotnet test --solution
+Margo.Cloud.slnx` 5167 total, 5162 passed, 5 skipped (the same five as above), 0 failed; this project 66 total, 62
+passed, 4 skipped; `python3 tools/state_parity.py --check` 182 scenarios passed; `python3 -m unittest discover -s
+tests -p 'test_*.py'` 520 OK (4 skipped); `./tools/check-clean.sh` clean.
 
 ## Open questions
 

@@ -403,6 +403,11 @@ public sealed partial class ParityTests
     public void An_unknown_time_zone_fails_like_zoneinfo()
     {
         Assert.Throws<TimeZoneNotFoundException>(() => EngineTools.LoadInstructions(Fixtures.Root, "Not/A_Zone"));
+        // zoneinfo knows IANA keys only (ZoneInfoNotFoundError). .NET with ICU would convert a Windows ID and show the
+        // model "Pacific Standard Time" as the zone; InvariantGlobalization (Directory.Build.props) keeps it out. A guard.
+        Assert.Throws<TimeZoneNotFoundException>(() => EngineTools.LoadInstructions(Fixtures.Root, "Pacific Standard Time"));
+        Assert.Throws<TimeZoneNotFoundException>(() => EngineTools.LoadInstructions(Fixtures.Root, "W. Europe Standard Time"));
+        Assert.Contains("(UTC)", EngineTools.LoadInstructions(Fixtures.Root, "UTC"), StringComparison.Ordinal);
     }
 
     // -- helpers -------------------------------------------------------------------------------------

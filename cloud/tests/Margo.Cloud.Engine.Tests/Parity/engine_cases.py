@@ -146,6 +146,32 @@ def run_answers(cases):
     return answers
 
 
+def parse_retry_after(retry_ms_header, retry_header, now):
+    """openai 2.54 ``BaseClient._parse_retry_after_header`` (the SDK is not installed here), with ``now`` for
+    ``time.time()``. The date parsing it relies on is the standard library's own."""
+    import email.utils
+
+    try:
+        return float(retry_ms_header) / 1000
+    except (TypeError, ValueError):
+        pass
+    try:
+        return float(retry_header)
+    except (TypeError, ValueError):
+        pass
+    try:
+        retry_date_tuple = email.utils.parsedate_tz(retry_header)
+        if retry_date_tuple is None:
+            return None
+        retry_date = email.utils.mktime_tz(retry_date_tuple)
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
+    try:
+        return float(retry_date - now)
+    except OverflowError as exc:  # the SDK lets this escape
+        return "OverflowError: %s" % exc
+
+
 def subcommands(script):
     """The subcommands a stateful script's argparse parser accepts (as tests/test_autopilot_parity.py reads them)."""
     parser = importlib.import_module(script[:-3]).parser()
@@ -191,6 +217,8 @@ def main():
     answer["state"] = state_answers(request.get("state", []), request.get("state_preferences"))
     if "runs" in request:
         answer["runs"] = run_answers(request["runs"])
+    if "retry_after" in request:
+        answer["retry_after"] = [parse_retry_after(ms, retry, now) for ms, retry, now in request["retry_after"]]
     if "state_exec" in request:
         answer["state_exec"] = state_exec_answers(request["state_exec"])
     sys.stdout.write(json.dumps(answer, ensure_ascii=True))
