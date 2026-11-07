@@ -270,33 +270,25 @@ public static partial class MemoryLearning
                 throw new StateError("reviewed or rejected trends cannot be overwritten by aggregation");
             }
 
-            var previous = new OrderedDictionary<string, JsonNode?>(StringComparer.Ordinal);
+            // {event["id"]: event for event in ...}: a Python dict keyed by any hashable id. Every entry counts below, not
+            // only string ids: 1, True and 1.0 are one key (the last event wins), and each surviving event's outcome
+            // feeds independent_outcomes even when its id can never equal a reported (string) id.
+            var previous = new PyDict<JsonNode?>();
             foreach (var entry in PyNode.Iter(Get(Item(prior, "metadata"), "resolved_events", new JsonArray())))
             {
-                // Only string keys can match this proposal's event IDs (an int or float key never equals a str).
-                var id = Item(entry, "id");
-                PyNode.RequireHashable(id);
-                if (PyNode.AsString(id) is { } text)
-                {
-                    previous[text] = entry;
-                }
+                previous.Set(Item(entry, "id"), entry);
             }
 
-            if (events.Values.Any(entry => previous.TryGetValue(PyNode.AsString(entry["id"])!, out var old) && !Eq(entry, old)))
+            if (events.Values.Any(entry => previous.TryGetValue(entry["id"], out var old) && !Eq(entry, old)))
             {
                 throw new StateError("resolved event changed; review the contradictory evidence separately");
             }
 
-            var outcomes = new Dictionary<string, JsonNode?>(StringComparer.Ordinal);
-            foreach (var entry in previous.Values)
+            var outcomes = new PyDict<JsonNode?>();
+            foreach (var (_, entry) in previous.Items())
             {
                 var independenceKey = Item(entry, "independence_key");
-                var matched = Item(entry, "matched");
-                PyNode.RequireHashable(independenceKey);
-                if (PyNode.AsString(independenceKey) is { } text)
-                {
-                    outcomes[text] = matched;
-                }
+                outcomes.Set(independenceKey, Item(entry, "matched"));
             }
 
             if (groups.Any(pair => outcomes.TryGetValue(pair.Key, out var old) && !Eq(JsonValue.Create(pair.Value), old)))

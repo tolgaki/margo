@@ -98,7 +98,14 @@ file read (`open(...).read(MAX_FILE_BYTES + 1)`) uses State.Memory's public `Mem
    hold, such as non-string failure categories in a capability's `validation_history` or a non-list history, raise
    `TypeError`s whose texts can differ from Python's. The common damaged cases are judged: damaged inventory clocks,
    trend definitions, delivery markers, receipts and feedback evidence (`capabilities_tool_clock`, `trend_definitions`,
-   `consolidation_helpers`, `validation_receipts`, `lesson_feedback`).
+   `consolidation_helpers`, `validation_receipts`, `lesson_feedback`). Where crafted metadata changes an outcome
+   rather than an error text, it is ported exactly: `trend` keys a prior candidate's `resolved_events` by Python's
+   dict-key equality (State.Core's `PyDict`), so events with non-string ids (`1`, `True` and `1.0` are one key) still
+   contribute their independent outcomes (`trend_prior_event_keys`).
+6. **Unorderable trend outcomes.** `_trend_evidence` sorts a *set* of `(independence_key, matched)` tuples. When a
+   hand-made trend mixes unorderable types (a `None` and an int key, say) both raise `TypeError`, but the operand order
+   in the message follows CPython's set iteration order, which C# does not reproduce (it uses first-seen order). Only
+   the message of this crash on crafted metadata can differ; the parity judge compares the class of uncaught errors.
 
 ## Not ported
 
@@ -117,7 +124,7 @@ as `!Type: message`. Execution IDs are random in both implementations, so the sc
 to a fixed ID (`exec_att1`) right after it settles; otherwise source references sorted by canonical JSON would order
 differently from run to run.
 
-## Scenarios (`cloud/contracts/state/memory-learning/`, 40 files, about 2000 probe steps)
+## Scenarios (`cloud/contracts/state/memory-learning/`, 41 files, about 2000 probe steps)
 
 | Files | Cover |
 | --- | --- |
@@ -125,7 +132,7 @@ differently from run to run.
 | `capabilities_skills`, `capabilities_skill_budget`, `capabilities_tool_errors`, `capabilities_tool_lifecycle`, `capabilities_tool_clock` | the skill glob and its exclusions, unchanged refreshes, revisions, retirement and reinstall, unbound versus host-scoped records, forgotten records, the 200-skill budget; every manifest refusal; discovery, exposure, retirement, scopes and sources; the inventory clock, damaged clocks and legacy file origins |
 | `validation_synthetic`, `validation_shapes`, `validation_receipts`, `validation_without_ledger` | pinned synthetic fixtures (forged hashes, environments, capabilities), degrade/validate/replay, an old success that cannot erase a newer failure, changed fixtures and inventories; capability shapes; real Work-ledger receipts (other hosts, hashes, accounts, failure classification, confirmed defects, older evidence, refreshed history, unsettled/empty/invalid receipts); missing ledger tables |
 | `lesson_proposals`, `lesson_activation`, `lesson_activation_guards`, `lesson_environments`, `lesson_feedback` | every `lesson_plan` refusal, counterexamples and lesson text, replay and conditional revisions; activation evidence, pinned-environment recall, immutability; deadlines, moved or unvalidated capabilities, changed fixtures; incompatible environments, skill receipts and edited skill files; `_feedback` and feedback references |
-| `trend_errors`, `trend_lifecycle`, `trend_definitions`, `trend_transactions` | every `trend` refusal; legacy and resolved trends, corroboration, conditional updates, changed events and outcomes, rejected trends, a window ending now; definitions preview/review/revision, thresholds applied, damaged definitions; nested transactions and read-only stores |
+| `trend_errors`, `trend_lifecycle`, `trend_definitions`, `trend_transactions`, `trend_prior_event_keys` | every `trend` refusal; legacy and resolved trends, corroboration, conditional updates, changed events and outcomes, rejected trends, a window ending now; definitions preview/review/revision, thresholds applied, damaged definitions; nested transactions and read-only stores; prior candidates whose events carry non-string or colliding ids and keys |
 | `preference_sections`, `preference_files`, `preferences_plan`, `preferences_import` | template parsing (placeholders, example fields, fences, separators), file errors, kinds/routines, chunk boundaries, refusals that never echo private text; import evidence, replay against the receipt, changed sources and targets, forgotten targets |
 | `consolidation_*` (13 files), `lifecycle` | Python's consolidation tests as scenarios (trend material changes and wording-only edits, stale pages, pagination, exact duplicates and duplicate pages, lesson revalidation with environments, degraded capabilities, drift and forgotten targets, hash-only receipts, the dependency depth limit), every `surface_consolidation` refusal, `_sources`/`_current_sources`/`_trend_evidence`/`_proposal` directly, read-only stores; one end-to-end run |
 
@@ -143,13 +150,25 @@ the oversized-file half is `Preference_preview_of_an_oversized_file_changes_noth
   should `_input_contract` iterate extra keys in a defined order upstream?
 - `memory_state.py` passes `args.skills_dir`/`args.tools` straight through; an empty `--tools ""` is a path to the
   working directory in both implementations ("observation file is unavailable"), not a missing option. Kept.
+- Security note for the hosted command (behaviour kept, Python is the specification): a synthetic fixture's `path`
+  comes from model JSON and may name any local file. The refusals tell apart a missing or unreadable file ("observation
+  file is unavailable"), a readable file with another hash ("observation file revision changed") and a matching file
+  that is not a fixture, so a model can test whether a path exists and whether it has a given SHA-256. The MemoryCommands
+  port (or the hosted tool's path policy) should decide whether fixture paths must stay below an allowed root.
 
 ## Verification
 
 - `cd cloud && dotnet build Margo.Cloud.slnx`: 0 warnings.
 - `dotnet test --project tests/Margo.Cloud.State.Tests/Margo.Cloud.State.Tests.csproj -- --filter-namespace
   Margo.Cloud.State.Tests.MemoryLearning`: 26 tests.
-- `python3 tools/state_parity.py --check --filter memory-learning/`: 40 scenarios.
+- `python3 tools/state_parity.py --check --filter memory-learning/`: 41 scenarios.
+- Independent review (not committed harness): differential runs of the probe pair on generated programs, each about
+  60-80 calls on one store: pure helpers with Unicode whitespace, astral and lone-surrogate strings, big ints and
+  float/int bounds (1600 calls); mutated trends with duplicate and contradictory reports, big populations, partial
+  coverage, configured definitions, then consolidation pages and delivery (20 programs); tool inventories, synthetic
+  validations, lessons, activation, inventory refreshes and consolidation (66 programs); preference files near the
+  1500 code-point chunk budget with imports and replays (39 programs). The only behavioural difference found was the
+  prior-event key handling in `trend` (fixed, deviation 5); the `_trend_evidence` message order is deviation 6.
 - Differential fuzzing during the port (not committed): 4800 random pure-helper calls (`_input_contract`,
   `classify_error`, `_preference_sections`, `_definition`, `_refs`, `_conditional`), and mutated trend, manifest,
   definition, environment, lesson and consolidation programs on real stores (about 1100 stateful calls); all outputs and
