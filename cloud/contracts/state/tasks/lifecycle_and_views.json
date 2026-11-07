@@ -1,5 +1,5 @@
 {
-  "description": "tasks_probe: run lifecycle and views: list pages, cursors and account isolation, pause/cancel/resume (idempotent pause, bool and stale revisions, unpaused runs, changed or malformed bindings, an expired deadline), cancelled runs refusing pause/resume, expired leases (interrupted status, health attention-needed with the wall clock), local recovery to outcome_unknown and its reconciliation, local partial effects moving only forward, explicit summary None (TypeError), failed and over-budget statuses, and waiting_approval for an unapproved action.",
+  "description": "tasks_probe: run lifecycle and views: list pages, cursors and account isolation, pause/cancel/resume (idempotent pause, bool and stale revisions, unpaused runs, changed or malformed bindings, an expired deadline; test_deadline_and_binding_changes_do_not_admit_new_work), cancelled runs refusing pause/resume, expired leases (interrupted status, health attention-needed with the wall clock), local recovery to outcome_unknown and its reconciliation, local partial effects moving only forward, explicit summary None (TypeError), failed and over-budget statuses, and waiting_approval for an unapproved action.",
   "steps": [
     {
       "script": "tasks_probe.py",

@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Nodes;
 using Margo.Cloud.State.Core;
+using Microsoft.Win32.SafeHandles;
 
 namespace Margo.Cloud.State.Tasks;
 
@@ -94,28 +95,80 @@ public sealed class TaskStateScript : IStateScript
     }
 
     /// <summary>
-    /// <c>open(path, encoding="utf-8").read(count)</c>: CPython's <c>TextIOWrapper.read(n)</c> over a regular file. Chunks
-    /// of <c>max(8192, remaining)</c> bytes go through the incremental UTF-8 decoder and the universal-newline decoder
-    /// until <paramref name="count"/> characters are read, so a decoding error after them is never seen and an error's
-    /// position is relative to the chunk (plus any undecoded bytes carried over), as in Python.
-    /// (<see cref="PyIO.ReadTextFile"/> decodes the whole file first; this belongs in State.Core.)
+    /// <c>open(path, encoding="utf-8").read(count)</c>: CPython's <c>TextIOWrapper.read(n)</c> (<c>textiowrapper_read_chunk</c>).
+    /// Each chunk is one <c>buffer.read1(max(8192, int(max(b2cratio, 1.0) * remaining)))</c>, a single <c>read(2)</c>
+    /// of at most that many bytes, where <c>b2cratio</c> is the bytes per decoded character of the previous chunk (0.0 at
+    /// first or after a chunk that decoded nothing); it goes through the incremental UTF-8 decoder and the
+    /// universal-newline decoder until <paramref name="count"/> characters are read. So nothing after the last chunk is
+    /// ever read (<c>/dev/zero</c> or a huge file costs one bounded chunk, as in Python), a decoding error after the
+    /// characters returned is seen only when it lies in a chunk already read, and an error's position is relative to the
+    /// chunk (plus any undecoded bytes carried over). Opening a directory raises <c>IsADirectoryError</c> as
+    /// <see cref="PyIO.ReadBytes"/> does. (<see cref="PyIO.ReadTextFile"/> decodes the whole file first; this belongs in
+    /// State.Core.)
     /// </summary>
     internal static string ReadFileText(string path, int count)
     {
-        var data = PyIO.ReadBytes(path);
+        if (!PosixNative.IsSupported)
+        {
+            using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, bufferSize: 0);
+            return ReadChunks(size => ReadOnce(file, size), count);
+        }
+
+        var fd = PosixNative.Open(path, PosixNative.ORdOnly);
+        try
+        {
+            if (PosixNative.Stat(path).IsDirectory)
+            {
+                throw PosixNative.Error(PyErrno.EISDIR, path);
+            }
+
+            using var handle = new SafeFileHandle(fd, ownsHandle: false);
+            using var stream = new FileStream(handle, FileAccess.Read, bufferSize: 0);
+            return ReadChunks(size => ReadOnce(stream, size), count);
+        }
+        finally
+        {
+            PosixNative.Close(fd);
+        }
+    }
+
+    /// <summary>One unbuffered <c>read(2)</c> of at most <paramref name="size"/> bytes (<c>FileIO.readinto</c>); errors are <c>OSError</c>.</summary>
+    private static byte[] ReadOnce(FileStream stream, int size)
+    {
+        var buffer = new byte[size];
+        int count;
+        try
+        {
+            count = stream.Read(buffer, 0, size);
+        }
+        catch (IOException ex) when (ex.HResult > 0 && ex.HResult < 4096)
+        {
+            // .NET reports read(2) failures on Unix as IOException carrying the errno.
+            throw PosixNative.Error(ex.HResult, null);
+        }
+
+        return count == size ? buffer : buffer[..count];
+    }
+
+    /// <summary>
+    /// The decoding loop of <c>TextIOWrapper.read(count)</c> over <paramref name="read1"/>, which returns at most the
+    /// requested number of bytes and an empty array at end of file.
+    /// </summary>
+    internal static string ReadChunks(Func<int, byte[]> read1, int count)
+    {
         var result = new StringBuilder();
         var remaining = count;
-        var position = 0;
         var pending = Array.Empty<byte>();
         var pendingCr = false;
+        var bytesPerChar = 0.0;
         while (remaining > 0)
         {
-            var size = Math.Min(Math.Max(8192, remaining), data.Length - position);
-            var input = new byte[pending.Length + size];
+            var hint = (long)(Math.Max(bytesPerChar, 1.0) * remaining);
+            var chunk = read1((int)Math.Min(Math.Max(8192L, hint), int.MaxValue));
+            var input = new byte[pending.Length + chunk.Length];
             pending.CopyTo(input, 0);
-            Array.Copy(data, position, input, pending.Length, size);
-            position += size;
-            var eof = size == 0;
+            chunk.CopyTo(input, pending.Length);
+            var eof = chunk.Length == 0;
             var text = PyIO.DecodeUtf8(input, final: eof, out var consumed);
             pending = input[consumed..];
             if (pendingCr && (text.Length > 0 || eof))
@@ -131,6 +184,8 @@ public sealed class TaskStateScript : IStateScript
             }
 
             text = text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+            var decoded = PyRepr.Length(text);
+            bytesPerChar = decoded > 0 ? (double)chunk.Length / decoded : 0.0;
             if (eof && text.Length == 0)
             {
                 break;

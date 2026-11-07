@@ -14,8 +14,8 @@ and uses only State.Core's shared helpers.
 | Python | C# |
 | --- | --- |
 | `METRICS`, `KINDS`, `TERMINAL`, `RETRYABLE`, `SCHEMA` | `TaskRuns.Metrics`, `Kinds`, `Terminal`, `Retryable`, `Schema` (byte-identical text; a test compares it with the Python source) |
-| `text(value, field, maximum=4000)` | `TaskRuns.Text(JsonNode?, field, maximum)` (code points, `str.strip()`) |
-| `integer(value, field, low=0, high=1000000)` | `TaskRuns.Integer(JsonNode?, field, low, high)` (`type(x) is int`: bool refused; returns a `BigInteger`) |
+| `text(value, field, maximum=4000)` | `TaskRuns.Text(JsonNode?, field, maximum)` (code points, `str.strip()`; an `int` or `BigInteger` maximum) |
+| `integer(value, field, low=0, high=1000000)` | `TaskRuns.Integer(JsonNode?, field, low, high)` (`type(x) is int`: bool refused; returns a `BigInteger`; `long` or `BigInteger` bounds, as a Python int has no width) |
 | `when(value)` | `TaskRuns.When(object?)` |
 | `clock()` | `TaskRuns.Clock()`; `TaskRuns.OverrideClock(Func<PyDateTime>)` replaces it for the current async flow, as tests `patch("task_runs.clock")` |
 | `resource_cost`, `zero`, `environment(value, account, fresh=False)`, `binding_hash`, `task_identity(account, key)` | `ResourceCost`, `Zero`, `Environment`, `BindingHash`, `TaskIdentity` |
@@ -28,6 +28,7 @@ and uses only State.Core's shared helpers.
 | `TaskStore.from_connection(conn, account)` | `TaskStore.FromConnection(PyConnection, account)` (never creates or repairs; validates as read-only, then writable) |
 | `account`, `conn`, `ledger`, `transaction()`, `close()` | `Account`, `Conn`, `Ledger`, `Transaction(Func<T>)`/`Transaction(Action)`, `Close()` |
 | `create`, `start`, `charge`, `finish`, `pause`, `cancel`, `resume`, `retry`, `recover`, `sync`, `reconcile`, `replan_preview`, `replan`, `show`, `list`, `health`, `history` | methods of the same names (`ReplanPreview` for `replan_preview`) |
+| `list()` / `list(limit, after=None)`, `history(run_id)` / `history(run_id, limit)` | `List()` / `List(limit, after)`, `History(runId)` / `History(runId, limit)`: the overloads without a limit are Python's omitted default (50, 100); a null limit is Python's explicit `None` and is refused by `integer()` as in Python |
 | private `_initialize`, `_run`, `_step`, `_attempt`, `_event`, `_plan`, `_binding`, `_prerequisites`, `_budget_reasons`, `_token`, `_start`, `_result`, `_settle`, `_sync` | private `Initialize`, `RunRow`, `StepRow`, `AttemptRow`, `Event`, `PlanData`, `Binding`, `Prerequisites`, `BudgetReasons`, `CheckToken`, `StartCore`, `ResultData`, `Settle`, `SyncCore` |
 
 Parameters that Python takes from model-supplied JSON are `JsonNode?` (strings and ints convert implicitly), and they
@@ -95,23 +96,26 @@ journeys (the task calls they make are covered here).
    contract check and every path reachable through the commands match (`schema_contracts.json`). `hmac.compare_digest`
    against a stored token hash that is not text raises a `TypeError` whose text is approximated; the column is
    `TEXT NOT NULL` and only this code writes it.
-2. **Omitted versus `None` in the library API.** `List(limit, after)` and `History(runId, limit)` treat a null limit as
-   Python's default (50, 100); C# cannot tell an omitted argument from an explicit `None`. The CLI always passes an int.
-3. **Dict key order.** Results are built in Python's key order where it is cheap, but nothing guarantees it: every
+2. **Dict key order.** Results are built in Python's key order where it is cheap, but nothing guarantees it: every
    command prints `canonical_json` (sorted keys) and the importers read values, so the order is not observable.
-4. **The clock override** is an `AsyncLocal` (per async flow) rather than a module global, so parallel tests do not
+3. **The clock override** is an `AsyncLocal` (per async flow) rather than a module global, so parallel tests do not
    share a patched clock. Like the Python patch it changes only `TaskRuns.Clock()`: `utc_now()` stamps, the ledger,
    the coverage journal and `health`'s lease comparison keep the real time.
 
 ## Belongs in State.Core (requests)
 
-- **`open(path, encoding="utf-8").read(n)`.** `PyIO.ReadTextFile(path, maxCodePoints)` decodes the whole file before
-  truncating, so an undecodable byte after the first `n` characters raises where CPython never reads it, and a decoding
-  error reports an absolute position where CPython reports one relative to the decoder chunk. `task_state.py` reads
-  `--input` files with `read(262145)`, so `TaskStateScript.ReadFileText` models `TextIOWrapper.read(n)` over a regular
-  file (chunks of `max(8192, remaining)` bytes, the incremental UTF-8 decoder, the universal-newline decoder holding a
-  trailing CR). It should move to `PyIO` (memory_state.py reads its inputs the same way). Evidence:
-  `tasks/input_files.json`, `TaskStoreTests.Input_files_are_read_like_a_text_wrapper`.
+- **`open(path, encoding="utf-8").read(n)`.** `PyIO.ReadTextFile(path, maxCodePoints)` and `PyIO.ReadBytes` read the
+  whole file before truncating, so an undecodable byte after the first `n` characters raises where CPython never reads
+  it, a decoding error reports an absolute position where CPython reports one relative to the decoder chunk, and an
+  endless or huge file (`/dev/zero`, a multi-gigabyte log) is loaded into memory where CPython reads one bounded chunk.
+  `task_state.py` reads `--input` files with `read(262145)`, so `TaskStateScript.ReadFileText` models
+  `TextIOWrapper.read(n)` (`textiowrapper_read_chunk`): each chunk is one unbuffered `read(2)` of
+  `max(8192, int(max(b2cratio, 1.0) * remaining))` bytes, where `b2cratio` is the bytes per decoded character of the
+  previous chunk, through the incremental UTF-8 decoder and the universal-newline decoder holding a trailing CR; it
+  opens with `PosixNative.Open` and reads through a non-owning `FileStream` (State.Core has no single-`read(2)` helper;
+  one, `PosixNative.Read(fd, buffer)`, would let this drop the `FileStream`). It should move to `PyIO` (memory_state.py
+  reads its inputs the same way). Evidence: `tasks/input_files.json`, `TaskStoreTests.Input_files_are_read_like_a_text_wrapper`,
+  `Input_chunks_follow_the_bytes_per_character_of_the_previous_chunk`, `Input_files_are_read_no_further_than_python_reads_them`.
 
 ## Not ported
 
@@ -124,6 +128,20 @@ Nothing from `task_runs.py` or `task_state.py`.
 - A read recovered as interrupted keeps the durable coverage error class (`timeout`, written by recovery) rather than
   the `interrupted` it reported, because `_result` replaces the reported class with the coverage one. Retry still
   works (timeout is retryable); the Python behaviour is kept.
+
+## Review findings fixed
+
+An independent review (differential fuzzing of plans, envelopes, read/local/action flows and argv against the Python
+original, all passing) found and fixed, each with a failing scenario or test first:
+
+- `--input` files were read whole before decoding: `--input /dev/zero` grew to 2 GiB and failed with exit 1 where
+  Python refuses it after one chunk ("task input exceeds 256 KiB of text", exit 2); any large file was loaded into
+  memory (`input_files.json`, `/dev/zero` step).
+- Later chunks were sized `max(8192, remaining)` instead of by the previous chunk's bytes per character, so an
+  undecodable byte after the bound was decoded where CPython never reads it, and one CPython does decode was missed
+  (`input_files.json`, `ratio-wide.json` and `ratio-tail.json`).
+- `List(null)`/`History(id, null)` used the default where Python's `list(None)` refuses; `Integer`/`Text` bounds were
+  `long`/`int`, so bounds Python accepts overflowed (`library_probe.json`).
 
 ## Verification
 

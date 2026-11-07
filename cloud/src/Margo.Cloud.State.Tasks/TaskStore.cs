@@ -1834,10 +1834,16 @@ public sealed class TaskStore : IDisposable
         }, readOnly: true);
     }
 
-    /// <summary><c>list(limit=50, after=None)</c>: a page of this account's runs (summaries, no plans) ordered by id.</summary>
-    public JsonObject List(JsonNode? limit = null, JsonNode? after = null)
+    /// <summary><c>list()</c>: the first page of 50 runs.</summary>
+    public JsonObject List() => List(PyNode.Of(50));
+
+    /// <summary>
+    /// <c>list(limit=50, after=None)</c>: a page of this account's runs (summaries, no plans) ordered by id. A null
+    /// <paramref name="limit"/> is Python's explicit <c>None</c> and is refused; omit it with <see cref="List()"/>.
+    /// </summary>
+    public JsonObject List(JsonNode? limit, JsonNode? after = null)
     {
-        var count = Integer(limit ?? PyNode.Of(50), "list limit", 1, 100);
+        var count = Integer(limit, "list limit", 1, 100);
         if (after is not null)
         {
             Text(after, "list cursor", 100);
@@ -1917,11 +1923,17 @@ public sealed class TaskStore : IDisposable
         }, readOnly: true);
     }
 
-    /// <summary><c>history(run_id, limit=100)</c>: the run's journal events, newest first.</summary>
-    public JsonObject History(JsonNode? runId, JsonNode? limit = null)
+    /// <summary><c>history(run_id)</c>: the run's latest 100 journal events, newest first.</summary>
+    public JsonObject History(JsonNode? runId) => History(runId, PyNode.Of(100));
+
+    /// <summary>
+    /// <c>history(run_id, limit=100)</c>: the run's journal events, newest first. A null <paramref name="limit"/> is
+    /// Python's explicit <c>None</c> and is refused; omit it with <see cref="History(JsonNode?)"/>.
+    /// </summary>
+    public JsonObject History(JsonNode? runId, JsonNode? limit)
     {
         RunRow(runId);
-        var count = Integer(limit ?? PyNode.Of(100), "history limit", 1, 500);
+        var count = Integer(limit, "history limit", 1, 500);
         var events = new JsonArray();
         foreach (var row in Conn.Execute("SELECT revision,event,data,created_at FROM task_events WHERE run_id=? ORDER BY seq DESC LIMIT ?",
                                          runId, PyJson.Int(count)))

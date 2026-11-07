@@ -66,7 +66,10 @@ public static class TaskRuns
     internal static HashSet<string> KeySet(JsonObject value) => value.Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal);
 
     /// <summary><c>text(value, field, maximum=4000)</c>: a nonempty (after <c>strip()</c>) string of at most <paramref name="maximum"/> code points.</summary>
-    public static string Text(JsonNode? value, string field, int maximum = 4000)
+    public static string Text(JsonNode? value, string field, int maximum = 4000) => Text(value, field, (BigInteger)maximum);
+
+    /// <summary><c>text(value, field, maximum)</c> with a maximum of any size (a Python int has no width).</summary>
+    public static string Text(JsonNode? value, string field, BigInteger maximum)
     {
         if (PyNode.AsString(value) is not { } text || PyRepr.Strip(text).Length == 0 || PyRepr.Length(text) > maximum)
         {
@@ -77,7 +80,11 @@ public static class TaskRuns
     }
 
     /// <summary><c>integer(value, field, low=0, high=1000000)</c>: an int (not bool) in the closed range.</summary>
-    public static BigInteger Integer(JsonNode? value, string field, long low = 0, long high = 1000000)
+    public static BigInteger Integer(JsonNode? value, string field, long low = 0, long high = 1000000) =>
+        Integer(value, field, (BigInteger)low, (BigInteger)high);
+
+    /// <summary><c>integer(value, field, low, high)</c> with bounds of any size (a Python int has no width).</summary>
+    public static BigInteger Integer(JsonNode? value, string field, BigInteger low, BigInteger high)
     {
         var number = PyJson.IsInt(value) ? PyJson.AsInt(value) : (BigInteger?)null;
         if (number is null || number < low || number > high)

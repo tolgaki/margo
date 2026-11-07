@@ -417,4 +417,53 @@ public sealed class TaskStoreTests
         Assert.Equal(new string(' ', 8191) + "\n\nx", TaskStateScript.ReadFileText(newlines, 262145));
         Assert.Equal(new string(' ', 8191) + "\n", TaskStateScript.ReadFileText(newlines, 8192));
     }
+
+    [Fact]
+    public void Input_chunks_follow_the_bytes_per_character_of_the_previous_chunk()
+    {
+        // CPython asks read1() for max(8192, int(max(b2cratio, 1.0) * remaining)) bytes: after 262145 bytes of
+        // four-byte text (65536 characters and one space), the second request is about four times the 196608 missing
+        // characters, so an undecodable byte 300000 bytes later is decoded (and raises) before the bound is checked.
+        var wide = Encoding.UTF8.GetBytes(string.Concat(Enumerable.Repeat("\U0001F600", 65536)) + new string(' ', 300000));
+        var requests = new List<int>();
+        var error = Assert.Throws<PyUnicodeError>(() => TaskStateScript.ReadChunks(Reader([.. wide, 0xFF], requests), 262145));
+        Assert.Contains("position 299999:", error.Message, StringComparison.Ordinal);
+        Assert.Equal([262145, 786423], requests);
+
+        // Three-byte text throughout: the second chunk ends a few bytes after the 262145th character, so a byte 20
+        // bytes further is never read.
+        var narrow = Encoding.UTF8.GetBytes(string.Concat(Enumerable.Repeat("€", 262145)) + new string(' ', 20));
+        requests.Clear();
+        Assert.Equal(262145, TaskStateScript.ReadChunks(Reader([.. narrow, 0xFF], requests), 262145).Length);
+        Assert.Equal(2, requests.Count);
+    }
+
+    [Fact]
+    public void Input_files_are_read_no_further_than_python_reads_them()
+    {
+        if (!PosixNative.IsSupported)
+        {
+            return;
+        }
+
+        // An endless device costs one bounded chunk, as open("/dev/zero").read(262145) does (the old reader loaded the
+        // whole file first and failed only when it reached 2 GiB).
+        Assert.Equal(new string('\0', 262145), TaskStateScript.ReadFileText("/dev/zero", 262145));
+        using var root = TempRoot.Create();
+        var error = Assert.Throws<PyOSError>(() => TaskStateScript.ReadFileText(root.Path, 10));
+        Assert.Equal("[Errno 21] Is a directory: '" + root.Path + "'", error.Message);
+    }
+
+    private static Func<int, byte[]> Reader(byte[] data, List<int> requests)
+    {
+        var position = 0;
+        return size =>
+        {
+            requests.Add(size);
+            var count = Math.Min(size, data.Length - position);
+            var chunk = data[position..(position + count)];
+            position += count;
+            return chunk;
+        };
+    }
 }
