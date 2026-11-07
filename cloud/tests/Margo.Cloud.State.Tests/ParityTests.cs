@@ -39,7 +39,8 @@ public sealed class ParityTests
 
         using var process = Process.Start(start)!;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        timeout.CancelAfter(TimeSpan.FromMinutes(15));
+        // 219 scenarios take about 17 minutes on a loaded 4-core runner (memory-commands added about 2).
+        timeout.CancelAfter(TimeSpan.FromMinutes(40));
         var stdout = process.StandardOutput.ReadToEndAsync(timeout.Token);
         var stderr = process.StandardError.ReadToEndAsync(timeout.Token);
         try

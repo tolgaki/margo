@@ -1,0 +1,112 @@
+{
+ "description": "memory_state.py on a v1 memory schema: reads, writes and init refuse it without migrating; migrate upgrades it once (the SQL v1 fixture comes from memory_probe.py) and replays",
+ "steps": [
+  {
+   "script": "memory_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/work"
+   ],
+   "stdin": [
+    {
+     "script": "@SCHEMA_V1"
+    },
+    {
+     "sql": "INSERT INTO memory_meta VALUES('schema_version','1')"
+    },
+    {
+     "sql": "INSERT INTO margo_meta VALUES('memory_schema_version','1')"
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "list"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "status"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "put",
+    "k",
+    "--input",
+    "-"
+   ],
+   "expect_exit": 2,
+   "stdin": {
+    "data": {
+     "domain": "user",
+     "kind": "episode",
+     "title": "Synthetic CLI memory",
+     "text": "A private fictional observation.",
+     "authority": "source_observed",
+     "scope": "personal",
+     "source_refs": [
+      {
+       "kind": "tool_result",
+       "ref": "synthetic:cli"
+      }
+     ]
+    },
+    "status": "active"
+   }
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "migrate"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "migrate"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "list"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "policy"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "status"
+   ],
+   "expect_exit": 0
+  }
+ ]
+}

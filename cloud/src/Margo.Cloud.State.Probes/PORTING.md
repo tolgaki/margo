@@ -14,6 +14,7 @@ any directory they are given, so they must never ship.
 | `tasks_probe.py` | `TasksProbeScript` | `task_state.main(argv)` in process with clock- and result-templated input, a replaceable `task_runs.clock`, `TaskStore` methods (borrowed, read-only, inside a rolled-back outer transaction), the module functions, the ledger and coverage journal on the store's connection, SQL and input files (State.Tasks) |
 | `memory_learning_probe.py` | `MemoryLearningProbeScript` | `memory_learning`/`memory_consolidation` functions, `MemoryStore`, Work `Ledger`/`Productivity` fixtures, held transactions, SQL, files (State.MemoryLearning) |
 | `helpers_probe.py` | `HelpersProbeScript` | the stateless helpers' libraries and the Python semantics layer; input-file writers (State.Helpers) |
+| `memory_commands_probe.py` | `MemoryCommandsProbeScript` | `memory_state.main(argv)` in process with templated input, `memory_dream` and store/governance/task/publication calls, the patched clock and `MAX_SCAN`, a held writer, SQL, files, the Dream window and `zoneinfo` offsets and sweeps (State.MemoryCommands) |
 | `memory_search_probe.py` | `MemorySearchProbeScript` | `MemorySearch`, `ConnectedContext` and the `memory_search`/`memory_context` module functions with a deterministic fake encoder, held stores, store calls and SQL (State.MemorySearch) |
 
 Each project's own PORTING.md documents what its probe covers and which scenarios use it.
@@ -24,7 +25,8 @@ Each project's own PORTING.md documents what its probe covers and which scenario
    implements `IStateProbeScript`, State.Core's marker interface. No production project references this one;
    State.Work, State.Memory and State.Tasks grant it `InternalsVisibleTo` for the internal entry points the Python
    probes reach (`WorkStateScript.Main` for `work_state.main(argv)`, `Ledger.SourceCore` for `source(..., sensitivity=None)`,
-   `MemoryStore.Item`, `TaskStateScript.Main` for `task_state.main(argv)`).
+   `MemoryStore.Item`, `TaskStateScript.Main` for `task_state.main(argv)`; State.MemoryCommands grants it for
+   `MemoryStateScript.Main`, `memory_state.main(argv)`).
 2. **Build switch.** `Margo.Cloud.StateCli` references this project only when the MSBuild property
    `MargoStateProbes` is `true`. The Debug configuration sets it by default; Release does not (pass
    `-p:MargoStateProbes=true` to override, never for a deployed image). `tools/state_parity.py` uses the Debug

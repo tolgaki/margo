@@ -1,0 +1,445 @@
+{
+ "description": "test_memory_dream.py::test_restored_episode_tombstone_without_record_does_not_block_reflection: a deletion journal restored into a separate backup root retains the episode identity without a record; a run there completes with only the interpretation and never recreates the erased episode",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "task_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "cli": [
+      "policy-preview",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capture": {
+       "enabled": true,
+       "domains": [
+        "user"
+       ],
+       "kinds": [
+        "episode",
+        "decision"
+       ],
+       "scopes": [
+        "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+       ],
+       "source_kinds": [
+        "session_checkpoint",
+        "memory_record"
+       ]
+      },
+      "allow_sensitive": false,
+      "usage_enabled": false,
+      "usage_retention_days": 30,
+      "retention_days": {},
+      "review_days": {}
+     },
+     "save": "pp28"
+    },
+    {
+     "cli": [
+      "policy-set"
+     ],
+     "files": {
+      "--input": {
+       "capture": {
+        "enabled": true,
+        "domains": [
+         "user"
+        ],
+        "kinds": [
+         "episode",
+         "decision"
+        ],
+        "scopes": [
+         "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+        ],
+        "source_kinds": [
+         "session_checkpoint",
+         "memory_record"
+        ]
+       },
+       "allow_sensitive": false,
+       "usage_enabled": false,
+       "usage_retention_days": 30,
+       "retention_days": {},
+       "review_days": {}
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${pp28.subject_id}",
+       "revision": 1,
+       "decision": "configure",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "event"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_daily"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "daily",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_daily.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "first"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${first.snapshot_id}",
+      "attempt_id": "${first.claim.attempt_id}",
+      "token": "${first.claim.token}",
+      "claims": []
+     },
+     "save": "result"
+    },
+    {
+     "cli": [
+      "forget",
+      "${result.output_ids.0}",
+      "--revision",
+      "1"
+     ],
+     "files": {
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${result.output_ids.0}",
+       "revision": 1,
+       "decision": "forget",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "tombstones"
+     ],
+     "save": "bundle"
+    },
+    {
+     "call": "open",
+     "on": "tasks",
+     "args": [],
+     "state_dir": "${state_dir}/backup"
+    },
+    {
+     "call": "policy_preview",
+     "on": "governance",
+     "args": [
+      {
+       "capture": {
+        "enabled": true,
+        "domains": [
+         "user"
+        ],
+        "kinds": [
+         "episode",
+         "decision"
+        ],
+        "scopes": [
+         "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+        ],
+        "source_kinds": [
+         "session_checkpoint",
+         "memory_record"
+        ]
+       },
+       "allow_sensitive": false,
+       "usage_enabled": false,
+       "usage_retention_days": 30,
+       "retention_days": {},
+       "review_days": {}
+      }
+     ],
+     "save": "pp29",
+     "state_dir": "${state_dir}/backup"
+    },
+    {
+     "call": "set_policy",
+     "on": "governance",
+     "args": [
+      {
+       "capture": {
+        "enabled": true,
+        "domains": [
+         "user"
+        ],
+        "kinds": [
+         "episode",
+         "decision"
+        ],
+        "scopes": [
+         "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+        ],
+        "source_kinds": [
+         "session_checkpoint",
+         "memory_record"
+        ]
+       },
+       "allow_sensitive": false,
+       "usage_enabled": false,
+       "usage_retention_days": 30,
+       "retention_days": {},
+       "review_days": {}
+      },
+      {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${pp29.subject_id}",
+       "revision": 1,
+       "decision": "configure",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     ],
+     "state_dir": "${state_dir}/backup"
+    },
+    {
+     "call": "checkpoint",
+     "on": "dream",
+     "args": [
+      {
+       "capability": {
+        "account": "parity-owner@example.com",
+        "host": "fixture-host",
+        "workspace": "fixture-workspace",
+        "adapter": "margo-session-checkpoint-v1",
+        "content_access": "current-session",
+        "session_list": false,
+        "authorized": true
+       },
+       "session": "fixture-session",
+       "event": "event-1",
+       "revision": "host-rev-1",
+       "expected_revision": null,
+       "timestamp": "2020-02-03T12:00:00+00:00",
+       "speaker": "user",
+       "locator": "conversation:fixture-session/event-1",
+       "text": "Consider the Cedar option. Timing is open.",
+       "origin": "margo-session",
+       "sensitivity": "private",
+       "allowed_uses": [
+        "reasoning"
+       ],
+       "entities": [
+        "project:cedar"
+       ],
+       "work_refs": []
+      }
+     ],
+     "save": "source",
+     "state_dir": "${state_dir}/backup"
+    },
+    {
+     "call": "tombstones_preview",
+     "on": "governance",
+     "args": [
+      "${bundle}"
+     ],
+     "save": "tp",
+     "state_dir": "${state_dir}/backup"
+    },
+    {
+     "call": "restore_tombstones",
+     "on": "governance",
+     "args": [
+      "${bundle}",
+      {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${tp.subject_id}",
+       "revision": 1,
+       "decision": "restore-erasures",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     ],
+     "state_dir": "${state_dir}/backup"
+    },
+    {
+     "call": "show",
+     "on": "store",
+     "args": [
+      "${result.output_ids.0}"
+     ],
+     "state_dir": "${state_dir}/backup"
+    },
+    {
+     "call": "plan",
+     "on": "dream",
+     "args": [
+      {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      }
+     ],
+     "save": "bplan",
+     "state_dir": "${state_dir}/backup"
+    },
+    {
+     "call": "start",
+     "on": "dream",
+     "args": [
+      "restored",
+      {
+       "request": {
+        "host": "fixture-host",
+        "workspace": "fixture-workspace",
+        "day": "2020-02-03",
+        "timezone": "UTC",
+        "cutoff": "00:00",
+        "lookback_days": 1,
+        "after": null
+       },
+       "snapshot_hash": "${bplan.snapshot_hash}",
+       "request_ref": "conversation:fixture-dream-request"
+      }
+     ],
+     "save": "bstart",
+     "state_dir": "${state_dir}/backup"
+    },
+    {
+     "call": "finish",
+     "on": "dream",
+     "args": [
+      {
+       "snapshot_id": "${bstart.snapshot_id}",
+       "attempt_id": "${bstart.claim.attempt_id}",
+       "token": "${bstart.claim.token}",
+       "claims": [
+        {
+         "key": "open-timing",
+         "type": "question",
+         "text": "The timing remains unresolved.",
+         "citations": [
+          {
+           "id": "${source.id}",
+           "revision": "${source.revision}",
+           "quote": "Timing is open."
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "state_dir": "${state_dir}/backup"
+    },
+    {
+     "call": "show",
+     "on": "store",
+     "args": [
+      "${result.output_ids.0}"
+     ],
+     "state_dir": "${state_dir}/backup"
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  }
+ ]
+}
