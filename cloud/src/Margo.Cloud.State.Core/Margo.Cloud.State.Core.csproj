@@ -2,10 +2,16 @@
 
   <PropertyGroup>
     <RootNamespace>Margo.Cloud.State.Core</RootNamespace>
+    <!-- LibraryImport (PosixNative) generates marshalling code that needs unsafe blocks. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.State.Tests" />
   </ItemGroup>
 
 </Project>

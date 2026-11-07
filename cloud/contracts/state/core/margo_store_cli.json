@@ -1,0 +1,169 @@
+{
+  "description": "margo_store.py init: help, argparse errors and abbreviations, create, replay, owner isolation, invalid principals, unsafe roots, MARGO_CONFIG and the private file modes it leaves behind.",
+  "steps": [
+    {
+      "script": "margo_store.py",
+      "args": [
+        "--help"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "margo_store.py",
+      "args": [],
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "bogus"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--acc",
+        "owner@example.com",
+        "--config",
+        "{root}/config/config.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account=owner@example.com",
+        "--conf={root}/config/config.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "other@example.com",
+        "--config",
+        "{root}/config/config.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "two words",
+        "--config",
+        "{root}/c2/config.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "<{placeholder}>",
+        "--config",
+        "{root}/c2/config.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "",
+        "--config",
+        "{root}/c2/config.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner@example.com",
+        "--config",
+        "{root}/config/config.json",
+        "extra"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner@example.com",
+        "--config",
+        "{root}/unsafe/config.json"
+      ],
+      "env": {
+        "MARGO_ALLOW_UNSAFE_STATE_DIR": "0"
+      },
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner@example.com"
+      ],
+      "env": {
+        "MARGO_CONFIG": "{root}/env-config/config.json"
+      },
+      "expect_exit": 0
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner@example.com"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner@example.com",
+        "--config",
+        "{root}/config/../config/config.json"
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

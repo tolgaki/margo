@@ -1,0 +1,173 @@
+# Margo.Cloud.State.Core: porting notes
+
+Ports `skills/chief-of-staff/scripts/margo_store.py` (as `StateStore`, the name `cloud/README.md`
+uses) and provides the Python-compatible helpers every
+later state port must use so that `margo-state SCRIPT.py ...` is indistinguishable from
+`python3 SCRIPT.py ...`. Reference behaviour is **CPython 3.13** (measured on 3.13.16) and its
+`sqlite3`, `json`, `argparse`, `datetime`, `pathlib` and `textwrap` modules.
+
+## What maps to what
+
+### margo_store.py
+
+| Python | C# (`StateStore` unless noted) |
+| --- | --- |
+| `StateError`, `SetupRequired`, `NotInitialized` | same names (`PyErrors.cs`); `StateError` derives from `PyValueError` as in Python |
+| `utc_now()` | `UtcNow()` |
+| `validate_timestamp()` / `parse_timestamp` | `ValidateTimestamp(object?)` / `ParseTimestamp` (accepts a string or a JSON node) |
+| `canonical_json()` | `CanonicalJson(JsonNode?)` |
+| `parse_json()` | `ParseJson(string)` (duplicate keys, NaN/Infinity, overflowing floats, invalid JSON) |
+| `read_json()` | `ReadJson(path)` |
+| `transaction(connection, read_only=)` | `Transaction(connection, body, readOnly)` (`Func<T>` and `Action` overloads) |
+| `add_state_arguments()` | `AddStateArguments(PyArgumentParser)` |
+| `copilot_home()` | `CopilotHome()` |
+| `_no_symlinks`, `_private`, `_safe_directory`, `_mkdir_private` | `NoSymlinks`, `Private`, `SafeDirectory`, `MkdirPrivate` (public: memory_governance and memory_encoder call them) |
+| `resolve_account()` | `ResolveAccount(string?)` |
+| `state_path()` | `StatePath(account, stateRoot)` returns `(Principal, Database)` |
+| `connect(account, state_root, read_only=)` | `Connect(...)` returns a `PyConnection` |
+| `initialize_config()` | `InitializeConfig()` returns the result `JsonObject` |
+| `main()` (`init` subcommand) | `MargoStoreScript` (`margo-state margo_store.py init ...`) |
+| module docstring (argparse description) | `StateStore.Doc` |
+
+### Shared helpers (use these; do not re-implement)
+
+| Python | C# | Notes |
+| --- | --- | --- |
+| `json.dumps(v, indent=, separators=, sort_keys=, ensure_ascii=, allow_nan=)` | `PyJson.Dumps(...)` | Python defaults; `', '` / `','`-with-indent item separators; keys sorted by code point; int vs float kept; Python float repr; 4300-digit int limit; depth limit |
+| `json.loads(s)` (+ `object_pairs_hook`, `parse_constant`) | `PyJson.Loads(s, PyJsonLoadOptions)` | CPython C scanner: same errors (`PyJsonDecodeError`, "msg: line L column C (char P)" in code points), duplicate keys keep first position and last value, `NaN`/`Infinity`, `1e400` -> inf |
+| `isinstance`/`type(x) is`, `==`, truthiness | `PyJson.KindOf`, `IsInt`, `IsIntOrBool`, `IsFloat`, `IsStr`, `PyEquals`, `Truthy`, `AsInt`, `AsDouble` | Value model: null, bool, long/BigInteger (int), double (float), string, JsonArray (list), JsonObject (dict, insertion ordered) |
+| `float.__repr__`, `str(int)` | `PyJson.FloatRepr`, `PyJson.IntStr` | |
+| `datetime.now(timezone.utc)` | `PyDateTime.Now()` | microsecond resolution; clock from `PyRuntime` |
+| `datetime/date/time.fromisoformat`, `isoformat(sep, timespec)` | `PyDateTime`, `PyDate`, `PyTimeOfDay` | port of the C parser in `_datetimemodule.c`, quirks included (any separator character, `HH:MM:SS +00:00`, fraction truncation, offset range error text) |
+| `timedelta` | `PyTimeDelta` | `str()`, `repr()`, `total_seconds()`, arithmetic, range |
+| naive vs aware comparison/subtraction | `PyDateTime` operators | raise `PyTypeError` with Python's text |
+| `argparse.ArgumentParser` | `PyArgumentParser`, `PySubparsers`, `PyNamespace` | see "argparse coverage" |
+| `textwrap.wrap` | `PyTextWrap.Wrap` | default options (break on hyphens, long words) |
+| `int(text)`, `float(text)` | `PyArgumentParser.ParsePyInt`, `ParsePyFloat` | whitespace, sign, underscores, Unicode digits, 4300-digit limit |
+| `repr(str)`, `repr(obj)`, `str.strip()`, `len(str)`, `str.splitlines()`, sorting `str` | `PyRepr.Str`, `PyRepr.Object`, `PyRepr.Strip`, `PyRepr.Length`, `PyRepr.SplitLines`, `PyRepr.CompareStrings`/`StringComparer` | code-point semantics |
+| `hashlib.sha256(s.encode()).hexdigest()`, `uuid.uuid4().hex`, `secrets.token_hex(n)` | `PyIds.Sha256Hex`, `PyIds.Uuid4Hex`, `PyIds.TokenHex` | randomness from `PyRuntime.RandomBytes` |
+| `print()`, `sys.stdin.read([n])`, `Path.read_text()`, `Path.read_bytes()` | `PyIO.Print`, `PyIO.ReadText`, `PyIO.ReadTextFile`, `PyIO.ReadBytes` | strict UTF-8, lone surrogates raise `UnicodeEncodeError` before writing, code-point counts, universal newlines for files, `[Errno N] ...: 'path'` errors |
+| `print(..., file=sys.stderr)` | `StateScripts.PrintError` | backslash-escapes lone surrogates like Python's stderr |
+| `pathlib.Path` (POSIX) | `PyPath` | `absolute()` keeps `..`, `resolve()` is `posixpath.realpath(strict=False)`, `expanduser()`, `parents`, `exists()` ignoring ENOENT/ENOTDIR/EBADF/ELOOP |
+| `os.stat/lstat/open/mkdir/link/unlink/fsync/getuid/readlink/strerror` | `PosixNative` | exact errno, Linux `statx` |
+| `os.environ`, clock, `os.urandom` | `PyRuntime.GetEnv`, `UtcNow`, `RandomBytes`, `Override(...)` | per-async-flow overrides for tests |
+| `sqlite3.connect`, `Connection`, `Cursor`, `Row`, `sqlite3.*Error` | `PyConnection`, `PyCursor`, `PyRow`, `PySqliteError` (`Kind`, `PythonType`) | see "sqlite3 semantics" |
+| `with connection:` | `PyConnection.With(...)` | commit, or roll back on any exception |
+| `ValueError`, `TypeError`, `KeyError`, `OSError`, `OverflowError`, `RecursionError`, `SystemExit` | `PyValueError`, `PyTypeError`, `PyKeyError`, `PyOSError`, `PyOverflowError`, `PyRecursionError`, `PySystemExit` | `Message` is Python's `str(exc)`, `PythonType` its class name |
+| `python3 SCRIPT.py` process semantics | `IStateScript` + `StateScripts.RunGuarded` | `SystemExit` -> status; uncaught exception -> traceback-like stderr and status 1 |
+
+### Writing a port
+
+1. One `sealed class XScript : IStateScript` per Python script, `ScriptName => "x.py"`, public
+   parameterless constructor, in the port's own project. `margo-state` finds it by reflection.
+2. `Run` returns `StateScripts.RunGuarded(() => Main(...), stderr)`. Build the parser with
+   `new PyArgumentParser(ScriptName, Doc, ...)` and the exact same arguments, help strings and order
+   as the Python parser (help text and usage wrapping are compared).
+3. Map every `except (...)` clause to the matching C# exception types (`StateError` first if the
+   Python code distinguishes it, then `PyOSError`, `PySqliteError`, `PyValueError`, `PyTypeError`,
+   `PyKeyError`). Anything else must escape, as it does in Python (exit 1).
+4. Print with `PyIO.Print(stdout, PyJson.Dumps(...))` using the script's exact options, for example
+   `work_state.py`: `PyJson.Dumps(result, indent: 2, ensureAscii: false, allowNan: false)`;
+   `task_state.py`/`memory_state.py`: `StateStore.CanonicalJson(result)`; `proactive_state.py`:
+   `PyJson.Dumps(v, indent: 2, sortKeys: true, ensureAscii: false, allowNan: false)`.
+   `json.dump(rows, sys.stdout, indent=2)` has no trailing newline: use `PyIO.Write`.
+5. Add scenarios under `cloud/contracts/state/<script>/` for every subcommand and failure path,
+   then run `python3 tools/state_parity.py --check`.
+
+## argparse coverage
+
+Positionals and optionals; several option strings with `dest`; `nargs` `None`, `?`, `*`, `+`, `N`,
+`...`; `choices` (strings); `type=int` (Python `int()`, value is a `BigInteger`) and `type=float`;
+`required`; `default` (string defaults are converted at the end, as in Python); actions `store`,
+`store_const`, `store_true`, `store_false`, `append`, `append_const`, `extend`, `count`, `help`;
+required subparsers with `dest`, `help` and aliases; long-option prefix abbreviation and ambiguity;
+`--opt=value`; combined single-dash flags; `--`; negative-number arguments; usage, help sections
+and `HelpFormatter`/`RawDescriptionHelpFormatter` wrapping at `COLUMNS - 2` (80 when not a terminal);
+error text `prog: error: ...` with the usage on stderr and status 2; `-h` on stdout with status 0.
+
+Not ported because no state script uses them: mutually exclusive and argument groups, `parents`,
+`fromfile_prefix_chars`, `parse_intermixed_args`, `version`, `BooleanOptionalAction`, `deprecated`,
+non-string `choices`, `metavar` tuples, `exit_on_error=False`.
+
+## sqlite3 semantics kept
+
+- `isolation_level` legacy control: `BEGIN <level>` before INSERT/UPDATE/DELETE/REPLACE when in
+  autocommit (statement kind found after skipping whitespace and comments, as CPython's
+  `lstrip_sql`; `WITH ... INSERT` is not DML, as in Python); DDL and SELECT never open a transaction.
+- One statement per `Execute` (`You can only execute one statement at a time.`), null characters
+  refused, `executemany` only for DML, `executescript` commits a pending transaction first.
+- Binding: None/bool/ints (int64 range, else `OverflowError`)/floats/str (lone surrogates raise
+  `UnicodeEncodeError`)/bytes; other types raise `Error binding parameter N: type 'dict' is not
+  supported`. JSON scalars are unwrapped. Reading: INTEGER -> long, REAL -> double, TEXT -> string
+  (strict UTF-8), BLOB -> byte[], NULL -> null.
+- `rowcount` (-1 for non-DML), `lastrowid`, `in_transaction`, `commit`/`rollback` no-ops outside a
+  transaction, `close()` leaves the engine to roll back, `sqlite3.Row` name lookup is
+  case-insensitive and a missing name raises `IndexError`.
+- Error classes from the primary result code (`IntegrityError` for constraints, `OperationalError`
+  for busy/locked/readonly/cantopen..., `DatabaseError` for corrupt/not-a-database); messages are
+  `sqlite3_errmsg()`.
+
+## Deliberate deviations (and why)
+
+1. **Python version.** Behaviour is CPython 3.13 (argparse `options:` heading and usage wrapping,
+   `json` "Illegal trailing comma" errors, `fromisoformat` accepting the extended formats). Older
+   Pythons that desktop Margo may run (3.9+) word some errors differently. The parity judge always
+   compares against the local `python3`.
+2. **Rows are read eagerly.** `Execute` steps the statement to completion; Python steps lazily.
+   Not observable for the helpers' statements (no row-producing statement has side effects after
+   its first row); it avoids holding read locks across caller code.
+3. **SQLite build.** The engine is SQLitePCLRaw's bundled `e_sqlite3` (2.1.13), not the system
+   `libsqlite3` CPython links (3.45.1 here). Logical state (schema SQL, rows, pragmas, error texts)
+   is identical; byte-level page layout and FTS internals may differ, which is why the judge dumps
+   databases logically and skips FTS/R-tree shadow-table rows.
+4. **Linux only.** Private-mode, owner and link-count checks use `statx`, `open(O_EXCL|O_NOFOLLOW)`,
+   `mkdir`, `link` and `fsync` through `libc`; other platforms raise `PlatformNotSupportedException`.
+   Margo Cloud runs in Linux containers. (Python also checks modes only on POSIX.)
+5. **Recursion limits.** CPython's JSON depth limit comes from the C recursion counter: 9998 nested
+   containers decode/encode, 9999 raise `RecursionError`; a Python-level `object_pairs_hook` costs two
+   more levels (so `parse_json` accepts objects nested 9996 deep). The C# port uses these measured
+   constants, with iterative (stack-safe) parsing and encoding. Other CPython builds may differ by a
+   few levels.
+6. **Uncaught exceptions** print `Traceback (most recent call last):` and `Type: message`, not a
+   Python stack. Exit status 1 and non-empty stderr match, which is what the judge compares.
+7. **Undecodable stdin** raises `UnicodeDecodeError` (a `ValueError`, so the scripts' handlers exit
+   2 as in Python), but the byte position in the message is approximate: Python reports it relative
+   to its 8 KiB read chunk. `bytes.decode`/file reads (`PyIO.DecodeUtf8`) match CPython exactly.
+8. **`~user` expansion** resolves only the current user (no password-database lookup for others);
+   an unknown user raises `RuntimeError` (as `InvalidOperationException`) like pathlib.
+9. **`os.link` failure text** names the source path only; Python's `str(exc)` also shows
+   `-> destination`. margo_store never prints it (it is wrapped in `StateError`).
+10. **`textwrap`/help widths** count UTF-16 units; all help text is ASCII.
+11. **Missing namespace attributes** raise `PyTypeError` (Python: `AttributeError`); ports check
+    `PyNamespace.Has` where Python uses `hasattr`.
+12. **`state_core_probe.py`** (`StateCoreProbeScript`) ships in this assembly so the judge can test
+    the shared helpers byte for byte. It is not a Margo command; the hosted tool only runs scripts
+    classified in `statecmd.COMMANDS`, so the model cannot reach it. Its Python reference lives in
+    `cloud/contracts/state/probes/`.
+
+## Not ported
+
+Nothing from `margo_store.py`. Out of scope here: the individual scripts (later projects), IANA
+time zones (`ZoneInfo`, needed by `memory_dream.py`: `PyDateTime` models fixed offsets only;
+the MemoryCommands port should add zone/fold handling in its own project or request it here).
+
+## Open questions
+
+- Should desktop Margo pin a minimum Python (3.13) so both implementations share error texts?
+- The judge skips FTS shadow-table rows; MemorySearch should confirm FTS query results match
+  through scenarios instead.
+- `PyConnection` uses the SQLitePCLRaw layer that Microsoft.Data.Sqlite ships rather than
+  `SqliteCommand`, because Python semantics (implicit `BEGIN`, positional `?` binding,
+  one-statement rule, error classes) need statement-level control. Ports can still use
+  Microsoft.Data.Sqlite directly for anything outside the state commands.
+
+## Verification
+
+- `cd cloud && dotnet build Margo.Cloud.slnx` (0 warnings) and `dotnet test --solution Margo.Cloud.slnx`.
+- `tests/Margo.Cloud.State.Tests`: PyJson (dumps/loads/parse_json against CPython output,
+  1000+ random floats), PyTime (fromisoformat, validate_timestamp, timedelta), PyArgs (demo parser
+  help/usage/errors, abbreviations, `int()`), UTF-8 codec errors, private modes, nested savepoints,
+  config initialisation (including an interrupted and a concurrent link), sqlite3 semantics, the
+  CLI dispatcher, and a test that runs `tools/state_parity.py --check`. Expected values come from
+  `Fixtures/generate_python_fixtures.py` (CPython 3.13).
+- `python3 tools/state_parity.py --check`: `cloud/contracts/state/core/*.json` pass.
