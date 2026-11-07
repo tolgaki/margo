@@ -34,7 +34,7 @@ later state port must use so that `margo-state SCRIPT.py ...` is indistinguishab
 | Python | C# | Notes |
 | --- | --- | --- |
 | `json.dumps(v, indent=, separators=, sort_keys=, ensure_ascii=, allow_nan=)` | `PyJson.Dumps(...)` | Python defaults; `', '` / `','`-with-indent item separators; keys sorted by code point; int vs float kept; Python float repr; 4300-digit int limit; depth limit |
-| `json.loads(s)` (+ `object_pairs_hook`, `parse_constant`) | `PyJson.Loads(s, PyJsonLoadOptions)` | CPython C scanner: same errors (`PyJsonDecodeError`, "msg: line L column C (char P)" in code points), duplicate keys keep first position and last value, `NaN`/`Infinity`, `1e400` -> inf; the C recursion budget near the nesting limit (see "JSON recursion budget"); `MaxDepth` for call sites below a C-to-Python re-entry |
+| `json.loads(s)` (+ `object_pairs_hook`, `parse_constant`); `json.loads(bytes)` | `PyJson.Loads(s, PyJsonLoadOptions)`; `PyJson.LoadsBytes` (`detect_encoding`, `surrogatepass`) | CPython C scanner: same errors (`PyJsonDecodeError`, "msg: line L column C (char P)" in code points), duplicate keys keep first position and last value, `NaN`/`Infinity`, `1e400` -> inf; the C recursion budget near the nesting limit (see "JSON recursion budget"); `MaxDepth` for call sites below a C-to-Python re-entry |
 | `isinstance`/`type(x) is`, `==`, truthiness | `PyJson.KindOf`, `IsInt`, `IsIntOrBool`, `IsFloat`, `IsStr`, `PyEquals`, `Truthy`, `AsInt`, `AsDouble` | Value model: null, bool, long/BigInteger (int), double (float), string, JsonArray (list), JsonObject (dict, insertion ordered) |
 | `float.__repr__`, `str(int)` | `PyJson.FloatRepr`, `PyJson.IntStr` | |
 | `datetime.now(timezone.utc)` | `PyDateTime.Now()` | microsecond resolution; clock from `PyRuntime` |
@@ -268,8 +268,9 @@ The kept behaviour is the one that matches CPython 3.13.16; each difference was 
    said "while calling a Python object"; CPython says so only when the call that ran out is a C call (for decode errors
    at n = B - 3 and n = B) and says plain "maximum recursion depth exceeded" when entering a Python frame
    (n = B - 2, B - 1). The model is now part of the decoder and exact for both (measured).
-8. **`json.loads` of a stored BLOB.** Work's `Loads` raised `TypeError` for bytes; `PyNode.Loads` decodes UTF-8 bytes
-   as `json.loads(bytes)` does. Only a hand-edited database holds such a value.
+8. **`json.loads` of a stored BLOB.** Work's `Loads` raised `TypeError` for bytes; Proactive's (kept as `PyNode.Loads`)
+   decoded them as strict UTF-8. Neither is what `json.loads(bytes)` does (detected encoding, `surrogatepass`); see
+   "Review of the state consolidation". Only a hand-edited database holds such a value.
 
 ### Reviewer findings fixed here
 
@@ -292,6 +293,24 @@ command shows it, a parity scenario that failed against that build:
 - **`int()` stripped U+001C..U+001F** (`PyRepr.Strip`, `str.isspace()`), where CPython strips only ASCII whitespace
   after mapping non-ASCII spaces to `' '`, so `int("\x1c5")` is a `ValueError` (`core/int_whitespace.json`:
   argparse `type=int` through the probe and `work_state.py item-update --revision`). `float()` was already right.
+
+### Review of the state consolidation
+
+An independent review re-ran the differential checks against CPython 3.13.16 on inputs the consolidation had not
+tried: every code point for `str.isspace()`/`isdecimal()`/`isdigit()`/`isalnum()`/`isprintable()`, `re`'s `\w`,
+`strip()`, `unicodedata.decimal()` and `casefold()` (all equal); 400 random `int()` literals with the whitespace and
+digit characters around U+001C..U+001F; about 550 undecodable stdin payloads through `capacity.py`, `proactive_state.py`
+and `work_state.py`; 500 documents nested 9988-10001 deep through `work_state.py`, `capacity.py` and
+`teams_feedback.py`; 9000 comparison and 9000 `ops` cases and 90 sort traces through `helpers_probe.py`; 100 random
+proactive scenarios with one column of every table hand-edited to an odd SQLite value. One defect was found and fixed:
+
+- **`json.loads` of a BLOB** (`PyNode.Loads(byte[])`, now `PyJson.LoadsBytes`/`PyIO.DecodeJsonBytes`) decoded the bytes
+  as strict UTF-8. CPython decodes them with `json.detect_encoding` and `surrogatepass`: a UTF-8 signature, UTF-16 and
+  UTF-32 (with or without BOM) load; `ED A0..BF xx` passes through as a lone surrogate; errors name the detected codec
+  (`'utf-16-le' codec can't decode byte 0x7d in position 4: truncated data`, positions after a UTF-8 signature relative
+  to it) and a second BOM is "Expecting value", not the `str` BOM error. `JsonBytesTests` (186 CPython measurements;
+  63 failed before the fix; a further 40000 random byte strings agree) and `proactive/blob_values.json` (a payload BLOB
+  in 13 encodings and damaged forms through `queue-list`) failed on the consolidated build.
 
 ## Not ported
 

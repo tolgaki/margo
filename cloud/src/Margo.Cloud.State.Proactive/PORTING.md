@@ -96,9 +96,10 @@ cases it converts; library-level cases are also ported to xUnit in
    `included_items`, ...), so C# callers can read them uniformly. The JSON text is identical.
 4. **BLOB values in tampered rows.** `dict(row)` with a BLOB column fails in C# when the row is converted
    (`TypeError`), in Python only when `json.dumps` reaches it. The CLI result is the same (exit 2, `storage
-   unavailable`), except the text queue view, which Python prints without serialising `item_key`. A BLOB
-   payload is decoded as UTF-8 for `json.loads`; Python also detects UTF-16/32 and a UTF-8 BOM. Only reachable
-   by editing the database by hand.
+   unavailable`), except the text queue view, which Python prints without serialising `item_key`. Only reachable
+   by editing the database by hand. (A BLOB `payload`, `scope`, `window` or `receipt` used to be decoded as strict
+   UTF-8 for `json.loads`; since the review of the state consolidation `PyNode.Loads` decodes bytes as CPython does,
+   with `json.detect_encoding` and `surrogatepass`: `blob_values.json`.)
 5. *(Withdrawn in review.)* Arithmetic on hand-edited values in INTEGER columns now follows Python:
    `PyNumbers.Add` (int + 1 stays an int and fails to bind beyond 64 bits with `OverflowError`; REAL stays a
    float; TEXT/BLOB/None raise `TypeError`), `PyTimeDelta.FromPySeconds` (`timedelta(seconds=x)` for a REAL cadence,

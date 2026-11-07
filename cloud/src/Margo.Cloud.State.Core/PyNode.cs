@@ -439,11 +439,15 @@ public static class PyNode
         return result;
     }
 
-    /// <summary><c>json.loads(value)</c> for a value read from SQLite (str, or UTF-8 bytes); other types raise <c>TypeError</c>.</summary>
+    /// <summary>
+    /// <c>json.loads(value)</c> for a value read from SQLite: a str, or bytes (a BLOB, decoded as <c>json.loads</c> decodes
+    /// bytes: detected UTF-8/16/32 with <c>surrogatepass</c>, see <see cref="PyJson.LoadsBytes"/>); other types raise
+    /// <c>TypeError</c>.
+    /// </summary>
     public static JsonNode? Loads(object? value) => value switch
     {
         string text => PyJson.Loads(text),
-        byte[] bytes => PyJson.Loads(PyIO.DecodeUtf8(bytes)),
+        byte[] bytes => PyJson.LoadsBytes(bytes),
         _ => throw new PyTypeError("the JSON object must be str, bytes or bytearray, not " + PyObj.TypeName(value)),
     };
 }

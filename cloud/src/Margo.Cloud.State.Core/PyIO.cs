@@ -159,7 +159,22 @@ public static class PyIO
     /// </summary>
     public static string DecodeUtf8(ReadOnlySpan<byte> data, bool final, out int consumed)
     {
-        var position = 0;
+        if (Utf8Error(data, 0, final, out consumed) is { } error)
+        {
+            throw DecodeError(data, error.Start, error.End, error.Reason, "utf-8");
+        }
+
+        return StrictUtf8.GetString(data[..consumed]);
+    }
+
+    /// <summary>
+    /// The first error CPython's strict UTF-8 decoder reports in <paramref name="data"/> from <paramref name="from"/>
+    /// (start and inclusive end positions, reason), or null. When <paramref name="final"/> is false, a valid but
+    /// incomplete sequence at the end is no error and <paramref name="consumed"/> stops before it.
+    /// </summary>
+    private static (int Start, int End, string Reason)? Utf8Error(ReadOnlySpan<byte> data, int from, bool final, out int consumed)
+    {
+        var position = from;
         while (position < data.Length)
         {
             var b = data[position];
@@ -184,7 +199,8 @@ public static class PyIO
             }
             else
             {
-                throw DecodeError(data, position, position, "invalid start byte");
+                consumed = position;
+                return (position, position, "invalid start byte");
             }
 
             var valid = 0;
@@ -192,13 +208,8 @@ public static class PyIO
             {
                 if (position + k >= data.Length)
                 {
-                    if (!final)
-                    {
-                        consumed = position;
-                        return StrictUtf8.GetString(data[..position]);
-                    }
-
-                    throw DecodeError(data, position, data.Length - 1, "unexpected end of data");
+                    consumed = position;
+                    return final ? (position, data.Length - 1, "unexpected end of data") : null;
                 }
 
                 var next = data[position + k];
@@ -218,7 +229,8 @@ public static class PyIO
 
                 if (next < low || next > high)
                 {
-                    throw DecodeError(data, position, position + valid, "invalid continuation byte");
+                    consumed = position;
+                    return (position, position + valid, "invalid continuation byte");
                 }
 
                 valid++;
@@ -228,7 +240,145 @@ public static class PyIO
         }
 
         consumed = data.Length;
-        return StrictUtf8.GetString(data);
+        return null;
+    }
+
+    /// <summary>
+    /// How <c>json.loads</c> turns bytes into text: <c>data.decode(json.detect_encoding(data), "surrogatepass")</c>.
+    /// <c>detect_encoding</c> picks <c>utf-32</c>/<c>utf-16</c> for their BOMs (which the codec strips), <c>utf-8-sig</c>
+    /// for the UTF-8 signature, otherwise UTF-16/UTF-32 LE/BE from where the first bytes are zero, else <c>utf-8</c>.
+    /// <c>surrogatepass</c> lets encoded surrogates through as lone surrogates. Errors are CPython's: the codec named as
+    /// <c>'utf-16-le'</c>, <c>'utf-32-be'</c>, ...; positions are absolute, except after a UTF-8 signature
+    /// (<c>utf_8_sig.decode</c> decodes the rest as a new input).
+    /// </summary>
+    public static string DecodeJsonBytes(ReadOnlySpan<byte> data)
+    {
+        if (data.StartsWith((ReadOnlySpan<byte>)[0x00, 0x00, 0xFE, 0xFF]) || data.StartsWith((ReadOnlySpan<byte>)[0xFF, 0xFE, 0x00, 0x00]))
+        {
+            return DecodeUtf32SurrogatePass(data, 4, bigEndian: data[0] == 0x00);
+        }
+
+        if (data.StartsWith((ReadOnlySpan<byte>)[0xFE, 0xFF]) || data.StartsWith((ReadOnlySpan<byte>)[0xFF, 0xFE]))
+        {
+            return DecodeUtf16SurrogatePass(data, 2, bigEndian: data[0] == 0xFE);
+        }
+
+        if (data.StartsWith((ReadOnlySpan<byte>)[0xEF, 0xBB, 0xBF]))
+        {
+            return DecodeUtf8SurrogatePass(data[3..]);
+        }
+
+        if (data.Length >= 4)
+        {
+            if (data[0] == 0)
+            {
+                return data[1] != 0 ? DecodeUtf16SurrogatePass(data, 0, bigEndian: true) : DecodeUtf32SurrogatePass(data, 0, bigEndian: true);
+            }
+
+            if (data[1] == 0)
+            {
+                return data[2] != 0 || data[3] != 0
+                    ? DecodeUtf16SurrogatePass(data, 0, bigEndian: false)
+                    : DecodeUtf32SurrogatePass(data, 0, bigEndian: false);
+            }
+        }
+        else if (data.Length == 2)
+        {
+            if (data[0] == 0)
+            {
+                return DecodeUtf16SurrogatePass(data, 0, bigEndian: true);
+            }
+
+            if (data[1] == 0)
+            {
+                return DecodeUtf16SurrogatePass(data, 0, bigEndian: false);
+            }
+        }
+
+        return DecodeUtf8SurrogatePass(data);
+    }
+
+    /// <summary>
+    /// <c>data.decode("utf-8", "surrogatepass")</c>: where the strict decoder fails on the three-byte encoding of a
+    /// surrogate (<c>ED A0..BF 80..BF</c>), the error handler returns that lone surrogate and decoding resumes after it;
+    /// any other error is raised unchanged.
+    /// </summary>
+    private static string DecodeUtf8SurrogatePass(ReadOnlySpan<byte> data)
+    {
+        var builder = new StringBuilder(data.Length);
+        var from = 0;
+        while (Utf8Error(data, from, final: true, out _) is { } error)
+        {
+            var p = error.Start;
+            if (p + 2 >= data.Length || data[p] != 0xED || data[p + 1] is < 0xA0 or > 0xBF || data[p + 2] is < 0x80 or > 0xBF)
+            {
+                throw DecodeError(data, error.Start, error.End, error.Reason, "utf-8");
+            }
+
+            builder.Append(StrictUtf8.GetString(data[from..p]));
+            builder.Append((char)(0xD000 | ((data[p + 1] & 0x3F) << 6) | (data[p + 2] & 0x3F)));
+            from = p + 3;
+        }
+
+        return builder.Append(StrictUtf8.GetString(data[from..])).ToString();
+    }
+
+    /// <summary>
+    /// <c>data[start:]</c> as UTF-16 with <c>surrogatepass</c>: every code unit is kept (a valid pair is the character, an
+    /// unpaired surrogate passes through alone); the only error is an odd byte at the end ("truncated data").
+    /// </summary>
+    private static string DecodeUtf16SurrogatePass(ReadOnlySpan<byte> data, int start, bool bigEndian)
+    {
+        var builder = new StringBuilder((data.Length - start) / 2);
+        var q = start;
+        for (; q + 1 < data.Length; q += 2)
+        {
+            builder.Append((char)(bigEndian ? (data[q] << 8) | data[q + 1] : (data[q + 1] << 8) | data[q]));
+        }
+
+        if (q < data.Length)
+        {
+            throw DecodeError(data, q, data.Length - 1, "truncated data", bigEndian ? "utf-16-be" : "utf-16-le");
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// <c>data[start:]</c> as UTF-32 with <c>surrogatepass</c>: surrogate code points pass through; a value above U+10FFFF
+    /// is "code point not in range(0x110000)", and 1-3 bytes left at the end are "truncated data".
+    /// </summary>
+    private static string DecodeUtf32SurrogatePass(ReadOnlySpan<byte> data, int start, bool bigEndian)
+    {
+        var codec = bigEndian ? "utf-32-be" : "utf-32-le";
+        var builder = new StringBuilder(data.Length - start);
+        var q = start;
+        for (; q + 3 < data.Length; q += 4)
+        {
+            var ch = bigEndian
+                ? ((uint)data[q] << 24) | ((uint)data[q + 1] << 16) | ((uint)data[q + 2] << 8) | data[q + 3]
+                : ((uint)data[q + 3] << 24) | ((uint)data[q + 2] << 16) | ((uint)data[q + 1] << 8) | data[q];
+            if (ch > 0x10FFFF)
+            {
+                throw DecodeError(data, q, q + 3, "code point not in range(0x110000)", codec);
+            }
+
+            if (ch >= 0x10000)
+            {
+                builder.Append(char.ConvertFromUtf32((int)ch));
+            }
+            else
+            {
+                builder.Append((char)ch);
+            }
+        }
+
+        if (q < data.Length)
+        {
+            throw DecodeError(data, q, data.Length - 1, "truncated data", codec);
+        }
+
+        return builder.ToString();
     }
 
     /// <summary>
@@ -517,11 +667,12 @@ public static class PyIO
         return new PyUnicodeError("UnicodeEncodeError", "'utf-8' codec can't encode " + where + ": surrogates not allowed");
     }
 
-    private static PyUnicodeError DecodeError(ReadOnlySpan<byte> data, int start, int end, string reason)
+    /// <summary>CPython's <c>UnicodeDecodeError</c> text for <paramref name="data"/>[start..end] (inclusive).</summary>
+    private static PyUnicodeError DecodeError(ReadOnlySpan<byte> data, int start, int end, string reason, string codec)
     {
         var where = start == end
             ? string.Format(CultureInfo.InvariantCulture, "byte 0x{0:x2} in position {1}", data[start], start)
             : string.Format(CultureInfo.InvariantCulture, "bytes in position {0}-{1}", start, end);
-        return new PyUnicodeError("UnicodeDecodeError", "'utf-8' codec can't decode " + where + ": " + reason);
+        return new PyUnicodeError("UnicodeDecodeError", "'" + codec + "' codec can't decode " + where + ": " + reason);
     }
 }

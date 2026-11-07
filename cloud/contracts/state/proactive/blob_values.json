@@ -1,0 +1,339 @@
+{
+ "description": "json.loads of a BLOB in a hand-edited database (review of the state consolidation): CPython decodes bytes with json.detect_encoding and 'surrogatepass', so a payload stored as UTF-16/UTF-32 (with or without BOM) or after a UTF-8 signature still loads, an encoded surrogate passes through, and undecodable bytes name the detected codec; the port decoded every BLOB as strict UTF-8 ('storage unavailable'). Labels: utf-16 with BOM; utf-16-be with BOM; utf-16-le without BOM; utf-32-be without BOM; utf-32 with BOM; utf-8 signature; two utf-8 signatures; plain utf-8; an encoded surrogate; odd utf-16 length; utf-32 above U+10FFFF; invalid utf-8 after a signature; a lone byte",
+ "steps": [
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-add",
+    "--json",
+    "{\"id\":\"one\",\"revision\":\"v1\",\"title\":\"Té\"}"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'fffe7b0022006900640022003a0022006f006e00650022002c0022007200650076006900730069006f006e0022003a0022007600310022002c0022007400690074006c00650022003a0022005400e90022007d00'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'feff007b0022006900640022003a0022006f006e00650022002c0022007200650076006900730069006f006e0022003a0022007600310022002c0022007400690074006c00650022003a0022005400e90022007d'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'7b0022006900640022003a0022006f006e00650022002c0022007200650076006900730069006f006e0022003a0022007600310022002c0022007400690074006c00650022003a0022005400e90022007d00'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'0000007b000000220000006900000064000000220000003a000000220000006f0000006e00000065000000220000002c000000220000007200000065000000760000006900000073000000690000006f0000006e000000220000003a000000220000007600000031000000220000002c000000220000007400000069000000740000006c00000065000000220000003a0000002200000054000000e9000000220000007d'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'fffe00007b000000220000006900000064000000220000003a000000220000006f0000006e00000065000000220000002c000000220000007200000065000000760000006900000073000000690000006f0000006e000000220000003a000000220000007600000031000000220000002c000000220000007400000069000000740000006c00000065000000220000003a0000002200000054000000e9000000220000007d000000'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'efbbbf7b226964223a226f6e65222c227265766973696f6e223a227631222c227469746c65223a2254c3a9227d'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'efbbbfefbbbf7b226964223a226f6e65222c227265766973696f6e223a227631222c227469746c65223a2254c3a9227d'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'7b226964223a226f6e65222c227265766973696f6e223a227631222c227469746c65223a2254c3a9227d'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'7b226964223a226f6e65222c227265766973696f6e223a227631222c227469746c65223a2254eda080227d'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'fffe7b0022006900640022003a0022006f006e00650022002c0022007200650076006900730069006f006e0022003a0022007600310022002c0022007400690074006c00650022003a0022005400e90022007d007d'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'7b000000220000006900000064000000220000003a000000220000006f0000006e00000065000000220000002c000000220000007200000065000000760000006900000073000000690000006f0000006e000000220000003a000000220000007600000031000000220000002c000000220000007400000069000000740000006c00000065000000220000003a0000002200000054000000e90000002200000000001100'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'efbbbf7b22696422ff'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "proactive_probe.py",
+   "args": [
+    "sql"
+   ],
+   "stdin": "[[\"UPDATE proactive_items SET payload=X'00ff'\", []]]",
+   "state_args": true,
+   "expect_exit": 0
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list",
+    "--format",
+    "json"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "proactive_state.py",
+   "args": [
+    "queue-list"
+   ],
+   "expect_exit": 2
+  }
+ ]
+}

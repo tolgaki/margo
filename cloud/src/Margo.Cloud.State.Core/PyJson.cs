@@ -268,6 +268,19 @@ public static class PyJson
             throw new PyJsonDecodeError("Unexpected UTF-8 BOM (decode using utf-8-sig)", text, 0);
         }
 
+        return LoadsDecoded(text, options);
+    }
+
+    /// <summary>
+    /// <c>json.loads(data)</c> for <c>bytes</c>: <c>data.decode(json.detect_encoding(data), "surrogatepass")</c>
+    /// (<see cref="PyIO.DecodeJsonBytes"/>), then the decoder. Unlike a <c>str</c>, decoded bytes get no BOM check:
+    /// <c>utf-8-sig</c> and <c>utf-16</c>/<c>utf-32</c> strip one BOM, and a second one is "Expecting value".
+    /// </summary>
+    public static JsonNode? LoadsBytes(ReadOnlySpan<byte> data, PyJsonLoadOptions? options = null) =>
+        LoadsDecoded(PyIO.DecodeJsonBytes(data), options);
+
+    private static JsonNode? LoadsDecoded(string text, PyJsonLoadOptions? options)
+    {
         var decoder = new Decoder(text, options ?? new PyJsonLoadOptions());
         var index = SkipWhitespace(text, 0);
         var (value, end) = decoder.Decode(index);
