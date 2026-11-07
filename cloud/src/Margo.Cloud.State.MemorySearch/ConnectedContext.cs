@@ -535,9 +535,15 @@ public sealed class ConnectedContext
             }
         }
 
-        if (PyNode.Is(kind, "meeting") && PyNode.IsOneOf(Get(Get(data, "recap_retry", new JsonObject()), "status"), "blocked", "exhausted"))
+        if (PyNode.Is(kind, "meeting"))
         {
-            Gap("recap_unavailable", id);
+            // data.get("recap_retry", {}).get("status") in {"blocked", "exhausted"}: set membership hashes the status.
+            var recap = Get(Get(data, "recap_retry", new JsonObject()), "status");
+            PyNode.RequireHashable(recap);
+            if (PyNode.IsOneOf(recap, "blocked", "exhausted"))
+            {
+                Gap("recap_unavailable", id);
+            }
         }
 
         return item;
@@ -694,6 +700,28 @@ public sealed class ConnectedContext
         }
 
         return Key(candidates[0]["id"]);
+    }
+
+    /// <summary>
+    /// A JSON node has one parent, so a result from an earlier <see cref="Build"/> (or whatever the caller moved its
+    /// gaps into) keeps a copy of the gaps as they stood, and the live list moves to the new result. Python's results
+    /// all share one list; the earlier one is the only difference.
+    /// </summary>
+    private void ReleaseGaps()
+    {
+        switch (Gaps.Parent)
+        {
+            case JsonObject owner:
+                foreach (var key in owner.Where(pair => ReferenceEquals(pair.Value, Gaps)).Select(pair => pair.Key).ToList())
+                {
+                    owner[key] = PyNode.Copy(Gaps);
+                }
+
+                break;
+            case JsonArray list:
+                list[list.IndexOf(Gaps)] = PyNode.Copy(Gaps);
+                break;
+        }
     }
 
     private sealed class Selection(int depth, JsonArray reasons)
@@ -1112,6 +1140,7 @@ public sealed class ConnectedContext
             node["depth"] = (long)selected[identity].Depth;
         }
 
+        ReleaseGaps();
         return new JsonObject
         {
             ["nodes"] = new JsonArray([.. nodes.Values]),

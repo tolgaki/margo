@@ -575,10 +575,10 @@ public sealed partial class MemorySearchProbeScript : IStateProbeScript
                 return MemorySearch.MemorySearch.TextHash(PyNode.AsString(a[0].Value)!);
             case "vector_bytes":
                 a = Bind(name, ["vector", "dimensions"], 2, args, kwargs, method: false);
-                return Convert.ToHexStringLower(MemorySearch.MemorySearch.VectorBytes(a[0].Value, (long)PyJson.AsInt(a[1].Value)));
+                return Convert.ToHexStringLower(MemorySearch.MemorySearch.VectorBytes(a[0].Value, a[1].Value));
             case "decoded_vector":
                 a = Bind(name, ["blob", "dimensions"], 2, args, kwargs, method: false);
-                var values = MemorySearch.MemorySearch.DecodedVector(Convert.FromHexString(PyNode.AsString(a[0].Value)!), (long)PyJson.AsInt(a[1].Value));
+                var values = MemorySearch.MemorySearch.DecodedVector(Convert.FromHexString(PyNode.AsString(a[0].Value)!), a[1].Value);
                 return new JsonArray(values.Select(value => (JsonNode?)JsonValue.Create(value)).ToArray());
             case "identity_key":
                 a = Bind(name, ["identity"], 1, args, kwargs, method: false);
@@ -595,7 +595,7 @@ public sealed partial class MemorySearchProbeScript : IStateProbeScript
                 return null;
             case "memory_entry":
                 a = Bind(name, ["row", "reasons", "mandatory"], 2, args, kwargs, method: false);
-                return MemoryContext.MemoryEntry(a[0].Value, (JsonArray)a[1].Value!, PyJson.Truthy(a[2].Or(false)));
+                return MemoryContext.MemoryEntry(a[0].Value, (JsonArray)a[1].Value!, a[2]);
             case "mandatory_constraint":
                 a = Bind(name, ["row"], 1, args, kwargs, method: false);
                 return MemoryContext.MandatoryConstraintValue(a[0].Value);

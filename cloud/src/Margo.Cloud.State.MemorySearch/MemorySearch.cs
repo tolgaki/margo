@@ -122,6 +122,85 @@ public sealed class MemorySearch
         return result;
     }
 
+    /// <summary>
+    /// <c>vector_bytes(vector, dimensions)</c> with <paramref name="dimensions"/> as any Python value: <c>len(vector) !=
+    /// dimensions</c> is Python equality (so <c>2.0</c> and <c>True</c> match a vector of that length) and the packed
+    /// count is then <c>"%d" % dimensions</c>, which equals the length.
+    /// </summary>
+    public static byte[] VectorBytes(JsonNode? vector, JsonNode? dimensions)
+    {
+        long length = PyObj.Len(vector);
+        if (PyObj.Ne(new BigInteger(length), dimensions))
+        {
+            throw new StateError("embedding has invalid dimensions or non-finite values");
+        }
+
+        return VectorBytes(vector, length);
+    }
+
+    /// <summary>
+    /// <c>decoded_vector(blob, dimensions)</c> with <paramref name="dimensions"/> as any Python value: <c>len(blob) !=
+    /// dimensions * 4</c> (sequence repetition never equals a length; <c>None * 4</c> and <c>dict * 4</c> are a
+    /// <c>TypeError</c>), then <c>struct.unpack("&lt;%df" % dimensions, blob)</c>, whose count truncates a float.
+    /// </summary>
+    public static double[] DecodedVector(object? blob, JsonNode? dimensions)
+    {
+        if (blob is not byte[] bytes)
+        {
+            throw new StateError("semantic index contains an invalid vector; rebuild it");
+        }
+
+        BigInteger count;
+        switch (PyObj.Normalize(dimensions))
+        {
+            case bool flag:
+                count = flag ? 1 : 0;
+                if (bytes.Length != count * 4)
+                {
+                    throw new StateError("semantic index contains an invalid vector; rebuild it");
+                }
+
+                break;
+            case BigInteger integer:
+                count = integer;
+                if (bytes.Length != integer * 4)
+                {
+                    throw new StateError("semantic index contains an invalid vector; rebuild it");
+                }
+
+                break;
+            case double number:
+                if (!PyObj.EqBool(new BigInteger(bytes.Length), number * 4))
+                {
+                    throw new StateError("semantic index contains an invalid vector; rebuild it");
+                }
+
+                count = new BigInteger(Math.Truncate(number));
+                if (count * 4 != bytes.Length)
+                {
+                    throw new StructError("unpack requires a buffer of " + (count * 4).ToString(System.Globalization.CultureInfo.InvariantCulture) + " bytes");
+                }
+
+                break;
+            case string or JsonArray:
+                throw new StateError("semantic index contains an invalid vector; rebuild it");
+            default:
+                throw new PyTypeError("unsupported operand type(s) for *: '" + PyJson.TypeName(dimensions) + "' and 'int'");
+        }
+
+        return DecodedVector(bytes, (long)count);
+    }
+
+    /// <summary>
+    /// Python's <c>struct.error</c> (<c>type(exc).__name__</c> is <c>error</c>). Only <see cref="DecodedVector(object?, JsonNode?)"/>
+    /// raises it, for a non-integral float dimension whose truncated count does not fit the blob. It belongs in
+    /// State.Core's exception taxonomy (see PORTING.md).
+    /// </summary>
+    public sealed class StructError(string message) : PyException(message)
+    {
+        public override string PythonType => "error";
+    }
+
     /// <summary><c>decoded_vector(blob, dimensions)</c>.</summary>
     public static double[] DecodedVector(object? blob, long dimensions)
     {
@@ -1353,7 +1432,7 @@ public sealed class MemorySearch
             }
 
             var connected = context.Build(matches.Keys, Strings(entities), Strings(workIds), depthValue, nodesValue);
-            var entries = required.Select(row => MemoryEntry(row, ["mandatory_constraint"], mandatory: true)).ToList();
+            var entries = required.Select(row => MemoryEntry(row, ["mandatory_constraint"], PyArg.Of(true))).ToList();
             var requiredIds = required.Select(row => (string)PyObj.Normalize(row["id"])!).ToHashSet(StringComparer.Ordinal);
             foreach (var node in Detach(connected, "nodes"))
             {

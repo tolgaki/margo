@@ -625,6 +625,24 @@ public sealed class MemorySearchTests
     }
 
     [Fact]
+    public void Connected_context_builds_more_than_once_like_python()
+    {
+        // Python's ConnectedContext keeps gaps/edges on the instance, so a second build() on the same context works and
+        // returns the accumulated diagnostics (both results hold the same list object).
+        using var memory = new FakeMemory();
+        memory.Add("record", "Context");
+        var context = new ConnectedContext(memory);
+        var first = context.Build(["record"]);
+        context.Diagnose("record", "origin-a");
+        var second = context.Build(["record"]);
+        context.Diagnose("record", "origin-b");
+        Assert.Equal(["record"], ((JsonArray)second["nodes"]!).Select(node => (string)node!["id"]!));
+        Assert.Equal(["origin-a", "origin-b"], ((JsonArray)second["gaps"]!).Select(gap => (string)gap!["origin_id"]!));
+        Assert.Equal(["origin-a"], ((JsonArray)first["gaps"]!).Select(gap => (string)gap!["origin_id"]!));
+        Assert.Same(context.Gaps, second["gaps"]);
+    }
+
+    [Fact]
     public void Real_store_without_runtime_reports_the_local_embedding_error()
     {
         using var root = TempRoot.Create();

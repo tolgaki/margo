@@ -19,7 +19,7 @@ packets are `json.loads(canonical_json(...))`, so their keys are sorted, as in P
 
 | Python | C# |
 | --- | --- |
-| `representation`, `text_hash`, `vector_bytes`, `decoded_vector` | static `MemorySearch.Representation`, `TextHash`, `VectorBytes(vector, dimensions)` (bytes), `DecodedVector(blob, dimensions)` (doubles) |
+| `representation`, `text_hash`, `vector_bytes`, `decoded_vector` | static `MemorySearch.Representation`, `TextHash`, `VectorBytes(vector, dimensions)` (bytes), `DecodedVector(blob, dimensions)` (doubles); `dimensions` is a `long` for the callers, or any Python value (`JsonNode`) with Python's equality, repetition and `struct` behaviour (`2.0`/`True` match, `None`/dict are a `TypeError`, a non-integral float can raise `struct.error`, `MemorySearch.StructError`) |
 | `MemorySearch(memory, encoder=None, rebuild_schema=False)` | `new MemorySearch(MemoryStore, encoder, rebuildSchema)` or `new MemorySearch(IMemorySource, ...)`; `encoder` is `Func<JsonArray, JsonNode?>` (texts to the result dict) |
 | `memory`, `conn`, `encoder` (assignable), `read_only`, `initialized`, `fts` | `Memory`, `Conn`, `Encoder` (settable), `ReadOnly`, `Initialized`, `Fts` |
 | `_prepare_rebuild`, `_semantic_tables`, `_inspect_schema(allow_missing_fts)`, `_initialize_schema` | private methods of the same meaning |
@@ -39,7 +39,7 @@ packets are `json.loads(canonical_json(...))`, so their keys are sorted, as in P
 | `SECTIONS`, `RELATIONS` | `MemoryContext.Sections`, `Relations` |
 | `identity_key`, `entity_keys`, `applicable`, `active_edges`, `bounds` | `IdentityKey`, `EntityKeys` (a set), `Applicable`, `ActiveEdges`, `Bounds` (returns the validated pair) |
 | `read_snapshot(conn)` (context manager) | `ReadSnapshot(conn, Func<T>)` |
-| `memory_entry`, `mandatory_constraint`, `section`, `sized`, `budget_packet` | `MemoryEntry`, `MandatoryConstraint` (bool; `MandatoryConstraintValue` is the value of Python's `and`/`or` chain), `Section`, `Sized`, `BudgetPacket` |
+| `memory_entry`, `mandatory_constraint`, `section`, `sized`, `budget_packet` | `MemoryEntry` (`mandatory` is a `PyArg` stored as given), `MandatoryConstraint` (bool; `MandatoryConstraintValue` is the value of Python's `and`/`or` chain), `Section`, `Sized`, `BudgetPacket` |
 | `ConnectedContext(memory, **filters)` | `new ConnectedContext(memory, domain, routine, usage, environment)` |
 | `current`, `gaps`, `edges`, `conflicted_ids`, `truncated`, `tables` | `Current` (ordered), `Gaps` (the list object the build result shares), `Edges`, `ConflictedIds`, `Truncated`; tables are private |
 | `gap`, `constraint_guard`, `_diagnose`, `_successors`, `_work`, `build` | `Gap`, `ConstraintGuard`, `Diagnose`, `Successors`, `Work`, `Build`; `_constraint_scope`, `_sources`, `_work_entry`, `_work_ids`, `_related_work`, `_decision` are private |
@@ -65,6 +65,8 @@ API the MemoryCommands port needs (`memory_state.py`): `new MemorySearch(store, 
   pinned by `MemorySearchTests.Python_sum_matches_cpython_for_mixed_ints_and_floats` and judged through
   `vector_bytes` in `module_functions` and the differential fuzz.
   Request: move it to `PyNumbers` (as `Sum(IEnumerable<object>)`) in a State.Core change.
+- `MemorySearch.StructError`: Python's `struct.error` (`PythonType` `error`), raised only by `DecodedVector` with a
+  non-integral float dimension. Request: add it to State.Core's exception taxonomy (`PyErrors.cs`).
 
 ## Contract probe
 
@@ -78,7 +80,7 @@ word counts times weights, or a default vector) and can return fixed values, rai
 run store-changing steps on its first call (forgetting during an embedding request). Templates add `id:DOMAIN:KEY`
 (the record ID) and `json:EXPR` (parse a saved string). Binding errors use CPython 3.13's texts (`PyCall.Bind`).
 
-## Scenarios (`cloud/contracts/state/memory-search/`, 19 files)
+## Scenarios (`cloud/contracts/state/memory-search/`, 20 files)
 
 | Files | Cover |
 | --- | --- |
@@ -91,6 +93,7 @@ run store-changing steps on its first call (forgetting during an embedding reque
 | `context_work_live`, `context_work_fixtures` | live work joins through the real ledger (work_refs, work_ids, outcomes, meetings, resolution, other accounts, changed and restricted sources) and every work-entry branch over hand-built ledger rows (states, unknown fields, recap, unsupported kinds, relationship directions, superseded items, edge/node limits, the 200-row discovery limit, malformed meeting data) |
 | `context_decisions`, `context_diagnostic_limit` | supersession chains, decision references, retired decisions, unconfirmed/contradicting/duplicate/disputed decisions, the 50-gap cap |
 | `context_identities_relationships`, `context_memory_edges` | identities, relationship validity and evidence, environment filters, coverage evidence, shared-source depth; supersession limits and evidence, diagnostics for every ineligible kind, entity seeds, edge limits, nested environment requirements |
+| `review_regressions` | the independent review's failing-first cases: `section` of a mandatory entry without (or with an unhashable) kind, `memory_entry` keeping a non-bool `mandatory`, `vector_bytes`/`decoded_vector` with float, bool, string, list, `None` and dict dimensions (including `struct.error`), and a meeting's unhashable `recap_retry` status raising `TypeError` |
 | `context_bounds_budget`, `context_mandatory_constraints`, `context_mandatory_sources`, `context_mandatory_replacements`, `context_imported_preferences`, `context_read_guarantees` | bounds and budgets; the constraint guard in every state (stale, disputed, overdue, changed or restricted source, conflict links and flags, sensitive, expiry, routines, suppression, replacements, scoped successors, small budgets, the imported About-me profile and its file-change recovery action); caller transactions, no usage writes, forgetting, re-reading authority after inference |
 
 ### FTS: e_sqlite3 versus the system SQLite
@@ -130,6 +133,14 @@ scenarios with the fake encoder; the model ranking itself is not portable.
    binding errors for both.
 5. **`IMemorySource.ActiveLinks` is required**; a source without temporal links implements it as `Links` (Python's
    `getattr` fallback).
+6. **A second `ConnectedContext.Build` on the same instance** returns the live gaps list in the new result and leaves
+   the earlier result (or wherever the caller moved its `gaps`) a copy of the gaps as they stood: a JSON node has one
+   parent, while Python's results all share one list. `MemorySearch` builds once per context, so only direct callers
+   can see it (`MemorySearchTests.Connected_context_builds_more_than_once_like_python`).
+7. **`Encode(texts)` takes a list** (`JsonArray`, as `index`/`search` pass); Python's `encode` accepts any sized
+   iterable (a string's characters, a dict's keys). The probe twin therefore cannot run `encode` on a non-list (it
+   stops with an unhandled cast); no caller passes one. Likewise the probe's `memory_entry` needs a list of reasons and
+   `build` needs string IDs (deviation 1).
 
 ## Not ported (and why)
 
@@ -144,9 +155,31 @@ scenarios with the fake encoder; the model ranking itself is not portable.
 - The FTS proof is per SQLite build: if SQLitePCLRaw's bundled SQLite or the system SQLite changes its unicode61
   tables or bm25, `fts_queries` will show it; re-run it after upgrading either.
 
+## Independent review (second agent)
+
+Re-read both Python modules against the port line by line, then ran differential programs through both probes:
+560 random store programs (records of every kind with entities, routines, uses, canonical decisions, conflicts,
+expiry, sensitivity and work refs; random links; weighted encoders; index/rebuild with page limits around the 16-text
+batch; hybrid/lexical/semantic searches, contexts with small budgets, graphs and explains), 300 FTS programs (random
+code points from 25 scripts and blocks in corpora and queries, prefixes, case changes, FTS operator tokens), 300
+`vector_bytes`/`decoded_vector` programs (C-long boundaries, big ints, subnormals, overflow), plus targeted programs
+for hand-built ledger rows with malformed data, Dream-sourced records (`dream_index_current` false: snapshot
+metadata and `memory_record` sources whose parent changed), argument binding and validation. All matched except the
+defects fixed below (scenario `review_regressions` and the xUnit test failed before the fixes):
+
+- `section(entry)` read `entry["kind"]` before `entry.get("mandatory")`: a mandatory entry without a kind raised
+  `KeyError` where Python returns `constraints` (`MemoryContext.Section`).
+- A meeting's `recap_retry.status` that is a list or dict was ignored; Python's set membership raises
+  `TypeError: unhashable type` (`ConnectedContext.WorkEntry`).
+- `memory_entry(..., mandatory=X)` stored `bool(X)`; Python stores `X`.
+- `vector_bytes`/`decoded_vector` only accepted an `int` dimension (the probe raised `TypeError: not an int`); Python
+  compares with `!=`/`*` and formats with `%d`.
+- A second `ConnectedContext.Build` threw `InvalidOperationException` (the gaps list already had a parent); see
+  deviation 6.
+
 ## Verification
 
 - `cd cloud && dotnet build Margo.Cloud.slnx`: 0 warnings.
 - `dotnet test --project tests/Margo.Cloud.State.Tests/Margo.Cloud.State.Tests.csproj -- --filter-namespace
-  Margo.Cloud.State.Tests.MemorySearch`: 34 tests.
-- `python3 tools/state_parity.py --check --filter memory-search/`: 19 scenarios.
+  Margo.Cloud.State.Tests.MemorySearch`: 35 tests.
+- `python3 tools/state_parity.py --check --filter memory-search/`: 20 scenarios.

@@ -157,9 +157,10 @@ public static class MemoryContext
 
     /// <summary>
     /// <c>memory_entry(row, reasons, mandatory)</c>. <paramref name="reasons"/> is stored by reference, as in Python:
-    /// reasons appended to the same list later show in the entry.
+    /// reasons appended to the same list later show in the entry. <paramref name="mandatory"/> is stored as given
+    /// (Python keeps whatever value the caller passes; omitted is <c>False</c>).
     /// </summary>
-    public static JsonObject MemoryEntry(JsonNode? row, JsonArray reasons, bool mandatory = false)
+    public static JsonObject MemoryEntry(JsonNode? row, JsonArray reasons, PyArg mandatory = default)
     {
         ArgumentNullException.ThrowIfNull(reasons);
         var item = new JsonObject();
@@ -169,7 +170,7 @@ public static class MemoryContext
         }
 
         var uses = Get(row, "allowed_uses", new JsonArray("reasoning"));
-        item["mandatory"] = mandatory;
+        item["mandatory"] = PyNode.Copy(mandatory.Or(false));
         item["selection_reasons"] = reasons;
         item["source_record"] = new JsonObject
         {
@@ -225,13 +226,19 @@ public static class MemoryContext
     /// <summary><c>section(entry)</c>.</summary>
     public static string Section(JsonNode? entry)
     {
-        var kind = PyNode.Index(entry, "kind");
-        if (PyJson.Truthy(Get(entry, "mandatory")) || PyNode.IsOneOf(kind, "preference", "profile"))
+        // entry.get("mandatory") or entry["kind"] in {...}: a truthy mandatory never reads (or hashes) the kind.
+        if (PyJson.Truthy(Get(entry, "mandatory")))
         {
             return "constraints";
         }
 
+        var kind = PyNode.Index(entry, "kind");
         PyNode.RequireHashable(kind);
+        if (PyNode.IsOneOf(kind, "preference", "profile"))
+        {
+            return "constraints";
+        }
+
         return PyNode.AsString(kind) switch
         {
             "person" or "project" => "people_projects",
