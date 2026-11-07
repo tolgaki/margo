@@ -36,6 +36,10 @@ public sealed class HelpersProbeScript : IStateScript
             sub.AddParser(name).AddArgument("path");
         }
 
+        var nested = sub.AddParser("write-nested");
+        nested.AddArgument("path");
+        nested.AddArgument("depth", type: PyArgType.Int);
+
         var args = parser.ParseArgs(argv, stdout, stderr);
         var probe = new Probe(stdin, stdout);
         switch (args.GetString("command"))
@@ -56,8 +60,10 @@ public sealed class HelpersProbeScript : IStateScript
                 Write(args.GetString("path")!, PyIO.EncodeUtf8(PyProcess.ReadStdin(stdin)));
                 break;
             case "write-hex":
-                var hex = new string(PyProcess.ReadStdin(stdin).Where(c => !char.IsWhiteSpace(c)).ToArray());
-                Write(args.GetString("path")!, Convert.FromHexString(hex));
+                Write(args.GetString("path")!, FromHex(PyProcess.ReadStdin(stdin)));
+                break;
+            case "write-nested":
+                Write(args.GetString("path")!, PyIO.EncodeUtf8(Nested(probe.StdinJson(), args.GetInt("depth")!.Value)));
                 break;
             case "ops":
                 probe.Ops();
@@ -76,13 +82,106 @@ public sealed class HelpersProbeScript : IStateScript
         return 0;
     }
 
+    /// <summary>
+    /// <c>prefix + "[" * depth + inner + "]" * depth + suffix</c> from stdin's <c>[prefix, inner, suffix]</c>, so the
+    /// recursion-budget scenarios need not spell out ten thousand brackets per document.
+    /// </summary>
+    private static string Nested(JsonNode? parts, BigInteger depth)
+    {
+        var items = PyObj.Items(parts);
+        if (items.Count != 3)
+        {
+            throw new PyValueError((items.Count > 3 ? "too many values to unpack (expected 3, got " : "not enough values to unpack (expected 3, got ")
+                                   + items.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")");
+        }
+
+        if (depth > int.MaxValue)
+        {
+            throw new PyOverflowError("cannot fit 'int' into an index-sized integer");
+        }
+
+        var count = depth < 0 ? 0 : (int)depth;
+        return Concat(items[0]) + new string('[', count) + Concat(items[1]) + new string(']', count) + Concat(items[2]);
+
+        static string Concat(object? part) =>
+            PyObj.Normalize(part) as string ?? throw new PyTypeError("can only concatenate str (not \"" + PyObj.TypeName(part) + "\") to str");
+    }
+
+    /// <summary>Linux <c>O_TRUNC</c> (not in <see cref="PosixNative"/>; the same value on x86-64 and arm64).</summary>
+    private const int OTrunc = 0x200;
+
+    /// <summary>
+    /// <c>Path(path).write_bytes(data)</c> then <c>chmod(0o600)</c>: <c>os.open(O_WRONLY|O_CREAT|O_TRUNC, 0o666)</c> on
+    /// the pathlib-normalised path, so a failure is the <c>OSError</c> subclass Python raises
+    /// (<c>IsADirectoryError</c>, <c>FileNotFoundError</c>, ...) with the same text.
+    /// </summary>
     private static void Write(string path, byte[] data)
     {
-        File.WriteAllBytes(path, data);
+        var target = PyPath.Normalize(path);
+        var fd = PosixNative.Open(target, PosixNative.OWrOnly | PosixNative.OCreat | OTrunc, 0b110_110_110);
+        try
+        {
+            PosixNative.WriteAll(fd, data);
+        }
+        finally
+        {
+            PosixNative.Close(fd);
+        }
+
         if (!OperatingSystem.IsWindows())
         {
-            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            File.SetUnixFileMode(target, UnixFileMode.UserRead | UnixFileMode.UserWrite);
         }
+    }
+
+    /// <summary>
+    /// <c>bytes.fromhex(text)</c>: pairs of hex digits, ASCII whitespace (<c>Py_ISSPACE</c>) allowed only between pairs;
+    /// anything else is <c>ValueError</c> at the offending position (a non-ASCII character is reported first, the end
+    /// of the text for a missing second digit).
+    /// </summary>
+    private static byte[] FromHex(string text)
+    {
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (text[i] >= 128)
+            {
+                throw NonHex(i);
+            }
+        }
+
+        var result = new List<byte>(text.Length / 2);
+        var index = 0;
+        while (index < text.Length)
+        {
+            if (text[index] is ' ' or '\t' or '\n' or '\r' or '\v' or '\f')
+            {
+                index++;
+                continue;
+            }
+
+            var top = HexValue(text[index]);
+            if (top < 0)
+            {
+                throw NonHex(index);
+            }
+
+            index++;
+            var bottom = index < text.Length ? HexValue(text[index]) : -1;
+            if (bottom < 0)
+            {
+                throw NonHex(index);
+            }
+
+            index++;
+            result.Add((byte)((top << 4) | bottom));
+        }
+
+        return [.. result];
+
+        static int HexValue(char c) => char.IsAsciiHexDigit(c) ? Convert.ToInt32(c.ToString(), 16) : -1;
+
+        static PyValueError NonHex(int position) =>
+            new("non-hexadecimal number found in fromhex() arg at position " + position.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     private sealed class Probe(TextReader stdin, TextWriter stdout)

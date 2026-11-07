@@ -1,0 +1,182 @@
+{
+ "description": "helpers_probe.py write and write-hex fail as pathlib's write_bytes and bytes.fromhex do (state-helpers review): ASCII whitespace only between hex pairs, a non-ASCII character reported first, an odd digit count at the end of the text, ValueError (not .NET FormatException); writing to a directory or a missing parent is IsADirectoryError/FileNotFoundError; write-nested arguments.",
+ "steps": [
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write-hex",
+    "ok.bin"
+   ],
+   "stdin": "\n41 42\u000b43\n",
+   "expect_exit": 0
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write-hex",
+    "space-in-pair.bin"
+   ],
+   "stdin": "4 1",
+   "expect_exit": 1
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write-hex",
+    "odd.bin"
+   ],
+   "stdin": "414",
+   "expect_exit": 1
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write-hex",
+    "ideographic.bin"
+   ],
+   "stdin": "41　42",
+   "expect_exit": 1
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write-hex",
+    "nonascii-first.bin"
+   ],
+   "stdin": "zz ",
+   "expect_exit": 1
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write-hex",
+    "fs.bin"
+   ],
+   "stdin": "41\u001c42",
+   "expect_exit": 1
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write-hex",
+    "nonhex.bin"
+   ],
+   "stdin": "4g",
+   "expect_exit": 1
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write",
+    "."
+   ],
+   "stdin": "x",
+   "expect_exit": 1
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write",
+    ""
+   ],
+   "stdin": "x",
+   "expect_exit": 1
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write",
+    "missing/x"
+   ],
+   "stdin": "x",
+   "expect_exit": 1
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write",
+    "./a//b.txt"
+   ],
+   "stdin": "x",
+   "expect_exit": 1
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write",
+    "./a.txt"
+   ],
+   "stdin": "café\n",
+   "expect_exit": 0
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write-nested",
+    "n.txt",
+    "3"
+   ],
+   "stdin": [
+    "<",
+    "x",
+    ">"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write-nested",
+    "neg.txt",
+    "-2"
+   ],
+   "stdin": [
+    "<",
+    "x",
+    ">"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write-nested",
+    "bad.txt",
+    "1"
+   ],
+   "stdin": [
+    "<",
+    "x"
+   ],
+   "expect_exit": 1
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write-nested",
+    "bad2.txt",
+    "1"
+   ],
+   "stdin": [
+    "<",
+    1,
+    ">"
+   ],
+   "expect_exit": 1
+  },
+  {
+   "script": "helpers_probe.py",
+   "args": [
+    "write-nested",
+    "bad3.txt",
+    "x"
+   ],
+   "stdin": [
+    "<",
+    "x",
+    ">"
+   ],
+   "expect_exit": 2
+  }
+ ]
+}
