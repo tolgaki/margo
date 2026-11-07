@@ -159,6 +159,33 @@ public sealed class GuardRuntimeTests
         Assert.Equal(40, guard.Receipts.Count);
     }
 
+    /// <summary>
+    /// The guard accepts concurrent calls, but its journal is one SQLite connection whose transactions nest by
+    /// connection state: a <c>MarkDispatched</c> that overlaps another becomes a savepoint inside it, and is lost if
+    /// that transaction rolls back while the write is still sent. So the guard never lets two calls use the journal at
+    /// the same time.
+    /// </summary>
+    [Fact]
+    public async Task Concurrent_claimed_writes_never_use_the_journal_at_the_same_time()
+    {
+        using var desk = ApprovalDesk.Open();
+        var claims = Enumerable.Range(0, 3).Select(_ => desk.Started()).ToList();
+        using var journal = new OverlapDetectingJournal(new LedgerClaimJournal(desk.Ledger));
+        var transport = new ConcurrentTransport();
+        var guard = new WorkIQGuard(Binding, new FakeTokens(), transport, journal);
+        var calls = claims.Select(claim => Task.Run(() => guard.CallAsync(
+            "do_action", Send(claim.ActionId, claim.AttemptId), RunModes.Attended, TestContext.Current.CancellationToken)));
+        var results = await Task.WhenAll(calls);
+        Assert.Equal(1, journal.MaxActive);
+        Assert.All(results, result => Assert.Equal("ok", result.Status));
+        Assert.Equal(3, transport.Count);
+        foreach (var (actionId, _) in claims)
+        {
+            Assert.Equal("succeeded", desk.State(actionId));
+            Assert.Contains(LedgerClaimJournal.DispatchedEvent, desk.Events(actionId));
+        }
+    }
+
     [Fact]
     public void Budget_limits_are_checked()
     {
@@ -190,5 +217,72 @@ public sealed class GuardRuntimeTests
         using var ledger = Binding.OpenLedger(state.Root);
         Assert.Equal("autopilot:agent-identity-1:principal-1", ledger.Account);
         Assert.Throws<ArgumentNullException>(() => InstanceLedger.OpenLedger(null!, state.Root));
+    }
+}
+
+/// <summary>Wraps a journal and records the most calls that were inside it at once; each call waits briefly for a second one to arrive.</summary>
+internal sealed class OverlapDetectingJournal(IClaimJournal inner) : IClaimJournal, IDisposable
+{
+    private readonly ManualResetEventSlim _second = new();
+    private int _active;
+    private int _maxActive;
+
+    public int MaxActive => Volatile.Read(ref _maxActive);
+
+    public ExecutionClaim Load(JsonNode? actionId, JsonNode? attemptId, string callKey = "workiq") =>
+        Enter(() => inner.Load(actionId, attemptId, callKey));
+
+    public void MarkDispatched(ExecutionClaim claim) => Enter(() =>
+    {
+        inner.MarkDispatched(claim);
+        return 0;
+    });
+
+    public JsonObject Settle(ExecutionClaim claim, string state, int? statusCode = null) =>
+        Enter(() => inner.Settle(claim, state, statusCode));
+
+    public void Dispose() => _second.Dispose();
+
+    private T Enter<T>(Func<T> body)
+    {
+        var active = Interlocked.Increment(ref _active);
+        int seen;
+        while ((seen = Volatile.Read(ref _maxActive)) < active && Interlocked.CompareExchange(ref _maxActive, active, seen) != seen)
+        {
+        }
+
+        if (active > 1)
+        {
+            _second.Set();
+        }
+        else
+        {
+            _second.Wait(TimeSpan.FromMilliseconds(200));
+        }
+
+        try
+        {
+            return body();
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _active);
+        }
+    }
+}
+
+/// <summary>A thread-safe transport that answers every call with <c>{"statusCode": 202}</c>.</summary>
+internal sealed class ConcurrentTransport : IWorkIQTransport
+{
+    private int _count;
+
+    public string Endpoint => WorkIQEndpoints.McpUrl;
+
+    public int Count => Volatile.Read(ref _count);
+
+    public Task<JsonObject> CallAsync(string tool, JsonObject arguments, string bearer, CancellationToken cancellationToken = default)
+    {
+        Interlocked.Increment(ref _count);
+        return Task.FromResult(new JsonObject { ["statusCode"] = 202 });
     }
 }

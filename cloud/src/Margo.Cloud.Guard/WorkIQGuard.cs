@@ -35,13 +35,17 @@ namespace Margo.Cloud.Guard;
 /// results are never recorded.</item>
 /// </list>
 /// <para>Thread safety: calls may run concurrently; receipts and consumed claims are guarded by a lock. The claim
-/// journal (one SQLite connection) is used synchronously and is not made concurrent by this class.</para>
+/// journal (one SQLite connection, whose transactions nest by connection state) is only ever used by one call at a
+/// time: every <c>Load</c>, <c>MarkDispatched</c> and <c>Settle</c> runs under the guard's journal lock, so an
+/// overlapping dispatch can never become part of another call's transaction (and be rolled back with it). The lock
+/// is never held across the Work IQ call.</para>
 /// </remarks>
 public sealed class WorkIQGuard
 {
     private readonly ITokenProvider _tokens;
     private readonly Action<GuardReceipt>? _recorder;
     private readonly object _gate = new();
+    private readonly object _journalGate = new();
     private readonly HashSet<string> _consumed = new(StringComparer.Ordinal);
     private readonly List<GuardReceipt> _receipts = [];
 
@@ -192,7 +196,10 @@ public sealed class WorkIQGuard
         {
             try
             {
-                Journal!.MarkDispatched(claim);
+                lock (_journalGate)
+                {
+                    Journal!.MarkDispatched(claim);
+                }
             }
             catch (Exception)
             {
@@ -361,7 +368,10 @@ public sealed class WorkIQGuard
         ExecutionClaim claim;
         try
         {
-            claim = Journal.Load(PyDynamic.Get(given, "action_id"), PyDynamic.Get(given, "attempt_id"));
+            lock (_journalGate)
+            {
+                claim = Journal.Load(PyDynamic.Get(given, "action_id"), PyDynamic.Get(given, "attempt_id"));
+            }
         }
         catch (Exception exc) // ClaimException or ledger failure
         {
@@ -496,7 +506,11 @@ public sealed class WorkIQGuard
 
         try
         {
-            Journal!.Settle(claim, state, statusCode);
+            lock (_journalGate)
+            {
+                Journal!.Settle(claim, state, statusCode);
+            }
+
             receipt.Journal = state;
         }
         catch (Exception) // the dispatch event still blocks a resend; reconciliation is needed

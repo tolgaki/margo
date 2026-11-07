@@ -139,7 +139,12 @@ specification; everything not listed under "Deliberate deviations" is meant to b
    Python passes a `dict()` copy. `GuardResult.ToJsonObject()` copies the payload each time.
 5. **Thread safety.** Receipts and the in-memory set of used claims are behind a lock and `CallBudget.Charge` is
    atomic, so one guard may serve concurrent calls (Python's engine calls it one at a time). The ledger behind a
-   `LedgerClaimJournal` is one SQLite connection and must not be used concurrently, as in Python.
+   `LedgerClaimJournal` is one SQLite connection whose transactions nest by connection state, so the guard runs
+   every journal call (`Load`, `MarkDispatched`, `Settle`) under its own journal lock, never across the Work IQ call.
+   Without it, a `MarkDispatched` overlapping another call's journal transaction became a savepoint inside it and
+   was lost if that transaction rolled back, while the write was still sent (found in review; covered by
+   `Concurrent_claimed_writes_never_use_the_journal_at_the_same_time`). Anything else sharing that ledger (the state
+   tool, the office reader) must still not use it concurrently with the guard, as in Python.
 6. **Construction.** A `null` transport is a `GuardConfigException`, like a transport without `endpoint`.
    `CallBudget` takes an `int`; a negative limit is `ArgumentOutOfRangeException` (Python: `ValueError`).
 7. **Journal exceptions from the database.** A SQLite failure inside `Load` is reported in the refusal reason with
@@ -157,7 +162,7 @@ specification; everything not listed under "Deliberate deviations" is meant to b
 
 ## Tests and evidence
 
-`cloud/tests/Margo.Cloud.Guard.Tests` (1769 test cases), fakes for the transport and tokens, a real temporary
+`cloud/tests/Margo.Cloud.Guard.Tests` (1770 test cases), fakes for the transport and tokens, a real temporary
 `Ledger` for claims:
 
 - `GuardPolicyTests`: every test of `GuardPolicyTests` in `tests/test_autopilot_guard.py` (19).
@@ -169,7 +174,8 @@ specification; everything not listed under "Deliberate deviations" is meant to b
   reply-gate tests at the journal level. Expected messages were checked against `claims.py` on the same scenarios.
 - `DelegationTests`: `DelegationTests` of `tests/test_autopilot_runtime.py` (5).
 - `GuardRuntimeTests`: cancellation, the recorder hook, result and receipt shapes, payload copies, concurrent
-  budgets, the `jsonBody` nesting boundary, constants, `OpenLedger`.
+  budgets, concurrent claimed writes (the journal is never entered by two calls at once), the `jsonBody` nesting
+  boundary, constants, `OpenLedger`.
 - `GuardParityTests`: 1709 scenarios (809 hand-written for every branch, 900 seeded random; 1717 calls) recorded from
   `guard.py` by `Parity/guard_cases.py` into `Parity/guard_cases.json`, replayed against the C# guard: same
   response, receipt (apart from its time stamp), transport call (tool, arguments, bearer), token requests and journal
@@ -182,10 +188,18 @@ python3 cloud/tests/Margo.Cloud.Guard.Tests/Parity/guard_cases.py --check   # fi
 python3 cloud/tests/Margo.Cloud.Guard.Tests/Parity/guard_cases.py --write   # regenerate after guard.py changes
 ```
 
-Verification at commit: `dotnet build cloud/Margo.Cloud.slnx` 0 warnings; `dotnet test --solution Margo.Cloud.slnx`
-4808 passed, 0 failed, 0 skipped; `python3 tools/state_parity.py --check` 104 scenarios passed;
+Verification at commit (re-run after the review fix): `dotnet build cloud/Margo.Cloud.slnx` 0 warnings;
+`dotnet test --solution Margo.Cloud.slnx` 4809 passed, 0 failed, 0 skipped; `python3 tools/state_parity.py --check` 104 scenarios passed;
 `python3 -m unittest discover -s tests -p 'test_*.py'` 518 OK (4 skipped); `./tools/check-clean.sh` clean (the
 random path segment `Users` became `USERS` so the fixture holds no `/Users/<name>` text).
+
+Independent review (on top of the port): 22,036 further scenarios generated from `guard.py` with other seeds and
+wider inputs (random characters in paths, Unicode whitespace and case folding, lone surrogates, path lengths at
+the 2048-code-point boundary with astral and surrogate characters, unexpected keys that sort differently by code
+point and by UTF-16 unit, claim fields of every JSON type, boolean and 64-bit-overflowing status codes, repeated
+calls) were replayed through `GuardParityTests` with the same comparison; all matched. They are not checked in
+(the generator reused `guard_cases.py`'s fakes and `run`). The one defect found was the concurrent journal use in
+deviation 5.
 
 Not verified: anything against the real Work IQ endpoint or a real token provider; Python 3.12 (the image's
 version; the fixture was recorded on 3.13). These are policy and contract tests, not model evaluations.

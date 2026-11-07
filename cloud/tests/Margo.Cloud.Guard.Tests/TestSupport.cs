@@ -88,7 +88,11 @@ internal sealed class FakeTransport : IWorkIQTransport
 
     public Task<JsonObject> CallAsync(string tool, JsonObject arguments, string bearer, CancellationToken cancellationToken = default)
     {
-        Calls.Add((tool, PyDynamic.CloneObject(arguments), bearer));
+        lock (Calls) // Concurrent_calls_never_exceed_the_budget calls this from several threads
+        {
+            Calls.Add((tool, PyDynamic.CloneObject(arguments), bearer));
+        }
+
         During?.Invoke();
         cancellationToken.ThrowIfCancellationRequested();
         if (_error is not null)
