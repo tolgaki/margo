@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text.Json.Nodes;
 using Margo.Cloud.State.Core;
 using Margo.Cloud.State.Proactive;
@@ -34,6 +35,55 @@ public sealed class ProactiveHelperTests
         Assert.True(double.IsNegative(Py.FloorDivide(-0.0, 5.0)));
         Assert.True(double.IsNegative(Py.FloorDivide(0.0, -5.0)));
         Assert.Equal("ZeroDivisionError", Assert.Throws<PyZeroDivisionError>(() => Py.FloorDivide(1.0, 0.0)).PythonType);
+    }
+
+    // timedelta(seconds=x) // timedelta(microseconds=1), measured with CPython 3.13 (leftover rounded half to even).
+    [Theory]
+    [InlineData(1.5, 1500000L)]
+    [InlineData(0.0000015, 2L)]
+    [InlineData(0.0000025, 2L)]
+    [InlineData(0.0000035, 4L)]
+    [InlineData(0.0000045, 4L)]
+    [InlineData(0.0000005, 0L)]
+    [InlineData(-0.0000005, 0L)]
+    [InlineData(-0.0000015, -2L)]
+    [InlineData(-0.0000025, -2L)]
+    [InlineData(-2.5, -2500000L)]
+    [InlineData(1e-7, 0L)]
+    [InlineData(0.1, 100000L)]
+    [InlineData(0.3333333333333333, 333333L)]
+    [InlineData(2.675, 2675000L)]
+    [InlineData(123456.7890125, 123456789012L)]
+    [InlineData(-123456.7890125, -123456789012L)]
+    [InlineData(86399.9999995, 86399999999L)]
+    public void Float_timedelta_seconds_round_like_cpython(double seconds, long microseconds)
+    {
+        Assert.Equal((Int128)microseconds, Py.TimedeltaSeconds(seconds).TotalMicroseconds);
+    }
+
+    [Fact]
+    public void Stored_number_arithmetic_raises_python_errors()
+    {
+        // Review regression: hand-edited REAL/huge values used to raise TypeError or wrap around 64 bits.
+        Assert.Equal((Int128)60_000_000, Py.TimedeltaSeconds(60L).TotalMicroseconds);
+        Assert.Equal("days=1000000000; must have magnitude <= 999999999",
+                     Assert.Throws<PyOverflowError>(() => Py.TimedeltaSeconds(86400.0 * 1000000000)).Message);
+        Assert.Equal("Python int too large to convert to C int", Assert.Throws<PyOverflowError>(() => Py.TimedeltaSeconds(1e15)).Message);
+        Assert.Equal("cannot convert float infinity to integer",
+                     Assert.Throws<PyOverflowError>(() => Py.TimedeltaSeconds(double.NegativeInfinity)).Message);
+        Assert.Equal("unsupported type for timedelta seconds component: str", Assert.Throws<PyTypeError>(() => Py.TimedeltaSeconds("60")).Message);
+        Assert.Equal(2L, Py.Add(1L, 1));
+        Assert.Equal(new BigInteger(long.MaxValue) + 1, Py.Add(long.MaxValue, 1));
+        Assert.Equal(2.5, Py.Add(1.5, 1));
+        Assert.Equal("can only concatenate str (not \"int\") to str", Assert.Throws<PyTypeError>(() => Py.Add("1", 1)).Message);
+        Assert.Equal("can't concat int to bytes", Assert.Throws<PyTypeError>(() => Py.Add(new byte[] { 1 }, 1)).Message);
+        Assert.Equal("unsupported operand type(s) for +: 'NoneType' and 'int'", Assert.Throws<PyTypeError>(() => Py.Add(null, 1)).Message);
+        Assert.Equal(BigInteger.Parse("3600000000000000122398779418931231681982886974873827863816617781501617083061490207476795509503496375733795"
+                                      + "5083705774550140102578466523574119558328648203694292249838899483936583790951896150347715813770710693562680"
+                                      + "15576057490939120336433607805879485031047299112132322515277595685754259698210966215046725632",
+                                      System.Globalization.CultureInfo.InvariantCulture),
+                     Py.Trunc(Py.FloorDivide(3600.0, 1e-300)));
+        Assert.Equal("cannot convert float NaN to integer", Assert.Throws<PyValueError>(() => Py.Trunc(double.NaN)).Message);
     }
 
     [Fact]

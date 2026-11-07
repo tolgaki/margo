@@ -86,6 +86,47 @@ internal static class Py
     public static string TypeName(JsonNode? node) => PyJson.TypeName(node);
 
     /// <summary>
+    /// A deep copy of a JSON value (Python's <c>dict(...)</c>/comprehension copies keep the same values).
+    /// Never use <see cref="JsonNode.DeepClone"/> on Python values: it re-serializes a <see cref="BigInteger"/>
+    /// value (a Python int beyond 64 bits) through System.Text.Json reflection, turning <c>10**30</c> into
+    /// <c>{"IsEven":true,"IsOne":false,...}</c>.
+    /// </summary>
+    public static JsonNode? Copy(JsonNode? node)
+    {
+        switch (node)
+        {
+            case null:
+                return null;
+            case JsonObject obj:
+            {
+                var copy = new JsonObject();
+                foreach (var (key, value) in obj)
+                {
+                    copy[key] = Copy(value);
+                }
+
+                return copy;
+            }
+
+            case JsonArray array:
+            {
+                var copy = new JsonArray();
+                foreach (var value in array)
+                {
+                    copy.Add(Copy(value));
+                }
+
+                return copy;
+            }
+
+            case JsonValue value when value.TryGetValue<BigInteger>(out var big):
+                return PyJson.Int(big);
+            default:
+                return node.DeepClone();
+        }
+    }
+
+    /// <summary>
     /// <c>margo_store.validate_timestamp(value)</c> for any JSON value. <see cref="StateStore.ValidateTimestamp"/>
     /// unwraps <see cref="JsonNode"/> scalars, but a dict or list must take the "not a str" path, as in Python.
     /// </summary>
@@ -103,7 +144,7 @@ internal static class Py
         string text => JsonValue.Create(text),
         bool flag => JsonValue.Create(flag),
         BigInteger big => PyJson.Int(big),
-        JsonNode node => node.DeepClone(),
+        JsonNode node => Copy(node),
         byte[] => throw new PyTypeError("Object of type bytes is not JSON serializable"),
         _ => throw new PyTypeError("Object of type " + value.GetType().Name + " is not JSON serializable"),
     };
@@ -132,12 +173,110 @@ internal static class Py
     public static string Str(object? value) => value as string
         ?? throw new PyTypeError("can only concatenate str (not \"" + SqlTypeName(value) + "\") to str");
 
-    /// <summary>A Python int read from SQLite (INTEGER storage class).</summary>
-    public static long Int(object? value) => value switch
+    /// <summary><c>int(x)</c> of a float: exact and unbounded; NaN and infinities raise as in Python.</summary>
+    public static BigInteger Trunc(double value) =>
+        double.IsNaN(value) ? throw new PyValueError("cannot convert float NaN to integer")
+        : double.IsInfinity(value) ? throw new PyOverflowError("cannot convert float infinity to integer")
+        : new BigInteger(Math.Truncate(value));
+
+    /// <summary>
+    /// Python <c>value + n</c> for a value read from SQLite: an int stays an int (a sum beyond 64 bits is a
+    /// <see cref="BigInteger"/>, which sqlite3 binding refuses with <c>OverflowError</c>, as in Python), a float
+    /// (REAL in a hand-edited INTEGER column) stays a float; str, bytes and None raise Python's <c>TypeError</c>.
+    /// </summary>
+    public static object Add(object? value, long n)
     {
-        long integer => integer,
-        _ => throw new PyTypeError("unsupported operand type(s) for +: '" + SqlTypeName(value) + "' and 'int'"),
-    };
+        switch (value)
+        {
+            case long integer:
+                var sum = (BigInteger)integer + n;
+                return sum >= long.MinValue && sum <= long.MaxValue ? (object)(long)sum : sum;
+            case BigInteger big:
+                return big + n;
+            case double number:
+                return number + n;
+            case string:
+                throw new PyTypeError("can only concatenate str (not \"int\") to str");
+            case byte[]:
+                throw new PyTypeError("can't concat int to bytes");
+            default:
+                throw new PyTypeError("unsupported operand type(s) for +: '" + SqlTypeName(value) + "' and 'int'");
+        }
+    }
+
+    /// <summary>
+    /// <c>timedelta(seconds=value)</c> for a value read from SQLite: ints exactly; floats as CPython's
+    /// <c>delta_new</c>/<c>accum</c> do (integral part exact, fraction scaled to microseconds, the leftover rounded
+    /// half to even); infinities, out-of-range days and other types raise Python's <c>OverflowError</c>/<c>TypeError</c>.
+    /// </summary>
+    public static PyTimeDelta TimedeltaSeconds(object? value)
+    {
+        BigInteger micros;
+        switch (value)
+        {
+            case long integer:
+                micros = (BigInteger)integer * 1_000_000;
+                break;
+            case BigInteger big:
+                micros = big * 1_000_000;
+                break;
+            case double number:
+            {
+                if (double.IsNaN(number))
+                {
+                    throw new PyValueError("cannot convert float NaN to integer");
+                }
+
+                if (double.IsInfinity(number))
+                {
+                    throw new PyOverflowError("cannot convert float infinity to integer");
+                }
+
+                var whole = Math.Truncate(number); // modf
+                var fraction = number - whole;
+                micros = new BigInteger(whole) * 1_000_000;
+                var leftover = 0.0;
+                if (fraction != 0.0)
+                {
+                    var scaled = 1_000_000.0 * fraction;
+                    var scaledWhole = Math.Truncate(scaled);
+                    micros += new BigInteger(scaledWhole);
+                    leftover = scaled - scaledWhole;
+                }
+
+                if (leftover != 0.0)
+                {
+                    var rounded = Math.Round(leftover, MidpointRounding.AwayFromZero); // C round()
+                    if (Math.Abs(rounded - leftover) == 0.5)
+                    {
+                        var odd = micros.IsEven ? 0 : 1;
+                        rounded = (2.0 * Math.Round((leftover + odd) * 0.5, MidpointRounding.AwayFromZero)) - odd;
+                    }
+
+                    micros += new BigInteger(rounded);
+                }
+
+                break;
+            }
+
+            default:
+                throw new PyTypeError("unsupported type for timedelta seconds component: " + SqlTypeName(value));
+        }
+
+        // microseconds_to_delta_ex: days must fit a C int before the 999999999-day range check.
+        var days = BigInteger.Divide(micros - (micros.Sign < 0 ? 86_400_000_000 - 1 : 0), 86_400_000_000);
+        if (days < int.MinValue || days > int.MaxValue)
+        {
+            throw new PyOverflowError("Python int too large to convert to C int");
+        }
+
+        if (BigInteger.Abs(days) > 999_999_999)
+        {
+            throw new PyOverflowError("days=" + days.ToString(CultureInfo.InvariantCulture) + "; must have magnitude <= 999999999");
+        }
+
+        return PyTimeDelta.FromMicroseconds((Int128)micros);
+    }
 
     /// <summary>Python truthiness of a SQLite value.</summary>
     public static bool Truthy(object? value) => value switch

@@ -281,7 +281,7 @@ public static class ProactiveState
         return StateStore.CanonicalJson(value);
     }
 
-    private static JsonNode? Clone(JsonNode? node) => node?.DeepClone();
+    private static JsonNode? Clone(JsonNode? node) => Py.Copy(node);
 
     // ================================================================================ queue
 
@@ -289,7 +289,7 @@ public static class ProactiveState
 
     private static ItemValues Item(JsonNode? data, string? tier = null)
     {
-        var item = (JsonObject)ObjectJson(data).DeepClone();
+        var item = (JsonObject)Py.Copy(ObjectJson(data))!;
         var stableId = Text(Py.Get(item, "id"), "id")!;
         var family = Family(Py.Get(item, "family", "legacy"));
         var scopeValue = Py.Get(item, "scope", new JsonObject());
@@ -816,7 +816,7 @@ public static class ProactiveState
 
     private static JsonObject Window(JsonNode? value)
     {
-        var window = (JsonObject)ObjectJson(value).DeepClone();
+        var window = (JsonObject)Py.Copy(ObjectJson(value))!;
         Fields(window, "start end");
         if (window.Count > 0)
         {
@@ -1035,7 +1035,7 @@ public static class ProactiveState
         }
 
         // digest(dict(data, observations=[json.loads(row[2]) for row in validated]))
-        var fingerprintSource = (JsonObject)input.DeepClone();
+        var fingerprintSource = (JsonObject)Py.Copy(input)!;
         fingerprintSource["observations"] = new JsonArray(validated.Select(row => PyJson.Loads(row.Payload)).ToArray());
         var fingerprint = Digest(fingerprintSource);
         return StateStore.Transaction(conn, () =>
@@ -1052,7 +1052,7 @@ public static class ProactiveState
                 return new JsonObject { ["attempt_id"] = attemptId, ["page"] = page, ["replayed"] = true };
             }
 
-            if (!Py.Eq(attempt["status"], "running") || Py.Truthy(attempt["pagination_complete"]) || page != Py.Int(attempt["pages"]) + 1)
+            if (!Py.Eq(attempt["status"], "running") || Py.Truthy(attempt["pagination_complete"]) || !Py.Eq(page, Py.Add(attempt["pages"], 1)))
             {
                 throw new StateError("attempt must be running and pages contiguous, with no page after final");
             }
@@ -1094,7 +1094,7 @@ public static class ProactiveState
     public static JsonObject CoverageFinish(PyConnection conn, string attemptId, JsonNode? data)
     {
         ArgumentNullException.ThrowIfNull(conn);
-        var input = (JsonObject)ObjectJson(data).DeepClone();
+        var input = (JsonObject)Py.Copy(ObjectJson(data))!;
         Fields(input, "status checkpoint_at watermark delta_token covered_start covered_end error_class "
                       + "retry_after_seconds next_retry_at");
         var statusValue = Py.Get(input, "status");
@@ -1251,9 +1251,10 @@ public static class ProactiveState
             }
             else if (isApplied)
             {
-                var previousFailures = Py.Int(source["consecutive_failures"]);
-                var failures = previousFailures + 1;
-                var episode = Py.Int(source["episode"]) + (previousFailures == 0 ? 1 : 0);
+                // Python int/float arithmetic on the stored values (a sum beyond 64 bits fails to bind, as in Python).
+                var previousFailures = source["consecutive_failures"];
+                var failures = Py.Add(previousFailures, 1);
+                var episode = Py.Add(source["episode"], Py.Eq(previousFailures, 0L) ? 1 : 0);
                 var failureStarted = Py.Truthy(source["failure_started_at"]) ? source["failure_started_at"] : now;
                 var nextRetry = StrField("next_retry_at");
                 if (retry is not null && nextRetry is null)
@@ -1266,10 +1267,11 @@ public static class ProactiveState
                 var elapsed = (PyDateTime.FromIsoformat(now) - PyDateTime.FromIsoformat(Py.Str(failureStarted))).TotalSeconds();
                 var cadence = source["cadence_seconds"];
                 var escalated = cadence is not null && Py.Compare(elapsed, cadence, ">=") >= 0;
-                if (failures == 1 || escalated)
+                var first = Py.Eq(failures, 1L);
+                if (first || escalated)
                 {
                     conn.Execute("INSERT OR IGNORE INTO proactive_health_events VALUES (?,?,?,?,?)",
-                                 source["source_key"], episode, failures == 1 ? "degraded" : "escalated", now, errorClass);
+                                 source["source_key"], episode, first ? "degraded" : "escalated", now, errorClass);
                 }
             }
 
@@ -1326,7 +1328,7 @@ public static class ProactiveState
             var successfulAt = row["last_successful_coverage_at"];
             var cadence = row["cadence_seconds"];
             var failureStarted = row["failure_started_at"];
-            long? missed = null;
+            BigInteger? missed = null;
             if (cadence is not null)
             {
                 if (!Py.Truthy(failureStarted))
@@ -1335,13 +1337,14 @@ public static class ProactiveState
                 }
                 else
                 {
+                    // 1 + max(0, int(elapsed // cadence)): int() of a float is exact and unbounded in Python.
                     var elapsed = (PyDateTime.Now() - PyDateTime.FromIsoformat(Py.Str(failureStarted))).TotalSeconds();
                     var periods = Py.FloorDivide(elapsed, CadenceDouble(cadence));
-                    missed = 1 + (long)Math.Max(0, Math.Truncate(periods));
+                    missed = 1 + BigInteger.Max(BigInteger.Zero, Py.Trunc(periods));
                 }
             }
 
-            item["missed_cadences"] = missed;
+            item["missed_cadences"] = missed is { } count ? PyJson.Int(count) : null;
             item["escalated"] = missed is not null && missed >= 2;
             if (cadence is null)
             {
@@ -1350,7 +1353,7 @@ public static class ProactiveState
             else
             {
                 item["fresh"] = Py.Truthy(successfulAt)
-                                && PyDateTime.Now() <= PyDateTime.FromIsoformat(Py.Str(successfulAt)) + PyTimeDelta.FromSeconds(Py.Int(cadence));
+                                && PyDateTime.Now() <= PyDateTime.FromIsoformat(Py.Str(successfulAt)) + Py.TimedeltaSeconds(cadence);
             }
 
             result.Add(item);

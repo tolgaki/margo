@@ -371,7 +371,7 @@ public sealed class ProactiveStateScript : IStateScript
         {
             ["attempt_id"] = attemptId,
             ["status"] = Py.Node(attempt["status"]),
-            ["next_page"] = Py.Int(attempt["pages"]) + 1,
+            ["next_page"] = Py.Node(Py.Add(attempt["pages"], 1)),
             ["continuation"] = Py.Node(attempt["continuation"]),
             ["delta_token"] = incompatible ? null : Py.Node(source["delta_token"]),
             ["checkpoint_at"] = Py.Node(source["checkpoint_at"]),

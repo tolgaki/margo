@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Numerics;
-using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Margo.Cloud.State.Core;
@@ -116,7 +115,7 @@ public sealed partial class ProactiveProbeScript : IStateScript
         JsonArray array => new JsonArray(array.Select(item => Substitute(item, resolve)).ToArray()),
         JsonObject obj => SubstituteObject(obj, resolve),
         JsonValue when Py.IsStr(value, out var text) => JsonValue.Create(Placeholder().Replace(text, resolve)),
-        _ => value?.DeepClone(),
+        _ => Py.Copy(value),
     };
 
     private static JsonObject SubstituteObject(JsonObject obj, MatchEvaluator resolve)
@@ -240,7 +239,7 @@ public sealed partial class ProactiveProbeScript : IStateScript
         index >= args.Count || Py.IsNone(args[index]) ? null
         : ((JsonArray)args[index]!).Select(item => Py.IsStr(item, out var text) ? text : throw new InvalidOperationException("probe: list of str expected")).ToList();
 
-    private static JsonNode? Data(JsonArray args, int index) => index < args.Count ? args[index]?.DeepClone() : null;
+    private static JsonNode? Data(JsonArray args, int index) => index < args.Count ? Py.Copy(args[index]) : null;
 
     private static JsonNode? Invoke(PyConnection conn, string name, JsonArray args)
     {
@@ -328,7 +327,7 @@ public sealed partial class ProactiveProbeScript : IStateScript
         var binary = rest.Count > 0 && rest[0] == "--hex";
         var path = rest[^1];
         var data = PyIO.ReadText(stdin);
-        var content = binary ? Convert.FromHexString(data) : Encoding.UTF8.GetBytes(data);
+        var content = binary ? FromHex(data) : PyIO.EncodeUtf8(data);
         CreateParent(path);
         using var stream = new FileStream(path, new FileStreamOptions
         {
@@ -337,6 +336,40 @@ public sealed partial class ProactiveProbeScript : IStateScript
         });
         stream.Write(content);
         return 0;
+    }
+
+    // bytes.fromhex(text): pairs of hex digits, ASCII whitespace allowed between (not inside) pairs.
+    private static byte[] FromHex(string text)
+    {
+        var bytes = new List<byte>();
+        var index = 0;
+        while (index < text.Length)
+        {
+            if (text[index] is ' ' or '\t' or '\n' or '\r' or '\v' or '\f')
+            {
+                index++;
+                continue;
+            }
+
+            var high = HexDigit(text, index);
+            var low = HexDigit(text, index + 1);
+            bytes.Add((byte)((high << 4) | low));
+            index += 2;
+        }
+
+        return [.. bytes];
+    }
+
+    private static int HexDigit(string text, int index)
+    {
+        var digit = index < text.Length ? char.ToLowerInvariant(text[index]) : '\0';
+        return digit switch
+        {
+            >= '0' and <= '9' => digit - '0',
+            >= 'a' and <= 'f' => digit - 'a' + 10,
+            _ => throw new PyValueError("non-hexadecimal number found in fromhex() arg at position "
+                                        + index.ToString(CultureInfo.InvariantCulture)),
+        };
     }
 
     private static int Link(List<string> rest)
