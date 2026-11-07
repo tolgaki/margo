@@ -1,7 +1,8 @@
 using System.Numerics;
 using System.Text.Json.Nodes;
+using Margo.Cloud.State.Core;
 
-namespace Margo.Cloud.State.Core;
+namespace Margo.Cloud.State.Probes;
 
 /// <summary>
 /// C# twin of <c>cloud/contracts/state/probes/state_core_probe.py</c>. Not a Margo command and not offered to
@@ -9,7 +10,7 @@ namespace Margo.Cloud.State.Core;
 /// the same inputs so the shared helpers (PyJson, PyTime, PyArgs, PyIds, StateStore, PyConnection) are judged
 /// byte for byte against CPython. Keep the two files in step.
 /// </summary>
-public sealed class StateCoreProbeScript : IStateScript
+public sealed class StateCoreProbeScript : IStateProbeScript
 {
     public string ScriptName => "state_core_probe.py";
 

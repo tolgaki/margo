@@ -51,12 +51,13 @@ order (the module docstring is `ProactiveStateScript.Doc`, shown with the raw de
 argparse/validation/storage errors), stderr lines (`ERROR: ...`, the queue-drain lease line, the cursor hint),
 `setup-needed` status, and the same exception families mapped to `storage unavailable; no reset performed`.
 `_input`, `_emit` and `_queue_output` are `Input`, `Emit` and `QueueOutput`; the text queue view formats
-values with Python `str()` (`Py.Format`: dict/list `repr`, `True`/`None`, float repr).
+values with Python `str()` (`PyNode.Str`: dict/list `repr`, `True`/`None`, float repr).
 
 ### Probe (`ProactiveProbeScript` / `cloud/contracts/state/probes/proactive_probe.py`)
 
-Not a Margo command (the hosted tool runs only scripts classified in `statecmd.COMMANDS`). It lets the judge
-reach what separate `proactive_state.py` processes cannot:
+Not a Margo command: the twin lives in `Margo.Cloud.State.Probes`, which Release builds of `margo-state` do not
+contain and which runs only with `MARGO_STATE_PROBES=1` (and the hosted tool runs only scripts classified in
+`statecmd.COMMANDS`). It lets the judge reach what separate `proactive_state.py` processes cannot:
 
 - `cli ARGS...` runs `proactive_state.main()` (C#: `ProactiveStateScript.Run`) under an optional fixed clock
   (`--now`; Python patches `utc_now`/`datetime.now`, C# uses `PyRuntime.Override(clock:)`), so freshness,
@@ -99,32 +100,23 @@ cases it converts; library-level cases are also ported to xUnit in
    payload is decoded as UTF-8 for `json.loads`; Python also detects UTF-16/32 and a UTF-8 BOM. Only reachable
    by editing the database by hand.
 5. *(Withdrawn in review.)* Arithmetic on hand-edited values in INTEGER columns now follows Python:
-   `Py.Add` (int + 1 stays an int and fails to bind beyond 64 bits with `OverflowError`; REAL stays a float;
-   TEXT/BLOB/None raise `TypeError`), `Py.TimedeltaSeconds` (`timedelta(seconds=x)` for a REAL cadence, with
-   CPython's half-even microsecond rounding and its `OverflowError`s) and `Py.Trunc` (`int()` of a float is
-   unbounded). See `tampered_numbers.json`.
+   `PyNumbers.Add` (int + 1 stays an int and fails to bind beyond 64 bits with `OverflowError`; REAL stays a
+   float; TEXT/BLOB/None raise `TypeError`), `PyTimeDelta.FromPySeconds` (`timedelta(seconds=x)` for a REAL cadence,
+   with CPython's half-even microsecond rounding and its `OverflowError`s) and `PyNumbers.Trunc` (`int()` of a float
+   is unbounded). See `tampered_numbers.json`.
 6. **Uncaught Python exceptions** (`AttributeError` for a non-dict payload, `ZeroDivisionError`) are
-   `PyAttributeError`/`PyZeroDivisionError` in this project and escape as exit 1, as in Python. The judge
+   State.Core's `PyAttributeError`/`PyZeroDivisionError` and escape as exit 1, as in Python. The judge
    compares their class (`damaged_state.json`).
 
-## Helpers that belong in Margo.Cloud.State.Core
+## Python semantics (State.Core)
 
-Added here because this project may not edit Core; Core should absorb them so later ports share one copy:
-
-- `Py` (PyValues.cs): `dict.get` with Python's absent-vs-`None` rule, `pop` with Python's errors on non-dicts,
-  Python `str()`/`repr()` of JSON values, ordering and equality across SQLite values and JSON scalars
-  (code-point string order, exact int/float comparison, `TypeError` for mixed types), SQLite value to
-  `JsonNode` (`dict(row)`), `json.loads` of a SQLite value, CPython float floor division.
-- `Py.Copy`: a deep copy of a Python JSON value. **Every port needs this:** `JsonNode.DeepClone()` re-serializes
-  a `BigInteger` value (any Python int beyond 64 bits, which `PyJson.Loads` produces) through System.Text.Json
-  reflection as `{"IsEven":true,"IsOne":false,...}`. Core should offer the copy and say so in its PORTING.md.
-- `Py.Add`, `Py.TimedeltaSeconds`, `Py.Trunc`: Python `int + int`/`float + int` on SQLite values,
-  `timedelta(seconds=float)` (Core's `PyTimeDelta` has integral factories only) and `int(float)`.
-- `PyAttributeError`, `PyZeroDivisionError` (PyErrors.cs).
-- **Request:** `StateStore.ValidateTimestamp(JsonNode)` raises `PyTypeError("not a scalar")` for a dict or
-  list (via `PyJson.Scalar`), where Python's `validate_timestamp` raises the `StateError`
-  `timestamp must be an ISO-8601 datetime with an explicit timezone`. The port routes JSON values through
-  `Py.Timestamp`, which passes containers as a non-string; Core should do this itself.
+This port's own helpers (`PyValues.cs`) moved to State.Core in the state consolidation (see its PORTING.md):
+`Py.Get`/`Index`/`Pop`/`IsStr`/`Repr`/`Format`, `Py.Node`/`Dict`/`Loads` (SQLite values, `dict(row)`) and `Py.Copy`
+are `PyNode`; `Py.Eq`/`Compare`/`Truthy`/`Str` on SQLite values are `PyObj` (which follows `float_richcompare`
+for NaN, where `Py` treated NaN as equal to itself; SQLite cannot store NaN); `Py.Add`/`Trunc`/`FloorDivide` are
+`PyNumbers`; `Py.TimedeltaSeconds` is `PyTimeDelta.FromPySeconds`; the exception classes are in `PyErrors.cs`.
+`Py.Timestamp` is gone: `StateStore.ValidateTimestamp` itself now raises the timestamp `StateError` for a dict or
+list, as Python's `validate_timestamp` does.
 
 ## Review fixes (second pass)
 
@@ -136,7 +128,7 @@ scenario and xUnit test first:
 - **Python ints beyond 64 bits were corrupted.** `_item`, `_window`, `coverage_page` and `coverage_finish` copied
   input with `JsonNode.DeepClone()`, which turns a `BigInteger` value into `{"IsEven":...,"Sign":1}`: the stored
   payload, the computed revision and item key, observation payloads and page fingerprints differed from Python
-  (for example `queue-add --json '{"id":"j","x":1000000000000000000000000000000}'`). Copies now use `Py.Copy`
+  (for example `queue-add --json '{"id":"j","x":1000000000000000000000000000000}'`). Copies now use `Py.Copy` (since the state consolidation `PyNode.Copy`)
   (`big_integers.json`, `Python_ints_beyond_64_bits_keep_their_value_in_payloads_digests_and_pages`).
 - **Arithmetic on hand-edited stored values** raised `TypeError` (exit 2) where Python computes a float (a REAL
   `cadence_seconds`, `consecutive_failures`, `episode` or `pages`), and silently wrapped around 64 bits where
@@ -163,20 +155,11 @@ the Engine's `statecmd` port; the C# command itself implements `import-legacy` f
   (AGENTS.md asks read commands not to initialize). Kept as the specification.
 - `publication-review --at` accepts a future timestamp, and `reviewed_at` keeps the first review time on
   replay (`COALESCE`). Kept.
-- `cloud/contracts/state/README.md` (not owned here) could list `proactive/` and `probes/proactive_probe.py`
-  in its layout table.
-- Core finding (not fixable here): `PyTimeDelta` accepts totals in `(-1000000000 days, -999999999 days)`, which
-  CPython refuses (`days=-1000000000; must have magnitude <= 999999999`): its lower bound check is
-  `micros <= -Limit` instead of `micros < -999999999 days`. Not observable through this command (adding such a
-  delta to a datetime overflows anyway).
 - `coverage_finish` reads the source row before its complete-status checks and raises `TypeError` if the row is
   missing, where Python raises those `StateError`s first. Unreachable: `connect()` refuses broken references and
   foreign keys are enforced.
 - `status_report` keys the item and publication counts by `str`; Python would also accept non-text statuses,
   which only a schema rebuilt without its `CHECK` constraints could hold.
-- The probe twin ships in the production assembly with `sql`/`write`/`link` modes (arbitrary SQL and file
-  writes). Like `state_core_probe.py`, it is unreachable only because the hosted tool runs classified scripts;
-  the Engine port must keep that allow-list (or the CLI should hide probes outside tests).
 
 ## Verification
 
@@ -187,4 +170,5 @@ the Engine's `statecmd` port; the C# command itself implements `import-legacy` f
   composition (savepoints inside the caller's transaction), a fixed-clock freshness/escalation case, and the
   helper semantics with CPython-measured values.
 - `python3 tools/state_parity.py --check`: all `cloud/contracts/state/proactive/*.json` scenarios pass, with
-  the rest of the suite.
+  the rest of the suite (also after the state consolidation, which changed no proactive output; the State.Core
+  `timedelta` lower bound this port reported is fixed there, `StateCoreFixTests`).

@@ -2,8 +2,10 @@ using System.Globalization;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Margo.Cloud.State.Core;
+using Margo.Cloud.State.Memory;
+using Margo.Cloud.State.Work;
 
-namespace Margo.Cloud.State.Memory;
+namespace Margo.Cloud.State.Probes;
 
 /// <summary>
 /// C# twin of <c>cloud/contracts/state/probes/memory_probe.py</c>. Not a Margo command and not offered to the hosted
@@ -11,7 +13,7 @@ namespace Margo.Cloud.State.Memory;
 /// the memory libraries (<see cref="MemoryStore"/>, <see cref="MemoryGovernance"/>, <see cref="MemoryEncoder"/>'s status
 /// functions and <see cref="DreamSources"/>) are judged byte for byte against CPython. Keep the two files in step.
 /// </summary>
-public sealed partial class MemoryProbeScript : IStateScript
+public sealed partial class MemoryProbeScript : IStateProbeScript
 {
     private static readonly string[] HoldVerbs = ["open", "close", "begin", "commit", "rollback"];
     private static readonly string[] FileVerbs = ["write", "mkdir", "chmod", "symlink", "read"];
@@ -144,7 +146,7 @@ public sealed partial class MemoryProbeScript : IStateScript
             value = value is JsonArray list ? list[int.Parse(part, CultureInfo.InvariantCulture)] : value![part];
         }
 
-        return Py.Clone(value);
+        return PyNode.Copy(value);
     }
 
     private JsonNode? Template(JsonNode? value)
@@ -165,19 +167,19 @@ public sealed partial class MemoryProbeScript : IStateScript
 
                 return result;
             default:
-                return Py.Clone(value);
+                return PyNode.Copy(value);
         }
     }
 
     private string Text(string value) => Part().Replace(value, match =>
     {
         var found = Value(match.Groups[1].Value);
-        return Py.AsString(found) ?? PyJson.Dumps(found, ensureAscii: false);
+        return PyNode.AsString(found) ?? PyJson.Dumps(found, ensureAscii: false);
     });
 
-    private string TextOf(JsonObject step, string key, string fallback) => step.TryGetPropertyValue(key, out var value) ? Text(Py.AsString(value)!) : fallback;
+    private string TextOf(JsonObject step, string key, string fallback) => step.TryGetPropertyValue(key, out var value) ? Text(PyNode.AsString(value)!) : fallback;
 
-    private string PathOf(JsonNode? name) => PyPath.Join(_directory, Text(Py.AsString(name)!));
+    private string PathOf(JsonNode? name) => PyPath.Join(_directory, Text(PyNode.AsString(name)!));
 
     private static string Error(Exception ex)
     {
@@ -200,8 +202,8 @@ public sealed partial class MemoryProbeScript : IStateScript
 
     private void Call(int index, JsonObject step, TextWriter stdout)
     {
-        var on = Py.AsString(step["on"]) ?? "store";
-        var name = Py.AsString(step["call"])!;
+        var on = PyNode.AsString(step["on"]) ?? "store";
+        var name = PyNode.AsString(step["call"])!;
         var args = (JsonArray)(Template(step["args"] ?? new JsonArray()) ?? new JsonArray());
         var kwargs = (JsonObject)(Template(step["kwargs"] ?? new JsonObject()) ?? new JsonObject());
         MemoryStore? memory = null;
@@ -232,7 +234,7 @@ public sealed partial class MemoryProbeScript : IStateScript
             {
                 if (step.ContainsKey("use"))
                 {
-                    memory = _stores[Py.AsString(step["use"])!];
+                    memory = _stores[PyNode.AsString(step["use"])!];
                 }
                 else
                 {
@@ -260,9 +262,9 @@ public sealed partial class MemoryProbeScript : IStateScript
             }
 
             line = PyJson.Dumps(result, ensureAscii: false);
-            if (Py.AsString(step["save"]) is { } save)
+            if (PyNode.AsString(step["save"]) is { } save)
             {
-                _saved[save] = Py.Clone(result);
+                _saved[save] = PyNode.Copy(result);
             }
         }
         catch (Exception ex) when (IsReported(ex))
@@ -296,7 +298,7 @@ public sealed partial class MemoryProbeScript : IStateScript
         var result = new PyArg[parameters.Length];
         for (var i = 0; i < args.Count; i++)
         {
-            result[i] = PyArg.Of(Py.Clone(args[i]));
+            result[i] = PyArg.Of(PyNode.Copy(args[i]));
         }
 
         foreach (var (key, value) in kwargs)
@@ -312,24 +314,13 @@ public sealed partial class MemoryProbeScript : IStateScript
                 throw new PyTypeError(name + "() got multiple values for argument '" + key + "'");
             }
 
-            result[position] = PyArg.Of(Py.Clone(value));
+            result[position] = PyArg.Of(PyNode.Copy(value));
         }
 
         return result;
     }
 
     private static JsonArray Tuple((string, string) value) => new JsonArray(value.Item1, value.Item2);
-
-    private static JsonObject RowDict(PyRow row)
-    {
-        var result = new JsonObject();
-        foreach (var (key, value) in row.ToDict())
-        {
-            result[key] = Py.FromDb(value);
-        }
-
-        return result;
-    }
 
     private static JsonNode? StoreCall(MemoryStore memory, string name, JsonArray args, JsonObject kwargs)
     {
@@ -357,7 +348,7 @@ public sealed partial class MemoryProbeScript : IStateScript
                 return memory.List(a[0].Value, a[1].Value);
             case "_human":
                 a = Bind(name, ["evidence", "memory_id", "revision", "decision"], args, kwargs);
-                return memory.Human(a[0].Value, a[1].Value, a[2].Value, Py.AsString(a[3].Value));
+                return memory.Human(a[0].Value, a[1].Value, a[2].Value, PyNode.AsString(a[3].Value));
             case "dream_index_current":
                 a = Bind(name, ["data"], args, kwargs);
                 return memory.DreamIndexCurrent(a[0].Value);
@@ -384,7 +375,7 @@ public sealed partial class MemoryProbeScript : IStateScript
                 return memory.History(a[0].Value, a[1]);
             case "_derived_descendants":
                 a = Bind(name, ["memory_id"], args, kwargs);
-                return Py.StrArray(memory.DerivedDescendants(Py.AsString(a[0].Value)!));
+                return PyNode.StrList(memory.DerivedDescendants(PyNode.AsString(a[0].Value)!));
             case "forget_preview":
                 a = Bind(name, ["memory_id"], args, kwargs);
                 return memory.ForgetPreview(a[0].Value);
@@ -396,10 +387,10 @@ public sealed partial class MemoryProbeScript : IStateScript
                 return memory.EnvironmentSubset(a[0].Value, a[1].Value);
             case "_file_digest":
                 a = Bind(name, ["path"], args, kwargs);
-                return memory.FileDigest(PyPath.Normalize(Py.AsString(a[0].Value)!));
+                return memory.FileDigest(PyPath.Normalize(PyNode.AsString(a[0].Value)!));
             case "_work_sources_current":
                 a = Bind(name, ["data", "seen"], args, kwargs);
-                var seen = a[1].Value is JsonArray list ? list.Select(item => Py.AsString(item)!).ToHashSet(StringComparer.Ordinal) : null;
+                var seen = a[1].Value is JsonArray list ? list.Select(item => PyNode.AsString(item)!).ToHashSet(StringComparer.Ordinal) : null;
                 return memory.WorkSourcesCurrent(a[0].Value, seen);
             case "eligible":
                 a = Bind(name, ["domain", "routine", "usage", "environment", "include_stale"], args, kwargs);
@@ -433,7 +424,7 @@ public sealed partial class MemoryProbeScript : IStateScript
                 return memory.Health();
             case "_row":
                 a = Bind(name, ["memory_id"], args, kwargs);
-                return RowDict(memory.Row(a[0].Value));
+                return PyNode.FromRow(memory.Row(a[0].Value));
             case "_content_hash":
                 a = Bind(name, ["data"], args, kwargs);
                 return MemoryStore.ContentHash(a[0].Value);
@@ -494,7 +485,7 @@ public sealed partial class MemoryProbeScript : IStateScript
                 return MemoryGovernance.ExportPreview(memory, a[0].Value, a[1].Value);
             case "export_recipe":
                 a = Bind(name, ["memory_id", "recipe", "evidence", "output"], args, kwargs);
-                return MemoryGovernance.ExportRecipe(memory, a[0].Value, a[1].Value, a[2].Value, Py.AsString(a[3].Value)!);
+                return MemoryGovernance.ExportRecipe(memory, a[0].Value, a[1].Value, a[2].Value, PyNode.AsString(a[3].Value)!);
             default:
                 throw Unsupported(name);
         }
@@ -510,7 +501,7 @@ public sealed partial class MemoryProbeScript : IStateScript
                 return MemoryStore.SearchText(a[0].Value);
             case "memory_identity":
                 a = Bind(name, ["account", "domain", "key"], args, kwargs);
-                return Tuple(MemoryStore.MemoryIdentity(Py.AsString(a[0].Value)!, a[1].Value, a[2].Value));
+                return Tuple(MemoryStore.MemoryIdentity(PyNode.AsString(a[0].Value)!, a[1].Value, a[2].Value));
             case "scoped_entity_key":
                 a = Bind(name, ["value"], args, kwargs);
                 return MemoryStore.ScopedEntityKey(a[0].Value);
@@ -529,7 +520,7 @@ public sealed partial class MemoryProbeScript : IStateScript
                 return MemoryEncoder.ModelSpec();
             case "status":
                 a = Bind(name, ["model_dir"], args, kwargs);
-                return MemoryEncoder.Status(Py.AsString(a[0].Value));
+                return MemoryEncoder.Status(PyNode.AsString(a[0].Value));
             case "status_local":
                 Bind(name, [], args, kwargs);
                 return MemoryEncoder.StatusLocal();
@@ -544,10 +535,10 @@ public sealed partial class MemoryProbeScript : IStateScript
                 return MemoryEncoder.CopilotHome();
             case "_safe_model_path":
                 a = Bind(name, ["model_dir"], args, kwargs);
-                return MemoryEncoder.SafeModelPath(Py.AsString(a[0].Value));
+                return MemoryEncoder.SafeModelPath(PyNode.AsString(a[0].Value));
             case "_validate_model":
                 a = Bind(name, ["model_dir"], args, kwargs);
-                return MemoryEncoder.ValidateModel(Py.AsString(a[0].Value));
+                return MemoryEncoder.ValidateModel(PyNode.AsString(a[0].Value));
             case "_identity_payload":
                 Bind(name, [], args, kwargs);
                 return MemoryEncoder.IdentityPayload();
@@ -565,16 +556,16 @@ public sealed partial class MemoryProbeScript : IStateScript
                 return MemoryEncoder.RuntimeAvailable();
             case "_digest_bytes":
                 a = Bind(name, ["data", "algorithm"], args, kwargs);
-                return MemoryEncoder.DigestBytes(Convert.FromHexString(Py.AsString(a[0].Value)!), Py.AsString(a[1].Value)!);
+                return MemoryEncoder.DigestBytes(Convert.FromHexString(PyNode.AsString(a[0].Value)!), PyNode.AsString(a[1].Value)!);
             case "_canonical_json":
                 a = Bind(name, ["value"], args, kwargs);
                 return MemoryEncoder.CanonicalJson(a[0].Value);
             case "_read_manifest":
                 a = Bind(name, ["model_dir"], args, kwargs);
-                return MemoryEncoder.ReadManifest(PyPath.Normalize(Py.AsString(a[0].Value)!));
+                return MemoryEncoder.ReadManifest(PyPath.Normalize(PyNode.AsString(a[0].Value)!));
             case "_verify_asset":
                 a = Bind(name, ["path", "asset"], args, kwargs);
-                return MemoryEncoder.VerifyAsset(PyPath.Normalize(Py.AsString(a[0].Value)!),
+                return MemoryEncoder.VerifyAsset(PyPath.Normalize(PyNode.AsString(a[0].Value)!),
                                                  MemoryEncoder.Assets[(int)PyJson.AsInt(a[1].Value)]);
             default:
                 throw Unsupported(name);
@@ -586,7 +577,7 @@ public sealed partial class MemoryProbeScript : IStateScript
     private void Hold(int index, JsonObject step, TextWriter stdout)
     {
         var verb = HoldVerbs.First(step.ContainsKey);
-        var name = Py.AsString(step[verb])!;
+        var name = PyNode.AsString(step[verb])!;
         string line;
         try
         {
@@ -631,7 +622,7 @@ public sealed partial class MemoryProbeScript : IStateScript
             connection = StateStore.Connect(account, _stateDir);
             if (step.ContainsKey("script"))
             {
-                var script = Py.AsString(step["script"])!;
+                var script = PyNode.AsString(step["script"])!;
                 script = script switch
                 {
                     "@SCHEMA_V1" => MemoryStore.SchemaV1,
@@ -644,8 +635,8 @@ public sealed partial class MemoryProbeScript : IStateScript
             else
             {
                 var parameters = ((JsonArray?)Template(step["params"] ?? new JsonArray()))!.Select(item => (object?)item).ToArray();
-                var cursor = connection.Execute(Text(Py.AsString(step["sql"])!), parameters);
-                var rows = new JsonArray(cursor.FetchAll().Select(row => (JsonNode?)new JsonArray(row.Select(Py.FromDb).ToArray())).ToArray());
+                var cursor = connection.Execute(Text(PyNode.AsString(step["sql"])!), parameters);
+                var rows = new JsonArray(cursor.FetchAll().Select(row => (JsonNode?)new JsonArray(row.Select(PyNode.FromSql).ToArray())).ToArray());
                 connection.Commit();
                 line = PyJson.Dumps(new JsonObject { ["rowcount"] = cursor.RowCount, ["rows"] = rows }, ensureAscii: false);
             }
@@ -663,13 +654,13 @@ public sealed partial class MemoryProbeScript : IStateScript
         PyIO.Print(stdout, line);
     }
 
-    private static JsonArray Sorted(IEnumerable<string> values) => Py.StrArray(Py.Sorted(values));
+    private static JsonArray Sorted(IEnumerable<string> values) => PyNode.StrList(PyText.Sorted(values));
 
     private static void Const(int index, JsonObject step, TextWriter stdout)
     {
-        var name = Py.AsString(step["const"])!;
+        var name = PyNode.AsString(step["const"])!;
         JsonNode? value;
-        if (Py.AsString(step["on"]) == "encoder")
+        if (PyNode.AsString(step["on"]) == "encoder")
         {
             value = name switch
             {
@@ -742,41 +733,41 @@ public sealed partial class MemoryProbeScript : IStateScript
                 byte[] bytes = step.ContainsKey("json")
                     ? PyIO.EncodeUtf8(PyJson.Dumps(Template(step["json"]), ensureAscii: false))
                     : step.ContainsKey("hex")
-                        ? Convert.FromHexString(Py.AsString(step["hex"])!)
-                        : PyIO.EncodeUtf8(string.Concat(Enumerable.Repeat(Text(Py.AsString(step["text"])!),
+                        ? Convert.FromHexString(PyNode.AsString(step["hex"])!)
+                        : PyIO.EncodeUtf8(string.Concat(Enumerable.Repeat(Text(PyNode.AsString(step["text"])!),
                                                                            step["repeat"] is { } repeat ? (int)PyJson.AsInt(repeat) : 1)));
                 WriteFile(path, bytes);
-                if (Py.AsString(step["mode"]) is { } mode)
+                if (PyNode.AsString(step["mode"]) is { } mode)
                 {
                     Chmod(path, mode);
                 }
 
-                label = "write " + Py.AsString(step["write"]);
+                label = "write " + PyNode.AsString(step["write"]);
                 line = "sha256 " + PyIds.Sha256Hex(PyIO.ReadBytes(path));
             }
             else if (step.ContainsKey("mkdir"))
             {
                 var path = PathOf(step["mkdir"]);
                 PosixNative.Mkdir(path, Convert.ToUInt32("700", 8));
-                Chmod(path, Py.AsString(step["mode"]) ?? "700");
-                label = "mkdir " + Py.AsString(step["mkdir"]);
+                Chmod(path, PyNode.AsString(step["mode"]) ?? "700");
+                label = "mkdir " + PyNode.AsString(step["mkdir"]);
                 line = "ok";
             }
             else if (step.ContainsKey("chmod"))
             {
-                Chmod(PathOf(step["chmod"]), Py.AsString(step["mode"])!);
-                label = "chmod " + Py.AsString(step["chmod"]);
+                Chmod(PathOf(step["chmod"]), PyNode.AsString(step["mode"])!);
+                label = "chmod " + PyNode.AsString(step["chmod"]);
                 line = "ok";
             }
             else if (step.ContainsKey("symlink"))
             {
-                File.CreateSymbolicLink(PathOf(step["symlink"]), Text(Py.AsString(step["target"])!));
-                label = "symlink " + Py.AsString(step["symlink"]);
+                File.CreateSymbolicLink(PathOf(step["symlink"]), Text(PyNode.AsString(step["target"])!));
+                label = "symlink " + PyNode.AsString(step["symlink"]);
                 line = "ok";
             }
             else
             {
-                label = "read " + Py.AsString(step["read"]);
+                label = "read " + PyNode.AsString(step["read"]);
                 line = PyJson.Dumps(JsonValue.Create(PyIO.ReadTextFile(PathOf(step["read"]))), ensureAscii: false);
             }
         }

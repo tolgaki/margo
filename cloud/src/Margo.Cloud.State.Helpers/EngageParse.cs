@@ -223,7 +223,7 @@ public static class EngageParse
 
         i += 3;
         var digitsStart = i;
-        while (i < text.Length && PyText.IsDigit(PyText.CodePointAt(text, i, out var length)))
+        while (i < text.Length && PyText.IsDecimal(PyText.CodePointAt(text, i, out var length)))
         {
             i += length;
         }
@@ -363,8 +363,8 @@ public static class EngageParse
             JsonNode? parsed;
             try
             {
-                // Near the nesting limit CPython raises RecursionError instead (PyJsonLoad), which is not salvaged.
-                parsed = PyJsonLoad.Loads(Unescape(blob));
+                // Near the nesting limit CPython raises RecursionError instead (PyJson.Loads models it), which is not salvaged.
+                parsed = PyJson.Loads(Unescape(blob));
             }
             catch (PyJsonDecodeError)
             {
@@ -485,7 +485,7 @@ public static class EngageParse
         {
             var start = at + prefix.Length;
             var i = start;
-            while (i < raw.Length && PyText.IsDigit(PyText.CodePointAt(raw, i, out var length)))
+            while (i < raw.Length && PyText.IsDecimal(PyText.CodePointAt(raw, i, out var length)))
             {
                 i += length;
             }
@@ -543,7 +543,7 @@ public sealed class EngageParseScript : IStateScript
     public string ScriptName => "engage_parse.py";
 
     public int Run(IReadOnlyList<string> args, TextReader stdin, TextWriter stdout, TextWriter stderr) =>
-        StateScripts.RunGuarded(() => PyProcess.OnLargeStack(() => Main(args, stdout, stderr)), stderr);
+        StateScripts.RunGuarded(() => PyRuntime.OnLargeStack(() => Main(args, stdout, stderr)), stderr);
 
     private int Main(IReadOnlyList<string> argv, TextWriter stdout, TextWriter stderr)
     {

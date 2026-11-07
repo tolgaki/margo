@@ -1,8 +1,7 @@
 using System.Numerics;
 using System.Text.Json.Nodes;
-using Margo.Cloud.State.Core;
 
-namespace Margo.Cloud.State.Helpers.Python;
+namespace Margo.Cloud.State.Core;
 
 /// <summary>
 /// <c>json.dump(value, sys.stdout, indent=2)</c> as CPython 3.13 runs it: not the C accelerator that

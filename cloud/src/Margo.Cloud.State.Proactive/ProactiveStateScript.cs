@@ -200,8 +200,8 @@ public sealed class ProactiveStateScript : IStateScript
                     if (rows.Count > 0)
                     {
                         var first = (JsonObject)rows[0]!;
-                        StateScripts.PrintError(stderr, "batch " + Py.Format(Py.Index(first, "batch")) + " owner " + Py.Format(Py.Index(first, "owner"))
-                                                        + " expires " + Py.Format(Py.Index(first, "lease_expires_at")));
+                        StateScripts.PrintError(stderr, "batch " + PyNode.Str(PyNode.Index(first, "batch")) + " owner " + PyNode.Str(PyNode.Index(first, "owner"))
+                                                        + " expires " + PyNode.Str(PyNode.Index(first, "lease_expires_at")));
                     }
 
                     QueueOutput(rows, args.GetString("format")!, stdout);
@@ -364,21 +364,21 @@ public sealed class ProactiveStateScript : IStateScript
         var attempt = ProactiveState.Attempt(conn, attemptId);
         var source = conn.Execute("SELECT * FROM proactive_sources WHERE source_key=?", attempt["source_key"]).FetchOne()
                      ?? throw new PyTypeError("'NoneType' object is not subscriptable");
-        var contract = conn.Execute("SELECT value FROM proactive_meta WHERE key=?", "token-contract:" + Py.Str(attempt["source_key"])).FetchOne();
-        var incompatible = source["delta_token"] is not null && (contract is null || !Py.Eq(contract[0], StateStore.CanonicalJson(
-            new JsonArray(Py.Node(attempt["capability"]), Py.Node(attempt["query_version"]), Py.Node(attempt["kind"])))));
+        var contract = conn.Execute("SELECT value FROM proactive_meta WHERE key=?", "token-contract:" + PyObj.StrOperand(attempt["source_key"])).FetchOne();
+        var incompatible = source["delta_token"] is not null && (contract is null || !PyObj.Eq(contract[0], StateStore.CanonicalJson(
+            new JsonArray(PyNode.FromSql(attempt["capability"]), PyNode.FromSql(attempt["query_version"]), PyNode.FromSql(attempt["kind"])))));
         return new JsonObject
         {
             ["attempt_id"] = attemptId,
-            ["status"] = Py.Node(attempt["status"]),
-            ["next_page"] = Py.Node(Py.Add(attempt["pages"], 1)),
-            ["continuation"] = Py.Node(attempt["continuation"]),
-            ["delta_token"] = incompatible ? null : Py.Node(source["delta_token"]),
-            ["checkpoint_at"] = Py.Node(source["checkpoint_at"]),
-            ["watermark"] = Py.Node(source["watermark"]),
-            ["resync_required"] = incompatible || Py.Eq(attempt["error_class"], "expired_token")
+            ["status"] = PyNode.FromSql(attempt["status"]),
+            ["next_page"] = PyNode.FromSql(PyNumbers.Add(attempt["pages"], 1)),
+            ["continuation"] = PyNode.FromSql(attempt["continuation"]),
+            ["delta_token"] = incompatible ? null : PyNode.FromSql(source["delta_token"]),
+            ["checkpoint_at"] = PyNode.FromSql(source["checkpoint_at"]),
+            ["watermark"] = PyNode.FromSql(source["watermark"]),
+            ["resync_required"] = incompatible || PyObj.Eq(attempt["error_class"], "expired_token")
                                   || conn.Execute("SELECT 1 FROM proactive_meta WHERE key=?", "resync:" + attemptId).FetchOne() is not null,
-            ["blocked"] = Py.Eq(attempt["error_class"], "access_denied") || Py.Eq(attempt["error_class"], "authentication_required"),
+            ["blocked"] = PyObj.Eq(attempt["error_class"], "access_denied") || PyObj.Eq(attempt["error_class"], "authentication_required"),
             ["note"] = "Tokens are opaque/private. Revalidate access and capability before retrying.",
         };
     }
@@ -406,11 +406,11 @@ public sealed class ProactiveStateScript : IStateScript
         foreach (var node in rows)
         {
             var row = (JsonObject)node!;
-            var id = Py.Index(row, "id");
-            var tier = Py.Get(row, "tier", "?");
-            var title = Py.Get(row, "title", id);
-            var revision = Py.Index(row, "revision");
-            PyIO.Print(stdout, "- [" + Py.Format(tier) + "] " + Py.Format(title) + " (id=" + Py.Format(id) + ", revision=" + Py.Format(revision) + ")");
+            var id = PyNode.Index(row, "id");
+            var tier = PyNode.Get(row, "tier", "?");
+            var title = PyNode.Get(row, "title", id);
+            var revision = PyNode.Index(row, "revision");
+            PyIO.Print(stdout, "- [" + PyNode.Str(tier) + "] " + PyNode.Str(title) + " (id=" + PyNode.Str(id) + ", revision=" + PyNode.Str(revision) + ")");
         }
 
         if (rows.Count == 0)

@@ -2,8 +2,9 @@ using System.Numerics;
 using System.Text.Json.Nodes;
 using Margo.Cloud.State.Core;
 using Margo.Cloud.State.Helpers.Python;
+using Margo.Cloud.State.Helpers;
 
-namespace Margo.Cloud.State.Helpers;
+namespace Margo.Cloud.State.Probes;
 
 /// <summary>
 /// C# twin of <c>cloud/contracts/state/probes/helpers_probe.py</c>, the contract probe for the stateless
@@ -12,12 +13,12 @@ namespace Margo.Cloud.State.Helpers;
 /// summation, int/float arithmetic, <c>json.dump</c>). Not a Margo command: the hosted tool only runs scripts
 /// classified in <c>statecmd.COMMANDS</c>, so the model cannot reach it.
 /// </summary>
-public sealed class HelpersProbeScript : IStateScript
+public sealed class HelpersProbeScript : IStateProbeScript
 {
     public string ScriptName => "helpers_probe.py";
 
     public int Run(IReadOnlyList<string> args, TextReader stdin, TextWriter stdout, TextWriter stderr) =>
-        StateScripts.RunGuarded(() => PyProcess.OnLargeStack(() => Main(args, stdin, stdout, stderr)), stderr);
+        StateScripts.RunGuarded(() => PyRuntime.OnLargeStack(() => Main(args, stdin, stdout, stderr)), stderr);
 
     private static int Main(IReadOnlyList<string> argv, TextReader stdin, TextWriter stdout, TextWriter stderr)
     {
@@ -57,10 +58,10 @@ public sealed class HelpersProbeScript : IStateScript
                 probe.Values(args.GetString("kind")!);
                 break;
             case "write":
-                Write(args.GetString("path")!, PyIO.EncodeUtf8(PyProcess.ReadStdin(stdin)));
+                Write(args.GetString("path")!, PyIO.EncodeUtf8(PyIO.ReadText(stdin)));
                 break;
             case "write-hex":
-                Write(args.GetString("path")!, FromHex(PyProcess.ReadStdin(stdin)));
+                Write(args.GetString("path")!, FromHex(PyIO.ReadText(stdin)));
                 break;
             case "write-nested":
                 Write(args.GetString("path")!, PyIO.EncodeUtf8(Nested(probe.StdinJson(), args.GetInt("depth")!.Value)));
@@ -186,7 +187,7 @@ public sealed class HelpersProbeScript : IStateScript
 
     private sealed class Probe(TextReader stdin, TextWriter stdout)
     {
-        public JsonNode? StdinJson() => PyJson.Loads(PyProcess.ReadStdin(stdin));
+        public JsonNode? StdinJson() => PyJson.Loads(PyIO.ReadText(stdin));
 
         private IReadOnlyList<object?> Cases() => PyObj.Items(StdinJson());
 
@@ -407,7 +408,7 @@ public sealed class HelpersProbeScript : IStateScript
 
         public void Text(string kind)
         {
-            var text = PyProcess.ReadStdin(stdin);
+            var text = PyIO.ReadText(stdin);
             switch (kind)
             {
                 case "clean":
@@ -469,17 +470,10 @@ public sealed class HelpersProbeScript : IStateScript
     /// <summary>A fresh JSON tree for a probe value (JSON nodes are copied: a node has one parent).</summary>
     private static JsonNode? ToNode(object? value)
     {
-        // Copied by hand: JsonNode.DeepClone() serialises a BigInteger value by reflection.
         switch (value)
         {
-            case JsonObject node:
-                var copy = new JsonObject();
-                foreach (var (key, item) in node)
-                {
-                    copy[key] = ToNode(item);
-                }
-
-                return copy;
+            case JsonObject or JsonArray:
+                return PyNode.Copy((JsonNode)value);
             case IReadOnlyList<KeyValuePair<string, object?>> pairs:
                 var dict = new JsonObject();
                 foreach (var (key, item) in pairs)

@@ -13,9 +13,11 @@ public static class PyIO
     /// <summary>Strict UTF-8 without a byte-order mark, as Python's <c>utf-8</c> codec.</summary>
     public static UTF8Encoding StrictUtf8 { get; } = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
-    /// <summary>Wraps a raw stdin stream the way Python's <c>sys.stdin</c> decodes it (UTF-8, strict, no BOM skipping).</summary>
-    public static TextReader StdinReader(Stream stream) =>
-        new StreamReader(stream, StrictUtf8, detectEncodingFromByteOrderMarks: false, bufferSize: 8192, leaveOpen: true);
+    /// <summary>
+    /// Wraps a raw stdin stream the way Python's <c>sys.stdin</c> decodes it (UTF-8, strict, no BOM skipping). Read it
+    /// with <see cref="ReadText"/>, which reports undecodable input exactly as CPython does.
+    /// </summary>
+    public static TextReader StdinReader(Stream stream) => new PyStdin(stream ?? throw new ArgumentNullException(nameof(stream)));
 
     /// <summary>Wraps a raw stdout/stderr stream as Python writes it (UTF-8, <c>\n</c> newlines).</summary>
     public static TextWriter OutputWriter(Stream stream) =>
@@ -148,7 +150,14 @@ public static class PyIO
     }
 
     /// <summary><c>bytes.decode("utf-8")</c> with CPython's error messages.</summary>
-    public static string DecodeUtf8(ReadOnlySpan<byte> data)
+    public static string DecodeUtf8(ReadOnlySpan<byte> data) => DecodeUtf8(data, final: true, out _);
+
+    /// <summary>
+    /// The UTF-8 incremental decoder's <c>decode(data, final)</c>: when <paramref name="final"/> is false, a valid but
+    /// incomplete sequence at the end is left undecoded (<paramref name="consumed"/> stops before it); errors name
+    /// positions in <paramref name="data"/>, as CPython's do.
+    /// </summary>
+    public static string DecodeUtf8(ReadOnlySpan<byte> data, bool final, out int consumed)
     {
         var position = 0;
         while (position < data.Length)
@@ -183,6 +192,12 @@ public static class PyIO
             {
                 if (position + k >= data.Length)
                 {
+                    if (!final)
+                    {
+                        consumed = position;
+                        return StrictUtf8.GetString(data[..position]);
+                    }
+
                     throw DecodeError(data, position, data.Length - 1, "unexpected end of data");
                 }
 
@@ -212,46 +227,144 @@ public static class PyIO
             position += need + 1;
         }
 
+        consumed = data.Length;
         return StrictUtf8.GetString(data);
     }
 
-    /// <summary><c>sys.stdin.read()</c> or <c>sys.stdin.read(n)</c>; <paramref name="maxCodePoints"/> counts code points.</summary>
+    /// <summary>
+    /// <c>sys.stdin.read()</c> or <c>sys.stdin.read(n)</c>; <paramref name="maxCodePoints"/> counts code points. On the
+    /// <see cref="StdinReader"/> stream this is CPython's <c>TextIOWrapper</c>: <c>read()</c> decodes all remaining bytes
+    /// at once, so a <c>UnicodeDecodeError</c> names CPython's reason and absolute byte positions; <c>read(n)</c> decodes
+    /// chunks of <c>max(8192, n)</c> bytes as they arrive. Other readers hold text that is already decoded.
+    /// </summary>
     public static string ReadText(TextReader reader, int? maxCodePoints = null)
     {
         ArgumentNullException.ThrowIfNull(reader);
-        try
+        if (reader is PyStdin stdin)
         {
-            if (maxCodePoints is null)
+            return maxCodePoints is { } n ? stdin.Read(n) : stdin.ReadAll();
+        }
+
+        if (maxCodePoints is null)
+        {
+            return reader.ReadToEnd();
+        }
+
+        var builder = new StringBuilder();
+        var count = 0;
+        while (count < maxCodePoints.Value)
+        {
+            var next = reader.Read();
+            if (next < 0)
             {
-                return reader.ReadToEnd();
+                break;
             }
 
-            var builder = new StringBuilder();
-            var count = 0;
-            while (count < maxCodePoints.Value)
+            builder.Append((char)next);
+            if (char.IsHighSurrogate((char)next) && reader.Peek() is var low && low >= 0 && char.IsLowSurrogate((char)low))
             {
-                var next = reader.Read();
-                if (next < 0)
+                builder.Append((char)reader.Read());
+            }
+
+            count++;
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// <c>sys.stdin</c> under <c>PYTHONIOENCODING=utf-8</c>: a <c>TextIOWrapper</c> with a strict UTF-8 incremental decoder
+    /// over the raw stream. <c>read()</c> is <c>decoder.decode(buffer.read(), final=True)</c> after any decoded text
+    /// still held; <c>read(n)</c> repeats <c>read_chunk(max(8192, remaining))</c>, one raw read each, decoding with
+    /// <c>final</c> only at end of input. The <see cref="TextReader"/> members serve the same decoded text.
+    /// </summary>
+    private sealed class PyStdin(Stream stream) : TextReader
+    {
+        private const int ChunkSize = 8192;
+        private byte[] _pending = [];
+        private string _decoded = "";
+        private int _offset;
+
+        /// <summary><c>sys.stdin.read()</c>.</summary>
+        public string ReadAll()
+        {
+            using var rest = new MemoryStream();
+            rest.Write(_pending);
+            stream.CopyTo(rest);
+            _pending = [];
+            var text = TakeDecoded() + DecodeUtf8(rest.ToArray());
+            return text;
+        }
+
+        /// <summary><c>sys.stdin.read(n)</c>: up to <paramref name="count"/> code points.</summary>
+        public string Read(int count)
+        {
+            var result = new StringBuilder(TakeDecoded(count));
+            var remaining = count - PyRepr.Length(result.ToString());
+            while (remaining > 0)
+            {
+                var eof = ReadChunk(Math.Max(ChunkSize, remaining));
+                var piece = TakeDecoded(remaining);
+                result.Append(piece);
+                remaining -= PyRepr.Length(piece);
+                if (eof)
                 {
                     break;
                 }
-
-                builder.Append((char)next);
-                if (char.IsHighSurrogate((char)next) && reader.Peek() is var low && low >= 0 && char.IsLowSurrogate((char)low))
-                {
-                    builder.Append((char)reader.Read());
-                }
-
-                count++;
             }
 
-            return builder.ToString();
+            return result.ToString();
         }
-        catch (DecoderFallbackException error)
+
+        public override int Peek()
         {
-            var bad = error.BytesUnknown is { Length: > 0 } bytes ? bytes[0] : (byte)0;
-            throw new PyUnicodeError("UnicodeDecodeError", string.Format(CultureInfo.InvariantCulture,
-                "'utf-8' codec can't decode byte 0x{0:x2} in position {1}: invalid start byte", bad, Math.Max(0, error.Index)));
+            Fill();
+            return _offset < _decoded.Length ? _decoded[_offset] : -1;
+        }
+
+        public override int Read()
+        {
+            Fill();
+            return _offset < _decoded.Length ? _decoded[_offset++] : -1;
+        }
+
+        public override string ReadToEnd() => ReadAll();
+
+        private void Fill()
+        {
+            while (_offset >= _decoded.Length && !ReadChunk(ChunkSize))
+            {
+            }
+        }
+
+        /// <summary><c>textiowrapper_read_chunk</c>: one raw read, decoded; returns whether input has ended.</summary>
+        private bool ReadChunk(int size)
+        {
+            var buffer = new byte[size];
+            var read = stream.Read(buffer, 0, size);
+            var data = new byte[_pending.Length + read];
+            _pending.CopyTo(data, 0);
+            Array.Copy(buffer, 0, data, _pending.Length, read);
+            var eof = read == 0;
+            var text = DecodeUtf8(data, final: eof, out var consumed);
+            _pending = data[consumed..];
+            _decoded = _decoded[_offset..] + text;
+            _offset = 0;
+            return eof;
+        }
+
+        /// <summary>Removes and returns up to <paramref name="count"/> decoded code points (all of them by default).</summary>
+        private string TakeDecoded(int count = int.MaxValue)
+        {
+            var start = _offset;
+            var end = start;
+            for (var taken = 0; taken < count && end < _decoded.Length; taken++)
+            {
+                end += char.IsHighSurrogate(_decoded[end]) && end + 1 < _decoded.Length && char.IsLowSurrogate(_decoded[end + 1]) ? 2 : 1;
+            }
+
+            _offset = end;
+            return _decoded[start..end];
         }
     }
 

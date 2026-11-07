@@ -1,3 +1,5 @@
+using Margo.Cloud.State.Core;
+
 namespace Margo.Cloud.State.Memory;
 
 /// <summary>
@@ -23,7 +25,7 @@ internal static class PyPatterns
     /// <summary><c>re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]*:[^\s]+", value)</c>.</summary>
     public static bool NamespacedKey(string value)
     {
-        var points = Py.Points(value);
+        var points = PyText.CodePoints(value);
         if (points.Length == 0 || !AsciiLetter(points[0]))
         {
             return false;
@@ -42,7 +44,7 @@ internal static class PyPatterns
 
         for (var i = index + 1; i < points.Length; i++)
         {
-            if (Py.IsSpace(points[i]))
+            if (PyText.IsSpace(points[i]))
             {
                 return false;
             }
@@ -76,12 +78,12 @@ internal static class PyPatterns
     /// </summary>
     public static bool HasPrivateMarker(string encoded)
     {
-        var points = Py.Points(encoded);
+        var points = PyText.CodePoints(encoded);
         return Email(points) || encoded.Contains("http://", StringComparison.Ordinal) || encoded.Contains("https://", StringComparison.Ordinal)
                || HomePath(points) || DrivePath(points) || Uuid(points) || Identifier(points) || Credential(points);
     }
 
-    private static bool Word(int[] points, int index) => index >= 0 && index < points.Length && Py.IsWord(points[index]);
+    private static bool Word(int[] points, int index) => index >= 0 && index < points.Length && PyText.IsWord(points[index]);
 
     private static bool Boundary(int[] points, int index) => Word(points, index - 1) != Word(points, index);
 
@@ -98,7 +100,7 @@ internal static class PyPatterns
             // The local part is a nonempty run of [\w.+-] ending before '@'; the match may start anywhere in it
             // where \b holds.
             var start = at;
-            while (start > 0 && (Py.IsWord(points[start - 1]) || points[start - 1] is '.' or '+' or '-'))
+            while (start > 0 && (PyText.IsWord(points[start - 1]) || points[start - 1] is '.' or '+' or '-'))
             {
                 start--;
             }
@@ -116,7 +118,7 @@ internal static class PyPatterns
 
             // [\w.-]+ \. [A-Za-z]{2,} \b: the dot and the letters lie inside the [\w.-] run after '@'.
             var end = at + 1;
-            while (end < points.Length && (Py.IsWord(points[end]) || points[end] is '.' or '-'))
+            while (end < points.Length && (PyText.IsWord(points[end]) || points[end] is '.' or '-'))
             {
                 end++;
             }
@@ -158,7 +160,7 @@ internal static class PyPatterns
                     match = points[i + j] == head[j];
                 }
 
-                if (match && !Py.IsSpace(points[i + head.Length]))
+                if (match && !PyText.IsSpace(points[i + head.Length]))
                 {
                     return true;
                 }
@@ -285,7 +287,7 @@ internal static class PyPatterns
                     continue;
                 }
 
-                while (index < points.Length && Py.IsSpace(points[index]))
+                while (index < points.Length && PyText.IsSpace(points[index]))
                 {
                     index++;
                 }
@@ -301,9 +303,7 @@ internal static class PyPatterns
     }
 
     /// <summary>Whether <c>re.fullmatch("(?i)" + letter, chr(actual))</c> for an ASCII lowercase letter.</summary>
-    private static bool IgnoreCaseEquals(char letter, int actual) =>
-        actual == letter || actual == char.ToUpperInvariant(letter)
-        || (MemoryUnicodeData.IgnoreCaseExtras.TryGetValue(letter, out var extras) && extras.Contains(actual));
+    private static bool IgnoreCaseEquals(char letter, int actual) => PyText.MatchesIgnoreCase(letter, actual);
 
     private static bool StartsWith(int[] points, int index, string text)
     {

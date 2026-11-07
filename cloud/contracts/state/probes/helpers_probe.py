@@ -2,7 +2,7 @@
 """Contract probe for the stateless helpers (reference implementation).
 
 Not a Margo command. tools/state_parity.py runs this file and its C# twin
-(Margo.Cloud.State.Helpers.HelpersProbeScript, ``margo-state helpers_probe.py``) on the
+(Margo.Cloud.State.Probes.HelpersProbeScript, ``margo-state helpers_probe.py``) on the
 same inputs, so the library code behind capacity.py, teams_feedback.py and engage_parse.py
 -- and the Python semantics their C# ports reproduce (list.sort's comparison sequence,
 comparisons and equality across JSON types, repr, int(), slicing, html.unescape,

@@ -48,7 +48,7 @@ public sealed class LedgerTests
             ["owner"] = null,
             ["due"] = null,
             ["direction"] = "owe",
-            ["source_refs"] = new JsonArray(PyDynamic.Clone(reference)),
+            ["source_refs"] = new JsonArray(PyNode.Copy(reference)),
         }, "claim-key-" + key);
 
     private static JsonObject ActionData(JsonObject reference, string itemId) => new()
@@ -57,7 +57,7 @@ public sealed class LedgerTests
         ["target"] = new JsonObject { ["message_id"] = "message-1", ["recipients"] = new JsonArray("blair@example.com") },
         ["payload"] = new JsonObject { ["body"] = "The fictional review is complete." },
         ["why"] = "Explicit follow-up request",
-        ["source_refs"] = new JsonArray(PyDynamic.Clone(reference)),
+        ["source_refs"] = new JsonArray(PyNode.Copy(reference)),
         ["target_fingerprint"] = "target-v1",
         ["work_item_id"] = itemId,
     };
@@ -77,7 +77,7 @@ public sealed class LedgerTests
     {
         ["checked_at"] = checkedAt ?? Stamp(),
         ["target_fingerprint"] = "target-v1",
-        ["source_refs"] = new JsonArray(PyDynamic.Clone(reference)),
+        ["source_refs"] = new JsonArray(PyNode.Copy(reference)),
     };
 
     private static JsonObject Receipt(string state = "succeeded")
@@ -143,7 +143,7 @@ public sealed class LedgerTests
         using var reopened = Open(root);
         var again = Source(reopened);
         Assert.Equal(originalId, (string?)Item(reopened, again)["id"]);
-        var changed = (JsonObject)PyDynamic.Clone(reopened.Show(originalId)["data"])!;
+        var changed = (JsonObject)PyNode.Copy(reopened.Show(originalId)["data"])!;
         changed["title"] = "A different claim";
         Assert.ThrowsAny<StateError>(() => reopened.Ingest(changed, "claim-key-claim-1"));
         Assert.Equal(2, ((JsonArray)reopened.List("all")["items"]!).Count);
@@ -423,22 +423,22 @@ public sealed class LedgerTests
         var meeting = products.Put("meeting", identity, data, "scheduled");
         foreach (var state in new[] { "prepped", "occurred" })
         {
-            meeting = products.Put("meeting", identity, PyDynamic.Clone(meeting["data"]), state, PyDynamic.Clone(meeting["revision"]));
+            meeting = products.Put("meeting", identity, PyNode.Copy(meeting["data"]), state, PyNode.Copy(meeting["revision"]));
         }
 
-        var pending = PyDynamic.CloneObject(meeting["data"]);
+        var pending = PyNode.CopyObject(meeting["data"]);
         pending["recap_retry"] = new JsonObject { ["attempts"] = 0, ["max_attempts"] = 3, ["status"] = "pending", ["next_check_at"] = At(-1) };
-        meeting = products.Put("meeting", identity, pending, "recap_pending", PyDynamic.Clone(meeting["revision"]));
-        meeting = products.RecapRetry((string)meeting["id"]!, PyDynamic.Clone(meeting["revision"]), "pending", "fixture-only:no-recap-yet", At(60));
+        meeting = products.Put("meeting", identity, pending, "recap_pending", PyNode.Copy(meeting["revision"]));
+        meeting = products.RecapRetry((string)meeting["id"]!, PyNode.Copy(meeting["revision"]), "pending", "fixture-only:no-recap-yet", At(60));
         Assert.Equal("unknown", (string?)meeting["data"]!["attendance"]);
         Assert.Equal("pending", (string?)meeting["data"]!["recap_retry"]!["status"]);
-        var early = Assert.ThrowsAny<StateError>(() => products.RecapRetry((string)meeting["id"]!, PyDynamic.Clone(meeting["revision"]),
+        var early = Assert.ThrowsAny<StateError>(() => products.RecapRetry((string)meeting["id"]!, PyNode.Copy(meeting["revision"]),
                                                                             "available", "fixture-only:too-early"));
         Assert.Equal("recap check is not yet eligible", early.Message);
         var later = DateTimeOffset.UtcNow.AddSeconds(120);
         using (PyRuntime.Override(clock: () => later))
         {
-            meeting = products.RecapRetry((string)meeting["id"]!, PyDynamic.Clone(meeting["revision"]), "available", "fixture-only:delayed-recap-arrived");
+            meeting = products.RecapRetry((string)meeting["id"]!, PyNode.Copy(meeting["revision"]), "available", "fixture-only:delayed-recap-arrived");
         }
 
         Assert.Equal("available", (string?)meeting["data"]!["recap_retry"]!["status"]);
@@ -453,11 +453,11 @@ public sealed class LedgerTests
             ["direction"] = "owe",
             ["source_refs"] = new JsonArray(recap),
         }, "recap-action-candidate");
-        var proposed = PyDynamic.CloneObject(meeting["data"]);
-        proposed["work_item_ids"] = new JsonArray(PyDynamic.Clone(candidate["id"]));
-        meeting = products.Put("meeting", identity, proposed, "debrief_proposed", PyDynamic.Clone(meeting["revision"]));
+        var proposed = PyNode.CopyObject(meeting["data"]);
+        proposed["work_item_ids"] = new JsonArray(PyNode.Copy(candidate["id"]));
+        meeting = products.Put("meeting", identity, proposed, "debrief_proposed", PyNode.Copy(meeting["revision"]));
         var revision = (long)meeting["revision"]!;
-        meeting = products.Put("meeting", identity, PyDynamic.Clone(meeting["data"]), "reviewed", revision,
+        meeting = products.Put("meeting", identity, PyNode.Copy(meeting["data"]), "reviewed", revision,
                                Evidence((string)meeting["id"]!, revision, "confirm"));
         var next = products.Put("meeting", "occurrence-2026-09-13", new JsonObject
         {
@@ -473,7 +473,7 @@ public sealed class LedgerTests
             ["topics"] = new JsonArray(),
         }, "scheduled");
         revision = (long)meeting["revision"]!;
-        var carried = products.CarryForward((string)meeting["id"]!, revision, PyDynamic.Clone(next["id"]), PyDynamic.Clone(next["revision"]),
+        var carried = products.CarryForward((string)meeting["id"]!, revision, PyNode.Copy(next["id"]), PyNode.Copy(next["revision"]),
                                             Evidence((string)meeting["id"]!, revision, "carry_forward"));
         Assert.Equal("carried_forward", (string?)carried["source"]!["state"]);
         Assert.Equal("agenda_accumulating", (string?)carried["target"]!["state"]);
@@ -517,7 +517,7 @@ public sealed class LedgerTests
         var candidate = Invoke(new JsonObject
         {
             ["claim_key"] = "review-example",
-            ["data"] = new JsonObject { ["title"] = "Review the example", ["owner"] = null, ["due"] = null, ["direction"] = "owe", ["source_refs"] = new JsonArray(PyDynamic.Clone(reference)) },
+            ["data"] = new JsonObject { ["title"] = "Review the example", ["owner"] = null, ["due"] = null, ["direction"] = "owe", ["source_refs"] = new JsonArray(PyNode.Copy(reference)) },
         }.ToJsonString(), "ingest", "--input", "-");
         var proposal = new JsonObject
         {
@@ -525,9 +525,9 @@ public sealed class LedgerTests
             ["target"] = new JsonObject { ["message_id"] = "fictional-cli-message" },
             ["payload"] = new JsonObject { ["body"] = "Reviewed example." },
             ["why"] = "Fictional fixture",
-            ["source_refs"] = new JsonArray(PyDynamic.Clone(reference)),
+            ["source_refs"] = new JsonArray(PyNode.Copy(reference)),
             ["target_fingerprint"] = "fixture-target-v1",
-            ["work_item_id"] = PyDynamic.Clone(candidate["id"]),
+            ["work_item_id"] = PyNode.Copy(candidate["id"]),
         };
         var action = Invoke(proposal.ToJsonString(), "propose", "--input", "-");
         var id = (string)action["id"]!;
@@ -535,7 +535,7 @@ public sealed class LedgerTests
         var approved = Invoke(new JsonObject { ["action_hash"] = hash, ["expires_at"] = Stamp(60), ["evidence"] = Evidence(id, 1, "approve", hash) }.ToJsonString(),
                               "approve", id, "--revision", "1", "--input", "-");
         Assert.Equal("approved", (string?)approved["state"]);
-        var attempt = Invoke(new JsonObject { ["checked_at"] = Stamp(), ["target_fingerprint"] = "fixture-target-v1", ["source_refs"] = new JsonArray(PyDynamic.Clone(reference)) }.ToJsonString(),
+        var attempt = Invoke(new JsonObject { ["checked_at"] = Stamp(), ["target_fingerprint"] = "fixture-target-v1", ["source_refs"] = new JsonArray(PyNode.Copy(reference)) }.ToJsonString(),
                              "begin", id, "--revision", "1", "--input", "-");
         var finished = Invoke(new JsonObject { ["state"] = "succeeded", ["receipt"] = Receipt() }.ToJsonString(),
                               "finish", (string)attempt["attempt_id"]!, "--input", "-");

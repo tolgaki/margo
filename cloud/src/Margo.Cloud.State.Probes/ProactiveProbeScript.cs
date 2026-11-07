@@ -3,8 +3,9 @@ using System.Numerics;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Margo.Cloud.State.Core;
+using Margo.Cloud.State.Proactive;
 
-namespace Margo.Cloud.State.Proactive;
+namespace Margo.Cloud.State.Probes;
 
 /// <summary>
 /// C# twin of <c>cloud/contracts/state/probes/proactive_probe.py</c>. Not a Margo command and not offered to the
@@ -14,7 +15,7 @@ namespace Margo.Cloud.State.Proactive;
 /// documents the modes. Linux only (fixture files use POSIX modes), like the rest of the state helpers.
 /// </summary>
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
-public sealed partial class ProactiveProbeScript : IStateScript
+public sealed partial class ProactiveProbeScript : IStateProbeScript
 {
     private static readonly Dictionary<string, string> References = new(StringComparer.Ordinal)
     {
@@ -114,8 +115,8 @@ public sealed partial class ProactiveProbeScript : IStateScript
     {
         JsonArray array => new JsonArray(array.Select(item => Substitute(item, resolve)).ToArray()),
         JsonObject obj => SubstituteObject(obj, resolve),
-        JsonValue when Py.IsStr(value, out var text) => JsonValue.Create(Placeholder().Replace(text, resolve)),
-        _ => Py.Copy(value),
+        JsonValue when PyNode.IsStr(value, out var text) => JsonValue.Create(Placeholder().Replace(text, resolve)),
+        _ => PyNode.Copy(value),
     };
 
     private static JsonObject SubstituteObject(JsonObject obj, MatchEvaluator resolve)
@@ -228,18 +229,18 @@ public sealed partial class ProactiveProbeScript : IStateScript
     private sealed class RollbackSignal : Exception;
 
     private static string? Str(JsonArray args, int index) =>
-        index >= args.Count || Py.IsNone(args[index]) ? null
-        : Py.IsStr(args[index], out var text) ? text : throw new InvalidOperationException("probe: argument " + index + " must be a str");
+        index >= args.Count || PyNode.IsNone(args[index]) ? null
+        : PyNode.IsStr(args[index], out var text) ? text : throw new InvalidOperationException("probe: argument " + index + " must be a str");
 
     private static BigInteger? Int(JsonArray args, int index) =>
-        index >= args.Count || Py.IsNone(args[index]) ? null
+        index >= args.Count || PyNode.IsNone(args[index]) ? null
         : PyJson.IsInt(args[index]) ? PyJson.AsInt(args[index]) : throw new InvalidOperationException("probe: argument " + index + " must be an int");
 
     private static List<string>? Strings(JsonArray args, int index) =>
-        index >= args.Count || Py.IsNone(args[index]) ? null
-        : ((JsonArray)args[index]!).Select(item => Py.IsStr(item, out var text) ? text : throw new InvalidOperationException("probe: list of str expected")).ToList();
+        index >= args.Count || PyNode.IsNone(args[index]) ? null
+        : ((JsonArray)args[index]!).Select(item => PyNode.IsStr(item, out var text) ? text : throw new InvalidOperationException("probe: list of str expected")).ToList();
 
-    private static JsonNode? Data(JsonArray args, int index) => index < args.Count ? Py.Copy(args[index]) : null;
+    private static JsonNode? Data(JsonArray args, int index) => index < args.Count ? PyNode.Copy(args[index]) : null;
 
     private static JsonNode? Invoke(PyConnection conn, string name, JsonArray args)
     {
@@ -285,7 +286,7 @@ public sealed partial class ProactiveProbeScript : IStateScript
             case "import_legacy":
                 return ProactiveState.ImportLegacy(conn, Str(args, 0)!);
             case "_attempt":
-                return Py.Dict(ProactiveState.Attempt(conn, Str(args, 0)));
+                return PyNode.FromRow(ProactiveState.Attempt(conn, Str(args, 0)));
             default:
                 throw new ProbeExit("probe: unknown function " + name);
         }
@@ -309,7 +310,7 @@ public sealed partial class ProactiveProbeScript : IStateScript
                     var cursor = conn.Execute((string)statement[0]!, parameters);
                     var rows = cursor.FetchAll();
                     PyIO.Print(stdout, rows.Count > 0
-                        ? PyJson.Dumps(new JsonArray(rows.Select(row => (JsonNode)new JsonArray(row.Select(Py.Node).ToArray())).ToArray()))
+                        ? PyJson.Dumps(new JsonArray(rows.Select(row => (JsonNode)new JsonArray(row.Select(PyNode.FromSql).ToArray())).ToArray()))
                         : cursor.RowCount.ToString(CultureInfo.InvariantCulture));
                 }
             });

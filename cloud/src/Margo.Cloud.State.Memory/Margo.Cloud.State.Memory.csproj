@@ -8,10 +8,14 @@
 
   <ItemGroup>
     <ProjectReference Include="../Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
+    <!-- memory_store.py imports work_ledger.human. -->
+    <ProjectReference Include="../Margo.Cloud.State.Work/Margo.Cloud.State.Work.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Margo.Cloud.State.Tests" />
+    <!-- The contract probe twin (never shipped in Release) drives internal entry points, as the Python probe does. -->
+    <InternalsVisibleTo Include="Margo.Cloud.State.Probes" />
   </ItemGroup>
 
 </Project>

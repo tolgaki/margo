@@ -1,4 +1,5 @@
 using Margo.Cloud.State.Core;
+using Margo.Cloud.State.Probes;
 using Xunit;
 
 namespace Margo.Cloud.State.Tests;

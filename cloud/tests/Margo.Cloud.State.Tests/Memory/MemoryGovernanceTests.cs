@@ -56,7 +56,7 @@ public sealed class MemoryGovernanceTests
         var page = MemoryGovernance.Maintain(store, 1);
         Assert.Equal(1L, (long)page["processed"]!);
         Assert.Single((JsonArray)page["forgotten_ids"]!);
-        var final = MemoryGovernance.Maintain(store, 1, page["next_cursor"]!.DeepClone());
+        var final = MemoryGovernance.Maintain(store, 1, PyNode.Copy(page["next_cursor"]));
         var erased = ((JsonArray)page["forgotten_ids"]!).Concat((JsonArray)final["forgotten_ids"]!).Select(id => (string)id!).Order(StringComparer.Ordinal);
         Assert.Equal(new[] { first, second }.Order(StringComparer.Ordinal), erased);
         Assert.False((bool)page["outbound_actions"]!);
@@ -80,7 +80,7 @@ public sealed class MemoryGovernanceTests
         var preview = MemoryGovernance.ExportPreview(store, identity, recipe);
         var consent = Evidence((string)preview["subject_id"]!, decision: "export");
         var destination = root.Combine("out", "recipe.md");
-        var changed = (JsonObject)recipe.DeepClone();
+        var changed = PyNode.CopyObject(recipe);
         changed["steps"] = "Different instructions.";
         Assert.Throws<StateError>(() => MemoryGovernance.ExportRecipe(store, identity, changed, consent, destination));
 
@@ -94,12 +94,12 @@ public sealed class MemoryGovernanceTests
         Assert.Equal("700", Modes.Of(root.Combine("out")));
         Assert.Equal(PyIds.Sha256Hex(text), (string)result["sha256"]!);
 
-        var exists = Assert.Throws<PyOSErrorTwoPaths>(() => MemoryGovernance.ExportRecipe(store, identity, recipe, consent, destination));
+        var exists = Assert.Throws<PyOSError>(() => MemoryGovernance.ExportRecipe(store, identity, recipe, consent, destination));
         Assert.Equal("FileExistsError", exists.PythonType);
         Assert.Matches(new Regex(@"^\[Errno 17\] File exists: '.*/out/\.memory-export-[a-z0-9_]{8}' -> '" + Regex.Escape(destination) + "'$"), exists.Message);
         Assert.Equal(["recipe.md"], Directory.GetFiles(root.Combine("out")).Select(Path.GetFileName).ToArray());
 
-        var marked = (JsonObject)recipe.DeepClone();
+        var marked = PyNode.CopyObject(recipe);
         marked["steps"] = "Contact dana@example.com";
         Assert.Throws<StateError>(() => MemoryGovernance.ExportPreview(store, identity, marked));
     }
@@ -110,12 +110,12 @@ public sealed class MemoryGovernanceTests
         using var root = TempRoot.Create();
         using var store = new MemoryStore(Account, root.State);
         var row = store.Put("usage", Data(), "active");
-        var refs = new JsonArray(new JsonObject { ["id"] = row["id"]!.DeepClone(), ["revision"] = 1 });
-        Assert.Throws<StateError>(() => store.RecordUsage(refs.DeepClone(), "drafting"));
+        var refs = new JsonArray(new JsonObject { ["id"] = PyNode.Copy(row["id"]), ["revision"] = 1 });
+        Assert.Throws<StateError>(() => store.RecordUsage(PyNode.Copy(refs), "drafting"));
         Configure(store, Policy(policy => policy["usage_enabled"] = true));
-        store.RecordUsage(refs.DeepClone(), "drafting", eventId: "synthetic-usage");
-        Assert.True((bool)store.RecordUsage(refs.DeepClone(), "drafting", eventId: "synthetic-usage")["replayed"]!);
-        Assert.Throws<StateError>(() => store.RecordUsage(refs.DeepClone(), "calendar", eventId: "synthetic-usage"));
+        store.RecordUsage(PyNode.Copy(refs), "drafting", eventId: "synthetic-usage");
+        Assert.True((bool)store.RecordUsage(PyNode.Copy(refs), "drafting", eventId: "synthetic-usage")["replayed"]!);
+        Assert.Throws<StateError>(() => store.RecordUsage(PyNode.Copy(refs), "calendar", eventId: "synthetic-usage"));
         Assert.DoesNotContain((string)row["text"]!, store.Usage(row["id"]).ToJsonString(), StringComparison.Ordinal);
         store.Forget(row["id"], 1, Evidence((string)row["id"]!, decision: "forget"));
         Assert.Empty(store.Usage(row["id"]));

@@ -118,7 +118,7 @@ public static class ProactiveState
         }
 
         var row = conn.Execute("SELECT value FROM proactive_meta WHERE key='schema_version'").FetchOne();
-        if (row is null || !Py.Eq(row[0], "1"))
+        if (row is null || !PyObj.Eq(row[0], "1"))
         {
             throw new StateError("unsupported/missing proactive schema version; explicit migration required");
         }
@@ -148,10 +148,10 @@ public static class ProactiveState
                 // Preserve their evidence, but require explicit revalidation before reuse.
                 foreach (var row in conn.Execute("SELECT source_key,window FROM proactive_sources"))
                 {
-                    if (PyJson.Truthy(Py.Loads(row["window"])))
+                    if (PyJson.Truthy(PyNode.Loads(row["window"])))
                     {
                         conn.Execute("INSERT OR REPLACE INTO proactive_meta VALUES (?,?)",
-                                     "retired:" + Py.Str(row["source_key"]), "legacy window identity requires revalidation");
+                                     "retired:" + PyObj.StrOperand(row["source_key"]), "legacy window identity requires revalidation");
                     }
                 }
 
@@ -165,12 +165,12 @@ public static class ProactiveState
     /// <summary><c>text(value, label, optional)</c>: a nonempty (after <c>strip()</c>) string without NUL.</summary>
     public static string? Text(JsonNode? value, string label, bool optional = false)
     {
-        if (Py.IsNone(value) && optional)
+        if (PyNode.IsNone(value) && optional)
         {
             return null;
         }
 
-        if (!Py.IsStr(value, out var text) || PyRepr.Strip(text).Length == 0 || text.Contains('\0', StringComparison.Ordinal))
+        if (!PyNode.IsStr(value, out var text) || PyRepr.Strip(text).Length == 0 || text.Contains('\0', StringComparison.Ordinal))
         {
             throw new StateError(label + " must be a nonempty string");
         }
@@ -244,7 +244,7 @@ public static class ProactiveState
 
     private static string Family(JsonNode? value)
     {
-        if (!Py.IsStr(value, out var text) || !IsFamily(text))
+        if (!PyNode.IsStr(value, out var text) || !IsFamily(text))
         {
             throw new StateError("family must be a short provider/source identifier");
         }
@@ -273,7 +273,7 @@ public static class ProactiveState
 
     private static string Scope(JsonNode? value)
     {
-        if (!(Py.IsStr(value, out _) || value is JsonObject) || !PyJson.Truthy(value))
+        if (!(PyNode.IsStr(value, out _) || value is JsonObject) || !PyJson.Truthy(value))
         {
             throw new StateError("source scope must be a nonempty string or object");
         }
@@ -281,20 +281,18 @@ public static class ProactiveState
         return StateStore.CanonicalJson(value);
     }
 
-    private static JsonNode? Clone(JsonNode? node) => Py.Copy(node);
-
     // ================================================================================ queue
 
     private sealed record ItemValues(string Key, string StableId, string Revision, string Family, string Scope, string Payload, string Ts);
 
     private static ItemValues Item(JsonNode? data, string? tier = null)
     {
-        var item = (JsonObject)Py.Copy(ObjectJson(data))!;
-        var stableId = Text(Py.Get(item, "id"), "id")!;
-        var family = Family(Py.Get(item, "family", "legacy"));
-        var scopeValue = Py.Get(item, "scope", new JsonObject());
+        var item = (JsonObject)PyNode.Copy(ObjectJson(data))!;
+        var stableId = Text(PyNode.Get(item, "id"), "id")!;
+        var family = Family(PyNode.Get(item, "family", "legacy"));
+        var scopeValue = PyNode.Get(item, "scope", new JsonObject());
         var scope = StateStore.CanonicalJson(scopeValue);
-        if (!(Py.IsStr(scopeValue, out _) || scopeValue is JsonObject))
+        if (!(PyNode.IsStr(scopeValue, out _) || scopeValue is JsonObject))
         {
             throw new StateError("item scope must be an object or string");
         }
@@ -304,15 +302,15 @@ public static class ProactiveState
         {
             if (!ItemMetadata.Contains(key, StringComparer.Ordinal))
             {
-                content[key] = Clone(value);
+                content[key] = PyNode.Copy(value);
             }
         }
 
         // item.get("revision", digest(content)) evaluates the digest even when a revision is given.
         var computed = Digest(content);
-        var revision = Text(Py.Get(item, "revision", computed), "revision")!;
+        var revision = Text(PyNode.Get(item, "revision", computed), "revision")!;
         item["revision"] = revision;
-        item["ts"] = item.ContainsKey("ts") ? Py.Timestamp(item["ts"]) : StateStore.UtcNow();
+        item["ts"] = item.ContainsKey("ts") ? StateStore.ValidateTimestamp(item["ts"]) : StateStore.UtcNow();
         if (!item.ContainsKey("tier"))
         {
             item["tier"] = string.IsNullOrEmpty(tier) ? "sweep" : tier;
@@ -334,13 +332,13 @@ public static class ProactiveState
         var prior = conn.Execute("SELECT * FROM proactive_items WHERE item_key=?", values.Key).FetchOne();
         if (prior is not null)
         {
-            var old = Py.Loads(prior["payload"]);
+            var old = PyNode.Loads(prior["payload"]);
             var current = PyJson.Loads(values.Payload);
             foreach (var payload in new[] { old, current })
             {
                 foreach (var key in ReplayIgnored)
                 {
-                    Py.Pop(payload, key);
+                    PyNode.Pop(payload, key);
                 }
             }
 
@@ -351,7 +349,7 @@ public static class ProactiveState
 
             return new JsonObject
             {
-                ["id"] = values.StableId, ["revision"] = values.Revision, ["status"] = Py.Node(prior["status"]), ["added"] = false,
+                ["id"] = values.StableId, ["revision"] = values.Revision, ["status"] = PyNode.FromSql(prior["status"]), ["added"] = false,
             };
         }
 
@@ -384,20 +382,20 @@ public static class ProactiveState
     /// <summary><c>_render_item(row, batch)</c>: the stored payload plus key, status and lease fields.</summary>
     internal static JsonObject RenderItem(PyRow row, PyRow? batch = null)
     {
-        var loaded = Py.Loads(row["payload"]);
+        var loaded = PyNode.Loads(row["payload"]);
         if (loaded is not JsonObject item)
         {
-            throw new PyAttributeError("'" + Py.TypeName(loaded) + "' object has no attribute 'update'");
+            throw new PyAttributeError("'" + PyNode.TypeName(loaded) + "' object has no attribute 'update'");
         }
 
-        item["item_key"] = Py.Node(row["item_key"]);
-        item["status"] = Py.Node(row["status"]);
+        item["item_key"] = PyNode.FromSql(row["item_key"]);
+        item["status"] = PyNode.FromSql(row["status"]);
         if (batch is not null)
         {
-            item["batch"] = Py.Node(batch["id"]);
-            item["owner"] = Py.Node(batch["owner"]);
-            item["drained_at"] = Py.Node(batch["created_at"]);
-            item["lease_expires_at"] = Py.Node(batch["expires_at"]);
+            item["batch"] = PyNode.FromSql(batch["id"]);
+            item["owner"] = PyNode.FromSql(batch["owner"]);
+            item["drained_at"] = PyNode.FromSql(batch["created_at"]);
+            item["lease_expires_at"] = PyNode.FromSql(batch["expires_at"]);
         }
 
         return item;
@@ -441,7 +439,7 @@ public static class ProactiveState
     private static PyRow LiveBatch(PyConnection conn, object? batchId)
     {
         var row = conn.Execute("SELECT * FROM proactive_batches WHERE id=?", batchId).FetchOne();
-        if (row is null || !Py.Eq(row["status"], "leased") || Py.Compare(row["expires_at"], StateStore.UtcNow(), "<=") <= 0)
+        if (row is null || !PyObj.Eq(row["status"], "leased") || PyObj.Le(row["expires_at"], StateStore.UtcNow()))
         {
             throw new StateError("batch is absent, released, acknowledged or expired; cannot publish/ack");
         }
@@ -456,17 +454,17 @@ public static class ProactiveState
         return StateStore.Transaction(conn, () =>
         {
             var batch = conn.Execute("SELECT * FROM proactive_batches WHERE id=?", batchId).FetchOne();
-            if (batch is null || !Py.Eq(batch["owner"], owner))
+            if (batch is null || !PyObj.Eq(batch["owner"], owner))
             {
                 throw new StateError("batch owner mismatch");
             }
 
-            if (Py.Eq(batch["status"], "released") || Py.Eq(batch["status"], "expired"))
+            if (PyObj.Eq(batch["status"], "released") || PyObj.Eq(batch["status"], "expired"))
             {
                 return new JsonObject { ["batch"] = batchId, ["released"] = 0L };
             }
 
-            if (!Py.Eq(batch["status"], "leased"))
+            if (!PyObj.Eq(batch["status"], "leased"))
             {
                 throw new StateError("cannot release an acknowledged batch");
             }
@@ -485,7 +483,7 @@ public static class ProactiveState
         return StateStore.Transaction(conn, () =>
         {
             var batch = LiveBatch(conn, batchId);
-            if (!Py.Eq(batch["owner"], owner))
+            if (!PyObj.Eq(batch["owner"], owner))
             {
                 throw new StateError("batch owner mismatch");
             }
@@ -500,9 +498,9 @@ public static class ProactiveState
 
     private static string? Receipt(JsonNode? status, JsonNode? receipt, string publicationId)
     {
-        if (Py.StrEquals(status, "prepared"))
+        if (PyNode.Is(status, "prepared"))
         {
-            if (!Py.IsNone(receipt))
+            if (!PyNode.IsNone(receipt))
             {
                 throw new StateError("prepared output cannot claim a publication receipt");
             }
@@ -511,10 +509,10 @@ public static class ProactiveState
         }
 
         var value = ObjectJson(receipt);
-        if (Py.StrEquals(status, "available"))
+        if (PyNode.Is(status, "available"))
         {
             Fields(value, "kind");
-            if (!Py.StrEquals(Py.Get(value, "kind"), "local"))
+            if (!PyNode.Is(PyNode.Get(value, "kind"), "local"))
             {
                 throw new StateError("available requires a local durable-output receipt");
             }
@@ -522,20 +520,20 @@ public static class ProactiveState
             return StateStore.CanonicalJson(new JsonObject { ["kind"] = "local", ["publication_id"] = publicationId });
         }
 
-        if (!Py.StrEquals(status, "published") || !Py.StrEquals(Py.Get(value, "kind"), "host"))
+        if (!PyNode.Is(status, "published") || !PyNode.Is(PyNode.Get(value, "kind"), "host"))
         {
             throw new StateError("published requires a host publication receipt");
         }
 
         Fields(value, "kind receipt_id location published_at");
-        var publishedAt = Py.Timestamp(Py.Get(value, "published_at"));
-        if (Py.Compare(publishedAt, StateStore.UtcNow(), ">") > 0)
+        var publishedAt = StateStore.ValidateTimestamp(PyNode.Get(value, "published_at"));
+        if (PyObj.Gt(publishedAt, StateStore.UtcNow()))
         {
             throw new StateError("publication receipt cannot be future-dated");
         }
 
-        var receiptId = Text(Py.Get(value, "receipt_id"), "receipt_id");
-        var location = Text(Py.Get(value, "location"), "location");
+        var receiptId = Text(PyNode.Get(value, "receipt_id"), "receipt_id");
+        var location = Text(PyNode.Get(value, "location"), "location");
         return StateStore.CanonicalJson(new JsonObject
         {
             ["kind"] = "host", ["receipt_id"] = receiptId, ["location"] = location, ["published_at"] = publishedAt,
@@ -544,14 +542,14 @@ public static class ProactiveState
 
     private static List<PyRow> SelectItems(List<PyRow> rows, JsonObject data)
     {
-        var ids = Py.Get(data, "ids");
-        var keys = Py.Get(data, "item_keys");
-        if (Py.IsNone(ids) == Py.IsNone(keys))
+        var ids = PyNode.Get(data, "ids");
+        var keys = PyNode.Get(data, "item_keys");
+        if (PyNode.IsNone(ids) == PyNode.IsNone(keys))
         {
             throw new StateError("specify exactly one of ids or item_keys");
         }
 
-        var selected = !Py.IsNone(ids) ? ids : keys;
+        var selected = !PyNode.IsNone(ids) ? ids : keys;
         var values = new List<string>();
         if (selected is not JsonArray list || list.Count == 0)
         {
@@ -560,7 +558,7 @@ public static class ProactiveState
 
         foreach (var entry in list)
         {
-            if (!Py.IsStr(entry, out var text) || text.Length == 0)
+            if (!PyNode.IsStr(entry, out var text) || text.Length == 0)
             {
                 throw new StateError("included items must be a nonempty list of strings");
             }
@@ -573,8 +571,8 @@ public static class ProactiveState
             throw new StateError("included items must not contain duplicates");
         }
 
-        var column = !Py.IsNone(ids) ? "stable_id" : "item_key";
-        var chosen = rows.Where(row => values.Any(value => Py.Eq(row[column], value))).ToList();
+        var column = !PyNode.IsNone(ids) ? "stable_id" : "item_key";
+        var chosen = rows.Where(row => values.Any(value => PyObj.Eq(row[column], value))).ToList();
         if (chosen.Count != values.Count)
         {
             throw new StateError("items are missing or IDs are ambiguous; use exact item_keys");
@@ -600,13 +598,13 @@ public static class ProactiveState
         var input = ObjectJson(data);
         Fields(input, "id content ids item_keys status receipt");
         var generated = PyIds.Uuid4Hex();
-        var publicationId = Text(Py.Get(input, "id", generated), "publication id")!;
-        var content = Text(Py.Get(input, "content"), "content")!;
-        var status = Py.Get(input, "status", "prepared");
-        var receipt = Receipt(status, Py.Get(input, "receipt"), publicationId);
-        var statusText = Py.IsStr(status, out var text) ? text : throw new InvalidOperationException("unreachable: _receipt accepts only str statuses");
+        var publicationId = Text(PyNode.Get(input, "id", generated), "publication id")!;
+        var content = Text(PyNode.Get(input, "content"), "content")!;
+        var status = PyNode.Get(input, "status", "prepared");
+        var receipt = Receipt(status, PyNode.Get(input, "receipt"), publicationId);
+        var statusText = PyNode.IsStr(status, out var text) ? text : throw new InvalidOperationException("unreachable: _receipt accepts only str statuses");
         var standalone = batchId is null;
-        if (standalone && SelectionFields.Any(key => Py.Get(input, key) is var value && !Py.IsNone(value) && !(value is JsonArray { Count: 0 })))
+        if (standalone && SelectionFields.Any(key => PyNode.Get(input, key) is var value && !PyNode.IsNone(value) && !(value is JsonArray { Count: 0 })))
         {
             throw new StateError("standalone publications cannot claim queued items");
         }
@@ -624,9 +622,9 @@ public static class ProactiveState
 
                 var rows = conn.Execute(PublicationItemsSql, publicationId).ToList();
                 var chosen = standalone ? [] : SelectItems(rows, input);
-                if (chosen.Count != rows.Count || (!standalone && !Py.Eq(existing["batch_id"], batchId))
-                    || !Py.Eq(existing["content"], content) || !Py.Eq(existing["status"], statusText)
-                    || !Py.Eq(existing["receipt"], receipt))
+                if (chosen.Count != rows.Count || (!standalone && !PyObj.Eq(existing["batch_id"], batchId))
+                    || !PyObj.Eq(existing["content"], content) || !PyObj.Eq(existing["status"], statusText)
+                    || !PyObj.Eq(existing["receipt"], receipt))
                 {
                     throw new StateError("publication ID already exists with different content or status");
                 }
@@ -670,24 +668,24 @@ public static class ProactiveState
         ArgumentNullException.ThrowIfNull(conn);
         var input = ObjectJson(data);
         Fields(input, "status receipt");
-        var status = Py.Get(input, "status");
-        if (!Py.StrIn(status, "available", "published"))
+        var status = PyNode.Get(input, "status");
+        if (!PyNode.IsOneOf(status, "available", "published"))
         {
             throw new StateError("publication status must be available or published");
         }
 
         var statusText = (string)PyJson.Scalar(status)!;
-        var receipt = Receipt(status, Py.Get(input, "receipt"), publicationId);
+        var receipt = Receipt(status, PyNode.Get(input, "receipt"), publicationId);
         return StateStore.Transaction(conn, () =>
         {
             var publication = conn.Execute("SELECT * FROM proactive_publications WHERE id=?", publicationId).FetchOne()
                               ?? throw new StateError("unknown publication");
-            if (Py.Eq(publication["status"], statusText) && Py.Eq(publication["receipt"], receipt))
+            if (PyObj.Eq(publication["status"], statusText) && PyObj.Eq(publication["receipt"], receipt))
             {
                 return new JsonObject { ["publication_id"] = publicationId, ["status"] = statusText, ["replayed"] = true };
             }
 
-            if (!Py.Eq(publication["status"], "prepared"))
+            if (!PyObj.Eq(publication["status"], "prepared"))
             {
                 throw new StateError("publication receipt is immutable once available/published");
             }
@@ -726,9 +724,9 @@ public static class ProactiveState
         return StateStore.Transaction(conn, () =>
         {
             var publication = conn.Execute("SELECT * FROM proactive_publications WHERE id=?", receiptId).FetchOne();
-            if (publication is null || !(Py.Eq(publication["status"], "available") || Py.Eq(publication["status"], "published")
-                                         || Py.Eq(publication["status"], "reviewed"))
-                || !Py.Truthy(publication["receipt"]))
+            if (publication is null || !(PyObj.Eq(publication["status"], "available") || PyObj.Eq(publication["status"], "published")
+                                         || PyObj.Eq(publication["status"], "reviewed"))
+                || !PyObj.Truthy(publication["receipt"]))
             {
                 throw new StateError("ack requires an available/published output with a durable receipt");
             }
@@ -739,7 +737,7 @@ public static class ProactiveState
             }
 
             var publicationBatch = publication["batch_id"];
-            if (!string.IsNullOrEmpty(batchId) && !Py.Eq(batchId, publicationBatch))
+            if (!string.IsNullOrEmpty(batchId) && !PyObj.Eq(batchId, publicationBatch))
             {
                 throw new StateError("receipt belongs to a different batch");
             }
@@ -758,7 +756,7 @@ public static class ProactiveState
                 chosen = rows;
             }
 
-            if (chosen.All(row => Py.Eq(row["status"], "published") && Py.Eq(row["batch_id"], publicationBatch)))
+            if (chosen.All(row => PyObj.Eq(row["status"], "published") && PyObj.Eq(row["batch_id"], publicationBatch)))
             {
                 return new JsonObject { ["acked"] = 0L, ["replayed"] = true, ["publication_id"] = receiptId };
             }
@@ -766,7 +764,7 @@ public static class ProactiveState
             LiveBatch(conn, publicationBatch);
             foreach (var row in chosen)
             {
-                if (!Py.Eq(row["batch_id"], publicationBatch) || !(Py.Eq(row["status"], "leased") || Py.Eq(row["status"], "published")))
+                if (!PyObj.Eq(row["batch_id"], publicationBatch) || !(PyObj.Eq(row["status"], "leased") || PyObj.Eq(row["status"], "published")))
                 {
                     throw new StateError("receipt no longer owns the selected item lease");
                 }
@@ -779,12 +777,12 @@ public static class ProactiveState
             }
 
             var remaining = conn.Execute("SELECT count(*) FROM proactive_items WHERE batch_id=? AND status='leased'", publicationBatch).FetchOne()![0];
-            if (!Py.Truthy(remaining))
+            if (!PyObj.Truthy(remaining))
             {
                 conn.Execute("UPDATE proactive_batches SET status='acked' WHERE id=?", publicationBatch);
             }
 
-            return new JsonObject { ["acked"] = count, ["remaining"] = Py.Node(remaining), ["publication_id"] = receiptId };
+            return new JsonObject { ["acked"] = count, ["remaining"] = PyNode.FromSql(remaining), ["publication_id"] = receiptId };
         });
     }
 
@@ -796,12 +794,12 @@ public static class ProactiveState
         return StateStore.Transaction(conn, () =>
         {
             var row = conn.Execute("SELECT * FROM proactive_publications WHERE id=?", publicationId).FetchOne();
-            if (row is null || !(Py.Eq(row["status"], "available") || Py.Eq(row["status"], "published") || Py.Eq(row["status"], "reviewed")))
+            if (row is null || !(PyObj.Eq(row["status"], "available") || PyObj.Eq(row["status"], "published") || PyObj.Eq(row["status"], "reviewed")))
             {
                 throw new StateError("only an available/published output can be explicitly reviewed");
             }
 
-            if (Py.Compare(timestamp, row["available_at"], "<") < 0)
+            if (PyObj.Lt(timestamp, row["available_at"]))
             {
                 throw new StateError("review cannot predate output availability");
             }
@@ -816,13 +814,13 @@ public static class ProactiveState
 
     private static JsonObject Window(JsonNode? value)
     {
-        var window = (JsonObject)Py.Copy(ObjectJson(value))!;
+        var window = (JsonObject)PyNode.Copy(ObjectJson(value))!;
         Fields(window, "start end");
         if (window.Count > 0)
         {
-            window["start"] = Py.Timestamp(Py.Get(window, "start"));
-            window["end"] = Py.Timestamp(Py.Get(window, "end"));
-            if (Py.Compare((string)window["start"]!, (string)window["end"]!, ">=") >= 0)
+            window["start"] = StateStore.ValidateTimestamp(PyNode.Get(window, "start"));
+            window["end"] = StateStore.ValidateTimestamp(PyNode.Get(window, "end"));
+            if (PyObj.Ge((string)window["start"]!, (string)window["end"]!))
             {
                 throw new StateError("window start must precede end");
             }
@@ -844,38 +842,38 @@ public static class ProactiveState
         var input = ObjectJson(data);
         Fields(input, "family scope window collection_window run_id capability query_version kind "
                       + "cadence_seconds resume_attempt reauthenticated reactivate");
-        var family = Family(Py.Get(input, "family"));
-        var scope = Scope(Py.Get(input, "scope"));
-        var window = Window(Py.Get(input, "window", new JsonObject()));
-        var collectionWindow = Window(Py.Get(input, "collection_window", new JsonObject()));
+        var family = Family(PyNode.Get(input, "family"));
+        var scope = Scope(PyNode.Get(input, "scope"));
+        var window = Window(PyNode.Get(input, "window", new JsonObject()));
+        var collectionWindow = Window(PyNode.Get(input, "collection_window", new JsonObject()));
         if (collectionWindow.Count > 0 && !PyJson.PyEquals(window, collectionWindow))
         {
             throw new StateError("a provider-bound collection_window must match its requested window");
         }
 
-        var runId = Text(Py.Get(input, "run_id"), "run_id")!;
-        var capability = Text(Py.Get(input, "capability"), "capability")!;
-        var queryVersion = Text(Py.Get(input, "query_version"), "query_version")!;
-        var kindValue = Py.Get(input, "kind", "enumeration");
-        if (!Py.StrIn(kindValue, "enumeration", "search", "snapshot"))
+        var runId = Text(PyNode.Get(input, "run_id"), "run_id")!;
+        var capability = Text(PyNode.Get(input, "capability"), "capability")!;
+        var queryVersion = Text(PyNode.Get(input, "query_version"), "query_version")!;
+        var kindValue = PyNode.Get(input, "kind", "enumeration");
+        if (!PyNode.IsOneOf(kindValue, "enumeration", "search", "snapshot"))
         {
             throw new StateError("kind must be enumeration, search or snapshot");
         }
 
         var kind = (string)PyJson.Scalar(kindValue)!;
-        var cadenceValue = Py.Get(input, "cadence_seconds");
-        if (!PyJson.IsBool(Py.Get(input, "reauthenticated", false)))
+        var cadenceValue = PyNode.Get(input, "cadence_seconds");
+        if (!PyJson.IsBool(PyNode.Get(input, "reauthenticated", false)))
         {
             throw new StateError("reauthenticated must be an explicit boolean");
         }
 
-        if (!PyJson.IsBool(Py.Get(input, "reactivate", false)))
+        if (!PyJson.IsBool(PyNode.Get(input, "reactivate", false)))
         {
             throw new StateError("reactivate must be an explicit boolean");
         }
 
         long? cadence = null;
-        if (!Py.IsNone(cadenceValue))
+        if (!PyNode.IsNone(cadenceValue))
         {
             cadence = Integer(cadenceValue, "cadence_seconds", 1);
         }
@@ -883,7 +881,7 @@ public static class ProactiveState
         var principalRow = conn.Execute("SELECT value FROM margo_meta WHERE key='account'").FetchOne()
                            ?? throw new PyTypeError("'NoneType' object is not subscriptable");
         var principal = principalRow[0];
-        var key = Digest(new JsonArray(Py.Node(principal), family, scope, Clone(collectionWindow)));
+        var key = Digest(new JsonArray(PyNode.FromSql(principal), family, scope, PyNode.Copy(collectionWindow)));
         var attemptId = PyIds.Uuid4Hex();
         var now = StateStore.UtcNow();
         StateStore.Transaction(conn, () =>
@@ -891,7 +889,7 @@ public static class ProactiveState
             var priorSource = conn.Execute("SELECT * FROM proactive_sources WHERE source_key=?", key).FetchOne();
             if (conn.Execute("SELECT 1 FROM proactive_meta WHERE key=?", "retired:" + key).FetchOne() is not null)
             {
-                if (!PyJson.Truthy(Py.Get(input, "reactivate")))
+                if (!PyJson.Truthy(PyNode.Get(input, "reactivate")))
                 {
                     throw new StateError("source is retired; explicitly revalidate and reactivate before reuse");
                 }
@@ -899,26 +897,26 @@ public static class ProactiveState
                 conn.Execute("DELETE FROM proactive_meta WHERE key=?", "retired:" + key);
             }
 
-            if (priorSource is not null && Py.Eq(priorSource["error_class"], "authentication_required")
-                && !PyJson.Truthy(Py.Get(input, "reauthenticated", false)))
+            if (priorSource is not null && PyObj.Eq(priorSource["error_class"], "authentication_required")
+                && !PyJson.Truthy(PyNode.Get(input, "reauthenticated", false)))
             {
                 throw new StateError("source is authentication-blocked; reauthenticate before an explicit reauthenticated retry");
             }
 
             PyRow? previous = null;
-            if (!Py.IsNone(Py.Get(input, "resume_attempt")))
+            if (!PyNode.IsNone(PyNode.Get(input, "resume_attempt")))
             {
                 previous = Attempt(conn, Text(input["resume_attempt"], "resume_attempt"));
                 var errorClass = previous["error_class"];
-                if (!Py.Eq(previous["source_key"], key)
-                    || !(Py.Eq(previous["status"], "partial") || Py.Eq(previous["status"], "failed"))
-                    || Py.Truthy(previous["pagination_complete"]) || !Py.Truthy(previous["continuation"])
-                    || !Py.Eq(previous["kind"], kind) || !Py.Eq(previous["query_version"], queryVersion)
-                    || !Py.Eq(previous["capability"], capability)
-                    || !Py.Eq(previous["requested_start"], WindowBound(window, "start"))
-                    || !Py.Eq(previous["requested_end"], WindowBound(window, "end"))
-                    || Py.Eq(errorClass, "expired_token") || Py.Eq(errorClass, "access_denied")
-                    || Py.Eq(errorClass, "authentication_required"))
+                if (!PyObj.Eq(previous["source_key"], key)
+                    || !(PyObj.Eq(previous["status"], "partial") || PyObj.Eq(previous["status"], "failed"))
+                    || PyObj.Truthy(previous["pagination_complete"]) || !PyObj.Truthy(previous["continuation"])
+                    || !PyObj.Eq(previous["kind"], kind) || !PyObj.Eq(previous["query_version"], queryVersion)
+                    || !PyObj.Eq(previous["capability"], capability)
+                    || !PyObj.Eq(previous["requested_start"], WindowBound(window, "start"))
+                    || !PyObj.Eq(previous["requested_end"], WindowBound(window, "end"))
+                    || PyObj.Eq(errorClass, "expired_token") || PyObj.Eq(errorClass, "access_denied")
+                    || PyObj.Eq(errorClass, "authentication_required"))
                 {
                     throw new StateError("resume requires compatible partial pages and a still-usable continuation");
                 }
@@ -932,7 +930,7 @@ public static class ProactiveState
             var contract = StateStore.CanonicalJson(new JsonArray(capability, queryVersion, kind));
             var tokenContract = conn.Execute("SELECT value FROM proactive_meta WHERE key=?", "token-contract:" + key).FetchOne();
             if (priorSource is not null && priorSource["delta_token"] is not null
-                && (tokenContract is null || !Py.Eq(tokenContract[0], contract)))
+                && (tokenContract is null || !PyObj.Eq(tokenContract[0], contract)))
             {
                 // Provider tokens are bound to a query contract, not just a mailbox/window.
                 conn.Execute("UPDATE proactive_sources SET delta_token=NULL WHERE source_key=?", key);
@@ -961,7 +959,7 @@ public static class ProactiveState
         {
             var source = conn.Execute("SELECT * FROM proactive_sources WHERE source_key=?", sourceKey).FetchOne()
                          ?? throw new StateError("unknown source");
-            if (Py.Eq(Attempt(conn, source["latest_attempt_id"])["status"], "running"))
+            if (PyObj.Eq(Attempt(conn, source["latest_attempt_id"])["status"], "running"))
             {
                 throw new StateError("finish the source's running attempt before retirement");
             }
@@ -988,20 +986,20 @@ public static class ProactiveState
         ArgumentNullException.ThrowIfNull(conn);
         var input = ObjectJson(data);
         Fields(input, "page observations final continuation");
-        var page = Integer(Py.Get(input, "page"), "page", 1);
-        if (Py.Get(input, "observations") is not JsonArray observations)
+        var page = Integer(PyNode.Get(input, "page"), "page", 1);
+        if (PyNode.Get(input, "observations") is not JsonArray observations)
         {
             throw new StateError("observations must be a list, including for empty enumeration");
         }
 
-        var finalValue = Py.Get(input, "final");
+        var finalValue = PyNode.Get(input, "final");
         if (!PyJson.IsBool(finalValue))
         {
             throw new StateError("final must be true or false");
         }
 
         var final = PyJson.Truthy(finalValue);
-        var continuation = Text(Py.Get(input, "continuation"), "continuation", optional: true);
+        var continuation = Text(PyNode.Get(input, "continuation"), "continuation", optional: true);
         if (final && continuation is not null)
         {
             throw new StateError("a final page cannot have a continuation");
@@ -1011,23 +1009,23 @@ public static class ProactiveState
         foreach (var entry in observations)
         {
             var observation = ObjectJson(entry);
-            var stableId = Text(Py.Get(observation, "id"), "observation id")!;
-            var revision = Text(Py.Get(observation, "revision"), "observation revision")!;
+            var stableId = Text(PyNode.Get(observation, "id"), "observation id")!;
+            var revision = Text(PyNode.Get(observation, "revision"), "observation revision")!;
             foreach (var name in ObservationTimestamps)
             {
                 if (observation.ContainsKey(name))
                 {
-                    Py.Timestamp(observation[name]);
+                    StateStore.ValidateTimestamp(observation[name]);
                 }
             }
 
-            var observedAt = observation.ContainsKey("observed_at") ? Py.Timestamp(observation["observed_at"]) : StateStore.UtcNow();
+            var observedAt = observation.ContainsKey("observed_at") ? StateStore.ValidateTimestamp(observation["observed_at"]) : StateStore.UtcNow();
             var payload = new JsonObject();
             foreach (var (key, value) in observation)
             {
                 if (key != "observed_at")
                 {
-                    payload[key] = Clone(value);
+                    payload[key] = PyNode.Copy(value);
                 }
             }
 
@@ -1035,7 +1033,7 @@ public static class ProactiveState
         }
 
         // digest(dict(data, observations=[json.loads(row[2]) for row in validated]))
-        var fingerprintSource = (JsonObject)Py.Copy(input)!;
+        var fingerprintSource = (JsonObject)PyNode.Copy(input)!;
         fingerprintSource["observations"] = new JsonArray(validated.Select(row => PyJson.Loads(row.Payload)).ToArray());
         var fingerprint = Digest(fingerprintSource);
         return StateStore.Transaction(conn, () =>
@@ -1044,7 +1042,7 @@ public static class ProactiveState
             var existing = conn.Execute("SELECT digest FROM proactive_pages WHERE attempt_id=? AND page=?", attemptId, page).FetchOne();
             if (existing is not null)
             {
-                if (!Py.Eq(existing[0], fingerprint))
+                if (!PyObj.Eq(existing[0], fingerprint))
                 {
                     throw new StateError("page replay differs from the durable page");
                 }
@@ -1052,7 +1050,7 @@ public static class ProactiveState
                 return new JsonObject { ["attempt_id"] = attemptId, ["page"] = page, ["replayed"] = true };
             }
 
-            if (!Py.Eq(attempt["status"], "running") || Py.Truthy(attempt["pagination_complete"]) || !Py.Eq(page, Py.Add(attempt["pages"], 1)))
+            if (!PyObj.Eq(attempt["status"], "running") || PyObj.Truthy(attempt["pagination_complete"]) || !PyObj.Eq(page, PyNumbers.Add(attempt["pages"], 1)))
             {
                 throw new StateError("attempt must be running and pages contiguous, with no page after final");
             }
@@ -1061,10 +1059,10 @@ public static class ProactiveState
             {
                 var prior = conn.Execute("SELECT payload FROM proactive_observations\n                WHERE source_key=? AND stable_id=? AND revision=?",
                                          attempt["source_key"], stableId, revision).FetchOne();
-                var priorPayload = prior is not null ? Py.Loads(prior[0]) : null;
-                if (!Py.IsNone(priorPayload))
+                var priorPayload = prior is not null ? PyNode.Loads(prior[0]) : null;
+                if (!PyNode.IsNone(priorPayload))
                 {
-                    Py.Pop(priorPayload, "observed_at");
+                    PyNode.Pop(priorPayload, "observed_at");
                 }
 
                 if (prior is not null && StateStore.CanonicalJson(priorPayload) != payload)
@@ -1094,11 +1092,11 @@ public static class ProactiveState
     public static JsonObject CoverageFinish(PyConnection conn, string attemptId, JsonNode? data)
     {
         ArgumentNullException.ThrowIfNull(conn);
-        var input = (JsonObject)Py.Copy(ObjectJson(data))!;
+        var input = (JsonObject)PyNode.Copy(ObjectJson(data))!;
         Fields(input, "status checkpoint_at watermark delta_token covered_start covered_end error_class "
                       + "retry_after_seconds next_retry_at");
-        var statusValue = Py.Get(input, "status");
-        if (!Py.StrIn(statusValue, "complete", "partial", "blocked", "failed", "unknown"))
+        var statusValue = PyNode.Get(input, "status");
+        if (!PyNode.IsOneOf(statusValue, "complete", "partial", "blocked", "failed", "unknown"))
         {
             throw new StateError("invalid coverage completion status");
         }
@@ -1106,27 +1104,27 @@ public static class ProactiveState
         var status = (string)PyJson.Scalar(statusValue)!;
         foreach (var name in FinishTimestamps)
         {
-            if (!Py.IsNone(Py.Get(input, name)))
+            if (!PyNode.IsNone(PyNode.Get(input, name)))
             {
-                input[name] = Py.Timestamp(input[name]);
+                input[name] = StateStore.ValidateTimestamp(input[name]);
             }
         }
 
-        var token = Text(Py.Get(input, "delta_token"), "delta_token", optional: true);
-        var retryValue = Py.Get(input, "retry_after_seconds");
+        var token = Text(PyNode.Get(input, "delta_token"), "delta_token", optional: true);
+        var retryValue = PyNode.Get(input, "retry_after_seconds");
         long? retry = null;
-        if (!Py.IsNone(retryValue))
+        if (!PyNode.IsNone(retryValue))
         {
             retry = Integer(retryValue, "retry_after_seconds");
         }
 
-        var error = Py.Get(input, "error_class");
-        if (!Py.IsNone(error))
+        var error = PyNode.Get(input, "error_class");
+        if (!PyNode.IsNone(error))
         {
-            input["error_class"] = Py.IsStr(error, out var errorText) && ErrorClasses.Contains(errorText) ? errorText : "unknown";
+            input["error_class"] = PyNode.IsStr(error, out var errorText) && ErrorClasses.Contains(errorText) ? errorText : "unknown";
         }
 
-        string? StrField(string name) => Py.IsNone(Py.Get(input, name)) ? null : (string)Py.Get(input, name)!;
+        string? StrField(string name) => PyNode.IsNone(PyNode.Get(input, name)) ? null : (string)PyNode.Get(input, name)!;
 
         if (status == "blocked")
         {
@@ -1147,12 +1145,12 @@ public static class ProactiveState
         }
 
         if (status != "complete" && CheckpointClaims
-                .Any(name => !Py.IsNone(Py.Get(input, name))))
+                .Any(name => !PyNode.IsNone(PyNode.Get(input, name))))
         {
             throw new StateError("non-complete attempts cannot claim a successful checkpoint");
         }
 
-        if (status == "complete" && (!Py.IsNone(error) || retry is not null || PyJson.Truthy(Py.Get(input, "next_retry_at"))))
+        if (status == "complete" && (!PyNode.IsNone(error) || retry is not null || PyJson.Truthy(PyNode.Get(input, "next_retry_at"))))
         {
             throw new StateError("complete coverage cannot simultaneously report a failure/retry");
         }
@@ -1162,9 +1160,9 @@ public static class ProactiveState
         var applied = StateStore.Transaction(conn, () =>
         {
             var attempt = Attempt(conn, attemptId);
-            if (!Py.Eq(attempt["status"], "running"))
+            if (!PyObj.Eq(attempt["status"], "running"))
             {
-                if (!Py.Eq(attempt["result"], resultJson))
+                if (!PyObj.Eq(attempt["result"], resultJson))
                 {
                     throw new StateError("attempt is already finished with a different result");
                 }
@@ -1179,44 +1177,44 @@ public static class ProactiveState
             object? end = null;
             if (status == "complete")
             {
-                if (!Py.Eq(attempt["kind"], "enumeration") || !Py.Truthy(attempt["pagination_complete"]) || !Py.Truthy(attempt["pages"]))
+                if (!PyObj.Eq(attempt["kind"], "enumeration") || !PyObj.Truthy(attempt["pagination_complete"]) || !PyObj.Truthy(attempt["pages"]))
                 {
                     throw new StateError("complete requires all pages of an enumeration durably recorded");
                 }
 
                 checkpoint = StrField("checkpoint_at") ?? throw new StateError("complete requires checkpoint_at");
-                if (Py.Compare(checkpoint, now, ">") > 0
-                    || (Py.Truthy(source["checkpoint_at"]) && Py.Compare(checkpoint, source["checkpoint_at"], "<") < 0))
+                if (PyObj.Gt(checkpoint, now)
+                    || (PyObj.Truthy(source["checkpoint_at"]) && PyObj.Lt(checkpoint, source["checkpoint_at"])))
                 {
                     throw new StateError("checkpoint is future-dated or regresses reliable coverage");
                 }
 
                 start = input.ContainsKey("covered_start") ? StrField("covered_start") : attempt["requested_start"];
                 end = input.ContainsKey("covered_end") ? StrField("covered_end") : attempt["requested_end"];
-                if ((start is null) != (end is null) || (start is not null && Py.Compare(start, end, ">=") >= 0))
+                if ((start is null) != (end is null) || (start is not null && PyObj.Ge(start, end)))
                 {
                     throw new StateError("covered interval must contain an ordered start and end");
                 }
 
-                if (Py.Truthy(attempt["requested_start"])
-                    && (!Py.Eq(start, attempt["requested_start"]) || !Py.Eq(end, attempt["requested_end"])))
+                if (PyObj.Truthy(attempt["requested_start"])
+                    && (!PyObj.Eq(start, attempt["requested_start"]) || !PyObj.Eq(end, attempt["requested_end"])))
                 {
                     throw new StateError("complete must cover the exact requested window; use partial otherwise");
                 }
 
                 var watermark = StrField("watermark");
-                if (!string.IsNullOrEmpty(watermark) && Py.Compare(watermark, checkpoint, ">") > 0)
+                if (!string.IsNullOrEmpty(watermark) && PyObj.Gt(watermark, checkpoint))
                 {
                     throw new StateError("watermark cannot exceed checkpoint");
                 }
 
-                if (Py.Truthy(source["watermark"]) && !string.IsNullOrEmpty(watermark) && Py.Compare(watermark, source["watermark"], "<") < 0)
+                if (PyObj.Truthy(source["watermark"]) && !string.IsNullOrEmpty(watermark) && PyObj.Lt(watermark, source["watermark"]))
                 {
                     throw new StateError("watermark cannot regress");
                 }
             }
 
-            var isApplied = Py.Eq(source["latest_attempt_id"], attemptId);
+            var isApplied = PyObj.Eq(source["latest_attempt_id"], attemptId);
             var errorClass = status == "complete" ? null
                 : StrField("error_class") is { Length: > 0 } recorded ? recorded
                 : status == "blocked" ? "access_denied" : "unknown";
@@ -1229,7 +1227,7 @@ public static class ProactiveState
                              now, checkpoint, start, end, StrField("watermark"), hasToken ? 1L : 0L, token, now, source["source_key"]);
                 if (hasToken)
                 {
-                    var contractKey = "token-contract:" + Py.Str(source["source_key"]);
+                    var contractKey = "token-contract:" + PyObj.StrOperand(source["source_key"]);
                     if (token is null)
                     {
                         conn.Execute("DELETE FROM proactive_meta WHERE key=?", contractKey);
@@ -1237,13 +1235,13 @@ public static class ProactiveState
                     else
                     {
                         conn.Execute("INSERT OR REPLACE INTO proactive_meta VALUES (?,?)", contractKey,
-                                     StateStore.CanonicalJson(new JsonArray(Py.Node(attempt["capability"]), Py.Node(attempt["query_version"]),
-                                                                            Py.Node(attempt["kind"]))));
+                                     StateStore.CanonicalJson(new JsonArray(PyNode.FromSql(attempt["capability"]), PyNode.FromSql(attempt["query_version"]),
+                                                                            PyNode.FromSql(attempt["kind"]))));
                     }
                 }
 
                 conn.Execute("DELETE FROM proactive_meta WHERE key=?", "resync:" + attemptId);
-                if (Py.Truthy(source["consecutive_failures"]))
+                if (PyObj.Truthy(source["consecutive_failures"]))
                 {
                     conn.Execute("INSERT OR IGNORE INTO proactive_health_events VALUES (?,?, 'recovered',?,NULL)",
                                  source["source_key"], source["episode"], now);
@@ -1253,9 +1251,9 @@ public static class ProactiveState
             {
                 // Python int/float arithmetic on the stored values (a sum beyond 64 bits fails to bind, as in Python).
                 var previousFailures = source["consecutive_failures"];
-                var failures = Py.Add(previousFailures, 1);
-                var episode = Py.Add(source["episode"], Py.Eq(previousFailures, 0L) ? 1 : 0);
-                var failureStarted = Py.Truthy(source["failure_started_at"]) ? source["failure_started_at"] : now;
+                var failures = PyNumbers.Add(previousFailures, 1);
+                var episode = PyNumbers.Add(source["episode"], PyObj.Eq(previousFailures, 0L) ? 1 : 0);
+                var failureStarted = PyObj.Truthy(source["failure_started_at"]) ? source["failure_started_at"] : now;
                 var nextRetry = StrField("next_retry_at");
                 if (retry is not null && nextRetry is null)
                 {
@@ -1264,10 +1262,10 @@ public static class ProactiveState
 
                 conn.Execute("UPDATE proactive_sources SET status=?,consecutive_failures=?,episode=?,\n                error_class=?,retry_after_seconds=?,next_retry_at=?,failure_started_at=?,\n                delta_token=CASE WHEN ?='expired_token' THEN NULL ELSE delta_token END WHERE source_key=?",
                              status, failures, episode, errorClass, retry, nextRetry, failureStarted, errorClass, source["source_key"]);
-                var elapsed = (PyDateTime.FromIsoformat(now) - PyDateTime.FromIsoformat(Py.Str(failureStarted))).TotalSeconds();
+                var elapsed = (PyDateTime.FromIsoformat(now) - PyDateTime.FromIsoformat(PyObj.StrOperand(failureStarted))).TotalSeconds();
                 var cadence = source["cadence_seconds"];
-                var escalated = cadence is not null && Py.Compare(elapsed, cadence, ">=") >= 0;
-                var first = Py.Eq(failures, 1L);
+                var escalated = cadence is not null && PyObj.Ge(elapsed, cadence);
+                var first = PyObj.Eq(failures, 1L);
                 if (first || escalated)
                 {
                     conn.Execute("INSERT OR IGNORE INTO proactive_health_events VALUES (?,?,?,?,?)",
@@ -1295,52 +1293,52 @@ public static class ProactiveState
         var result = new JsonArray();
         foreach (var row in conn.Execute("SELECT * FROM proactive_sources ORDER BY family,source_key"))
         {
-            var item = Py.Dict(row);
-            var scope = Py.Loads(row["scope"]);
-            var window = Py.Loads(row["window"]);
+            var item = PyNode.FromRow(row);
+            var scope = PyNode.Loads(row["scope"]);
+            var window = PyNode.Loads(row["window"]);
             item["scope"] = scope;
             item["window"] = window;
-            item["collection_window"] = Clone(window);
-            item["retired"] = conn.Execute("SELECT 1 FROM proactive_meta WHERE key=?", "retired:" + Py.Str(row["source_key"])).FetchOne() is not null;
+            item["collection_window"] = PyNode.Copy(window);
+            item["retired"] = conn.Execute("SELECT 1 FROM proactive_meta WHERE key=?", "retired:" + PyObj.StrOperand(row["source_key"])).FetchOne() is not null;
             if (!item.ContainsKey("delta_token"))
             {
                 throw new PyKeyError("delta_token");
             }
 
-            var hasToken = !Py.IsNone(item["delta_token"]);
+            var hasToken = !PyNode.IsNone(item["delta_token"]);
             item.Remove("delta_token");
             item["has_delta_token"] = hasToken;
             var attempt = Attempt(conn, row["latest_attempt_id"]);
-            item["requested_window"] = new JsonObject { ["start"] = Py.Node(attempt["requested_start"]), ["end"] = Py.Node(attempt["requested_end"]) };
+            item["requested_window"] = new JsonObject { ["start"] = PyNode.FromSql(attempt["requested_start"]), ["end"] = PyNode.FromSql(attempt["requested_end"]) };
             item["pagination"] = new JsonObject
             {
-                ["pages"] = Py.Node(attempt["pages"]),
-                ["complete"] = Py.Truthy(attempt["pagination_complete"]),
-                ["observations"] = Py.Node(attempt["observations"]),
+                ["pages"] = PyNode.FromSql(attempt["pages"]),
+                ["complete"] = PyObj.Truthy(attempt["pagination_complete"]),
+                ["observations"] = PyNode.FromSql(attempt["observations"]),
                 ["has_continuation"] = attempt["continuation"] is not null,
-                ["kind"] = Py.Node(attempt["kind"]),
+                ["kind"] = PyNode.FromSql(attempt["kind"]),
             };
             var errorClass = row["error_class"];
             var retired = (bool)item["retired"]!;
-            item["retry_requires_reauthentication"] = Py.Eq(errorClass, "authentication_required");
-            item["retry_eligible"] = !retired && !(Py.Eq(errorClass, "access_denied") || Py.Eq(errorClass, "authentication_required"))
-                                     && (row["next_retry_at"] is null || Py.Compare(row["next_retry_at"], StateStore.UtcNow(), "<=") <= 0);
+            item["retry_requires_reauthentication"] = PyObj.Eq(errorClass, "authentication_required");
+            item["retry_eligible"] = !retired && !(PyObj.Eq(errorClass, "access_denied") || PyObj.Eq(errorClass, "authentication_required"))
+                                     && (row["next_retry_at"] is null || PyObj.Le(row["next_retry_at"], StateStore.UtcNow()));
             var successfulAt = row["last_successful_coverage_at"];
             var cadence = row["cadence_seconds"];
             var failureStarted = row["failure_started_at"];
             BigInteger? missed = null;
             if (cadence is not null)
             {
-                if (!Py.Truthy(failureStarted))
+                if (!PyObj.Truthy(failureStarted))
                 {
                     missed = 0;
                 }
                 else
                 {
                     // 1 + max(0, int(elapsed // cadence)): int() of a float is exact and unbounded in Python.
-                    var elapsed = (PyDateTime.Now() - PyDateTime.FromIsoformat(Py.Str(failureStarted))).TotalSeconds();
-                    var periods = Py.FloorDivide(elapsed, CadenceDouble(cadence));
-                    missed = 1 + BigInteger.Max(BigInteger.Zero, Py.Trunc(periods));
+                    var elapsed = (PyDateTime.Now() - PyDateTime.FromIsoformat(PyObj.StrOperand(failureStarted))).TotalSeconds();
+                    var periods = PyNumbers.FloorDivide(elapsed, CadenceDouble(cadence));
+                    missed = 1 + BigInteger.Max(BigInteger.Zero, PyNumbers.Trunc(periods));
                 }
             }
 
@@ -1352,8 +1350,8 @@ public static class ProactiveState
             }
             else
             {
-                item["fresh"] = Py.Truthy(successfulAt)
-                                && PyDateTime.Now() <= PyDateTime.FromIsoformat(Py.Str(successfulAt)) + Py.TimedeltaSeconds(cadence);
+                item["fresh"] = PyObj.Truthy(successfulAt)
+                                && PyDateTime.Now() <= PyDateTime.FromIsoformat(PyObj.StrOperand(successfulAt)) + PyTimeDelta.FromPySeconds(cadence);
             }
 
             result.Add(item);
@@ -1366,7 +1364,7 @@ public static class ProactiveState
     {
         long integer => integer,
         double number => number,
-        _ => throw new PyTypeError("unsupported operand type(s) for //: 'float' and '" + Py.SqlTypeName(cadence) + "'"),
+        _ => throw new PyTypeError("unsupported operand type(s) for //: 'float' and '" + PyObj.TypeName(cadence) + "'"),
     };
 
     /// <summary><c>publication_show(conn, publication_id)</c>: the durable output, its receipt and included items.</summary>
@@ -1375,13 +1373,13 @@ public static class ProactiveState
         ArgumentNullException.ThrowIfNull(conn);
         var row = conn.Execute("SELECT * FROM proactive_publications WHERE id=?", publicationId).FetchOne()
                   ?? throw new StateError("unknown publication");
-        var result = Py.Dict(row);
+        var result = PyNode.FromRow(row);
         result["standalone"] = Standalone(conn, publicationId);
-        result["receipt"] = Py.Truthy(row["receipt"]) ? Py.Loads(row["receipt"]) : null;
+        result["receipt"] = PyObj.Truthy(row["receipt"]) ? PyNode.Loads(row["receipt"]) : null;
         var items = new JsonArray();
         foreach (var item in conn.Execute("SELECT i.stable_id AS id,i.revision,i.item_key\n        FROM proactive_items i JOIN proactive_publication_items pi ON i.item_key=pi.item_key\n        WHERE pi.publication_id=?", publicationId))
         {
-            items.Add(Py.Dict(item));
+            items.Add(PyNode.FromRow(item));
         }
 
         result["items"] = items;
@@ -1396,7 +1394,7 @@ public static class ProactiveState
         var result = new JsonArray();
         foreach (var row in conn.Execute("SELECT p.id AS publication_id,p.batch_id,p.status,\n        p.created_at,p.available_at,p.reviewed_at,count(pi.item_key) AS included_items,\n        sum(CASE WHEN i.status!='published' THEN 1 ELSE 0 END) AS ack_pending\n        FROM proactive_publications p LEFT JOIN proactive_publication_items pi ON pi.publication_id=p.id\n        LEFT JOIN proactive_items i ON i.item_key=pi.item_key GROUP BY p.id\n        ORDER BY p.created_at DESC,p.id LIMIT ?", count))
         {
-            result.Add(Py.Dict(row));
+            result.Add(PyNode.FromRow(row));
         }
 
         return result;
@@ -1409,23 +1407,23 @@ public static class ProactiveState
         var counts = new Dictionary<string, object?>(StringComparer.Ordinal);
         foreach (var row in conn.Execute("SELECT status,count(*) FROM proactive_items GROUP BY status"))
         {
-            counts[Py.Str(row[0])] = row[1];
+            counts[PyObj.StrOperand(row[0])] = row[1];
         }
 
         var oldestItem = conn.Execute("SELECT min(created_at) FROM proactive_items WHERE status!='published'").FetchOne()![0];
         var publications = new JsonObject();
         foreach (var row in conn.Execute("SELECT status,count(*) FROM proactive_publications GROUP BY status"))
         {
-            publications[Py.Str(row[0])] = Py.Node(row[1]);
+            publications[PyObj.StrOperand(row[0])] = PyNode.FromSql(row[1]);
         }
 
         var oldestOutput = conn.Execute("SELECT min(created_at) FROM proactive_publications WHERE status='prepared'").FetchOne()![0];
         object? oldest = null;
-        if (Py.Truthy(oldestItem) || Py.Truthy(oldestOutput))
+        if (PyObj.Truthy(oldestItem) || PyObj.Truthy(oldestOutput))
         {
             foreach (var value in new[] { oldestItem, oldestOutput })
             {
-                if (Py.Truthy(value) && (oldest is null || Py.Compare(value, oldest, "<") < 0))
+                if (PyObj.Truthy(value) && (oldest is null || PyObj.Lt(value, oldest)))
                 {
                     oldest = value;
                 }
@@ -1435,32 +1433,32 @@ public static class ProactiveState
         var sources = CoverageStatus(conn);
         var active = sources.Select(source => (JsonObject)source!).Where(source => !(bool)source["retired"]!).ToList();
         var allClear = active.Count > 0
-                       && active.All(source => Py.StrEquals(source["status"], "complete") && PyJson.Truthy(source["fresh"]))
-                       && !Py.Truthy(oldest);
-        JsonNode? unpublished = publications.TryGetPropertyValue("prepared", out var prepared) ? Clone(prepared) : JsonValue.Create(0L);
+                       && active.All(source => PyNode.Is(source["status"], "complete") && PyJson.Truthy(source["fresh"]))
+                       && !PyObj.Truthy(oldest);
+        JsonNode? unpublished = publications.TryGetPropertyValue("prepared", out var prepared) ? PyNode.Copy(prepared) : JsonValue.Create(0L);
         var healthEvents = new JsonArray();
         foreach (var row in conn.Execute("SELECT * FROM proactive_health_events ORDER BY created_at DESC LIMIT 50"))
         {
-            healthEvents.Add(Py.Dict(row));
+            healthEvents.Add(PyNode.FromRow(row));
         }
 
         return new JsonObject
         {
             ["status"] = "ok",
             ["account_configured"] = true,
-            ["queued"] = Py.Node(counts.GetValueOrDefault("pending", 0L)),
-            ["in_flight"] = Py.Node(counts.GetValueOrDefault("leased", 0L)),
-            ["published_items"] = Py.Node(counts.GetValueOrDefault("published", 0L)),
-            ["oldest_unpublished_at"] = Py.Node(oldest),
+            ["queued"] = PyNode.FromSql(counts.GetValueOrDefault("pending", 0L)),
+            ["in_flight"] = PyNode.FromSql(counts.GetValueOrDefault("leased", 0L)),
+            ["published_items"] = PyNode.FromSql(counts.GetValueOrDefault("published", 0L)),
+            ["oldest_unpublished_at"] = PyNode.FromSql(oldest),
             ["publications"] = publications,
             ["recent_outputs"] = PublicationList(conn),
             ["coverage"] = sources,
             ["unpublished_outputs"] = unpublished,
             ["all_clear"] = allClear,
-            ["expired_leases"] = Py.Node(conn.Execute("SELECT count(*) FROM proactive_batches WHERE status='leased' AND expires_at<=?",
+            ["expired_leases"] = PyNode.FromSql(conn.Execute("SELECT count(*) FROM proactive_batches WHERE status='leased' AND expires_at<=?",
                                                       StateStore.UtcNow()).FetchOne()![0]),
-            ["legacy_cursor_hints"] = Py.Node(conn.Execute("SELECT count(*) FROM proactive_legacy_cursors").FetchOne()![0]),
-            ["legacy_observations"] = Py.Node(conn.Execute("SELECT count(*) FROM proactive_legacy_surfaced").FetchOne()![0]),
+            ["legacy_cursor_hints"] = PyNode.FromSql(conn.Execute("SELECT count(*) FROM proactive_legacy_cursors").FetchOne()![0]),
+            ["legacy_observations"] = PyNode.FromSql(conn.Execute("SELECT count(*) FROM proactive_legacy_surfaced").FetchOne()![0]),
             ["health_events"] = healthEvents,
         };
     }
@@ -1506,14 +1504,14 @@ public static class ProactiveState
             var metadata = ObjectJson(meta);
             if (metadata.ContainsKey("ts"))
             {
-                Py.Timestamp(metadata["ts"]);
+                StateStore.ValidateTimestamp(metadata["ts"]);
             }
         }
 
         foreach (var (name, timestamp) in cursors)
         {
             Text(name, "legacy cursor name");
-            Py.Timestamp(timestamp);
+            StateStore.ValidateTimestamp(timestamp);
         }
 
         foreach (var item in items)
@@ -1521,7 +1519,7 @@ public static class ProactiveState
             Item(item);
             if (((JsonObject)item!).ContainsKey("drained_at"))
             {
-                Py.Timestamp(item["drained_at"]);
+                StateStore.ValidateTimestamp(item["drained_at"]);
             }
         }
 
@@ -1531,7 +1529,7 @@ public static class ProactiveState
             var prior = conn.Execute("SELECT counts FROM proactive_imports WHERE digest=?", fingerprint).FetchOne();
             if (prior is not null)
             {
-                return new JsonObject { ["replayed"] = true, ["counts"] = Py.Loads(prior[0]) };
+                return new JsonObject { ["replayed"] = true, ["counts"] = PyNode.Loads(prior[0]) };
             }
 
             long queued = 0;
@@ -1547,7 +1545,7 @@ public static class ProactiveState
 
             foreach (var (name, timestamp) in cursors)
             {
-                conn.Execute("INSERT OR IGNORE INTO proactive_legacy_cursors VALUES (?,?)", name, Py.Timestamp(timestamp));
+                conn.Execute("INSERT OR IGNORE INTO proactive_legacy_cursors VALUES (?,?)", name, StateStore.ValidateTimestamp(timestamp));
             }
 
             var counts = new JsonObject

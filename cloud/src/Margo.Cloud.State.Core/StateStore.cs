@@ -41,10 +41,13 @@ public static partial class StateStore
     /// <summary><c>utc_now()</c>: <c>datetime.now(timezone.utc).isoformat(timespec="microseconds")</c>.</summary>
     public static string UtcNow() => PyDateTime.Now().Isoformat("microseconds");
 
-    /// <summary><c>validate_timestamp(value)</c>: an explicitly zoned ISO datetime, normalised to UTC microseconds.</summary>
+    /// <summary>
+    /// <c>validate_timestamp(value)</c>: an explicitly zoned ISO datetime, normalised to UTC microseconds. Any value
+    /// that is not a <c>str</c> (a JSON list or dict included) raises the same <see cref="StateError"/> as Python.
+    /// </summary>
     public static string ValidateTimestamp(object? value)
     {
-        if (value is JsonNode node)
+        if (value is JsonValue node)
         {
             value = PyJson.Scalar(node);
         }

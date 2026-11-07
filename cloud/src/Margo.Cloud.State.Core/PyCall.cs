@@ -1,14 +1,14 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
-using Margo.Cloud.State.Core;
 
-namespace Margo.Cloud.State.Work;
+namespace Margo.Cloud.State.Core;
 
 /// <summary>
 /// The <c>TypeError</c>s CPython 3.13 raises when a method is called with <c>**data</c> from model-supplied
 /// JSON (<c>ledger.source(**data)</c>): unexpected keywords (with the "Did you mean" suggestion of
 /// <c>Python/suggestions.c</c>), duplicate values and missing required arguments, in CPython's order.
-/// (Belongs in State.Core: every script that dispatches with <c>**data</c> needs it.)
+/// Every script that dispatches with <c>**data</c> needs it; <see cref="PyArg"/> tells an omitted argument from
+/// an explicit <c>None</c>.
 /// </summary>
 public static class PyCall
 {
@@ -264,4 +264,60 @@ public static class PyCall
 
         return result;
     }
+}
+
+/// <summary>
+/// A Python argument that is either omitted (the Python function's default applies) or given (where
+/// <see langword="null"/> is Python's <c>None</c>). C# optional parameters cannot tell "omitted" from
+/// <see langword="null"/>; an API needs the difference where Python's default is not <c>None</c>
+/// (for example <c>put(..., status="candidate")</c> versus an explicit <c>status=None</c> from model JSON).
+/// </summary>
+public readonly struct PyArg : IEquatable<PyArg>
+{
+    private PyArg(JsonNode? value)
+    {
+        Value = value;
+        IsGiven = true;
+    }
+
+    /// <summary>Whether the caller passed the argument (possibly as <c>None</c>).</summary>
+    public bool IsGiven { get; }
+
+    /// <summary>The given value; <see langword="null"/> is <c>None</c>.</summary>
+    public JsonNode? Value { get; }
+
+    /// <summary>The argument was not passed.</summary>
+    public static PyArg Omitted => default;
+
+    /// <summary>An explicit <c>None</c>.</summary>
+    public static PyArg None => new(null);
+
+    /// <summary>An explicit value.</summary>
+    public static PyArg Of(JsonNode? value) => new(value);
+
+    /// <summary>The given value, or the Python default when omitted.</summary>
+    public JsonNode? Or(JsonNode? fallback) => IsGiven ? Value : fallback;
+
+    public static implicit operator PyArg(JsonNode? value) => new(value);
+
+    public static implicit operator PyArg(string? value) => new(value is null ? null : JsonValue.Create(value));
+
+    public static implicit operator PyArg(long value) => new(JsonValue.Create(value));
+
+    public static implicit operator PyArg(int value) => new(JsonValue.Create((long)value));
+
+    public static implicit operator PyArg(bool value) => new(JsonValue.Create(value));
+
+    /// <summary>Named alternative of the implicit conversions.</summary>
+    public static PyArg FromJsonNode(JsonNode? value) => new(value);
+
+    public bool Equals(PyArg other) => IsGiven == other.IsGiven && PyJson.PyEquals(Value, other.Value);
+
+    public override bool Equals(object? obj) => obj is PyArg other && Equals(other);
+
+    public override int GetHashCode() => IsGiven.GetHashCode();
+
+    public static bool operator ==(PyArg left, PyArg right) => left.Equals(right);
+
+    public static bool operator !=(PyArg left, PyArg right) => !left.Equals(right);
 }

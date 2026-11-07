@@ -24,9 +24,9 @@ public sealed class SortedKeyTests
     public void Unknown_non_string_keys_report_the_cpython_sort_error(string keysJson, string expected)
     {
         var keys = (JsonArray)PyJson.Loads(keysJson)!;
-        var unknown = keys.Select(PyDynamic.AsString).Where(key => key is not null && !Allowed.Contains(key)).Select(key => key!).ToList();
-        var foreign = keys.Where(key => PyDynamic.AsString(key) is null).ToList();
-        Assert.Equal(expected, PyDynamic.JoinSortedError(unknown, foreign, keys.Count, Allowed.Count).Message);
+        var unknown = keys.Select(PyNode.AsString).Where(key => key is not null && !Allowed.Contains(key)).Select(key => key!).ToList();
+        var foreign = keys.Where(key => PyNode.AsString(key) is null).ToList();
+        Assert.Equal(expected, PyNode.JoinSortedError(unknown, foreign, keys.Count, Allowed.Count).Message);
     }
 
     [Fact]

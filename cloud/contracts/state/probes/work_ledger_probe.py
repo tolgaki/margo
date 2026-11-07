@@ -2,7 +2,7 @@
 """Contract probe for the work ledger (reference implementation).
 
 Not a Margo command. tools/state_parity.py runs this file and its C# twin
-(Margo.Cloud.State.Work.WorkLedgerProbeScript, ``margo-state work_ledger_probe.py``)
+(Margo.Cloud.State.Probes.WorkLedgerProbeScript, ``margo-state work_ledger_probe.py``)
 on the same program, so two things the plain ``work_state.py`` scenarios cannot
 reach are judged byte for byte:
 

@@ -55,31 +55,32 @@ later ports rather than for an importer.
 | `load_hits(path)` | `EngageParse.LoadHits` returns `EngageRow`s (`ToPython()` is the JSON row) |
 | `main()` | `EngageParseScript` |
 
-### Python semantics (`Python/`)
+### Python semantics
 
 The scripts apply Python's dynamic operations to untrusted JSON (`msg.get(...)`, `x or ''`,
 `x[:10]`, `len`, `in`, `int()`, `<` between whatever types arrived, dict keys of any hashable
 type). A wrong type does not fail the same way in C#, so these helpers reproduce CPython 3.13 and
-raise the same exception class. All of them belong in `Margo.Cloud.State.Core` (see "Requests for
-State.Core"); they live here so this port does not edit another project.
+raise the same exception class. This port wrote most of them; since the state consolidation they live in
+`Margo.Cloud.State.Core` and every state port shares them (see its PORTING.md). Only the HTML and URL
+helpers stay in `Python/`.
 
 | Python | C# | Notes |
 | --- | --- | --- |
-| `x.get`, truthiness, `x[:n]`, `x['k']`, `len`, `in`, iteration, `==`, `!=`, `<`, `<=`, `>`, `>=`, tuple `<`, `str`, `repr`, `int()` on JSON values | `PyObj` | `AttributeError`, `TypeError`, `KeyError(slice(...))`, `ValueError`, `OverflowError` as CPython raises them; list comparison by first unequal item; exact int/float comparison |
-| dict keys (`hash` + `==`) and an insertion-ordered dict | `PyKey`, `PyDict<T>` | `True == 1 == 1.0`, `-0.0 == 0`, unhashable lists/dicts; assigning keeps the first key object and position |
-| `list.sort` / `sorted(key=...)` | `PySort` | line-for-line port of CPython 3.13 `listsort` (3.13 `count_run`, binary insertion, powersort, galloping), so the same `<` comparisons happen in the same order |
-| `float(int)`, `int / int`, int/float comparison, `sum()` of floats | `PyNumbers` | round half to even with `OverflowError`; correctly rounded division; Neumaier summation of CPython 3.12+ |
-| `json.dump(v, sys.stdout, indent=2)` | `PyJsonDump` | the pure-Python encoder, written chunk by chunk, with its recursion limit (below) |
-| `json.loads` at a reduced C-stack budget | `PyJsonLoad` | see "Recursion limits" |
-| `html.unescape` | `PyHtml` + generated `PyHelpersTables.Html5`/`InvalidCharrefs`/`InvalidCodepoints` | |
-| `urllib.parse.unquote` (UTF-8, `errors='replace'`) | `PyUrl` | ASCII runs decoded separately; U+FFFD per CPython error range |
-| `re`'s `\d`, `\s`, `\w`, code-point slicing, `%-Ns` | `PyText` + generated `PyHelpersTables.AlnumRanges` | Unicode 15.1 `str.isalnum()`; .NET's `\w` differs (Mn, Pc, numerals) and is Unicode 16 |
-| `sys.stdin.read()` | `PyProcess.ReadStdin` | decodes all bytes at once with `PyIO.DecodeUtf8` |
-| CPython's deep C stack | `PyProcess.OnLargeStack` | teams_feedback/engage_parse/the probe run on a 64 MiB-stack thread so recursive `repr`/comparison of ~10000-deep lists cannot overflow |
-| `AttributeError`, `ZeroDivisionError`, `KeyError` of a non-str key | `PyAttributeError`, `PyZeroDivisionError`, `PyKeyErrorRepr` | |
+| `x.get`, truthiness, `x[:n]`, `x['k']`, `len`, `in`, iteration, `==`, `!=`, `<`, `<=`, `>`, `>=`, tuple `<`, `str`, `repr`, `int()` on JSON values | State.Core `PyObj` | `AttributeError`, `TypeError`, `KeyError(slice(...))`, `ValueError`, `OverflowError` as CPython raises them; list comparison by first unequal item; exact int/float comparison |
+| dict keys (`hash` + `==`) and an insertion-ordered dict | State.Core `PyKey`, `PyDict<T>` | `True == 1 == 1.0`, `-0.0 == 0`, unhashable lists/dicts; assigning keeps the first key object and position |
+| `list.sort` / `sorted(key=...)` | State.Core `PySort` | line-for-line port of CPython 3.13 `listsort` (3.13 `count_run`, binary insertion, powersort, galloping), so the same `<` comparisons happen in the same order |
+| `float(int)`, `int / int`, int/float comparison, `sum()` of floats | State.Core `PyNumbers` | round half to even with `OverflowError`; correctly rounded division; Neumaier summation of CPython 3.12+ |
+| `json.dump(v, sys.stdout, indent=2)` | State.Core `PyJsonDump` | the pure-Python encoder, written chunk by chunk, with its recursion limit (below) |
+| `json.loads` at a reduced C-stack budget | State.Core `PyJson.Loads` with `PyJsonLoadOptions.MaxDepth` | see "Recursion limits" |
+| `html.unescape` | `Python/PyHtml` + generated `PyHelpersTables.Html5`/`InvalidCharrefs`/`InvalidCodepoints` | |
+| `urllib.parse.unquote` (UTF-8, `errors='replace'`) | `Python/PyUrl` | ASCII runs decoded separately; U+FFFD per CPython error range |
+| `re`'s `\d`, `\s`, `\w`, code-point slicing, `%-Ns` | State.Core `PyText` (`IsDecimal`, `IsSpace`, `IsWord`/`IsAlnum`) on `PyUnicodeData` | Unicode 15.1 `str.isalnum()`; .NET's `\w` differs (Mn, Pc, numerals) and is Unicode 16 |
+| `sys.stdin.read()` | State.Core `PyIO.ReadText` on `margo-state`'s `PyIO.StdinReader` | all remaining bytes decoded at once: CPython's reason and absolute position |
+| CPython's deep C stack | State.Core `PyRuntime.OnLargeStack` | teams_feedback/engage_parse/the probe run on a 64 MiB-stack thread so recursive `repr`/comparison of ~10000-deep lists cannot overflow |
+| `AttributeError`, `ZeroDivisionError`, `KeyError` of a non-str key | State.Core `PyAttributeError`, `PyZeroDivisionError`, `PyKeyError.ForRepr`/`ForSlice` | |
 
-`Python/generate_helpers_tables.py` regenerates `PyHelpersTables.cs` from the running CPython
-(run it with 3.13 and review the diff).
+`Python/generate_helpers_tables.py` regenerates `PyHelpersTables.cs` (the `html` tables) from the running CPython
+(run it with 3.13 and review the diff); the Unicode classes come from State.Core's `generate_unicode_data.py`.
 
 The regular expressions of engage_parse.py and teams_feedback.py are matched by hand rather than
 with .NET `Regex`: the patterns are anchored by literals, every quantifier in them is either
@@ -94,9 +95,9 @@ Unicode-table semantics explicit (`.NET` regex sees UTF-16 units and Unicode 16 
   stdout holds the partial document. `PyJsonDump.MaxDepthFromMain` reproduces both.
 - `json.load` inside teams_feedback.py's `iter_messages` (a generator resumed by `collect`'s
   loop) accepts 9996 nested containers; `json.loads` from capacity.py's `main` and
-  engage_parse.py's `load_hits` accept 9998 (`PyJson.MaxDepth`). All three scripts load through
-  `PyJsonLoad`, because the container limit is not the only effect of CPython's C recursion
-  budget. With B the call site's container limit and n the level of the innermost open container
+  engage_parse.py's `load_hits` accept 9998 (`PyJson.MaxDepth`). The container limit is not the only
+  effect of CPython's C recursion budget; `PyJson.Loads` models the rest for every port (State.Core's
+  "JSON recursion budget"). With B the call site's container limit and n the level of the innermost open container
   (root = 1), measured through the scripts:
   - a container opens while n <= B (`RecursionError` "while decoding a JSON array/object ...");
   - `NaN`, `Infinity` and `-Infinity` call `parse_constant` and need n < B;
@@ -109,8 +110,11 @@ Unicode-table semantics explicit (`.NET` regex sees UTF-16 units and Unicode 16 
     args=<unknown>`, which the traceback prints last, so it is the line the hosted tool reports;
   - errors raised after the scan (`Extra data`, the BOM check) are at level 0 and unaffected.
 
-  The first of these in document order wins; `PyJsonLoad` runs `PyJson.Loads`, then walks the valid
-  prefix up to where CPython would stop (`json_recursion_budget.json`, `JsonRecursionBudgetTests`).
+  The first of these in document order wins (`json_recursion_budget.json`, `JsonRecursionBudgetTests`). This
+  port's `PyJsonLoad` modelled these rules by re-walking the valid prefix after `PyJson.Loads`; the state
+  consolidation built them into State.Core's decoder, which also gets the `RecursionError` text right where a
+  Python frame (not a C call) runs out ("maximum recursion depth exceeded" without "while calling a Python
+  object" two and one levels below the limit).
 - Values loaded within those limits print with `repr` (table view) without hitting CPython's C
   recursion limit (checked at depth 9990, `teams_feedback_depth.json`).
 
@@ -125,8 +129,8 @@ Unicode-table semantics explicit (`.NET` regex sees UTF-16 units and Unicode 16 
 2. **NaN identity.** Containment, container equality and dict keys treat every NaN as identical,
    because every NaN the scripts see is `json.decoder.NaN` (one object). A NaN computed at run
    time would not be identical in Python; none is.
-3. **`PyJsonLoad` is a measured model, not CPython's C stack.** Its rules (above) and the offset 4
-   for `raise_errmsg` were measured with CPython 3.13.16 on Linux x86-64; another build or Python
+3. **The JSON recursion budget is a measured model, not CPython's C stack.** Its rules (above) and the
+   offset 4 for `raise_errmsg` were measured with CPython 3.13.16 on Linux x86-64; another build or Python
    version may differ by a level, as State.Core's deviation 5 notes for the container limit.
 4. **Uncaught exceptions** print the traceback-shaped report of `StateScripts.RunGuarded`, as in
    every port; exit status and class match.
@@ -167,21 +171,10 @@ Nothing from the three scripts. The hosted classification (`statecmd.COMMANDS`,
 
 ## Requests for State.Core
 
-- Move `Python/` (or the parts other ports need: `PyObj`, `PyKey`, `PyDict`, `PySort`,
-  `PyNumbers`, `PyText`, `PyJsonDump`, the extra exception classes) into State.Core so later
-  ports share one implementation. Every script that sorts with `sorted()` or compares mixed JSON
-  values needs the same semantics.
-- `PyIO.ReadText` decodes stdin through a `StreamReader`, whose error message always says
-  "invalid start byte" and whose position is relative to its buffer. CPython (`PYTHONIOENCODING=utf-8`,
-  `LC_ALL=C.UTF-8`) reads all of stdin and reports the exact reason and absolute position
-  (verified: "can't decode bytes in position 20000-20001: unexpected end of data").
-  `PyProcess.ReadStdin` does that here; State.Core's deviation 7 could be removed the same way.
-- `PyJson.MaxDepth` is the limit for a call from `main()`; a depth parameter (as `PyJsonLoad`
-  adds) would let other ports match calls made deeper in the Python stack.
-- `PyJson.Loads` models only the container limit. Near it, CPython also turns `NaN`/`Infinity`,
-  decode errors built in C and failed exception creation into `RecursionError` (see "Recursion
-  limits"); every port that loads untrusted JSON through `PyJson.Loads` differs there. `PyJsonLoad`
-  (with a depth parameter) should move into State.Core and replace those calls.
+All done in the state consolidation: `PyObj`/`PyKey`/`PyDict`, `PySort`, `PyNumbers`, `PyText`, `PyJsonDump` and the
+extra exception classes moved to State.Core; `PyIO.ReadText` reads `margo-state`'s stdin as CPython does (this port's
+`PyProcess.ReadStdin` is gone); `PyJson.Loads` models the C recursion budget with a depth parameter
+(`PyJsonLoadOptions.MaxDepth`), replacing `PyJsonLoad`.
 
 ## Scenarios (`cloud/contracts/state/helpers/`)
 
@@ -200,13 +193,14 @@ Nothing from the three scripts. The hosted classification (`statecmd.COMMANDS`,
 | `engage_parse_malformed.json` | salvage, odd footnotes and markers, CRLF/CR, empty file |
 | `engage_parse_types.json` | untrusted JSON types, `unquote` of odd ids, `_daygap` rules, NaN/infinities, digit limits |
 | `engage_parse_cli.json` | unreadable files, nesting limits, command line |
-| `json_recursion_budget.json` | the C recursion budget rules of `PyJsonLoad` at full depth through all three scripts, each deep case with a control one level shallower; float fraction/exponent digits are not an over-long int |
+| `json_recursion_budget.json` | the C recursion budget rules (`PyJson.Loads`) at full depth through all three scripts, each deep case with a control one level shallower; float fraction/exponent digits are not an over-long int |
 | `probe_write.json` | the probe's `write`, `write-hex` (`bytes.fromhex`) and `write-nested` and their failures |
 | `probe_sort.json` | `list.sort` comparison traces (up to 1500 items, galloping, NaN, mixed types, tuples) |
 | `probe_ops.json`, `probe_numbers.json`, `probe_capacity.json`, `probe_text.json`, `probe_dump.json` | the Python semantics layer and the library functions on their own |
 
 The probe pair is `cloud/contracts/state/probes/helpers_probe.py` (reference) and
-`HelpersProbeScript` (`margo-state helpers_probe.py`). It is not a Margo command: the hosted tool
+`HelpersProbeScript` (in `Margo.Cloud.State.Probes`; `margo-state helpers_probe.py` in Debug builds with
+`MARGO_STATE_PROBES=1`). It is not a Margo command: Release builds do not contain it, and the hosted tool
 only runs scripts classified in `statecmd.COMMANDS`. `write`/`write-hex`/`write-nested` create the
 input files the scripts read (the judge passes only arguments and stdin); `write-nested PATH DEPTH`
 reads `[prefix, inner, suffix]` and writes `DEPTH` brackets around `inner`, so deep documents stay
@@ -225,11 +219,10 @@ in `tests/` exercises teams_feedback.py or engage_parse.py beyond the installer 
   `TeamsFeedbackTests`, `EngageParseTests`, `JsonRecursionBudgetTests` (the C recursion budget
   rules, the three scripts at full depth, the probe's `write`/`write-hex`). Expected values come from
   CPython 3.13.
-- `python3 tools/state_parity.py --check`: all `helpers/*.json` scenarios pass.
+- `python3 tools/state_parity.py --check`: all `helpers/*.json` scenarios pass (also after the state
+  consolidation, which changed no helper output).
 
 ## Open questions
 
-- The contracts README (`cloud/contracts/state/README.md`, owned by the foundation) lists only the
-  core scenarios; it could link this folder.
 - Should desktop Margo pin CPython 3.13? Older Pythons differ in `sum()` (no compensation before
   3.12), `list.sort`'s `count_run` (3.13) and `fromisoformat` forms (3.11), all observable here.

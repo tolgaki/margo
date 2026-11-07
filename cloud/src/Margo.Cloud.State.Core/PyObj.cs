@@ -5,16 +5,17 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Margo.Cloud.State.Core;
 
-namespace Margo.Cloud.State.Helpers.Python;
+namespace Margo.Cloud.State.Core;
 
 /// <summary>
-/// Python's dynamic operations on values that came from <c>json.loads</c>, as the stateless helpers apply
-/// them to untrusted input: <c>x.get(k)</c>, truthiness, <c>x[:n]</c>, <c>len</c>, <c>in</c>, iteration,
-/// <c>==</c>, <c>&lt;</c>, <c>str()</c>/<c>repr()</c>, <c>int()</c> and hashing, each raising the exception
-/// class CPython 3.13 raises for the wrong type.
+/// Python's dynamic operations on any Python value, as the state scripts apply them to untrusted input and to values
+/// read from SQLite: <c>x.get(k)</c>, truthiness, <c>x[:n]</c>, <c>len</c>, <c>in</c>, iteration, <c>==</c>,
+/// <c>&lt;</c>, <c>str()</c>/<c>repr()</c>, <c>int()</c> and hashing, each raising the exception class CPython 3.13
+/// raises for the wrong type. JSON-specific operations that return nodes are in <see cref="PyNode"/>.
 /// <para>Values are <c>null</c> (None), <see cref="bool"/>, <see cref="BigInteger"/> (or another CLR integer),
-/// <see cref="double"/>, <see cref="string"/>, <see cref="JsonNode"/> (as <see cref="PyJson"/> maps it) and
-/// lists built by the helpers (<see cref="IReadOnlyList{T}"/> of <see cref="object"/>).</para>
+/// <see cref="double"/>, <see cref="string"/>, <c>byte[]</c> (bytes, from a SQLite BLOB), <see cref="JsonNode"/>
+/// (as <see cref="PyJson"/> maps it) and lists built by the helpers (<see cref="IReadOnlyList{T}"/> of
+/// <see cref="object"/>).</para>
 /// <para>Identity: every NaN that <c>json.loads</c> produces is the same object
 /// (<c>json.decoder.NaN</c>), so containment, container equality and dict keys treat NaN as identical to
 /// NaN while <c>==</c> itself is false, as in CPython.</para>
@@ -23,45 +24,37 @@ public static class PyObj
 {
     /// <summary>
     /// The canonical form of a value: <c>null</c>, <see cref="bool"/>, <see cref="BigInteger"/>,
-    /// <see cref="double"/>, <see cref="string"/>, <see cref="JsonArray"/>, <see cref="JsonObject"/> or an
-    /// <see cref="IReadOnlyList{T}"/>.
+    /// <see cref="double"/>, <see cref="string"/>, <c>byte[]</c>, <see cref="JsonArray"/>, <see cref="JsonObject"/>
+    /// or an <see cref="IReadOnlyList{T}"/>.
     /// </summary>
     public static object? Normalize(object? value) => value switch
     {
         null => null,
         JsonValue scalar => PyJson.Scalar(scalar),
         JsonArray or JsonObject => value,
-        bool or BigInteger or double or string => value,
+        bool or BigInteger or double or string or byte[] => value,
         long number => new BigInteger(number),
         int number => new BigInteger(number),
         float number => (double)number,
         IReadOnlyList<object?> => value,
-        _ => throw new ArgumentException("not a Python JSON value: " + value.GetType().Name),
-    };
-
-    /// <summary>The Python type of a value.</summary>
-    public static PyKind Kind(object? value) => Normalize(value) switch
-    {
-        null => PyKind.None,
-        bool => PyKind.Bool,
-        BigInteger => PyKind.Int,
-        double => PyKind.Float,
-        string => PyKind.Str,
-        JsonObject => PyKind.Dict,
-        _ => PyKind.List,
+        _ => throw new ArgumentException("not a Python value: " + value.GetType().Name),
     };
 
     /// <summary><c>type(x).__name__</c>.</summary>
-    public static string TypeName(object? value) => Kind(value) switch
+    public static string TypeName(object? value) => Normalize(value) switch
     {
-        PyKind.None => "NoneType",
-        PyKind.Bool => "bool",
-        PyKind.Int => "int",
-        PyKind.Float => "float",
-        PyKind.Str => "str",
-        PyKind.List => "list",
-        _ => "dict",
+        null => "NoneType",
+        bool => "bool",
+        BigInteger => "int",
+        double => "float",
+        string => "str",
+        byte[] => "bytes",
+        JsonObject => "dict",
+        _ => "list",
     };
+
+    /// <summary><c>isinstance(x, list)</c>.</summary>
+    public static bool IsList(object? value) => Normalize(value) is JsonArray or IReadOnlyList<object?>;
 
     /// <summary><c>bool(x)</c>.</summary>
     public static bool Truthy(object? value) => Normalize(value) switch
@@ -71,6 +64,7 @@ public static class PyObj
         BigInteger integer => !integer.IsZero,
         double number => number != 0,
         string text => text.Length > 0,
+        byte[] bytes => bytes.Length > 0,
         JsonObject dict => dict.Count > 0,
         JsonArray array => array.Count > 0,
         IReadOnlyList<object?> list => list.Count > 0,
@@ -133,7 +127,7 @@ public static class PyObj
                 return result;
             case JsonObject:
                 // Slices are hashable since 3.12, so a dict looks the slice up as a key.
-                throw new PyKeyErrorRepr("slice(None, " + stop.ToString(CultureInfo.InvariantCulture) + ", None)");
+                throw PyKeyError.ForSlice(stop);
             default:
                 throw new PyTypeError("'" + TypeName(value) + "' object is not subscriptable");
         }
@@ -143,6 +137,7 @@ public static class PyObj
     public static int Len(object? value) => Normalize(value) switch
     {
         string text => PyRepr.Length(text),
+        byte[] bytes => bytes.Length,
         JsonObject dict => dict.Count,
         JsonArray array => array.Count,
         IReadOnlyList<object?> list => list.Count,
@@ -206,6 +201,8 @@ public static class PyObj
                 return b is null;
             case string sa:
                 return b is string sb && string.Equals(sa, sb, StringComparison.Ordinal);
+            case byte[] ba:
+                return b is byte[] bb && ba.AsSpan().SequenceEqual(bb);
             case bool or BigInteger or double:
                 return b is bool or BigInteger or double && PyNumbers.Compare(a, b) == 0;
             case JsonObject da:
@@ -224,7 +221,7 @@ public static class PyObj
 
                 return true;
             default:
-                if (b is not (JsonArray or IReadOnlyList<object?>))
+                if (b is not (JsonArray or IReadOnlyList<object?>) || a is not (JsonArray or IReadOnlyList<object?>))
                 {
                     return false;
                 }
@@ -307,6 +304,11 @@ public static class PyObj
             return Holds(PyRepr.CompareStrings(sa, sb), op);
         }
 
+        if (a is byte[] ba && b is byte[] bb)
+        {
+            return Holds(ba.AsSpan().SequenceCompareTo(bb), op);
+        }
+
         if (a is JsonArray or IReadOnlyList<object?> && b is JsonArray or IReadOnlyList<object?>)
         {
             // list_richcompare: the first index whose items differ decides, with the same operator.
@@ -360,6 +362,13 @@ public static class PyObj
         return Lt(left[i], right[i]);
     }
 
+    /// <summary>
+    /// The right operand of <c>"text" + value</c>: a <c>str</c>, or the <c>TypeError</c> Python raises
+    /// (<c>can only concatenate str (not "int") to str</c>).
+    /// </summary>
+    public static string StrOperand(object? value) => Normalize(value) as string
+        ?? throw new PyTypeError("can only concatenate str (not \"" + TypeName(value) + "\") to str");
+
     /// <summary><c>str(x)</c>.</summary>
     public static string Str(object? value) => Normalize(value) is string text ? text : Repr(value);
 
@@ -389,6 +398,9 @@ public static class PyObj
                 break;
             case string text:
                 builder.Append(PyRepr.Str(text));
+                break;
+            case byte[] bytes:
+                builder.Append(PyRepr.Object(bytes));
                 break;
             case JsonObject dict:
                 builder.Append('{');
@@ -435,17 +447,7 @@ public static class PyObj
             case BigInteger integer:
                 return integer;
             case double number:
-                if (double.IsNaN(number))
-                {
-                    throw new PyValueError("cannot convert float NaN to integer");
-                }
-
-                if (double.IsInfinity(number))
-                {
-                    throw new PyOverflowError("cannot convert float infinity to integer");
-                }
-
-                return new BigInteger(Math.Truncate(number));
+                return PyNumbers.Trunc(number);
             case string text:
                 return PyArgumentParser.ParsePyInt(text);
             default:

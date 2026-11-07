@@ -122,10 +122,10 @@ public static class MemoryEncoder
             ["model_fingerprint"] = fingerprint,
             ["dimensions"] = (long)Dimensions,
             ["max_tokens"] = (long)MaxTokens,
-            ["pooling"] = Py.Clone(preprocessing["pooling"]),
-            ["normalization"] = Py.Clone(preprocessing["chunk_normalization"]),
-            ["long_text_strategy"] = Py.Clone(preprocessing["record_aggregation"]),
-            ["tokenizer_hash"] = Py.Clone(identity["tokenizer"]!["digest"]),
+            ["pooling"] = PyNode.Copy(preprocessing["pooling"]),
+            ["normalization"] = PyNode.Copy(preprocessing["chunk_normalization"]),
+            ["long_text_strategy"] = PyNode.Copy(preprocessing["record_aggregation"]),
+            ["tokenizer_hash"] = PyNode.Copy(identity["tokenizer"]!["digest"]),
         };
     }
 
@@ -134,7 +134,7 @@ public static class MemoryEncoder
     {
         ["format_version"] = 1L,
         ["identity"] = IdentityPayload(),
-        ["model_fingerprint"] = Py.Clone(ModelSpec()["model_fingerprint"]),
+        ["model_fingerprint"] = PyNode.Copy(ModelSpec()["model_fingerprint"]),
         ["assets"] = new JsonArray(Assets.Select(asset => (JsonNode?)asset.ToJson()).ToArray()),
     };
 
@@ -349,12 +349,12 @@ public static class MemoryEncoder
 
         foreach (var text in list)
         {
-            if (!Py.IsText(text))
+            if (!PyNode.IsText(text))
             {
                 throw new EmbeddingError("each text must be a nonempty string");
             }
 
-            if (PyRepr.Length(Py.AsString(text)!) > MaxTextChars)
+            if (PyRepr.Length(PyNode.AsString(text)!) > MaxTextChars)
             {
                 throw new EmbeddingError("text exceeds " + MaxTextChars.ToString(CultureInfo.InvariantCulture)
                                          + " characters; chunk lengthy memories before encoding");

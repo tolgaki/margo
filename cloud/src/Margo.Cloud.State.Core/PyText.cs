@@ -1,7 +1,6 @@
 using System.Text;
-using Margo.Cloud.State.Core;
 
-namespace Margo.Cloud.State.Helpers.Python;
+namespace Margo.Cloud.State.Core;
 
 /// <summary>
 /// <c>str</c> operations measured in code points (a surrogate pair is one character, a lone surrogate is
@@ -37,6 +36,21 @@ public static class PyText
         }
 
         return index >= text.Length ? text : text[..index];
+    }
+
+    /// <summary>One code point as a string (a lone surrogate stays a lone surrogate, as in Python).</summary>
+    public static string CodePointString(int codePoint) =>
+        codePoint is >= 0xD800 and <= 0xDFFF ? ((char)codePoint).ToString() : char.ConvertFromUtf32(codePoint);
+
+    /// <summary>The code points of a string (lone surrogates are their own code points, as in Python).</summary>
+    public static int[] CodePoints(string text) => [.. PyRepr.CodePoints(text ?? throw new ArgumentNullException(nameof(text)))];
+
+    /// <summary><c>sorted(strings)</c>: code-point order (not UTF-16 or culture order).</summary>
+    public static List<string> Sorted(IEnumerable<string> values)
+    {
+        var list = (values ?? throw new ArgumentNullException(nameof(values))).ToList();
+        list.Sort(PyRepr.StringComparer);
+        return list;
     }
 
     /// <summary><c>list(text)</c>: one string per code point.</summary>
@@ -77,18 +91,35 @@ public static class PyText
     }
 
     /// <summary><c>re</c>'s <c>\s</c> for <c>str</c> patterns (<c>str.isspace()</c>).</summary>
-    public static bool IsSpace(int codePoint) => codePoint <= 0xFFFF && PyRepr.IsSpace((char)codePoint);
+    public static bool IsSpace(int codePoint) => InRanges(PyUnicodeData.SpaceRanges, codePoint);
 
-    /// <summary><c>re</c>'s <c>\d</c> for <c>str</c> patterns (<c>str.isdecimal()</c>).</summary>
-    public static bool IsDigit(int codePoint) => PyRepr.DecimalValue(codePoint) >= 0;
+    /// <summary><c>re</c>'s <c>\d</c> for <c>str</c> patterns (<c>str.isdecimal()</c>, the digits <c>int()</c> accepts).</summary>
+    public static bool IsDecimal(int codePoint) => PyRepr.DecimalValue(codePoint) >= 0;
+
+    /// <summary><c>str.isdigit()</c>: nonempty, and every code point has a digit value (Unicode 15.1).</summary>
+    public static bool IsDigit(string text)
+    {
+        var points = CodePoints(text);
+        return points.Length > 0 && points.All(point => InRanges(PyUnicodeData.DigitRanges, point));
+    }
 
     /// <summary><c>re</c>'s <c>\w</c> for <c>str</c> patterns: <c>str.isalnum()</c> or <c>_</c>.</summary>
     public static bool IsWord(int codePoint) => codePoint == '_' || IsAlnum(codePoint);
 
     /// <summary><c>str.isalnum()</c> for one code point (Unicode 15.1).</summary>
-    public static bool IsAlnum(int codePoint)
+    public static bool IsAlnum(int codePoint) => InRanges(PyUnicodeData.AlnumRanges, codePoint);
+
+    /// <summary>
+    /// <c>re.fullmatch("(?i)" + letter, chr(codePoint))</c> for an ASCII lowercase letter: both cases, and the
+    /// non-ASCII equivalents CPython's <c>re</c> adds (KELVIN SIGN for <c>k</c>, LONG S for <c>s</c>, dotted and
+    /// dotless I for <c>i</c>).
+    /// </summary>
+    public static bool MatchesIgnoreCase(char letter, int codePoint) =>
+        codePoint == letter || codePoint == char.ToUpperInvariant(letter)
+        || (PyUnicodeData.IgnoreCaseExtras.TryGetValue(letter, out var extras) && extras.Contains(codePoint));
+
+    private static bool InRanges(int[] table, int codePoint)
     {
-        var table = PyHelpersTables.AlnumRanges;
         int low = 0, high = (table.Length / 2) - 1;
         while (low <= high)
         {

@@ -2,7 +2,7 @@
 """Contract probe for the shared state helpers (reference implementation).
 
 Not a Margo command. tools/state_parity.py runs this file and its C# twin
-(Margo.Cloud.State.Core.StateCoreProbeScript, ``margo-state state_core_probe.py``)
+(Margo.Cloud.State.Probes.StateCoreProbeScript, ``margo-state state_core_probe.py``)
 on the same inputs, so the helpers every port relies on -- json.dumps/json.loads,
 margo_store.parse_json/canonical_json/validate_timestamp, datetime ISO parsing,
 argparse, hashing, margo_store.connect and nested transactions -- are judged

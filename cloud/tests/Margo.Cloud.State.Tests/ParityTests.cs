@@ -16,11 +16,14 @@ public sealed class ParityTests
             Assert.Skip("python3 is not installed; the parity judge needs CPython");
         }
 
-        // tests/Margo.Cloud.State.Tests/bin/<Configuration>/net10.0 -> src/Margo.Cloud.StateCli/bin/<Configuration>/net10.0
+        // tests/Margo.Cloud.State.Tests/bin/<Configuration>/net10.0 -> src/Margo.Cloud.StateCli/bin/<Configuration>/net10.0.
+        // The judge needs the contract probes, which only a build with MargoStateProbes=true (the Debug default) has.
         var output = new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar));
-        var configuration = output.Parent!.Name;
-        var cli = Path.Combine(repository, "cloud", "src", "Margo.Cloud.StateCli", "bin", configuration, output.Name, "margo-state.dll");
-        Assert.True(File.Exists(cli), "margo-state was not built at " + cli);
+        var cli = new[] { output.Parent!.Name, "Debug" }
+            .Select(configuration => Path.Combine(repository, "cloud", "src", "Margo.Cloud.StateCli", "bin", configuration, output.Name, "margo-state.dll"))
+            .FirstOrDefault(path => File.Exists(Path.Combine(Path.GetDirectoryName(path)!, "Margo.Cloud.State.Probes.dll")));
+        Assert.True(cli is not null, "no margo-state built with the contract probes under cloud/src/Margo.Cloud.StateCli/bin "
+                                     + "(build Debug, or pass -p:MargoStateProbes=true)");
 
         var start = new ProcessStartInfo(python)
         {

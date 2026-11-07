@@ -63,11 +63,24 @@ public sealed class PyJsonDecodeError : PyValueError
 /// <summary>Options of <c>json.loads</c> that the state helpers use.</summary>
 public sealed record PyJsonLoadOptions
 {
-    /// <summary><c>object_pairs_hook</c>: receives the pairs of each object when it closes.</summary>
+    /// <summary>
+    /// <c>object_pairs_hook</c>: receives the pairs of each object when it closes. It stands for a Python function, so
+    /// calling it costs C recursion budget (see <see cref="MaxDepth"/>).
+    /// </summary>
     public Func<IReadOnlyList<KeyValuePair<string, JsonNode?>>, JsonNode?>? ObjectPairsHook { get; init; }
 
-    /// <summary><c>parse_constant</c>: receives <c>NaN</c>, <c>Infinity</c> or <c>-Infinity</c>.</summary>
+    /// <summary>
+    /// <c>parse_constant</c>: receives <c>NaN</c>, <c>Infinity</c> or <c>-Infinity</c>. It stands for a Python function,
+    /// so calling it costs C recursion budget (see <see cref="MaxDepth"/>).
+    /// </summary>
     public Func<string, JsonNode?>? ParseConstant { get; init; }
+
+    /// <summary>
+    /// The C recursion budget of the call site: the deepest container nesting it decodes. <see cref="PyJson.MaxDepth"/>
+    /// (9998) is <c>json.loads</c> called from Python code that no C function called (a script's <c>main()</c>,
+    /// <c>parse_json</c>); every C-to-Python re-entry on the way (a generator resumed from C, a callback) costs two.
+    /// </summary>
+    public int MaxDepth { get; init; } = PyJson.MaxDepth;
 }
 
 /// <summary>
@@ -226,7 +239,27 @@ public static class PyJson
     /// <summary><c>json.loads(text)</c> with the default hooks.</summary>
     public static JsonNode? Loads(string text) => Loads(text, null);
 
-    /// <summary><c>json.loads(text, object_pairs_hook=..., parse_constant=...)</c>.</summary>
+    /// <summary>
+    /// <c>json.loads(text, object_pairs_hook=..., parse_constant=...)</c>, including what CPython 3.13 does where its C
+    /// recursion budget runs out. With B = <see cref="PyJsonLoadOptions.MaxDepth"/> and n the number of containers open
+    /// where something happens, measured with CPython 3.13.16 (<c>tools</c>: see State.Core's PORTING.md):
+    /// <list type="bullet">
+    /// <item>a container opens while n + 1 &lt;= B, else <c>RecursionError</c> "... while decoding a JSON array/object
+    /// from a unicode string";</item>
+    /// <item>every call the scanner makes needs levels beyond n: the default <c>parse_constant</c> (a C method) one; a
+    /// Python hook (<c>parse_constant</c>, <c>object_pairs_hook</c> at the closing object's own level) two, and a third
+    /// when it raises (creating the exception calls its class); a decode error built in C (<c>raise_errmsg</c> calls
+    /// <c>JSONDecodeError</c>, whose <c>__init__</c> is Python code calling <c>ValueError.__init__</c>) four;</item>
+    /// <item>"Expecting value" (a <c>StopIteration</c> that <c>raw_decode</c> turns into the <c>JSONDecodeError</c>) and
+    /// the 4300-digit <c>ValueError</c> need one to be created; failing that, CPython raises <c>RecursionError</c> with the
+    /// note "Normalization failed: type=... args=&lt;unknown&gt;", which the traceback prints last (it is part of
+    /// <see cref="Exception.Message"/> here);</item>
+    /// <item>the <c>RecursionError</c> text names the call that ran out: " while calling a Python object" for calls
+    /// through <c>_PyObject_MakeTpCall</c> or to C methods, nothing for entering a Python frame (two levels);</item>
+    /// <item>errors raised by Python code after the scan (<c>Extra data</c>, the BOM check) are unaffected.</item>
+    /// </list>
+    /// The first of these in document order wins, as in CPython.
+    /// </summary>
     public static JsonNode? Loads(string text, PyJsonLoadOptions? options)
     {
         ArgumentNullException.ThrowIfNull(text);
@@ -809,7 +842,15 @@ public static class PyJson
 
     private sealed class Decoder(string text, PyJsonLoadOptions options)
     {
+        // C recursion levels each kind of call needs beyond the open containers: 'c' a level whose exhaustion
+        // reads " while calling a Python object", '_' one that reads "" (entering a Python frame costs two).
+        private const string CMethod = "c";
+        private const string PythonHook = "__";
+        private const string PythonHookRaising = "__c";
+        private const string RaiseErrmsg = "c__c";
+
         private readonly int _end = text.Length - 1;
+        private readonly Stack<Frame> _stack = new();
 
         private sealed class Frame
         {
@@ -832,13 +873,55 @@ public static class PyJson
             }
             catch (StopIteration stop)
             {
+                // raw_decode turns the StopIteration into the JSONDecodeError in Python, after the scanner returned.
                 throw new PyJsonDecodeError("Expecting value", text, stop.Index);
+            }
+        }
+
+        /// <summary>Raises <c>RecursionError</c> when a call needing <paramref name="levels"/> beyond the open containers cannot be made.</summary>
+        private void Spend(string levels, string note = "", int open = -1)
+        {
+            open = open < 0 ? _stack.Count : open;
+            if (open + levels.Length > options.MaxDepth)
+            {
+                var first = Math.Max(0, options.MaxDepth - open);
+                throw new PyRecursionError("maximum recursion depth exceeded"
+                                           + (levels[first] == 'c' ? " while calling a Python object" : "") + note);
+            }
+        }
+
+        /// <summary>A decode error built in C by <c>raise_errmsg</c>.</summary>
+        private PyJsonDecodeError Error(string message, int position)
+        {
+            Spend(RaiseErrmsg);
+            return new PyJsonDecodeError(message, text, position);
+        }
+
+        /// <summary>The <c>StopIteration</c> behind "Expecting value".</summary>
+        private StopIteration Stop(int position)
+        {
+            Spend(CMethod, "\nNormalization failed: type=StopIteration args=<unknown>");
+            return new StopIteration(position);
+        }
+
+        /// <summary>Calls a Python-level hook at <paramref name="open"/> open containers.</summary>
+        private JsonNode? CallHook<T>(Func<T, JsonNode?> hook, T argument, int open)
+        {
+            Spend(PythonHook, open: open);
+            try
+            {
+                return hook(argument);
+            }
+            catch (PyException ex) when (ex is not PyRecursionError)
+            {
+                Spend(PythonHookRaising, open: open);
+                throw;
             }
         }
 
         private (JsonNode? Value, int End) Run(int index)
         {
-            var stack = new Stack<Frame>();
+            var stack = _stack;
             while (true)
             {
                 // Parse one value at index: a scalar, or the start of a container.
@@ -846,13 +929,13 @@ public static class PyJson
                 int next;
                 if (index >= text.Length)
                 {
-                    throw new StopIteration(index);
+                    throw Stop(index);
                 }
 
                 var c = text[index];
                 if (c is '{' or '[')
                 {
-                    if (stack.Count + 1 > MaxDepth)
+                    if (stack.Count + 1 > options.MaxDepth)
                     {
                         throw new PyRecursionError("maximum recursion depth exceeded while decoding a JSON "
                                                    + (c == '{' ? "object" : "array") + " from a unicode string");
@@ -914,15 +997,15 @@ public static class PyJson
 
                     if (index > _end || text[index] != ',')
                     {
-                        throw new PyJsonDecodeError("Expecting ',' delimiter", text, index);
+                        throw Error("Expecting ',' delimiter", index);
                     }
 
                     var comma = index;
                     index = SkipWhitespace(text, index + 1);
                     if (index <= _end && text[index] == close)
                     {
-                        throw new PyJsonDecodeError(
-                            "Illegal trailing comma before end of " + (frame.IsObject ? "object" : "array"), text, comma);
+                        throw Error(
+                            "Illegal trailing comma before end of " + (frame.IsObject ? "object" : "array"), comma);
                     }
 
                     if (frame.IsObject)
@@ -940,14 +1023,14 @@ public static class PyJson
         {
             if (index > _end || text[index] != '"')
             {
-                throw new PyJsonDecodeError("Expecting property name enclosed in double quotes", text, index);
+                throw Error("Expecting property name enclosed in double quotes", index);
             }
 
             (frame.Key, index) = ScanString(index + 1);
             index = SkipWhitespace(text, index);
             if (index > _end || text[index] != ':')
             {
-                throw new PyJsonDecodeError("Expecting ':' delimiter", text, index);
+                throw Error("Expecting ':' delimiter", index);
             }
 
             return SkipWhitespace(text, index + 1);
@@ -962,13 +1045,8 @@ public static class PyJson
 
             if (options.ObjectPairsHook is { } hook)
             {
-                // CPython calls a Python-level hook two C-recursion levels deeper than the object itself.
-                if (depth + 2 > MaxDepth)
-                {
-                    throw new PyRecursionError("maximum recursion depth exceeded");
-                }
-
-                return hook(frame.Pairs!);
+                // The hook runs inside the object's own level (_parse_object_unicode).
+                return CallHook(hook, (IReadOnlyList<KeyValuePair<string, JsonNode?>>)frame.Pairs!, depth);
             }
 
             var result = new JsonObject();
@@ -1010,9 +1088,10 @@ public static class PyJson
         {
             if (options.ParseConstant is { } parse)
             {
-                return parse(name);
+                return CallHook(parse, name, _stack.Count);
             }
 
+            Spend(CMethod); // _CONSTANTS.__getitem__
             return JsonValue.Create(name switch
             {
                 "NaN" => double.NaN,
@@ -1029,7 +1108,7 @@ public static class PyJson
                 index++;
                 if (index > _end)
                 {
-                    throw new StopIteration(start);
+                    throw Stop(start);
                 }
             }
 
@@ -1047,7 +1126,7 @@ public static class PyJson
             }
             else
             {
-                throw new StopIteration(start);
+                throw Stop(start);
             }
 
             var isFloat = false;
@@ -1094,6 +1173,7 @@ public static class PyJson
             var digits = number.Length - (number[0] == '-' ? 1 : 0);
             if (digits > MaxIntDigits)
             {
+                Spend(CMethod, "\nNormalization failed: type=ValueError args=<unknown>");
                 throw new PyValueError(string.Format(CultureInfo.InvariantCulture,
                     "Exceeds the limit (4300 digits) for integer string conversion: value has {0} digits; use sys.set_int_max_str_digits() to increase the limit",
                     digits));
@@ -1127,13 +1207,13 @@ public static class PyJson
 
                     if (c <= 0x1f)
                     {
-                        throw new PyJsonDecodeError("Invalid control character at", text, next);
+                        throw Error("Invalid control character at", next);
                     }
                 }
 
                 if (next >= length || (c != '"' && c != '\\'))
                 {
-                    throw new PyJsonDecodeError("Unterminated string starting at", text, begin);
+                    throw Error("Unterminated string starting at", begin);
                 }
 
                 if (c == '"' && builder is null)
@@ -1152,7 +1232,7 @@ public static class PyJson
 
                 if (next == length)
                 {
-                    throw new PyJsonDecodeError("Unterminated string starting at", text, begin);
+                    throw Error("Unterminated string starting at", begin);
                 }
 
                 c = text[next];
@@ -1173,7 +1253,7 @@ public static class PyJson
                     };
                     if (unescaped == '\0')
                     {
-                        throw new PyJsonDecodeError("Invalid \\escape", text, end - 2);
+                        throw Error("Invalid \\escape", end - 2);
                     }
 
                     builder.Append(unescaped);
@@ -1184,7 +1264,7 @@ public static class PyJson
                 end = next + 4;
                 if (end > length)
                 {
-                    throw new PyJsonDecodeError("Invalid \\uXXXX escape", text, next - 1);
+                    throw Error("Invalid \\uXXXX escape", next - 1);
                 }
 
                 var code = Hex4(next, end);
@@ -1220,7 +1300,7 @@ public static class PyJson
                     >= '0' and <= '9' => digit - '0',
                     >= 'a' and <= 'f' => digit - 'a' + 10,
                     >= 'A' and <= 'F' => digit - 'A' + 10,
-                    _ => throw new PyJsonDecodeError("Invalid \\uXXXX escape", text, end - 5),
+                    _ => throw Error("Invalid \\uXXXX escape", end - 5),
                 };
             }
 

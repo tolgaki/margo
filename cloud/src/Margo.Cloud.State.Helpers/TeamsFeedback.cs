@@ -134,7 +134,7 @@ public static class TeamsFeedback
             JsonNode? document;
             try
             {
-                document = PyJsonLoad.Loads(PyIO.ReadTextFile(path), MaxJsonDepth);
+                document = PyJson.Loads(PyIO.ReadTextFile(path), new PyJsonLoadOptions { MaxDepth = MaxJsonDepth });
             }
             catch (Exception ex) when (ex is PyOSError or PyJsonDecodeError)
             {
@@ -322,7 +322,7 @@ public sealed class TeamsFeedbackScript : IStateScript
     public string ScriptName => "teams_feedback.py";
 
     public int Run(IReadOnlyList<string> args, TextReader stdin, TextWriter stdout, TextWriter stderr) =>
-        StateScripts.RunGuarded(() => PyProcess.OnLargeStack(() => Main(args, stdout, stderr)), stderr);
+        StateScripts.RunGuarded(() => PyRuntime.OnLargeStack(() => Main(args, stdout, stderr)), stderr);
 
     private int Main(IReadOnlyList<string> argv, TextWriter stdout, TextWriter stderr)
     {

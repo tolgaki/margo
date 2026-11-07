@@ -1,28 +1,44 @@
 using System.Globalization;
+using System.Numerics;
 using System.Text;
+using System.Text.Json.Nodes;
 
 namespace Margo.Cloud.State.Core;
 
 /// <summary>
 /// Python <c>datetime.timedelta</c>: microsecond resolution, normalised to days/seconds/microseconds,
-/// magnitude limited to 999999999 days.
+/// days limited to -999999999..999999999 (so <c>timedelta.min</c> is exactly -999999999 days and
+/// <c>timedelta.max</c> is 999999999 days, 23:59:59.999999).
 /// </summary>
 public readonly struct PyTimeDelta : IEquatable<PyTimeDelta>, IComparable<PyTimeDelta>
 {
     private const long MicrosPerSecond = 1_000_000;
     private const long MicrosPerDay = 86_400L * MicrosPerSecond;
-    private static readonly Int128 Limit = (Int128)1_000_000_000 * MicrosPerDay;
+    private const long MaxDays = 999_999_999;
 
     private PyTimeDelta(Int128 micros)
     {
-        if (micros <= -Limit || micros >= Limit)
+        CheckDays(Floor(micros, MicrosPerDay));
+        TotalMicroseconds = micros;
+    }
+
+    /// <summary>
+    /// <c>microseconds_to_delta_ex</c>'s checks on the normalised days: they must fit a C <c>int</c>
+    /// (<c>OverflowError: Python int too large to convert to C int</c>), then <c>check_delta_day_range</c>
+    /// (<c>days=-1000000000; must have magnitude &lt;= 999999999</c>).
+    /// </summary>
+    private static void CheckDays(BigInteger days)
+    {
+        if (days < int.MinValue || days > int.MaxValue)
         {
-            var days = Floor(micros, MicrosPerDay);
+            throw new PyOverflowError("Python int too large to convert to C int");
+        }
+
+        if (BigInteger.Abs(days) > MaxDays)
+        {
             throw new PyOverflowError(string.Format(CultureInfo.InvariantCulture,
                 "days={0}; must have magnitude <= 999999999", days));
         }
-
-        TotalMicroseconds = micros;
     }
 
     /// <summary>The exact length in microseconds.</summary>
@@ -40,6 +56,80 @@ public readonly struct PyTimeDelta : IEquatable<PyTimeDelta>, IComparable<PyTime
     public static PyTimeDelta Zero => default;
 
     public static PyTimeDelta FromMicroseconds(Int128 microseconds) => new(microseconds);
+
+    /// <summary><c>timedelta(microseconds=n)</c> for any Python int.</summary>
+    public static PyTimeDelta FromMicroseconds(BigInteger microseconds)
+    {
+        var days = BigInteger.Divide(microseconds - (microseconds.Sign < 0 ? MicrosPerDay - 1 : 0), MicrosPerDay);
+        CheckDays(days);
+        return new((Int128)microseconds);
+    }
+
+    /// <summary>
+    /// <c>timedelta(seconds=value)</c> for a Python int or float (or a value read from SQLite): ints exactly; floats
+    /// as CPython's <c>delta_new</c>/<c>accum</c> do (integral part exact, fraction scaled to microseconds, the leftover
+    /// rounded half to even); NaN, infinities, out-of-range days and other types raise Python's
+    /// <c>ValueError</c>/<c>OverflowError</c>/<c>TypeError</c>.
+    /// </summary>
+    public static PyTimeDelta FromPySeconds(object? value)
+    {
+        BigInteger micros;
+        switch (value is JsonNode node ? PyJson.Scalar(node) : value)
+        {
+            case bool flag:
+                micros = flag ? MicrosPerSecond : 0;
+                break;
+            case long integer:
+                micros = (BigInteger)integer * MicrosPerSecond;
+                break;
+            case BigInteger big:
+                micros = big * MicrosPerSecond;
+                break;
+            case double number:
+            {
+                if (double.IsNaN(number))
+                {
+                    throw new PyValueError("cannot convert float NaN to integer");
+                }
+
+                if (double.IsInfinity(number))
+                {
+                    throw new PyOverflowError("cannot convert float infinity to integer");
+                }
+
+                var whole = Math.Truncate(number); // modf
+                var fraction = number - whole;
+                micros = new BigInteger(whole) * MicrosPerSecond;
+                var leftover = 0.0;
+                if (fraction != 0.0)
+                {
+                    var scaled = 1_000_000.0 * fraction;
+                    var scaledWhole = Math.Truncate(scaled);
+                    micros += new BigInteger(scaledWhole);
+                    leftover = scaled - scaledWhole;
+                }
+
+                if (leftover != 0.0)
+                {
+                    var rounded = Math.Round(leftover, MidpointRounding.AwayFromZero); // C round()
+                    if (Math.Abs(rounded - leftover) == 0.5)
+                    {
+                        var odd = micros.IsEven ? 0 : 1;
+                        rounded = (2.0 * Math.Round((leftover + odd) * 0.5, MidpointRounding.AwayFromZero)) - odd;
+                    }
+
+                    micros += new BigInteger(rounded);
+                }
+
+                break;
+            }
+
+            default:
+                throw new PyTypeError("unsupported type for timedelta seconds component: " + PyObj.TypeName(value));
+        }
+
+        return FromMicroseconds(micros);
+    }
 
     public static PyTimeDelta FromSeconds(long seconds) => new((Int128)seconds * MicrosPerSecond);
 

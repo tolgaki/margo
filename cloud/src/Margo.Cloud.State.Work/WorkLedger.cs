@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS work_meta (
     /// <summary><c>text(value, field)</c>: a nonempty (after <c>strip()</c>) string, else <c>StateError</c>.</summary>
     public static string Text(JsonNode? value, string field)
     {
-        if (PyDynamic.AsString(value) is not { } text || PyRepr.Strip(text).Length == 0)
+        if (PyNode.AsString(value) is not { } text || PyRepr.Strip(text).Length == 0)
         {
             throw new StateError(field + " must be a nonempty string");
         }
@@ -166,7 +166,7 @@ CREATE TABLE IF NOT EXISTS work_meta (
     }
 
     /// <summary><c>timestamp(value)</c> for a string.</summary>
-    public static PyDateTime Timestamp(string? value) => Timestamp(value is null ? null : PyDynamic.Str(value));
+    public static PyDateTime Timestamp(string? value) => Timestamp(value is null ? null : PyNode.Of(value));
 
     /// <summary><c>now()</c>: <c>datetime.now(timezone.utc)</c>.</summary>
     public static PyDateTime Now() => PyDateTime.Now();
@@ -177,34 +177,34 @@ CREATE TABLE IF NOT EXISTS work_meta (
     /// </summary>
     public static JsonObject Human(JsonNode? evidence, JsonNode? subjectId, JsonNode? revision, string? decision = null)
     {
-        if (evidence is not JsonObject obj || !PyDynamic.Is(PyDynamic.Get(obj, "kind"), "human_confirmation"))
+        if (evidence is not JsonObject obj || !PyNode.Is(PyNode.Get(obj, "kind"), "human_confirmation"))
         {
             throw new StateError("explicit human_confirmation evidence is required");
         }
 
         foreach (var key in HumanTexts)
         {
-            Text(PyDynamic.Get(obj, key), key);
+            Text(PyNode.Get(obj, key), key);
         }
 
-        var reference = PyDynamic.AsString(obj["evidence_ref"])!;
+        var reference = PyNode.AsString(obj["evidence_ref"])!;
         if (!HumanPrefixes.Any(prefix => reference.StartsWith(prefix, StringComparison.Ordinal)))
         {
             throw new StateError("human evidence must reference a conversation, host interaction, or legacy review");
         }
 
-        if (!PyDynamic.Eq(PyDynamic.Get(obj, "subject_id"), subjectId) || !PyJson.IsInt(PyDynamic.Get(obj, "revision"))
-            || !PyDynamic.Eq(PyDynamic.Get(obj, "revision"), revision))
+        if (!PyJson.PyEquals(PyNode.Get(obj, "subject_id"), subjectId) || !PyJson.IsInt(PyNode.Get(obj, "revision"))
+            || !PyJson.PyEquals(PyNode.Get(obj, "revision"), revision))
         {
             throw new StateError("human evidence must name the exact subject and revision");
         }
 
-        if (!string.IsNullOrEmpty(decision) && !PyDynamic.Is(obj["decision"], decision))
+        if (!string.IsNullOrEmpty(decision) && !PyNode.Is(obj["decision"], decision))
         {
             throw new StateError("human evidence must record the " + decision + " decision");
         }
 
-        if (Timestamp(PyDynamic.Get(obj, "decided_at")) > Now() + PyTimeDelta.FromMinutes(1))
+        if (Timestamp(PyNode.Get(obj, "decided_at")) > Now() + PyTimeDelta.FromMinutes(1))
         {
             throw new StateError("human decision cannot be in the future");
         }
@@ -214,16 +214,16 @@ CREATE TABLE IF NOT EXISTS work_meta (
 
     /// <summary><c>human(...)</c> with a string subject and an int revision.</summary>
     public static JsonObject Human(JsonNode? evidence, string subjectId, long revision, string? decision = null) =>
-        Human(evidence, PyDynamic.Str(subjectId), PyDynamic.Int(revision), decision);
+        Human(evidence, PyNode.Of(subjectId), PyNode.Of(revision), decision);
 
     /// <summary><c>check_revision(row, revision)</c>: a bool or different revision is a conflict.</summary>
     public static void CheckRevision(JsonObject row, JsonNode? revision)
     {
         ArgumentNullException.ThrowIfNull(row);
-        var current = PyDynamic.Index(row, "revision");
-        if (PyJson.IsBool(revision) || !PyDynamic.Eq(current, revision))
+        var current = PyNode.Index(row, "revision");
+        if (PyJson.IsBool(revision) || !PyJson.PyEquals(current, revision))
         {
-            throw new StateError("revision conflict: current revision is " + PyDynamic.ToStr(current));
+            throw new StateError("revision conflict: current revision is " + PyNode.Str(current));
         }
     }
 
@@ -233,30 +233,4 @@ CREATE TABLE IF NOT EXISTS work_meta (
         double number => PyJson.Float(number + 1),
         var _ => PyJson.Int(PyJson.AsInt(revision) + 1),
     };
-
-    /// <summary>A sqlite3 value as Python returns it (int, float, str, None).</summary>
-    internal static JsonNode? FromSql(object? value) => value switch
-    {
-        null => null,
-        long integer => JsonValue.Create(integer),
-        double number => JsonValue.Create(number),
-        string text => JsonValue.Create(text),
-        _ => throw new PyTypeError("Object of type bytes is not JSON serializable"),
-    };
-
-    /// <summary><c>dict(row)</c>.</summary>
-    internal static JsonObject RowDict(PyRow row)
-    {
-        var result = new JsonObject();
-        foreach (var (key, value) in row.ToDict())
-        {
-            result[key] = FromSql(value);
-        }
-
-        return result;
-    }
-
-    /// <summary><c>json.loads(text)</c> of a stored value.</summary>
-    internal static JsonNode? Loads(object? text) => PyJson.Loads(text as string ?? throw new PyTypeError(
-        "the JSON object must be str, bytes or bytearray, not " + (text is null ? "NoneType" : text.GetType().Name)));
 }

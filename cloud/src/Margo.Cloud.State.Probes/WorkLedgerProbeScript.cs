@@ -1,8 +1,9 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Margo.Cloud.State.Core;
+using Margo.Cloud.State.Work;
 
-namespace Margo.Cloud.State.Work;
+namespace Margo.Cloud.State.Probes;
 
 /// <summary>
 /// C# twin of <c>cloud/contracts/state/probes/work_ledger_probe.py</c>. Not a Margo command and not offered to the
@@ -10,7 +11,7 @@ namespace Margo.Cloud.State.Work;
 /// program so that time-dependent <c>work_state.py</c> flows (approve, begin, finish, reconcile, artifact-shared,
 /// action edits) and the ledger's library API are judged byte for byte. Keep the two files in step.
 /// </summary>
-public sealed partial class WorkLedgerProbeScript : IStateScript
+public sealed partial class WorkLedgerProbeScript : IStateProbeScript
 {
     private readonly Dictionary<string, JsonNode?> _saved = new(StringComparer.Ordinal);
     private string _account = "";
@@ -65,8 +66,8 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
             }
             else if (step.ContainsKey("symlink"))
             {
-                var name = PyDynamic.AsString(step["symlink"])!;
-                File.CreateSymbolicLink(PyPath.Join(_directory, name), Text(PyDynamic.AsString(step["target"])!));
+                var name = PyNode.AsString(step["symlink"])!;
+                File.CreateSymbolicLink(PyPath.Join(_directory, name), Text(PyNode.AsString(step["target"])!));
                 PyIO.Print(stdout, "## " + index + " symlink " + name);
             }
             else
@@ -124,16 +125,16 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
         var value = _saved[parts[0]];
         foreach (var part in parts.Skip(1))
         {
-            value = value is JsonArray list ? list[int.Parse(part, System.Globalization.CultureInfo.InvariantCulture)] : PyDynamic.Index(value, part);
+            value = value is JsonArray list ? list[int.Parse(part, System.Globalization.CultureInfo.InvariantCulture)] : PyNode.Index(value, part);
         }
 
-        return PyDynamic.Clone(value);
+        return PyNode.Copy(value);
     }
 
     private string Text(string value) => Part().Replace(value, match =>
     {
         var found = Value(match.Groups[1].Value);
-        return PyDynamic.AsString(found) ?? PyJson.Dumps(found, ensureAscii: false);
+        return PyNode.AsString(found) ?? PyJson.Dumps(found, ensureAscii: false);
     });
 
     private JsonNode? Template(JsonNode? value)
@@ -151,13 +152,13 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
 
                 return result;
             default:
-                if (PyDynamic.AsString(value) is { } text)
+                if (PyNode.AsString(value) is { } text)
                 {
                     var whole = Whole().Match(text);
                     return whole.Success ? Value(whole.Groups[1].Value) : Text(text);
                 }
 
-                return PyDynamic.Clone(value);
+                return PyNode.Copy(value);
         }
     }
 
@@ -170,7 +171,7 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
 
     private void Cli(int index, JsonObject step, TextWriter stdout)
     {
-        var args = ((JsonArray)step["cli"]!).Select(arg => Text(PyDynamic.AsString(arg)!)).ToList();
+        var args = ((JsonArray)step["cli"]!).Select(arg => Text(PyNode.AsString(arg)!)).ToList();
         if (step.ContainsKey("input"))
         {
             var path = PyPath.Join(_directory, "input-" + index + ".json");
@@ -183,7 +184,7 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
         argv.AddRange(args);
         var output = new StringWriter { NewLine = "\n" };
         var error = new StringWriter { NewLine = "\n" };
-        using var input = new StringReader(Text(PyDynamic.AsString(step["stdin"]) ?? ""));
+        using var input = new StringReader(Text(PyNode.AsString(step["stdin"]) ?? ""));
         string code;
         try
         {
@@ -205,7 +206,7 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
             PyIO.Print(stdout, "stderr: " + error.ToString().TrimEnd('\n'));
         }
 
-        if (code == "0" && PyDynamic.AsString(step["save"]) is { Length: > 0 } name)
+        if (code == "0" && PyNode.AsString(step["save"]) is { Length: > 0 } name)
         {
             _saved[name] = PyJson.Loads(output.ToString());
         }
@@ -213,10 +214,10 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
 
     private void Call(int index, JsonObject step, TextWriter stdout)
     {
-        var on = PyDynamic.AsString(PyDynamic.Get(step, "on")) ?? "ledger";
-        var method = PyDynamic.AsString(step["call"]);
-        var args = (JsonArray?)Template(PyDynamic.Get(step, "args", new JsonArray())) ?? [];
-        var kwargs = (JsonObject?)Template(PyDynamic.Get(step, "kwargs", new JsonObject())) ?? [];
+        var on = PyNode.AsString(PyNode.Get(step, "on")) ?? "ledger";
+        var method = PyNode.AsString(step["call"]);
+        var args = (JsonArray?)Template(PyNode.Get(step, "args", new JsonArray())) ?? [];
+        var kwargs = (JsonObject?)Template(PyNode.Get(step, "kwargs", new JsonObject())) ?? [];
         Ledger? ledger = null;
         PyConnection? connection = null;
         string line;
@@ -235,13 +236,13 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
             }
             else if (on == "borrowed")
             {
-                connection = StateStore.Connect(_account, _stateDir, readOnly: PyDynamic.Truthy(PyDynamic.Get(step, "read_only")));
-                if (PyDynamic.Get(step, "row_factory") is JsonValue flag && PyJson.Scalar(flag) is false)
+                connection = StateStore.Connect(_account, _stateDir, readOnly: PyJson.Truthy(PyNode.Get(step, "read_only")));
+                if (PyNode.Get(step, "row_factory") is JsonValue flag && PyJson.Scalar(flag) is false)
                 {
                     connection.RowFactoryIsRow = false;
                 }
 
-                ledger = Ledger.FromConnection(connection, PyDynamic.AsString(PyDynamic.Get(step, "borrow_account")) ?? _account);
+                ledger = Ledger.FromConnection(connection, PyNode.AsString(PyNode.Get(step, "borrow_account")) ?? _account);
                 result = method is null ? "borrowed" : LedgerCall(ledger, method, new Arguments(args, kwargs));
             }
             else
@@ -253,9 +254,9 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
             }
 
             line = PyJson.Dumps(result, ensureAscii: false);
-            if (PyDynamic.AsString(PyDynamic.Get(step, "save")) is { Length: > 0 } name)
+            if (PyNode.AsString(PyNode.Get(step, "save")) is { Length: > 0 } name)
             {
-                _saved[name] = PyDynamic.Clone(result);
+                _saved[name] = PyNode.Copy(result);
             }
         }
         catch (Exception ex)
@@ -280,9 +281,9 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
             index < positional.Count ? positional[index] : keywords.TryGetPropertyValue(name, out var value) ? value : fallback;
 
         public string? Text(int index, string name, string? fallback = null) =>
-            Has(index, name) ? PyDynamic.AsString(Get(index, name)) : fallback;
+            Has(index, name) ? PyNode.AsString(Get(index, name)) : fallback;
 
-        public bool Flag(int index, string name, bool fallback) => Has(index, name) ? PyDynamic.Truthy(Get(index, name)) : fallback;
+        public bool Flag(int index, string name, bool fallback) => Has(index, name) ? PyJson.Truthy(Get(index, name)) : fallback;
     }
 
     private static JsonNode? Module(string method, Arguments a) => method switch
@@ -290,7 +291,7 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
         "digest" => WorkLedger.Digest(a.Get(0, "value")),
         "text" => WorkLedger.Text(a.Get(0, "value"), a.Text(1, "field")!),
         "timestamp" => WorkLedger.Timestamp(a.Get(0, "value")).Isoformat(),
-        "human" => PyDynamic.Clone(WorkLedger.Human(a.Get(0, "evidence"), a.Get(1, "subject_id"), a.Get(2, "revision"), a.Text(3, "decision"))),
+        "human" => PyNode.Copy(WorkLedger.Human(a.Get(0, "evidence"), a.Get(1, "subject_id"), a.Get(2, "revision"), a.Text(3, "decision"))),
         "check_revision" => CheckRevision(a),
         _ => throw new InvalidOperationException("probe: unknown module function " + method),
     };
@@ -376,12 +377,12 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
         {
             try
             {
-                var parameters = ((JsonArray?)Template(PyDynamic.Get(step, "params", new JsonArray())) ?? []).Cast<object?>().ToArray();
-                var cursor = connection.Execute(PyDynamic.AsString(step["sql"])!, parameters);
+                var parameters = ((JsonArray?)Template(PyNode.Get(step, "params", new JsonArray())) ?? []).Cast<object?>().ToArray();
+                var cursor = connection.Execute(PyNode.AsString(step["sql"])!, parameters);
                 var rows = new JsonArray();
                 foreach (var row in cursor.FetchAll())
                 {
-                    rows.Add(new JsonArray(row.Select(WorkLedger.FromSql).ToArray()));
+                    rows.Add(new JsonArray(row.Select(PyNode.FromSql).ToArray()));
                 }
 
                 connection.Commit();
@@ -399,7 +400,7 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
 
     private void Write(int index, JsonObject step, TextWriter stdout)
     {
-        var name = PyDynamic.AsString(step["write"])!;
+        var name = PyNode.AsString(step["write"])!;
         var path = PyPath.Join(_directory, name);
         if (step.ContainsKey("json"))
         {
@@ -407,11 +408,11 @@ public sealed partial class WorkLedgerProbeScript : IStateScript
         }
         else if (step.ContainsKey("hex"))
         {
-            File.WriteAllBytes(path, Convert.FromHexString(PyDynamic.AsString(step["hex"])!));
+            File.WriteAllBytes(path, Convert.FromHexString(PyNode.AsString(step["hex"])!));
         }
         else
         {
-            WriteText(path, Text(PyDynamic.AsString(step["text"])!));
+            WriteText(path, Text(PyNode.AsString(step["text"])!));
         }
 
         PyIO.Print(stdout, "## " + index + " write " + name);

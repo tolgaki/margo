@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Margo.Cloud.State.Core;
 using Margo.Cloud.State.Memory;
+using Margo.Cloud.State.Work;
 using Xunit;
 
 namespace Margo.Cloud.State.Tests.Memory;
@@ -152,7 +153,7 @@ public sealed class MemoryStoreTests
         var refs = FileRef(source, Convert.ToHexStringLower(SHA256.HashData(content)));
         for (var number = 0; number < 20; number++)
         {
-            store.Put("source-" + number, Data(("source_refs", refs.DeepClone())), "active");
+            store.Put("source-" + number, Data(("source_refs", PyNode.Copy(refs))), "active");
         }
 
         var opened = 0;
@@ -311,7 +312,7 @@ public sealed class MemoryStoreTests
         {
             var child = store.Put(name, Data(("source_refs", new JsonArray(new JsonObject
             {
-                ["kind"] = "memory_record", ["ref"] = parent["id"]!.DeepClone(), ["revision"] = "1",
+                ["kind"] = "memory_record", ["ref"] = PyNode.Copy(parent["id"]), ["revision"] = "1",
             }))), "active");
             store.CompleteJob(child["id"], 1);
             store.Conn.Execute("INSERT INTO semantic_vectors VALUES(?)", child["id"]);
@@ -336,12 +337,12 @@ public sealed class MemoryStoreTests
         var now = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero);
         using var clock = PyRuntime.Override(clock: () => now);
         var subject = "subject";
-        Assert.NotNull(HumanEvidence.Human(Evidence(subject, decidedAt: "2026-03-04T05:07:07+00:00"), subject, 1, "confirm"));
+        Assert.NotNull(WorkLedger.Human(Evidence(subject, decidedAt: "2026-03-04T05:07:07+00:00"), subject, 1, "confirm"));
         var error = Assert.Throws<StateError>(() =>
-            HumanEvidence.Human(Evidence(subject, decidedAt: "2026-03-04T05:07:07.000001+00:00"), subject, 1, "confirm"));
+            WorkLedger.Human(Evidence(subject, decidedAt: "2026-03-04T05:07:07.000001+00:00"), subject, 1, "confirm"));
         Assert.Equal("human decision cannot be in the future", error.Message);
-        Assert.NotNull(HumanEvidence.Human(Evidence(subject, decidedAt: "2026-03-04T06:07:07+01:00"), subject, 1, "confirm"));
-        Assert.Throws<PyOverflowError>(() => HumanEvidence.Human(Evidence(subject, decidedAt: "0001-01-01T00:00:00+01:00"), subject, 1, "confirm"));
+        Assert.NotNull(WorkLedger.Human(Evidence(subject, decidedAt: "2026-03-04T06:07:07+01:00"), subject, 1, "confirm"));
+        Assert.Throws<PyOverflowError>(() => WorkLedger.Human(Evidence(subject, decidedAt: "0001-01-01T00:00:00+01:00"), subject, 1, "confirm"));
     }
 
     [Fact]
@@ -381,22 +382,22 @@ public sealed class MemoryStoreTests
     public void Python_dynamic_helpers_follow_cpython()
     {
         Assert.True(PyJson.PyEquals(JsonNode.Parse("""{"a":"b","relationship_change":1}"""),
-                                    Py.DictWith(JsonNode.Parse("""[["a","b"]]"""), ("relationship_change", 1))));
-        Assert.True(PyJson.PyEquals(JsonNode.Parse("""{"x":"y","c":"d"}"""), Py.DictWith(JsonNode.Parse("""[{"x":1,"y":2},"cd"]"""))));
+                                    PyNode.DictWith(JsonNode.Parse("""[["a","b"]]"""), ("relationship_change", 1))));
+        Assert.True(PyJson.PyEquals(JsonNode.Parse("""{"x":"y","c":"d"}"""), PyNode.DictWith(JsonNode.Parse("""[{"x":1,"y":2},"cd"]"""))));
         Assert.Equal("dictionary update sequence element #0 has length 1; 2 is required",
-                     Assert.Throws<PyValueError>(() => Py.DictWith(JsonValue.Create("ab"))).Message);
+                     Assert.Throws<PyValueError>(() => PyNode.DictWith(JsonValue.Create("ab"))).Message);
         Assert.Equal("cannot convert dictionary update sequence element #0 to a sequence",
-                     Assert.Throws<PyTypeError>(() => Py.DictWith(JsonNode.Parse("[5]"))).Message);
-        Assert.Equal("'int' object is not iterable", Assert.Throws<PyTypeError>(() => Py.DictWith(JsonValue.Create(5))).Message);
-        Assert.Equal("unhashable type: 'list'", Assert.Throws<PyTypeError>(() => Py.In(new JsonArray(), MemoryStore.Domains)).Message);
-        Assert.Equal("{'a': [1, 2.5, None, True], 'b': 'x'}", Py.Repr(JsonNode.Parse("""{"a":[1,2.5,null,true],"b":"x"}""")));
-        Assert.True(Py.IsDigit("\u0661\u00b2"));
-        Assert.False(Py.IsDigit(""));
-        Assert.False(Py.IsDigit("1_0"));
-        Assert.True(Py.IsWord(0x2167)); // ROMAN NUMERAL EIGHT: Python's \w, not .NET's
-        Assert.False(Py.IsWord(0x0301)); // COMBINING ACUTE ACCENT: .NET's \w, not Python's
-        Assert.True(Py.IsSpace(0x1C));
-        Assert.False(Py.IsSpace(0x200B));
+                     Assert.Throws<PyTypeError>(() => PyNode.DictWith(JsonNode.Parse("[5]"))).Message);
+        Assert.Equal("'int' object is not iterable", Assert.Throws<PyTypeError>(() => PyNode.DictWith(JsonValue.Create(5))).Message);
+        Assert.Equal("unhashable type: 'list'", Assert.Throws<PyTypeError>(() => PyNode.In(new JsonArray(), MemoryStore.Domains)).Message);
+        Assert.Equal("{'a': [1, 2.5, None, True], 'b': 'x'}", PyNode.Repr(JsonNode.Parse("""{"a":[1,2.5,null,true],"b":"x"}""")));
+        Assert.True(PyText.IsDigit("\u0661\u00b2"));
+        Assert.False(PyText.IsDigit(""));
+        Assert.False(PyText.IsDigit("1_0"));
+        Assert.True(PyText.IsWord(0x2167)); // ROMAN NUMERAL EIGHT: Python's \w, not .NET's
+        Assert.False(PyText.IsWord(0x0301)); // COMBINING ACUTE ACCENT: .NET's \w, not Python's
+        Assert.True(PyText.IsSpace(0x1C));
+        Assert.False(PyText.IsSpace(0x200B));
     }
 
     [Theory]

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The C# twins of cloud/contracts/state/probes/*_probe.py. They are not Margo commands: they run arbitrary SQL against
+    the account database and write files, so tools/state_parity.py can judge the shared helpers and the libraries byte
+    for byte. margo-state references this project only when MargoStateProbes=true (the Debug default; never Release)
+    and runs a probe only when MARGO_STATE_PROBES=1. Never reference it from a production project.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.State.Probes</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Work/Margo.Cloud.State.Work.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Proactive/Margo.Cloud.State.Proactive.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Memory/Margo.Cloud.State.Memory.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Helpers/Margo.Cloud.State.Helpers.csproj" />
+  </ItemGroup>
+
+</Project>

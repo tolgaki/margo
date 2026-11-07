@@ -38,7 +38,8 @@ public class PyTypeError : PyException
 
 /// <summary>
 /// Python <c>KeyError</c>. <c>str(KeyError(key))</c> is the <em>repr</em> of the key, so the message is
-/// built with <see cref="PyRepr.Str(string)"/>.
+/// built with <see cref="PyRepr.Str(string)"/>; <see cref="ForRepr"/> and <see cref="ForSlice"/> cover keys that are
+/// not strings.
 /// </summary>
 public class PyKeyError : PyException
 {
@@ -47,9 +48,58 @@ public class PyKeyError : PyException
         Key = key;
     }
 
-    public string Key { get; }
+    private PyKeyError(string? key, string message) : base(message)
+    {
+        Key = key;
+    }
+
+    /// <summary>The missing <c>str</c> key, or null when the key is not a string.</summary>
+    public string? Key { get; }
 
     public override string PythonType => "KeyError";
+
+    /// <summary>A <c>KeyError</c> for a key that is not a <c>str</c>: <c>str(exc)</c> is <paramref name="keyRepr"/>.</summary>
+    public static PyKeyError ForRepr(string keyRepr) => new(null, keyRepr ?? throw new ArgumentNullException(nameof(keyRepr)));
+
+    /// <summary>
+    /// <c>dict[:stop]</c> since Python 3.12: slices are hashable, so the dict looks the slice up as a key and raises
+    /// <c>KeyError(slice(None, stop, None))</c>.
+    /// </summary>
+    public static PyKeyError ForSlice(int stop) =>
+        ForRepr("slice(None, " + stop.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", None)");
+}
+
+/// <summary>Python <c>IndexError</c>, for example from <c>sqlite3.Row</c> for a missing key or <c>list[5]</c>.</summary>
+public sealed class PyIndexError : PyException
+{
+    public PyIndexError(string message) : base(message)
+    {
+    }
+
+    public override string PythonType => "IndexError";
+}
+
+/// <summary>
+/// Python <c>AttributeError</c>, for example <c>'list' object has no attribute 'get'</c>. The state scripts never
+/// catch it, so it escapes as an uncaught exception (exit status 1), as in Python.
+/// </summary>
+public sealed class PyAttributeError : PyException
+{
+    public PyAttributeError(string message) : base(message)
+    {
+    }
+
+    public override string PythonType => "AttributeError";
+}
+
+/// <summary>Python <c>ZeroDivisionError</c> (never caught by the state scripts: exit status 1).</summary>
+public sealed class PyZeroDivisionError : PyException
+{
+    public PyZeroDivisionError(string message) : base(message)
+    {
+    }
+
+    public override string PythonType => "ZeroDivisionError";
 }
 
 /// <summary>Python <c>OverflowError</c>.</summary>
@@ -77,16 +127,23 @@ public class PyRecursionError : PyException
 
 /// <summary>
 /// Python <c>OSError</c> and its errno subclasses. <see cref="Exception.Message"/> follows
-/// <c>str(OSError)</c>: <c>[Errno 2] No such file or directory: 'path'</c>.
+/// <c>str(OSError)</c>: <c>[Errno 2] No such file or directory: 'path'</c>, or with a second file name
+/// (<c>os.link</c>, <c>os.replace</c>) <c>[Errno 17] File exists: 'a' -&gt; 'b'</c>.
 /// </summary>
 public class PyOSError : PyException
 {
     public PyOSError(int errno, string strerror, string? filename = null, Exception? inner = null)
-        : base(Format(errno, strerror, filename), inner)
+        : this(errno, strerror, filename, null, inner)
+    {
+    }
+
+    public PyOSError(int errno, string strerror, string? filename, string? filename2, Exception? inner = null)
+        : base(Format(errno, strerror, filename, filename2), inner)
     {
         Errno = errno;
         StrError = strerror;
         Filename = filename;
+        Filename2 = filename2;
     }
 
     /// <summary>An OSError without an errno, for example <c>OSError("simulated")</c>.</summary>
@@ -100,6 +157,9 @@ public class PyOSError : PyException
     public string StrError { get; }
 
     public string? Filename { get; }
+
+    /// <summary><c>exc.filename2</c>: the destination of <c>os.link</c>/<c>os.replace</c>.</summary>
+    public string? Filename2 { get; }
 
     /// <summary>The <c>OSError</c> subclass CPython picks for the errno (Objects/exceptions.c, Linux values).</summary>
     public override string PythonType => Errno switch
@@ -121,8 +181,10 @@ public class PyOSError : PyException
         _ => "OSError",
     };
 
-    private static string Format(int errno, string strerror, string? filename) =>
-        filename is null ? $"[Errno {errno}] {strerror}" : $"[Errno {errno}] {strerror}: {PyRepr.Str(filename)}";
+    private static string Format(int errno, string strerror, string? filename, string? filename2) =>
+        filename is null ? $"[Errno {errno}] {strerror}"
+        : filename2 is null ? $"[Errno {errno}] {strerror}: {PyRepr.Str(filename)}"
+        : $"[Errno {errno}] {strerror}: {PyRepr.Str(filename)} -> {PyRepr.Str(filename2)}";
 }
 
 /// <summary>Linux errno values used by the ports, with the glibc <c>strerror</c> texts.</summary>

@@ -160,6 +160,25 @@ class ScenarioSchemaTests(unittest.TestCase):
                 for step in scenario["steps"]:
                     parity.python_script(step["script"])
 
+    def test_contract_probes_are_enabled_for_every_step(self):
+        # margo-state refuses its contract probes unless MARGO_STATE_PROBES=1; the reference scripts ignore it.
+        env = parity.base_environment(Path("/r"))
+        self.assertEqual(env["MARGO_STATE_PROBES"], "1")
+        self.assertEqual(env["HOME"], "/r/home")
+
+    def test_readme_lists_every_scenario_folder_and_probe(self):
+        readme = (parity.SCENARIOS / "README.md").read_text(encoding="utf-8")
+        folders = sorted({path.parent.name for path in parity.SCENARIOS.rglob("*.json")})
+        self.assertTrue(folders)
+        for folder in folders:
+            with self.subTest(folder=folder):
+                self.assertIn("`%s/`" % folder, readme)
+        probes = sorted(path.name for path in parity.PROBES.glob("*.py"))
+        self.assertTrue(probes)
+        for probe in probes:
+            with self.subTest(probe=probe):
+                self.assertIn("`probes/%s`" % probe, readme)
+
     def test_substitution(self):
         self.assertEqual(parity.substitute("{root}/c {state_dir} {account}", Path("/r"), "a@example.com"),
                          "/r/c /r/state a@example.com")

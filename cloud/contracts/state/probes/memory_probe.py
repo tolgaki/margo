@@ -2,7 +2,7 @@
 """Contract probe for the memory store, governance and encoder status (reference implementation).
 
 Not a Margo command. tools/state_parity.py runs this file and its C# twin
-(Margo.Cloud.State.Memory.MemoryProbeScript, ``margo-state memory_probe.py``) on
+(Margo.Cloud.State.Probes.MemoryProbeScript, ``margo-state memory_probe.py``) on
 the same program, so the libraries the memory_state.py CLI (a later port) and the
 memory search/learning/dream modules call -- memory_store.MemoryStore,
 memory_governance, memory_encoder's status functions without a model or runtime,

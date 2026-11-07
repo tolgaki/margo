@@ -148,14 +148,31 @@ public static partial class PosixNative
         }
     }
 
-    /// <summary><c>os.link(source, destination)</c>: an atomic no-replace hard link.</summary>
+    /// <summary>
+    /// <c>os.link(source, destination)</c>: an atomic no-replace hard link. Errors name both paths, as Python's
+    /// <c>OSError</c> does (<c>[Errno 17] File exists: 'a' -&gt; 'b'</c>).
+    /// </summary>
     public static void Link(string source, string destination)
     {
         EnsureSupported();
         if (link(Encode(source), Encode(destination)) != 0)
         {
             var errno = Marshal.GetLastPInvokeError();
-            throw new PyOSError(errno, StrError(errno), source, inner: null);
+            throw new PyOSError(errno, StrError(errno), source, destination);
+        }
+    }
+
+    /// <summary>
+    /// <c>os.replace(source, destination)</c>: an atomic <c>rename(2)</c> that replaces the destination. Errors name
+    /// both paths (<c>[Errno 21] Is a directory: 'a' -&gt; 'b'</c>).
+    /// </summary>
+    public static void Replace(string source, string destination)
+    {
+        EnsureSupported();
+        if (rename(Encode(source), Encode(destination)) != 0)
+        {
+            var errno = Marshal.GetLastPInvokeError();
+            throw new PyOSError(errno, StrError(errno), source, destination);
         }
     }
 
@@ -389,6 +406,9 @@ public static partial class PosixNative
 
     [LibraryImport("libc", SetLastError = true)]
     private static partial int unlink(byte[] pathname);
+
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial int rename(byte[] oldpath, byte[] newpath);
 
     [LibraryImport("libc", SetLastError = true)]
     private static partial nint readlink(byte[] pathname, [Out] byte[] buffer, nuint size);

@@ -2,8 +2,6 @@
 
   <PropertyGroup>
     <RootNamespace>Margo.Cloud.State.Work</RootNamespace>
-    <!-- LibraryImport (PosixFiles.rename) generates marshalling code that needs unsafe blocks. -->
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +10,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Margo.Cloud.State.Tests" />
+    <!-- The contract probe twin (never shipped in Release) drives internal entry points, as the Python probe does. -->
+    <InternalsVisibleTo Include="Margo.Cloud.State.Probes" />
   </ItemGroup>
 
 </Project>

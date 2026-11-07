@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Text;
 using System.Text.Json.Nodes;
 using Margo.Cloud.State.Core;
+using Margo.Cloud.State.Work;
 
 namespace Margo.Cloud.State.Memory;
 
@@ -187,17 +188,17 @@ CREATE TABLE IF NOT EXISTS memory_usage (
 
         var parts = new JsonNode?[]
         {
-            Py.Has(value, "title") ? value["title"] : JsonValue.Create(""),
-            Py.Has(value, "text") ? value["text"] : JsonValue.Create(""),
-            JsonValue.Create(JoinSpace(Py.Has(value, "entities") ? value["entities"] : new JsonArray())),
-            JsonValue.Create(JoinSpace(Py.Has(value, "routines") ? value["routines"] : new JsonArray())),
-            Py.Has(value, "scope") ? value["scope"] : JsonValue.Create(""),
+            value.ContainsKey("title") ? value["title"] : JsonValue.Create(""),
+            value.ContainsKey("text") ? value["text"] : JsonValue.Create(""),
+            JsonValue.Create(JoinSpace(value.ContainsKey("entities") ? value["entities"] : new JsonArray())),
+            JsonValue.Create(JoinSpace(value.ContainsKey("routines") ? value["routines"] : new JsonArray())),
+            value.ContainsKey("scope") ? value["scope"] : JsonValue.Create(""),
         };
         var kept = parts.Where(PyJson.Truthy).ToList();
         var builder = new StringBuilder();
         for (var i = 0; i < kept.Count; i++)
         {
-            if (Py.AsString(kept[i]) is not { } text)
+            if (PyNode.AsString(kept[i]) is not { } text)
             {
                 throw new PyTypeError("sequence item " + i.ToString(CultureInfo.InvariantCulture) + ": expected str instance, "
                                       + PyJson.TypeName(kept[i]) + " found");
@@ -221,14 +222,14 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         {
             JsonArray array => array,
             JsonObject obj => obj.Select(pair => (JsonNode?)JsonValue.Create(pair.Key)),
-            JsonValue scalar when PyJson.Scalar(scalar) is string text => PyRepr.CodePoints(text).Select(point => (JsonNode?)JsonValue.Create(Py.CodePointString(point))),
+            JsonValue scalar when PyJson.Scalar(scalar) is string text => PyRepr.CodePoints(text).Select(point => (JsonNode?)JsonValue.Create(PyText.CodePointString(point))),
             _ => throw new PyTypeError("can only join an iterable"),
         };
         var strings = new List<string>();
         var index = 0;
         foreach (var item in items)
         {
-            strings.Add(Py.AsString(item) ?? throw new PyTypeError("sequence item " + index.ToString(CultureInfo.InvariantCulture)
+            strings.Add(PyNode.AsString(item) ?? throw new PyTypeError("sequence item " + index.ToString(CultureInfo.InvariantCulture)
                                                                    + ": expected str instance, " + PyJson.TypeName(item) + " found"));
             index++;
         }
@@ -240,7 +241,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     public static (string Id, string KeyHash) MemoryIdentity(string account, JsonNode? domain, JsonNode? key)
     {
         ArgumentNullException.ThrowIfNull(account);
-        if (!Py.In(domain, Domains))
+        if (!PyNode.In(domain, Domains))
         {
             throw new StateError("domain must be user or agent");
         }
@@ -251,14 +252,14 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             throw new StateError("key is too long");
         }
 
-        var keyHash = PyIds.Sha256Hex(account + "\0" + Py.AsString(domain) + "\0" + text);
+        var keyHash = PyIds.Sha256Hex(account + "\0" + PyNode.AsString(domain) + "\0" + text);
         return ("mem_" + keyHash[..40], keyHash);
     }
 
     /// <summary><c>scoped_entity_key(value)</c>: the account-local graph key of an entity, or null for a display name.</summary>
     public static string? ScopedEntityKey(JsonNode? value)
     {
-        if (Py.AsString(value) is not { } text || text.Length == 0 || PyRepr.Length(text) > 4096)
+        if (PyNode.AsString(value) is not { } text || text.Length == 0 || PyRepr.Length(text) > 4096)
         {
             return null;
         }
@@ -280,7 +281,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 return null;
             }
 
-            if (parts is JsonArray list && list.Count == 3 && list.All(Py.IsText))
+            if (parts is JsonArray list && list.Count == 3 && list.All(PyNode.IsText))
             {
                 return "identity:" + StateStore.CanonicalJson(list);
             }
@@ -300,7 +301,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
 
     /// <summary><c>_text(value, field)</c>.</summary>
     internal static string TextField(JsonNode? value, string field) =>
-        Py.IsText(value) ? Py.AsString(value)! : throw new StateError(field + " must be a nonempty string");
+        PyNode.IsText(value) ? PyNode.AsString(value)! : throw new StateError(field + " must be a nonempty string");
 
     /// <summary><c>_integer(value, field)</c>: an int, not a bool.</summary>
     internal static BigInteger Integer(JsonNode? value, string field) =>
@@ -319,18 +320,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     }
 
     /// <summary><c>_parse_time(value)</c>: <c>datetime.fromisoformat(validate_timestamp(value))</c>.</summary>
-    internal static PyDateTime ParseTime(JsonNode? value) => PyDateTime.FromIsoformat(ValidateTimestamp(value));
-
-    /// <summary>
-    /// <c>margo_store.validate_timestamp(value)</c> for any model-supplied JSON value. State.Core's
-    /// <see cref="StateStore.ValidateTimestamp"/> raises <c>TypeError: not a scalar</c> for a list or dict, where
-    /// Python's <c>isinstance(value, str)</c> check raises the timestamp <see cref="StateError"/> (PORTING.md: belongs in
-    /// State.Core).
-    /// </summary>
-    internal static string ValidateTimestamp(JsonNode? value) =>
-        value is JsonObject or JsonArray
-            ? throw new StateError("timestamp must be an ISO-8601 datetime with an explicit timezone")
-            : StateStore.ValidateTimestamp(value);
+    internal static PyDateTime ParseTime(JsonNode? value) => PyDateTime.FromIsoformat(StateStore.ValidateTimestamp(value));
 
     /// <summary><c>dict.get(key, default)</c> on a value Python expects to be a dict (<c>AttributeError</c> otherwise).</summary>
     internal static JsonNode? DictGet(JsonNode? value, string key, JsonNode? fallback = null)
@@ -352,7 +342,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         _ => throw new PyTypeError("'" + PyJson.TypeName(value) + "' object is not subscriptable"),
     };
 
-    private static string RowText(PyRow row, string column) => row[column] as string ?? Py.Str(row[column]);
+    private static string RowText(PyRow row, string column) => row[column] as string ?? PyObj.Str(row[column]);
 
     // ------------------------------------------------------------------------------ schema and transactions
 
@@ -375,14 +365,14 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 throw new NotInitialized("Memory is not initialized; run memory_state.py init explicitly.");
             }
 
-            if (hasMarker && Py.Equal(marker, "1") && migrate)
+            if (hasMarker && PyObj.Eq(marker, "1") && migrate)
             {
                 MigrateV1(existing);
                 existing = expected;
                 marker = SchemaVersion;
             }
 
-            if (hasMarker && !Py.Equal(marker, SchemaVersion))
+            if (hasMarker && !PyObj.Eq(marker, SchemaVersion))
             {
                 throw new StateError("memory schema marker mismatch; explicit migration required");
             }
@@ -405,14 +395,14 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             if (existing.Count > 0)
             {
                 var local = Conn.Execute("SELECT value FROM memory_meta WHERE key='schema_version'").FetchOne();
-                if (local is null || !Py.Equal(local[0], SchemaVersion))
+                if (local is null || !PyObj.Eq(local[0], SchemaVersion))
                 {
                     throw new StateError("unsupported or missing memory schema version");
                 }
 
                 using var reference = PyConnection.Connect(":memory:");
                 reference.ExecuteScript(Schema);
-                foreach (var table in Py.Sorted(expected))
+                foreach (var table in PyText.Sorted(expected))
                 {
                     foreach (var pragma in SchemaPragmas)
                     {
@@ -454,13 +444,13 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             var expected = reference.Execute("SELECT name FROM sqlite_master WHERE type='table'").Select(row => (string)row[0]!)
                                     .ToHashSet(StringComparer.Ordinal);
             var local = Conn.Execute("SELECT value FROM memory_meta WHERE key='schema_version'").FetchOne();
-            if (!existing.SetEquals(expected) || local is null || !Py.Equal(local[0], "1"))
+            if (!existing.SetEquals(expected) || local is null || !PyObj.Eq(local[0], "1"))
             {
                 throw new StateError("incomplete legacy memory schema; migration refused");
             }
 
             // Python iterates a set (hash order); a fixed order reports the first drifted table (PORTING.md).
-            foreach (var table in Py.Sorted(expected))
+            foreach (var table in PyText.Sorted(expected))
             {
                 foreach (var pragma in SchemaPragmas)
                 {
@@ -576,7 +566,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             }
         }
 
-        return Py.StrArray(Py.Sorted(result));
+        return PyNode.StrList(PyText.Sorted(result));
     }
 
     /// <summary><c>_normalise_source_refs(refs)</c>: validated, de-duplicated and sorted by canonical JSON.</summary>
@@ -599,46 +589,46 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             var unknown = reference.Select(pair => pair.Key).Where(key => !RefFields.Contains(key)).ToList();
             if (unknown.Count > 0)
             {
-                throw new StateError("unknown source reference fields: " + string.Join(", ", Py.Sorted(unknown)));
+                throw new StateError("unknown source reference fields: " + string.Join(", ", PyText.Sorted(unknown)));
             }
 
-            if (!Py.In(Py.Get(reference, "kind"), SourceKinds))
+            if (!PyNode.In(PyNode.Get(reference, "kind"), SourceKinds))
             {
                 throw new StateError("unsupported source reference kind");
             }
 
-            TextField(Py.Get(reference, "ref"), "source reference");
-            var kind = Py.AsString(reference["kind"])!;
-            var value = new JsonObject { ["kind"] = kind, ["ref"] = Py.AsString(reference["ref"]) };
+            TextField(PyNode.Get(reference, "ref"), "source reference");
+            var kind = PyNode.AsString(reference["kind"])!;
+            var value = new JsonObject { ["kind"] = kind, ["ref"] = PyNode.AsString(reference["ref"]) };
             if (kind == "file")
             {
-                var revision = Py.Has(reference, "revision") ? Py.AsString(reference["revision"]) : null;
+                var revision = reference.ContainsKey("revision") ? PyNode.AsString(reference["revision"]) : null;
                 if (revision is null || PyRepr.Length(revision) != 64 || PyRepr.CodePoints(revision).Any(c => !"0123456789abcdef".Contains((char)c, StringComparison.Ordinal) || c > 0xFFFF))
                 {
                     throw new StateError("file source requires its verified SHA256 content revision");
                 }
             }
 
-            if (Py.Has(reference, "revision"))
+            if (reference.ContainsKey("revision"))
             {
                 value["revision"] = TextField(reference["revision"], "source revision");
             }
 
             if (kind == "memory_record")
             {
-                var revision = Py.Has(reference, "revision") ? Py.Str(reference["revision"]) : "";
-                if (!Py.IsDigit(revision) || PyArgumentParser.ParsePyInt(Py.AsString(reference["revision"])!) < 1)
+                var revision = reference.ContainsKey("revision") ? PyObj.Str(reference["revision"]) : "";
+                if (!PyText.IsDigit(revision) || PyArgumentParser.ParsePyInt(PyNode.AsString(reference["revision"])!) < 1)
                 {
                     throw new StateError("memory source requires its positive revision as a string");
                 }
             }
 
-            if (Py.Has(reference, "verified_at"))
+            if (reference.ContainsKey("verified_at"))
             {
-                value["verified_at"] = ValidateTimestamp(reference["verified_at"]);
+                value["verified_at"] = StateStore.ValidateTimestamp(reference["verified_at"]);
             }
 
-            var identity = (kind, Py.AsString(value["ref"])!, value.TryGetPropertyValue("revision", out var r) ? Py.AsString(r) : null);
+            var identity = (kind, PyNode.AsString(value["ref"])!, value.TryGetPropertyValue("revision", out var r) ? PyNode.AsString(r) : null);
             if (!seen.Add(identity))
             {
                 throw new StateError("duplicate source reference");
@@ -655,7 +645,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         var keyed = values.Select(value => (Key: StateStore.CanonicalJson(value), Value: value)).ToList();
         var ordered = keyed.Select((entry, index) => (entry.Key, entry.Value, Index: index))
                            .OrderBy(entry => entry.Key, PyRepr.StringComparer).ThenBy(entry => entry.Index);
-        return new JsonArray(ordered.Select(entry => (JsonNode?)(entry.Value.Parent is null ? entry.Value : Py.Clone(entry.Value))).ToArray());
+        return new JsonArray(ordered.Select(entry => (JsonNode?)(entry.Value.Parent is null ? entry.Value : PyNode.Copy(entry.Value))).ToArray());
     }
 
     /// <summary><c>_normalise_data(data)</c>: validated memory data in Python's key order.</summary>
@@ -672,34 +662,34 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         var unknown = input.Select(pair => pair.Key).Where(key => !DataFields.Contains(key)).ToList();
         if (unknown.Count > 0)
         {
-            throw new StateError("unknown memory fields: " + string.Join(", ", Py.Sorted(unknown)));
+            throw new StateError("unknown memory fields: " + string.Join(", ", PyText.Sorted(unknown)));
         }
 
-        if (!Py.In(Py.Get(input, "domain"), Domains))
+        if (!PyNode.In(PyNode.Get(input, "domain"), Domains))
         {
             throw new StateError("domain must be user or agent");
         }
 
-        if (!Py.In(Py.Get(input, "kind"), Kinds))
+        if (!PyNode.In(PyNode.Get(input, "kind"), Kinds))
         {
             throw new StateError("unsupported memory kind");
         }
 
-        if (!Py.In(Py.Get(input, "authority"), Authorities))
+        if (!PyNode.In(PyNode.Get(input, "authority"), Authorities))
         {
             throw new StateError("unsupported memory authority");
         }
 
-        TextField(Py.Get(input, "title"), "title");
-        TextField(Py.Get(input, "text"), "text");
-        TextField(Py.Get(input, "scope"), "scope");
-        var value = Py.Copy(input);
+        TextField(PyNode.Get(input, "title"), "title");
+        TextField(PyNode.Get(input, "text"), "text");
+        TextField(PyNode.Get(input, "scope"), "scope");
+        var value = PyNode.CopyObject(input);
         if (!value.ContainsKey("sensitivity"))
         {
             value["sensitivity"] = "private";
         }
 
-        if (!Py.In(value["sensitivity"], Sensitivities))
+        if (!PyNode.In(value["sensitivity"], Sensitivities))
         {
             throw new StateError("unsupported sensitivity");
         }
@@ -718,10 +708,10 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             throw new StateError("entities require scoped identifiers; keep display names in title/text");
         }
 
-        value["entities"] = Py.StrArray(Py.Sorted(entities.Select(entity => ScopedEntityKey(entity)!).Distinct(StringComparer.Ordinal)));
+        value["entities"] = PyNode.StrList(PyText.Sorted(entities.Select(entity => ScopedEntityKey(entity)!).Distinct(StringComparer.Ordinal)));
         value["routines"] = NormaliseStrings(value.ContainsKey("routines") ? value["routines"] : new JsonArray(), "routines");
         value["source_refs"] = NormaliseSourceRefs(value.ContainsKey("source_refs") ? value["source_refs"] : null);
-        value["metadata"] = Py.Copy(JsonObjectField(value.ContainsKey("metadata") ? value["metadata"] : new JsonObject(), "metadata"));
+        value["metadata"] = PyNode.CopyObject(JsonObjectField(value.ContainsKey("metadata") ? value["metadata"] : new JsonObject(), "metadata"));
         if (value.ContainsKey("identity"))
         {
             var identity = JsonObjectField(value["identity"], "identity", allowEmpty: false);
@@ -737,7 +727,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         }
 
         var metadata = value["metadata"]!.AsObject();
-        var requirements = metadata.ContainsKey("environment_requirements") ? metadata["environment_requirements"] : Py.Get(metadata, "environment");
+        var requirements = metadata.ContainsKey("environment_requirements") ? metadata["environment_requirements"] : PyNode.Get(metadata, "environment");
         if (requirements is not null && requirements is not JsonObject)
         {
             throw new StateError("environment requirements must be a JSON object");
@@ -745,17 +735,17 @@ CREATE TABLE IF NOT EXISTS memory_usage (
 
         foreach (var field in new[] { "valid_from", "valid_to", "review_after" })
         {
-            if (Py.Get(value, field) is null)
+            if (PyNode.Get(value, field) is null)
             {
                 value.Remove(field);
             }
             else
             {
-                value[field] = ValidateTimestamp(value[field]);
+                value[field] = StateStore.ValidateTimestamp(value[field]);
             }
         }
 
-        if (PyJson.Truthy(Py.Get(value, "valid_from")) && PyJson.Truthy(Py.Get(value, "valid_to"))
+        if (PyJson.Truthy(PyNode.Get(value, "valid_from")) && PyJson.Truthy(PyNode.Get(value, "valid_to"))
             && ParseTime(value["valid_from"]) >= ParseTime(value["valid_to"]))
         {
             throw new StateError("valid_from must precede valid_to");
@@ -781,15 +771,15 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         var refs = new List<JsonObject>();
         foreach (var original in Iterate(Item(data, "source_refs")))
         {
-            var reference = Py.DictWith(original);
-            var kind = Py.Get(reference, "kind");
+            var reference = PyNode.DictWith(original);
+            var kind = PyNode.Get(reference, "kind");
             if (PyJson.PyEquals(Item(reference, "kind"), JsonValue.Create("session_checkpoint")))
             {
                 var key = DreamSources.ValidateSource(this, reference);
                 if (!PyJson.PyEquals(reference, checkpointRef))
                 {
                     var checkpoint = Conn.Execute("SELECT status FROM memory_records WHERE id=? AND account=?", RecordId("user", key), Account).FetchOne();
-                    if (checkpoint is null || Py.Equal(checkpoint["status"], "forgotten"))
+                    if (checkpoint is null || PyObj.Eq(checkpoint["status"], "forgotten"))
                     {
                         throw new StateError("session checkpoint dependency is unknown or forgotten; use dream-checkpoint");
                     }
@@ -799,7 +789,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             if (PyJson.PyEquals(kind, JsonValue.Create("memory_record")))
             {
                 var parent = Conn.Execute("SELECT status FROM memory_records WHERE id=? AND account=?", Item(reference, "ref"), Account).FetchOne();
-                if (parent is null || Py.Equal(parent["status"], "forgotten"))
+                if (parent is null || PyObj.Eq(parent["status"], "forgotten"))
                 {
                     throw new StateError("memory dependency is unknown or forgotten");
                 }
@@ -822,16 +812,16 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                     source = null;
                 }
 
-                if (source is not null && Py.Equal(source["account"], Account) && !reference.ContainsKey("revision"))
+                if (source is not null && PyObj.Eq(source["account"], Account) && !reference.ContainsKey("revision"))
                 {
-                    reference["revision"] = Py.Str(source["current_revision"]);
+                    reference["revision"] = PyObj.Str(source["current_revision"]);
                 }
             }
 
             refs.Add(reference);
         }
 
-        var value = Py.Copy(data);
+        var value = PyNode.CopyObject(data);
         value["source_refs"] = SortedByCanonical(refs);
         return value;
     }
@@ -844,7 +834,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     /// <summary><c>_row(memory_id)</c>: this account's record row, or <c>unknown memory: ID</c>.</summary>
     public PyRow Row(JsonNode? memoryId) =>
         Conn.Execute("SELECT * FROM memory_records WHERE id=? AND account=?", memoryId, Account).FetchOne()
-        ?? throw new StateError("unknown memory: " + Py.Str(memoryId));
+        ?? throw new StateError("unknown memory: " + PyObj.Str(memoryId));
 
     /// <summary><c>_flatten(row)</c>: identity columns, then the stored data, then timestamps.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Mirrors the Python method on the store instance.")]
@@ -853,12 +843,12 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         ArgumentNullException.ThrowIfNull(row);
         var result = new JsonObject
         {
-            ["id"] = Py.FromDb(row["id"]),
-            ["account"] = Py.FromDb(row["account"]),
-            ["revision"] = Py.FromDb(row["revision"]),
-            ["status"] = Py.FromDb(row["status"]),
-            ["domain"] = Py.FromDb(row["domain"]),
-            ["kind"] = Py.FromDb(row["kind"]),
+            ["id"] = PyNode.FromSql(row["id"]),
+            ["account"] = PyNode.FromSql(row["account"]),
+            ["revision"] = PyNode.FromSql(row["revision"]),
+            ["status"] = PyNode.FromSql(row["status"]),
+            ["domain"] = PyNode.FromSql(row["domain"]),
+            ["kind"] = PyNode.FromSql(row["kind"]),
         };
         var data = ParseStored(row["data"]);
         if (data is not JsonObject values)
@@ -872,15 +862,15 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             result[key] = value;
         }
 
-        result["created_at"] = Py.FromDb(row["created_at"]);
-        result["updated_at"] = Py.FromDb(row["updated_at"]);
+        result["created_at"] = PyNode.FromSql(row["created_at"]);
+        result["updated_at"] = PyNode.FromSql(row["updated_at"]);
         return result;
     }
 
     /// <summary><c>parse_json(value)</c> of a TEXT column.</summary>
     internal static JsonNode? ParseStored(object? value) =>
         StateStore.ParseJson(value as string ?? throw new PyTypeError("the JSON object must be str, bytes or bytearray, not "
-                                                                       + (value is null ? "NoneType" : PyJson.TypeName(Py.FromDb(value)))));
+                                                                       + (value is null ? "NoneType" : PyJson.TypeName(PyNode.FromSql(value)))));
 
     internal static JsonObject ParseStoredObject(object? value) =>
         ParseStored(value) as JsonObject ?? throw new PyAttributeError("stored memory data is not a JSON object");
@@ -895,12 +885,12 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     /// <summary><c>list(domain=None, status=None)</c>: newest first.</summary>
     public JsonArray List(JsonNode? domain = null, JsonNode? status = null)
     {
-        if (domain is not null && !Py.In(domain, Domains))
+        if (domain is not null && !PyNode.In(domain, Domains))
         {
             throw new StateError("domain must be user or agent");
         }
 
-        if (status is not null && !Py.In(status, Statuses))
+        if (status is not null && !PyNode.In(status, Statuses))
         {
             throw new StateError("unsupported memory status");
         }
@@ -938,11 +928,11 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     /// <summary><c>_human(evidence, memory_id, revision, decision)</c>: <c>work_ledger.human</c>.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Mirrors the Python method on the store instance.")]
     public JsonObject Human(JsonNode? evidence, JsonNode? subjectId, JsonNode? revision, string? decision) =>
-        HumanEvidence.Human(evidence, subjectId, revision, decision);
+        WorkLedger.Human(evidence, subjectId, revision, decision);
 
     private static bool ActivationConfirmationRequired(JsonObject data)
     {
-        var authority = Py.AsString(Item(data, "authority"));
+        var authority = PyNode.AsString(Item(data, "authority"));
         if (authority == "inferred")
         {
             throw new StateError("inferred memory cannot be active");
@@ -950,12 +940,12 @@ CREATE TABLE IF NOT EXISTS memory_usage (
 
         if (authority == "source_observed")
         {
-            if (Py.In(Item(data, "kind"), Set("preference", "lesson")))
+            if (PyNode.In(Item(data, "kind"), Set("preference", "lesson")))
             {
                 return true;
             }
 
-            if (!Py.In(Item(data, "kind"), ObservationalKinds))
+            if (!PyNode.In(Item(data, "kind"), ObservationalKinds))
             {
                 throw new StateError("source-observed memory kind is not observational");
             }
@@ -967,11 +957,11 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     }
 
     private static bool Confirmed(JsonObject data) =>
-        PyJson.PyEquals(Py.Get(data, "authority"), JsonValue.Create("user_confirmed")) || Py.In(Py.Get(data, "kind"), Set("preference", "lesson"));
+        PyJson.PyEquals(PyNode.Get(data, "authority"), JsonValue.Create("user_confirmed")) || PyNode.In(PyNode.Get(data, "kind"), Set("preference", "lesson"));
 
     private bool Protected(PyRow row, JsonObject data)
     {
-        if (Py.Equal(row["status"], "active") && Confirmed(data))
+        if (PyObj.Eq(row["status"], "active") && Confirmed(data))
         {
             return true;
         }
@@ -1016,9 +1006,9 @@ CREATE TABLE IF NOT EXISTS memory_usage (
 
     private void Queue(object? memoryId, object? revision, object? status, JsonObject data, string stamp)
     {
-        Conn.Execute("DELETE FROM memory_meta WHERE key=?", "index-blocked:" + Py.Str(memoryId));
+        Conn.Execute("DELETE FROM memory_meta WHERE key=?", "index-blocked:" + PyObj.Str(memoryId));
         var contentHash = ContentHash(data);
-        var operation = Py.Equal(status, "active") && !PyJson.PyEquals(Py.Get(data, "sensitivity"), JsonValue.Create("sensitive"))
+        var operation = PyObj.Eq(status, "active") && !PyJson.PyEquals(PyNode.Get(data, "sensitivity"), JsonValue.Create("sensitive"))
                         && DreamIndexCurrent(data)
             ? "upsert"
             : "delete";
@@ -1037,7 +1027,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     public bool DreamIndexCurrent(JsonNode? data)
     {
         var role = DictGet(DictGet(data, "metadata", new JsonObject()), "dream");
-        if (Py.In(role, Set("checkpoint", "snapshot")))
+        if (PyNode.In(role, Set("checkpoint", "snapshot")))
         {
             return false;
         }
@@ -1047,7 +1037,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         {
             foreach (var reference in Iterate(DictGet(data, "source_refs", new JsonArray())))
             {
-                if (Py.In(Item(reference, "kind"), Set("session_checkpoint", "memory_record")))
+                if (PyNode.In(Item(reference, "kind"), Set("session_checkpoint", "memory_record")))
                 {
                     sourced = true;
                     break;
@@ -1063,7 +1053,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     {
         JsonArray array => array,
         JsonObject obj => obj.Select(pair => (JsonNode?)JsonValue.Create(pair.Key)),
-        JsonValue scalar when PyJson.Scalar(scalar) is string text => PyRepr.CodePoints(text).Select(point => (JsonNode?)JsonValue.Create(Py.CodePointString(point))),
+        JsonValue scalar when PyJson.Scalar(scalar) is string text => PyRepr.CodePoints(text).Select(point => (JsonNode?)JsonValue.Create(PyText.CodePointString(point))),
         _ => throw new PyTypeError("'" + PyJson.TypeName(value) + "' object is not iterable"),
     };
 
@@ -1082,7 +1072,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     {
         var row = Row(memoryId);
         var normal = NormaliseData(data);
-        if (!Py.Equal(row["domain"], normal["domain"]) || !Py.Equal(row["kind"], normal["kind"]))
+        if (!PyObj.Eq(row["domain"], normal["domain"]) || !PyObj.Eq(row["kind"], normal["kind"]))
         {
             throw new StateError("memory domain/kind is immutable; propose a separate sourced record");
         }
@@ -1101,12 +1091,12 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         ArgumentNullException.ThrowIfNull(memoryId);
         ArgumentNullException.ThrowIfNull(data);
         var idNode = JsonValue.Create(memoryId);
-        if (!Py.In(status, Statuses) || Py.AsString(status) == "forgotten")
+        if (!PyNode.In(status, Statuses) || PyNode.AsString(status) == "forgotten")
         {
             throw new StateError("unsupported memory status");
         }
 
-        var state = Py.AsString(status)!;
+        var state = PyNode.AsString(status)!;
         return Transaction(() =>
         {
             if (checkpointRef is not null)
@@ -1115,7 +1105,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 var key = DreamSources.ValidateSource(this, checkpoint);
                 if (memoryId != RecordId("user", key)
                     || !PyJson.PyEquals(DictGet(Item(data, "metadata"), "dream"), JsonValue.Create("checkpoint"))
-                    || !PyJson.PyEquals(Item(data, "source_refs"), new JsonArray(Py.Clone(checkpointRef))))
+                    || !PyJson.PyEquals(Item(data, "source_refs"), new JsonArray(PyNode.Copy(checkpointRef))))
                 {
                     throw new StateError("checkpoint capture must write its exact canonical root");
                 }
@@ -1150,17 +1140,17 @@ CREATE TABLE IF NOT EXISTS memory_usage (
 
             var row = Conn.Execute("SELECT * FROM memory_records WHERE id=? AND account=?", idNode, Account).FetchOne();
             var encoded = StateStore.CanonicalJson(data);
-            if (row is not null && Py.Equal(row["status"], "forgotten"))
+            if (row is not null && PyObj.Eq(row["status"], "forgotten"))
             {
                 throw new StateError("forgotten memory identity cannot be recreated");
             }
 
-            if (row is not null && (!Py.Equal(row["domain"], data["domain"]) || !Py.Equal(row["kind"], data["kind"])))
+            if (row is not null && (!PyObj.Eq(row["domain"], data["domain"]) || !PyObj.Eq(row["kind"], data["kind"])))
             {
                 throw new StateError("memory domain/kind is immutable; propose a separate sourced record");
             }
 
-            if (row is not null && Py.Equal(row["status"], state) && Py.Equal(row["data"], encoded))
+            if (row is not null && PyObj.Eq(row["status"], state) && PyObj.Eq(row["data"], encoded))
             {
                 return Flatten(row);
             }
@@ -1204,9 +1194,9 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             }
 
             Integer(revision, "revision");
-            if (!Py.Equal(currentRevision, revision))
+            if (!PyObj.Eq(currentRevision, revision))
             {
-                throw new StateError("revision conflict: current revision is " + Py.Str(currentRevision));
+                throw new StateError("revision conflict: current revision is " + PyObj.Str(currentRevision));
             }
 
             var oldStatus = RowText(row, "status");
@@ -1222,7 +1212,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
 
             var oldData = ParseStoredObject(row["data"]);
             var needsConfirmation = state == "active" && ActivationConfirmationRequired(data);
-            var currentNode = Py.FromDb(currentRevision);
+            var currentNode = PyNode.FromSql(currentRevision);
             if (Protected(row, oldData))
             {
                 Human(evidence, idNode, currentNode, state == oldStatus ? "edit" : TransitionDecision(state));
@@ -1292,14 +1282,14 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         {
             var node = pending[^1];
             pending.RemoveAt(pending.Count - 1);
-            if (Py.Equal(node, sourceId))
+            if (PyObj.Eq(node, sourceId))
             {
                 return true;
             }
 
             if (seen.Add(node))
             {
-                pending.AddRange(edges.Where(edge => Py.Equal(edge.Source, node)).Select(edge => edge.Target));
+                pending.AddRange(edges.Where(edge => PyObj.Eq(edge.Source, node)).Select(edge => edge.Target));
             }
         }
 
@@ -1313,18 +1303,18 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     public JsonObject Link(JsonNode? sourceId, JsonNode? targetId, JsonNode? relation, JsonNode? revision, JsonNode? evidence = null,
                            JsonNode? data = null, JsonNode? targetRevision = null)
     {
-        if (!Py.In(relation, Relations))
+        if (!PyNode.In(relation, Relations))
         {
             throw new StateError("unsupported memory relationship");
         }
 
-        var kind = Py.AsString(relation)!;
+        var kind = PyNode.AsString(relation)!;
         if (PyJson.PyEquals(sourceId, targetId))
         {
             throw new StateError("self relationship is invalid");
         }
 
-        var edgeData = Py.Copy(JsonObjectField(PyJson.Truthy(data) ? data : new JsonObject(), "relationship data"));
+        var edgeData = PyNode.CopyObject(JsonObjectField(PyJson.Truthy(data) ? data : new JsonObject(), "relationship data"));
         if (edgeData.Any(pair => pair.Key is not ("valid_from" or "valid_to" or "source_refs")))
         {
             throw new StateError("relationship data supports validity and source_refs only");
@@ -1334,12 +1324,12 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         {
             if (edgeData.ContainsKey(field))
             {
-                edgeData[field] = ValidateTimestamp(edgeData[field]);
+                edgeData[field] = StateStore.ValidateTimestamp(edgeData[field]);
             }
         }
 
-        if (PyJson.Truthy(Py.Get(edgeData, "valid_from")) && PyJson.Truthy(Py.Get(edgeData, "valid_to"))
-            && Py.Compare(Py.AsString(edgeData["valid_from"])!, Py.AsString(edgeData["valid_to"])!) >= 0)
+        if (PyJson.Truthy(PyNode.Get(edgeData, "valid_from")) && PyJson.Truthy(PyNode.Get(edgeData, "valid_to"))
+            && PyRepr.CompareStrings(PyNode.AsString(edgeData["valid_from"])!, PyNode.AsString(edgeData["valid_to"])!) >= 0)
         {
             throw new StateError("relationship valid_from must precede valid_to");
         }
@@ -1358,7 +1348,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         {
             var source = Row(sourceId);
             var target = Row(targetId);
-            if (Py.Equal(source["status"], "forgotten") || Py.Equal(target["status"], "forgotten"))
+            if (PyObj.Eq(source["status"], "forgotten") || PyObj.Eq(target["status"], "forgotten"))
             {
                 throw new StateError("forgotten memory cannot be linked");
             }
@@ -1371,28 +1361,28 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 sourceId, targetId, kind).FetchOne();
             if (existing is not null)
             {
-                if (!Py.Equal(existing["data"], StateStore.CanonicalJson(edgeData)))
+                if (!PyObj.Eq(existing["data"], StateStore.CanonicalJson(edgeData)))
                 {
                     throw new StateError("relationship already exists with different evidence/validity; remove and review its replacement");
                 }
 
                 var replay = Flatten(source);
-                replay["source_id"] = Py.FromDb(existing["source_id"]);
-                replay["target_id"] = Py.FromDb(existing["target_id"]);
-                replay["relation"] = Py.FromDb(existing["relation"]);
-                replay["link_created_at"] = Py.FromDb(existing["created_at"]);
+                replay["source_id"] = PyNode.FromSql(existing["source_id"]);
+                replay["target_id"] = PyNode.FromSql(existing["target_id"]);
+                replay["relation"] = PyNode.FromSql(existing["relation"]);
+                replay["link_created_at"] = PyNode.FromSql(existing["created_at"]);
                 return replay;
             }
 
             Integer(revision, "revision");
-            if (!Py.Equal(source["revision"], revision))
+            if (!PyObj.Eq(source["revision"], revision))
             {
-                throw new StateError("revision conflict: current revision is " + Py.Str(source["revision"]));
+                throw new StateError("revision conflict: current revision is " + PyObj.Str(source["revision"]));
             }
 
             if (TypedRelations.Contains(kind) || kind == "supersedes")
             {
-                if (!PyJson.IsInt(targetRevision) || !Py.Equal(target["revision"], targetRevision))
+                if (!PyJson.IsInt(targetRevision) || !PyObj.Eq(target["revision"], targetRevision))
                 {
                     throw new StateError("typed relationship requires the current target_revision");
                 }
@@ -1400,7 +1390,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 Human(evidence, sourceId, revision, "relate");
             }
 
-            if (kind == "supersedes" && (!Py.Equal(source["kind"], target["kind"]) || !Py.Equal(source["domain"], target["domain"])))
+            if (kind == "supersedes" && (!PyObj.Eq(source["kind"], target["kind"]) || !PyObj.Eq(source["domain"], target["domain"])))
             {
                 throw new StateError("supersession requires the same memory kind and domain");
             }
@@ -1425,17 +1415,17 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             var change = new JsonObject
             {
                 ["operation"] = "link",
-                ["source_id"] = Py.Clone(sourceId),
-                ["target_id"] = Py.Clone(targetId),
+                ["source_id"] = PyNode.Copy(sourceId),
+                ["target_id"] = PyNode.Copy(targetId),
                 ["relation"] = kind,
-                ["data"] = Py.Clone(edgeData),
+                ["data"] = PyNode.Copy(edgeData),
             };
-            var recorded = Py.DictWith(PyJson.Truthy(evidence) ? evidence : new JsonObject(), ("relationship_change", change));
+            var recorded = PyNode.DictWith(PyJson.Truthy(evidence) ? evidence : new JsonObject(), ("relationship_change", change));
             Snapshot(sourceId, nextRevision, source["status"], sourceData, recorded, stamp);
             Queue(sourceId, nextRevision, source["status"], sourceData, stamp);
             var result = Show(sourceId);
-            result["source_id"] = Py.Clone(sourceId);
-            result["target_id"] = Py.Clone(targetId);
+            result["source_id"] = PyNode.Copy(sourceId);
+            result["target_id"] = PyNode.Copy(targetId);
             result["relation"] = kind;
             result["link_created_at"] = stamp;
             result["data"] = edgeData;
@@ -1458,11 +1448,11 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         {
             var edge = new JsonObject
             {
-                ["source_id"] = Py.FromDb(row["source_id"]),
-                ["target_id"] = Py.FromDb(row["target_id"]),
-                ["relation"] = Py.FromDb(row["relation"]),
+                ["source_id"] = PyNode.FromSql(row["source_id"]),
+                ["target_id"] = PyNode.FromSql(row["target_id"]),
+                ["relation"] = PyNode.FromSql(row["relation"]),
             };
-            if (!Py.Equal(row["data"], "{}"))
+            if (!PyObj.Eq(row["data"], "{}"))
             {
                 edge["data"] = ParseStored(row["data"]);
             }
@@ -1491,7 +1481,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             var endpoints = new[] { Row(edge["source_id"]), Row(edge["target_id"]) };
             foreach (var row in endpoints)
             {
-                if (!Py.Equal(row["status"], "active") || !WorkSourcesCurrent(ParseStored(row["data"]))
+                if (!PyObj.Eq(row["status"], "active") || !WorkSourcesCurrent(ParseStored(row["data"]))
                     || Later(DictGet(ParseStored(row["data"]), "valid_from", JsonValue.Create(stamp)), stamp)
                     || !Later(DictGet(ParseStored(row["data"]), "valid_to", JsonValue.Create("9999")), stamp)
                     || !Later(DictGet(ParseStored(row["data"]), "review_after", JsonValue.Create("9999")), stamp))
@@ -1503,7 +1493,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
 
             if (current)
             {
-                result.Add(Py.Clone(edge));
+                result.Add(PyNode.Copy(edge));
             }
         }
 
@@ -1513,28 +1503,28 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     /// <summary>Python <c>value &gt; stamp</c> for the ISO strings memory compares lexically.</summary>
     private static bool Later(JsonNode? value, string stamp)
     {
-        if (Py.AsString(value) is not { } text)
+        if (PyNode.AsString(value) is not { } text)
         {
             throw new PyTypeError("'>' not supported between instances of '" + PyJson.TypeName(value) + "' and 'str'");
         }
 
-        return Py.Compare(text, stamp) > 0;
+        return PyRepr.CompareStrings(text, stamp) > 0;
     }
 
     /// <summary><c>unlink(source_id, target_id, relation, revision, evidence)</c>: reviewed removal of a typed or plain relationship.</summary>
     public JsonObject Unlink(JsonNode? sourceId, JsonNode? targetId, JsonNode? relation, JsonNode? revision, JsonNode? evidence)
     {
-        if (!Py.In(relation, Relations) || Py.AsString(relation) is "derives_from" or "supersedes")
+        if (!PyNode.In(relation, Relations) || PyNode.AsString(relation) is "derives_from" or "supersedes")
         {
             throw new StateError("derivation and supersession history cannot be unlinked; propose a sourced replacement");
         }
 
-        var kind = Py.AsString(relation)!;
+        var kind = PyNode.AsString(relation)!;
         return Transaction(() =>
         {
             var source = Row(sourceId);
             Row(targetId);
-            if (!PyJson.IsInt(revision) || !Py.Equal(source["revision"], revision))
+            if (!PyJson.IsInt(revision) || !PyObj.Eq(source["revision"], revision))
             {
                 throw new StateError("relationship source revision conflict");
             }
@@ -1550,8 +1540,8 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             var data = ParseStoredObject(source["data"]);
             var next = PyJson.AsInt(revision) + 1;
             Conn.Execute("UPDATE memory_records SET revision=?,updated_at=? WHERE id=?", next, stamp, sourceId);
-            var change = new JsonObject { ["operation"] = "unlink", ["target_id"] = Py.Clone(targetId), ["relation"] = kind };
-            Snapshot(sourceId, next, source["status"], data, Py.DictWith(evidence, ("relationship_change", change)), stamp);
+            var change = new JsonObject { ["operation"] = "unlink", ["target_id"] = PyNode.Copy(targetId), ["relation"] = kind };
+            Snapshot(sourceId, next, source["status"], data, PyNode.DictWith(evidence, ("relationship_change", change)), stamp);
             Queue(sourceId, next, source["status"], data, stamp);
             return Show(sourceId);
         });
@@ -1574,26 +1564,16 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         {
             result.Add(new JsonObject
             {
-                ["revision"] = Py.FromDb(row["revision"]),
-                ["status"] = Py.FromDb(row["status"]),
+                ["revision"] = PyNode.FromSql(row["revision"]),
+                ["status"] = PyNode.FromSql(row["status"]),
                 ["data"] = ParseStored(row["data"]),
-                ["evidence"] = row["evidence"] is { } evidence && Truthy(evidence) ? ParseStored(evidence) : null,
-                ["created_at"] = Py.FromDb(row["created_at"]),
+                ["evidence"] = row["evidence"] is { } evidence && PyObj.Truthy(evidence) ? ParseStored(evidence) : null,
+                ["created_at"] = PyNode.FromSql(row["created_at"]),
             });
         }
 
         return result;
     }
-
-    private static bool Truthy(object? value) => value switch
-    {
-        null => false,
-        string text => text.Length > 0,
-        long number => number != 0,
-        double number => number != 0,
-        byte[] bytes => bytes.Length > 0,
-        _ => true,
-    };
 
     /// <summary>
     /// <c>_derived_descendants(memory_id)</c>: the record and everything derived from it (derivation links, memory-record
@@ -1632,7 +1612,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 var kind = Item(reference, "kind");
                 if (PyJson.PyEquals(kind, JsonValue.Create("memory_record")))
                 {
-                    AddChild(Py.Str(Item(reference, "ref")), memory);
+                    AddChild(PyObj.Str(Item(reference, "ref")), memory);
                 }
                 else if (PyJson.PyEquals(kind, JsonValue.Create("session_checkpoint")))
                 {
@@ -1688,27 +1668,27 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     {
         var root = Show(memoryId);
         var affected = new JsonArray();
-        foreach (var identity in DerivedDescendants(Py.AsString(memoryId)!))
+        foreach (var identity in DerivedDescendants(PyNode.AsString(memoryId)!))
         {
             var row = Show(identity);
             if (!PyJson.PyEquals(row["status"], JsonValue.Create("forgotten")))
             {
                 affected.Add(new JsonObject
                 {
-                    ["id"] = Py.Clone(row["id"]),
-                    ["revision"] = Py.Clone(row["revision"]),
-                    ["domain"] = Py.Clone(row["domain"]),
-                    ["kind"] = Py.Clone(row["kind"]),
+                    ["id"] = PyNode.Copy(row["id"]),
+                    ["revision"] = PyNode.Copy(row["revision"]),
+                    ["domain"] = PyNode.Copy(row["domain"]),
+                    ["kind"] = PyNode.Copy(row["kind"]),
                 });
             }
         }
 
         return new JsonObject
         {
-            ["subject_id"] = Py.Clone(memoryId),
-            ["revision"] = Py.Clone(root["revision"]),
+            ["subject_id"] = PyNode.Copy(memoryId),
+            ["revision"] = PyNode.Copy(root["revision"]),
             ["affected"] = affected,
-            ["retained"] = Py.StrArray(["Minimal anti-reimport tombstones.", "Source mail/documents and work/approval records.",
+            ["retained"] = PyNode.StrList(["Minimal anti-reimport tombstones.", "Source mail/documents and work/approval records.",
                                         "Previously generated outputs, exports and backups are not recalled."]),
         };
     }
@@ -1721,18 +1701,18 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     public JsonObject Forget(JsonNode? memoryId, JsonNode? revision, JsonNode? evidence = null, JsonNode? policyRevision = null) => Transaction(() =>
     {
         var root = Row(memoryId);
-        if (Py.Equal(root["status"], "forgotten"))
+        if (PyObj.Eq(root["status"], "forgotten"))
         {
             var replay = Flatten(root);
-            replay["forgotten_ids"] = new JsonArray(Py.Clone(memoryId));
+            replay["forgotten_ids"] = new JsonArray(PyNode.Copy(memoryId));
             replay["derived_forgotten_ids"] = new JsonArray();
             return replay;
         }
 
         Integer(revision, "revision");
-        if (!Py.Equal(root["revision"], revision))
+        if (!PyObj.Eq(root["revision"], revision))
         {
-            throw new StateError("revision conflict: current revision is " + Py.Str(root["revision"]));
+            throw new StateError("revision conflict: current revision is " + PyObj.Str(root["revision"]));
         }
 
         if (policyRevision is null)
@@ -1749,7 +1729,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         var rows = new SortedDictionary<string, PyRow>(PyRepr.StringComparer);
         foreach (var row in Conn.Execute("SELECT * FROM memory_records WHERE account=?", Account))
         {
-            if (row["id"] is string id && identities.Contains(id) && !Py.Equal(row["status"], "forgotten"))
+            if (row["id"] is string id && identities.Contains(id) && !PyObj.Eq(row["status"], "forgotten"))
             {
                 rows[id] = row;
             }
@@ -1836,9 +1816,9 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 var remaining = new JsonArray();
                 foreach (var reference in Iterate(ParseStored(usage["refs"])))
                 {
-                    if (!forgotten.Contains(Py.AsString(Item(reference, "id")) ?? "\0not-a-string", StringComparer.Ordinal))
+                    if (!forgotten.Contains(PyNode.AsString(Item(reference, "id")) ?? "\0not-a-string", StringComparer.Ordinal))
                     {
-                        remaining.Add(Py.Clone(reference));
+                        remaining.Add(PyNode.Copy(reference));
                     }
                 }
 
@@ -1854,8 +1834,8 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         }
 
         var result = Show(memoryId);
-        result["forgotten_ids"] = Py.StrArray(forgotten);
-        result["derived_forgotten_ids"] = Py.StrArray(forgotten.Where(identity => !PyJson.PyEquals(JsonValue.Create(identity), memoryId)));
+        result["forgotten_ids"] = PyNode.StrList(forgotten);
+        result["derived_forgotten_ids"] = PyNode.StrList(forgotten.Where(identity => !PyJson.PyEquals(JsonValue.Create(identity), memoryId)));
         return result;
     });
 
@@ -2017,7 +1997,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 }
 
                 var checkpoint = Conn.Execute("SELECT status,data FROM memory_records WHERE id=? AND account=?", RecordId("user", key), Account).FetchOne();
-                if (checkpoint is null || !Py.Equal(checkpoint["status"], "active")
+                if (checkpoint is null || !PyObj.Eq(checkpoint["status"], "active")
                     || !Contains(DictGet(ParseStored(checkpoint["data"]), "source_refs", new JsonArray()), reference))
                 {
                     return false;
@@ -2027,15 +2007,15 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             if (PyJson.PyEquals(kind, JsonValue.Create("memory_record")))
             {
                 var parentId = Item(reference, "ref");
-                Py.EnsureHashable(parentId);
-                if (Py.AsString(parentId) is { } parentText && visited.Contains(parentText))
+                PyNode.RequireHashable(parentId);
+                if (PyNode.AsString(parentId) is { } parentText && visited.Contains(parentText))
                 {
                     return false;
                 }
 
                 var row = Conn.Execute("SELECT * FROM memory_records WHERE id=? AND account=?", parentId, Account).FetchOne();
-                if (row is null || !Py.Equal(row["status"], "active")
-                    || !PyJson.PyEquals(JsonValue.Create(Py.Str(row["revision"])), DictGet(reference, "revision")))
+                if (row is null || !PyObj.Eq(row["status"], "active")
+                    || !PyJson.PyEquals(JsonValue.Create(PyObj.Str(row["revision"])), DictGet(reference, "revision")))
                 {
                     return false;
                 }
@@ -2043,7 +2023,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 var parent = ParseStored(row["data"]);
                 var stamp = StateStore.UtcNow();
                 var next = new HashSet<string>(visited, StringComparer.Ordinal);
-                if (Py.AsString(parentId) is { } added)
+                if (PyNode.AsString(parentId) is { } added)
                 {
                     next.Add(added);
                 }
@@ -2069,14 +2049,14 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 }
 
                 var target = Item(reference, "ref");
-                var path = PyPath.ExpandUser(Py.AsString(target) ?? throw new PyTypeError(
+                var path = PyPath.ExpandUser(PyNode.AsString(target) ?? throw new PyTypeError(
                     "argument should be a str or an os.PathLike object where __fspath__ returns a str, not '" + PyJson.TypeName(target) + "'"));
                 if (!PyPath.IsAbsolute(path))
                 {
                     return false;
                 }
 
-                if (!PyJson.PyEquals(Py.Scalar(FileDigest(path)), Item(reference, "revision")))
+                if (!PyJson.PyEquals((FileDigest(path) is { } digest ? PyNode.Of(digest) : null), Item(reference, "revision")))
                 {
                     return false;
                 }
@@ -2104,21 +2084,21 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 throw;
             }
 
-            if (source is null || !Py.Equal(source["account"], Account) || !((JsonObject)reference!).ContainsKey("revision")
-                || Py.Str(source["current_revision"]) != Py.Str(reference["revision"]))
+            if (source is null || !PyObj.Eq(source["account"], Account) || !((JsonObject)reference!).ContainsKey("revision")
+                || PyObj.Str(source["current_revision"]) != PyObj.Str(reference["revision"]))
             {
                 return false;
             }
 
             var revision = Conn.Execute("SELECT data FROM work_source_revisions WHERE source_id=? AND revision=?",
-                                        Item(reference, "ref"), Py.Str(reference["revision"])).FetchOne();
+                                        Item(reference, "ref"), PyObj.Str(reference["revision"])).FetchOne();
             if (revision is null)
             {
                 return false;
             }
 
             var sensitivity = DictGet(ParseStored(revision["data"]), "sensitivity", JsonValue.Create("unknown"));
-            if (Py.AsString(sensitivity) is not { } level || PyRepr.CaseFold(level) is not ("unknown" or "public" or "private" or "none"))
+            if (PyNode.AsString(sensitivity) is not { } level || PyRepr.CaseFold(level) is not ("unknown" or "public" or "private" or "none"))
             {
                 return false;
             }
@@ -2136,7 +2116,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     {
         var use = usage.Or("reasoning");
         var stale = includeStale.Or(false);
-        if (domain is not null && !Py.In(domain, Domains))
+        if (domain is not null && !PyNode.In(domain, Domains))
         {
             throw new StateError("domain must be user or agent");
         }
@@ -2146,7 +2126,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             TextField(routine, "routine");
         }
 
-        if (!Py.In(use, Uses))
+        if (!PyNode.In(use, Uses))
         {
             throw new StateError("unsupported memory use");
         }
@@ -2184,7 +2164,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         foreach (var row in rows)
         {
             var data = ParseStored(row["data"]);
-            if (Py.In(DictGet(DictGet(data, "metadata", new JsonObject()), "dream"), Set("snapshot", "checkpoint")))
+            if (PyNode.In(DictGet(DictGet(data, "metadata", new JsonObject()), "dream"), Set("snapshot", "checkpoint")))
             {
                 continue;
             }
@@ -2263,9 +2243,9 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     /// <summary>Python <c>value in container</c> for a list, string (substring) or dict (key).</summary>
     private static bool Contains(JsonNode? container, JsonNode? value) => container switch
     {
-        JsonArray list => Py.InList(value, list),
-        JsonObject obj => Py.AsString(value) is { } key ? obj.ContainsKey(key) : EnsureHashableFalse(value),
-        JsonValue scalar when PyJson.Scalar(scalar) is string text => Py.AsString(value) is { } part
+        JsonArray list => PyNode.InList(value, list),
+        JsonObject obj => PyNode.AsString(value) is { } key ? obj.ContainsKey(key) : EnsureHashableFalse(value),
+        JsonValue scalar when PyJson.Scalar(scalar) is string text => PyNode.AsString(value) is { } part
             ? text.Contains(part, StringComparison.Ordinal)
             : throw new PyTypeError("'in <string>' requires string as left operand, not " + PyJson.TypeName(value)),
         _ => throw new PyTypeError("argument of type '" + PyJson.TypeName(container) + "' is not iterable"),
@@ -2273,7 +2253,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
 
     private static bool EnsureHashableFalse(JsonNode? value)
     {
-        Py.EnsureHashable(value);
+        PyNode.RequireHashable(value);
         return false;
     }
 
@@ -2297,7 +2277,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             throw new StateError("usage requires between 1 and 50 memory references");
         }
 
-        if (!Py.In(result, Set("used", "helpful", "corrected", "discarded")))
+        if (!PyNode.In(result, Set("used", "helpful", "corrected", "discarded")))
         {
             throw new StateError("unsupported usage outcome; do-not-learn records no learning event");
         }
@@ -2321,7 +2301,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 }
 
                 var row = Row(reference["id"]);
-                if (!Py.Equal(row["revision"], reference["revision"]) || !PyJson.IsInt(reference["revision"]) || !Py.Equal(row["status"], "active"))
+                if (!PyObj.Eq(row["revision"], reference["revision"]) || !PyJson.IsInt(reference["revision"]) || !PyObj.Eq(row["status"], "active"))
                 {
                     throw new StateError("usage memory is not current and active");
                 }
@@ -2329,15 +2309,15 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 normalised.Add(reference);
             }
 
-            var ordered = normalised.Select((reference, index) => (Key: Py.Str(reference["id"]), Reference: reference, Index: index))
+            var ordered = normalised.Select((reference, index) => (Key: PyObj.Str(reference["id"]), Reference: reference, Index: index))
                                     .OrderBy(entry => entry.Key, PyRepr.StringComparer).ThenBy(entry => entry.Index)
-                                    .Select(entry => (JsonNode?)Py.Clone(entry.Reference)).ToArray();
+                                    .Select(entry => (JsonNode?)PyNode.Copy(entry.Reference)).ToArray();
             var encoded = StateStore.CanonicalJson(new JsonArray(ordered));
             var existing = Conn.Execute("SELECT * FROM memory_usage WHERE id=?", eventText).FetchOne();
             if (existing is not null)
             {
-                if (!Py.Equal(existing["account"], Account) || !Py.Equal(existing["routine"], routineText) || !Py.Equal(existing["refs"], encoded)
-                    || !Py.Equal(existing["outcome"], Py.AsString(result)))
+                if (!PyObj.Eq(existing["account"], Account) || !PyObj.Eq(existing["routine"], routineText) || !PyObj.Eq(existing["refs"], encoded)
+                    || !PyObj.Eq(existing["outcome"], PyNode.AsString(result)))
                 {
                     throw new StateError("usage event replay changed its contents");
                 }
@@ -2362,17 +2342,17 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             throw new StateError("usage limit must be between 1 and 100");
         }
 
-        var id = Py.AsString(memoryId) ?? throw new PyTypeError("can only concatenate str (not \"" + PyJson.TypeName(memoryId) + "\") to str");
+        var id = PyNode.AsString(memoryId) ?? throw new PyTypeError("can only concatenate str (not \"" + PyJson.TypeName(memoryId) + "\") to str");
         var result = new JsonArray();
         foreach (var row in Conn.Execute("SELECT * FROM memory_usage WHERE account=? AND refs LIKE ? ORDER BY created_at DESC LIMIT ?",
                                          Account, "%\"" + id + "\"%", count))
         {
             result.Add(new JsonObject
             {
-                ["id"] = Py.FromDb(row["id"]),
-                ["routine"] = Py.FromDb(row["routine"]),
-                ["outcome"] = Py.FromDb(row["outcome"]),
-                ["created_at"] = Py.FromDb(row["created_at"]),
+                ["id"] = PyNode.FromSql(row["id"]),
+                ["routine"] = PyNode.FromSql(row["routine"]),
+                ["outcome"] = PyNode.FromSql(row["outcome"]),
+                ["created_at"] = PyNode.FromSql(row["created_at"]),
                 ["refs"] = ParseStored(row["refs"]),
             });
         }
@@ -2399,10 +2379,10 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         {
             result.Add(new JsonObject
             {
-                ["memory_id"] = Py.FromDb(row["memory_id"]),
-                ["revision"] = Py.FromDb(row["revision"]),
-                ["operation"] = Py.FromDb(row["op"]),
-                ["content_hash"] = Py.FromDb(row["content_hash"]),
+                ["memory_id"] = PyNode.FromSql(row["memory_id"]),
+                ["revision"] = PyNode.FromSql(row["revision"]),
+                ["operation"] = PyNode.FromSql(row["op"]),
+                ["content_hash"] = PyNode.FromSql(row["content_hash"]),
             });
         }
 
@@ -2431,7 +2411,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         return Transaction(() =>
         {
             var row = Row(memoryId);
-            if (!Py.Equal(row["revision"], revision) || !Py.Equal(row["status"], "active"))
+            if (!PyObj.Eq(row["revision"], revision) || !PyObj.Eq(row["status"], "active"))
             {
                 return false;
             }
@@ -2443,7 +2423,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             }
 
             var previous = Conn.Execute("SELECT revision,op FROM memory_jobs WHERE memory_id=?", memoryId).FetchOne();
-            if (previous is not null && Py.Equal(previous["revision"], revision) && Py.Equal(previous["op"], "blocked"))
+            if (previous is not null && PyObj.Eq(previous["revision"], revision) && PyObj.Eq(previous["op"], "blocked"))
             {
                 return true;
             }
@@ -2456,7 +2436,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 memoryId, revision, ContentHash(data), stamp);
             Conn.Execute(
                 "INSERT INTO memory_meta VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-                "index-blocked:" + Py.Str(memoryId), StateStore.CanonicalJson(new JsonObject { ["revision"] = Py.Clone(revision), ["reason"] = Py.Clone(reason) }));
+                "index-blocked:" + PyObj.Str(memoryId), StateStore.CanonicalJson(new JsonObject { ["revision"] = PyNode.Copy(revision), ["reason"] = PyNode.Copy(reason) }));
             return true;
         });
     }
@@ -2474,12 +2454,12 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         foreach (var row in Conn.Execute("SELECT memory_id,revision FROM memory_jobs WHERE op='blocked' ORDER BY created_at,memory_id LIMIT ?", count)
                                 .FetchAll())
         {
-            var detail = Conn.Execute("SELECT value FROM memory_meta WHERE key=?", "index-blocked:" + Py.Str(row["memory_id"])).FetchOne();
+            var detail = Conn.Execute("SELECT value FROM memory_meta WHERE key=?", "index-blocked:" + PyObj.Str(row["memory_id"])).FetchOne();
             result.Add(new JsonObject
             {
-                ["memory_id"] = Py.FromDb(row["memory_id"]),
-                ["revision"] = Py.FromDb(row["revision"]),
-                ["reason"] = detail is not null ? Py.Clone(Item(ParseStored(detail[0]), "reason")) : "invalid_record",
+                ["memory_id"] = PyNode.FromSql(row["memory_id"]),
+                ["revision"] = PyNode.FromSql(row["revision"]),
+                ["reason"] = detail is not null ? PyNode.Copy(Item(ParseStored(detail[0]), "reason")) : "invalid_record",
             });
         }
 
@@ -2490,7 +2470,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
     public JsonObject Health() => FreshnessPass(() =>
     {
         var counts = new JsonObject();
-        foreach (var status in Py.Sorted(Statuses))
+        foreach (var status in PyText.Sorted(Statuses))
         {
             counts[status] = 0L;
         }
@@ -2502,7 +2482,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                      """,
                      Account))
         {
-            counts[Py.Str(row["status"])] = Py.FromDb(row["count"]);
+            counts[PyObj.Str(row["status"])] = PyNode.FromSql(row["count"]);
         }
 
         long sensitive = 0, reviewDue = 0, staleSources = 0;
@@ -2516,12 +2496,12 @@ CREATE TABLE IF NOT EXISTS memory_usage (
                 sensitive++;
             }
 
-            if (Py.Equal(row["status"], "active") && !Later(DictGet(data, "review_after", JsonValue.Create("9999")), stamp))
+            if (PyObj.Eq(row["status"], "active") && !Later(DictGet(data, "review_after", JsonValue.Create("9999")), stamp))
             {
                 reviewDue++;
             }
 
-            if (Py.Equal(row["status"], "active") && !WorkSourcesCurrent(data))
+            if (PyObj.Eq(row["status"], "active") && !WorkSourcesCurrent(data))
             {
                 staleSources++;
                 if (PyJson.Truthy(DictGet(DictGet(data, "metadata", new JsonObject()), "imported_configuration"))
@@ -2533,7 +2513,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
         }
 
         var conflictSources = Conn.Execute("SELECT DISTINCT source_id FROM memory_links WHERE relation='contradicts'").FetchAll()
-                                  .Select(row => Py.FromDb(row[0])).ToList();
+                                  .Select(row => PyNode.FromSql(row[0])).ToList();
         var conflicts = new HashSet<(string, string)>();
         foreach (var source in conflictSources)
         {
@@ -2541,7 +2521,7 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             {
                 if (PyJson.PyEquals(edge!["relation"], JsonValue.Create("contradicts")))
                 {
-                    conflicts.Add((Py.Str(edge["source_id"]), Py.Str(edge["target_id"])));
+                    conflicts.Add((PyObj.Str(edge["source_id"]), PyObj.Str(edge["target_id"])));
                 }
             }
         }
@@ -2564,34 +2544,24 @@ CREATE TABLE IF NOT EXISTS memory_usage (
             ["account"] = Account,
             ["total"] = PyJson.Int(total),
             ["by_status"] = counts,
-            ["pending_jobs"] = Py.FromDb(Conn.Execute("SELECT count(*) FROM memory_jobs WHERE op IN ('upsert','delete')").FetchOne()![0]),
+            ["pending_jobs"] = PyNode.FromSql(Conn.Execute("SELECT count(*) FROM memory_jobs WHERE op IN ('upsert','delete')").FetchOne()![0]),
             ["blocked_jobs"] = BlockedJobs(),
-            ["blocked_job_count"] = Py.FromDb(Conn.Execute("SELECT count(*) FROM memory_jobs WHERE op='blocked'").FetchOne()![0]),
-            ["tombstones"] = Py.FromDb(Conn.Execute("SELECT count(*) FROM memory_tombstones WHERE account=?", Account).FetchOne()![0]),
+            ["blocked_job_count"] = PyNode.FromSql(Conn.Execute("SELECT count(*) FROM memory_jobs WHERE op='blocked'").FetchOne()![0]),
+            ["tombstones"] = PyNode.FromSql(Conn.Execute("SELECT count(*) FROM memory_tombstones WHERE account=?", Account).FetchOne()![0]),
             ["sensitive_excluded"] = sensitive,
             ["review_due"] = reviewDue,
             ["stale_sources"] = staleSources,
             ["conflict_links"] = (long)conflicts.Count,
-            ["usage_events"] = Py.FromDb(Conn.Execute("SELECT count(*) FROM memory_usage WHERE account=?", Account).FetchOne()![0]),
-            ["capture_enabled"] = Py.Clone(Item(Item(Item(Policy(), "data"), "capture"), "enabled")),
+            ["usage_events"] = PyNode.FromSql(Conn.Execute("SELECT count(*) FROM memory_usage WHERE account=?", Account).FetchOne()![0]),
+            ["capture_enabled"] = PyNode.Copy(Item(Item(Item(Policy(), "data"), "capture"), "enabled")),
             ["stale_imported_preferences"] = new JsonObject
             {
                 ["count"] = (long)staleImports.Count,
-                ["ids"] = Py.StrArray(staleImports.Take(50)),
+                ["ids"] = PyNode.StrList(staleImports.Take(50)),
             },
-            ["recovery_actions"] = staleImports.Count > 0 ? Py.StrArray([PreferencesRecovery]) : new JsonArray(),
+            ["recovery_actions"] = staleImports.Count > 0 ? PyNode.StrList([PreferencesRecovery]) : new JsonArray(),
             ["warnings"] = warnings,
         };
     });
-}
-
-/// <summary>Python <c>AttributeError</c> (missing from State.Core's PyErrors; it belongs there).</summary>
-public sealed class PyAttributeError : PyException
-{
-    public PyAttributeError(string message) : base(message)
-    {
-    }
-
-    public override string PythonType => "AttributeError";
 }
 

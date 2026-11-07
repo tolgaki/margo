@@ -32,6 +32,34 @@ public static class PyRuntime
         return value;
     }
 
+    /// <summary>
+    /// Runs <paramref name="body"/> on a thread with a large stack. CPython walks values nested up to its C
+    /// recursion limit (about 10000 levels: <c>repr</c>, comparisons, equality of nested lists); the recursive
+    /// C# equivalents must not overflow the default 8 MiB stack first. The execution context (and so any
+    /// <see cref="Override"/>) flows to the thread.
+    /// </summary>
+    public static T OnLargeStack<T>(Func<T> body, int stackBytes = 64 * 1024 * 1024)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        T result = default!;
+        System.Runtime.ExceptionServices.ExceptionDispatchInfo? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                result = body();
+            }
+            catch (Exception ex)
+            {
+                failure = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex);
+            }
+        }, stackBytes);
+        thread.Start();
+        thread.Join();
+        failure?.Throw();
+        return result;
+    }
+
     /// <summary>The current UTC instant (the source of <c>datetime.now(timezone.utc)</c>).</summary>
     public static DateTimeOffset UtcNow() => Current.Value?.Clock?.Invoke() ?? DateTimeOffset.UtcNow;
 

@@ -216,19 +216,19 @@ public sealed class Ledger : IDisposable
         return Transaction(() =>
         {
             var action = Show(actionId);
-            if (!PyDynamic.Is(PyDynamic.Get(action, "type"), "action") || !PyDynamic.Eq(PyDynamic.Index(action, "revision"), revision)
-                || !PyDynamic.Eq(PyDynamic.Index(action, "action_hash"), actionHash))
+            if (!PyNode.Is(PyNode.Get(action, "type"), "action") || !PyJson.PyEquals(PyNode.Index(action, "revision"), revision)
+                || !PyJson.PyEquals(PyNode.Index(action, "action_hash"), actionHash))
             {
                 throw new StateError("approval invalidation requires the exact current action");
             }
 
-            if (PyDynamic.In(action["state"], ExecutionStates))
+            if (PyNode.In(action["state"], ExecutionStates))
             {
                 return new JsonObject { ["invalidated"] = false, ["reason"] = "execution_already_started" };
             }
 
-            Invalidate(actionId, "task_cancelled", new JsonObject { ["reason"] = PyDynamic.Clone(reason) });
-            return new JsonObject { ["invalidated"] = true, ["action_id"] = PyDynamic.Clone(actionId), ["revision"] = PyDynamic.Clone(revision) };
+            Invalidate(actionId, "task_cancelled", new JsonObject { ["reason"] = PyNode.Copy(reason) });
+            return new JsonObject { ["invalidated"] = true, ["action_id"] = PyNode.Copy(actionId), ["revision"] = PyNode.Copy(revision) };
         });
     }
 
@@ -248,10 +248,10 @@ public sealed class Ledger : IDisposable
         var found = Conn.Execute("SELECT * FROM " + table + " WHERE id=? AND account=?", entityId, Account).FetchOne();
         if (found is null)
         {
-            throw new StateError("unknown entity: " + PyDynamic.ToStr(entityId));
+            throw new StateError("unknown entity: " + PyNode.Str(entityId));
         }
 
-        return RowDict(found);
+        return PyNode.FromRow(found);
     }
 
     /// <summary>
@@ -261,7 +261,7 @@ public sealed class Ledger : IDisposable
     /// </summary>
     public JsonObject Source(JsonNode? family, JsonNode? scope, JsonNode? externalId, JsonNode? revision, JsonNode? evidence,
                              JsonNode? webLink, JsonNode? sensitivity = null, JsonNode? observedAt = null) =>
-        SourceCore(family, scope, externalId, revision, evidence, webLink, sensitivity ?? PyDynamic.Str("unknown"), observedAt);
+        SourceCore(family, scope, externalId, revision, evidence, webLink, sensitivity ?? PyNode.Of("unknown"), observedAt);
 
     /// <summary><c>source(...)</c> with every argument as given (a null sensitivity is Python's <c>None</c>).</summary>
     internal JsonObject SourceCore(JsonNode? family, JsonNode? scope, JsonNode? externalId, JsonNode? revision, JsonNode? evidence,
@@ -272,22 +272,22 @@ public sealed class Ledger : IDisposable
             Text(value, key);
         }
 
-        if (!(evidence is JsonObject || PyDynamic.AsString(evidence) is not null) || !PyDynamic.Truthy(evidence))
+        if (!(evidence is JsonObject || PyNode.AsString(evidence) is not null) || !PyJson.Truthy(evidence))
         {
             throw new StateError("source evidence must be nonempty");
         }
 
-        observedAt = PyDynamic.Truthy(observedAt) ? observedAt : PyDynamic.Str(StateStore.UtcNow());
+        observedAt = PyJson.Truthy(observedAt) ? observedAt : PyNode.Of(StateStore.UtcNow());
         Timestamp(observedAt);
         var data = new JsonObject
         {
-            ["evidence"] = PyDynamic.Clone(evidence),
-            ["web_link"] = PyDynamic.Clone(webLink),
-            ["sensitivity"] = PyDynamic.Clone(sensitivity),
+            ["evidence"] = PyNode.Copy(evidence),
+            ["web_link"] = PyNode.Copy(webLink),
+            ["sensitivity"] = PyNode.Copy(sensitivity),
         };
         var fingerprint = Digest(data);
-        var sourceId = "src_" + Digest(new JsonArray(Account, PyDynamic.Clone(family), PyDynamic.Clone(scope), PyDynamic.Clone(externalId)))[..32];
-        JsonObject Result() => new() { ["source_id"] = sourceId, ["revision"] = PyDynamic.Clone(revision), ["fingerprint"] = fingerprint };
+        var sourceId = "src_" + Digest(new JsonArray(Account, PyNode.Copy(family), PyNode.Copy(scope), PyNode.Copy(externalId)))[..32];
+        JsonObject Result() => new() { ["source_id"] = sourceId, ["revision"] = PyNode.Copy(revision), ["fingerprint"] = fingerprint };
         return Transaction(() =>
         {
             var old = Conn.Execute("SELECT * FROM work_source_revisions WHERE source_id=? AND revision=?", sourceId, revision).FetchOne();
@@ -316,7 +316,7 @@ public sealed class Ledger : IDisposable
 """, sourceId, revision).FetchAll();
             foreach (var action in linked)
             {
-                Invalidate(FromSql(action["id"]), "source_changed", new JsonObject { ["source_id"] = sourceId, ["revision"] = PyDynamic.Clone(revision) });
+                Invalidate(PyNode.FromSql(action["id"]), "source_changed", new JsonObject { ["source_id"] = sourceId, ["revision"] = PyNode.Copy(revision) });
             }
 
             // Staleness is an observation, not an approved content edit.
@@ -329,10 +329,10 @@ public sealed class Ledger : IDisposable
 """, sourceId, revision).FetchAll();
             foreach (var record in records)
             {
-                Event(FromSql(record["id"]), "source_changed", new JsonObject { ["source_id"] = sourceId, ["revision"] = PyDynamic.Clone(revision) });
+                Event(PyNode.FromSql(record["id"]), "source_changed", new JsonObject { ["source_id"] = sourceId, ["revision"] = PyNode.Copy(revision) });
             }
 
-            Event(PyDynamic.Str(sourceId), "observed", new JsonObject { ["revision"] = PyDynamic.Clone(revision), ["fingerprint"] = fingerprint });
+            Event(PyNode.Of(sourceId), "observed", new JsonObject { ["revision"] = PyNode.Copy(revision), ["fingerprint"] = fingerprint });
             return Result();
         });
     }
@@ -350,7 +350,7 @@ public sealed class Ledger : IDisposable
 
         var row = Conn.Execute("SELECT id,current_revision FROM work_sources WHERE account=? AND family=? AND scope=? AND external_id=?",
                                Account, family, scope, externalId).FetchOne();
-        return row is null ? null : new JsonObject { ["source_id"] = FromSql(row["id"]), ["revision"] = FromSql(row["current_revision"]) };
+        return row is null ? null : new JsonObject { ["source_id"] = PyNode.FromSql(row["id"]), ["revision"] = PyNode.FromSql(row["current_revision"]) };
     }
 
     /// <summary><c>source_refs(refs, require_current=True)</c>: validated exact source references, sorted by source_id.</summary>
@@ -371,8 +371,8 @@ public sealed class Ledger : IDisposable
             }
 
             var sourceId = reference["source_id"];
-            PyDynamic.RequireHashable(sourceId);
-            if (seen.Any(value => PyDynamic.Eq(value, sourceId)))
+            PyNode.RequireHashable(sourceId);
+            if (seen.Any(value => PyJson.PyEquals(value, sourceId)))
             {
                 throw new StateError("duplicate source reference");
             }
@@ -381,21 +381,21 @@ public sealed class Ledger : IDisposable
             var source = Row("work_sources", sourceId);
             var known = Conn.Execute("SELECT fingerprint FROM work_source_revisions WHERE source_id=? AND revision=?",
                                      sourceId, reference["revision"]).FetchOne();
-            if (known is null || !PyDynamic.Eq(FromSql(known["fingerprint"]), reference["fingerprint"]))
+            if (known is null || !PyJson.PyEquals(PyNode.FromSql(known["fingerprint"]), reference["fingerprint"]))
             {
                 throw new StateError("unknown or mismatched source fingerprint");
             }
 
-            if (requireCurrent && !PyDynamic.Eq(source["current_revision"], reference["revision"]))
+            if (requireCurrent && !PyJson.PyEquals(source["current_revision"], reference["revision"]))
             {
                 throw new StateError("stale source revision");
             }
 
-            result.Add(PyDynamic.CloneObject(reference));
+            result.Add(PyNode.CopyObject(reference));
         }
 
         var sorted = new JsonArray();
-        foreach (var reference in result.OrderBy(reference => PyDynamic.AsString(reference["source_id"])!, PyRepr.StringComparer))
+        foreach (var reference in result.OrderBy(reference => PyNode.AsString(reference["source_id"])!, PyRepr.StringComparer))
         {
             sorted.Add(reference);
         }
@@ -406,9 +406,9 @@ public sealed class Ledger : IDisposable
     /// <summary><c>refs_stale(refs)</c>: whether any referenced source has a newer current revision.</summary>
     public bool RefsStale(JsonNode? refs)
     {
-        foreach (var reference in PyDynamic.Iter(refs))
+        foreach (var reference in PyNode.Iter(refs))
         {
-            if (!PyDynamic.Eq(Row("work_sources", PyDynamic.Index(reference, "source_id"))["current_revision"], PyDynamic.Index(reference, "revision")))
+            if (!PyJson.PyEquals(Row("work_sources", PyNode.Index(reference, "source_id"))["current_revision"], PyNode.Index(reference, "revision")))
             {
                 return true;
             }
@@ -421,7 +421,7 @@ public sealed class Ledger : IDisposable
     public JsonArray SourceEvidence(JsonNode? refs)
     {
         var result = new JsonArray();
-        foreach (var reference in PyDynamic.Iter(refs))
+        foreach (var reference in PyNode.Iter(refs))
         {
             var row = Conn.Execute("""
 
@@ -429,16 +429,16 @@ public sealed class Ledger : IDisposable
                 FROM work_sources s JOIN work_source_revisions r ON s.id=r.source_id
                 WHERE s.id=? AND r.revision=? AND s.account=?
 
-""", PyDynamic.Index(reference, "source_id"), PyDynamic.Index(reference, "revision"), Account).FetchOne();
+""", PyNode.Index(reference, "source_id"), PyNode.Index(reference, "revision"), Account).FetchOne();
             if (row is null)
             {
                 throw new StateError("source evidence is missing");
             }
 
-            var metadata = RowDict(row);
+            var metadata = PyNode.FromRow(row);
             var data = metadata["data"];
             metadata.Remove("data");
-            UpdateFrom(metadata, Loads(PyDynamic.AsString(data)));
+            UpdateFrom(metadata, PyNode.Loads(PyNode.AsString(data)));
             UpdateFrom(metadata, reference);
             result.Add(metadata);
         }
@@ -450,7 +450,7 @@ public sealed class Ledger : IDisposable
     {
         foreach (var (key, value) in (JsonObject)source!)
         {
-            target[key] = PyDynamic.Clone(value);
+            target[key] = PyNode.Copy(value);
         }
     }
 
@@ -465,16 +465,16 @@ public sealed class Ledger : IDisposable
         var unknown = obj.Select(pair => pair.Key).Where(key => !ItemFields.Contains(key)).ToList();
         if (foreignKeys is { Count: > 0 })
         {
-            throw PyDynamic.JoinSortedError(unknown, foreignKeys, obj.Count + foreignKeys.Count, ItemFields.Count);
+            throw PyNode.JoinSortedError(unknown, foreignKeys, obj.Count + foreignKeys.Count, ItemFields.Count);
         }
 
         if (unknown.Count > 0)
         {
-            throw new StateError("unknown item fields: " + PyDynamic.JoinSorted(unknown));
+            throw new StateError("unknown item fields: " + PyNode.JoinSorted(unknown));
         }
 
-        Text(PyDynamic.Get(obj, "title"), "title");
-        if (!PyDynamic.In(PyDynamic.Get(obj, "direction"), Directions))
+        Text(PyNode.Get(obj, "title"), "title");
+        if (!PyNode.In(PyNode.Get(obj, "direction"), Directions))
         {
             throw new StateError("direction must be owe, waiting_on, or own");
         }
@@ -492,21 +492,21 @@ public sealed class Ledger : IDisposable
             }
         }
 
-        var result = PyDynamic.CloneObject(obj);
-        result["source_refs"] = SourceRefs(PyDynamic.Get(obj, "source_refs", new JsonArray()), requireCurrent);
-        if (((JsonArray)result["source_refs"]!).Count == 0 && !PyDynamic.Truthy(PyDynamic.Get(result, "confirmation_source")))
+        var result = PyNode.CopyObject(obj);
+        result["source_refs"] = SourceRefs(PyNode.Get(obj, "source_refs", new JsonArray()), requireCurrent);
+        if (((JsonArray)result["source_refs"]!).Count == 0 && !PyJson.Truthy(PyNode.Get(result, "confirmation_source")))
         {
             throw new StateError("item requires source evidence or attributed direct human instruction");
         }
 
-        if (PyDynamic.Truthy(PyDynamic.Get(result, "deferred_until")))
+        if (PyJson.Truthy(PyNode.Get(result, "deferred_until")))
         {
             Timestamp(result["deferred_until"]);
         }
 
-        if (PyDynamic.Truthy(PyDynamic.Get(result, "outcome_id")))
+        if (PyJson.Truthy(PyNode.Get(result, "outcome_id")))
         {
-            if (!PyDynamic.Is(Row("work_records", result["outcome_id"])["kind"], "outcome"))
+            if (!PyNode.Is(Row("work_records", result["outcome_id"])["kind"], "outcome"))
             {
                 throw new StateError("outcome_id must refer to an outcome");
             }
@@ -522,8 +522,8 @@ public sealed class Ledger : IDisposable
         return Transaction(() =>
         {
             var item = ItemData(data, requireCurrent: false);
-            var ingestKey = Digest(new JsonArray(Account, PyDynamic.Clone(item["source_refs"]),
-                                                 PyDynamic.Clone(PyDynamic.Get(item, "confirmation_source")), PyDynamic.Clone(claimKey)));
+            var ingestKey = Digest(new JsonArray(Account, PyNode.Copy(item["source_refs"]),
+                                                 PyNode.Copy(PyNode.Get(item, "confirmation_source")), PyNode.Copy(claimKey)));
             var contentHash = Digest(item);
             var existing = Conn.Execute("SELECT id,ingest_hash FROM work_items WHERE ingest_key=?", ingestKey).FetchOne();
             if (existing is not null)
@@ -533,16 +533,16 @@ public sealed class Ledger : IDisposable
                     throw new StateError("same ingest identity has different content; explicitly edit the existing item");
                 }
 
-                return Show(FromSql(existing["id"]));
+                return Show(PyNode.FromSql(existing["id"]));
             }
 
             var itemId = "item_" + ingestKey[..32];
             var stamp = StateStore.UtcNow();
             Conn.Execute("INSERT INTO work_items VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                          itemId, Account, 1L, "candidate", 0L, ingestKey, contentHash, StateStore.CanonicalJson(item), null, stamp, stamp);
-            ItemSnapshot(PyDynamic.Str(itemId), null);
-            Event(PyDynamic.Str(itemId), "ingested", new JsonObject { ["claim_key"] = PyDynamic.Clone(claimKey) });
-            return Show(PyDynamic.Str(itemId));
+            ItemSnapshot(PyNode.Of(itemId), null);
+            Event(PyNode.Of(itemId), "ingested", new JsonObject { ["claim_key"] = PyNode.Copy(claimKey) });
+            return Show(PyNode.Of(itemId));
         });
     }
 
@@ -551,7 +551,7 @@ public sealed class Ledger : IDisposable
         var row = Row("work_items", itemId);
         Conn.Execute("INSERT INTO work_item_revisions VALUES(?,?,?,?,?)",
                      itemId, row["revision"], StateStore.CanonicalJson(row),
-                     PyDynamic.Truthy(evidence) ? StateStore.CanonicalJson(evidence) : null, StateStore.UtcNow());
+                     PyJson.Truthy(evidence) ? StateStore.CanonicalJson(evidence) : null, StateStore.UtcNow());
     }
 
     /// <summary>
@@ -564,20 +564,20 @@ public sealed class Ledger : IDisposable
         {
             var row = Row("work_items", itemId);
             CheckRevision(row, revision);
-            var current = PyDynamic.AsString(row["state"])!;
-            state = PyDynamic.Truthy(state) ? state : PyDynamic.Clone(row["state"]!);
-            if (!PyDynamic.In(state, ItemStates))
+            var current = PyNode.AsString(row["state"])!;
+            state = PyJson.Truthy(state) ? state : PyNode.Copy(row["state"]!);
+            if (!PyNode.In(state, ItemStates))
             {
                 throw new StateError("invalid work state");
             }
 
-            var next = PyDynamic.AsString(state)!;
+            var next = PyNode.AsString(state)!;
             if (next != current && !(ItemTransitions.TryGetValue(current, out var allowed) ? allowed : throw new PyKeyError(current)).Contains(next))
             {
                 throw new StateError("invalid work transition: " + current + " -> " + next);
             }
 
-            var wasConfirmed = PyDynamic.Truthy(row["confirmed"]);
+            var wasConfirmed = PyJson.Truthy(row["confirmed"]);
             if (wasConfirmed && next is "candidate" or "rejected")
             {
                 throw new StateError("confirmed work cannot be demoted to an unconfirmed candidate");
@@ -594,10 +594,10 @@ public sealed class Ledger : IDisposable
                 Human(evidence, itemId, revision, decision);
             }
 
-            var data = (JsonObject)Loads(PyDynamic.AsString(row["data"]))!;
-            var foreign = PyDynamic.Truthy(patch) ? PyDynamic.Update(data, patch) : [];
+            var data = (JsonObject)PyNode.Loads(PyNode.AsString(row["data"]))!;
+            var foreign = PyJson.Truthy(patch) ? PyNode.Update(data, patch) : [];
             data = ItemData(data, foreignKeys: foreign);
-            if (next == "deferred" && !PyDynamic.Truthy(PyDynamic.Get(data, "deferred_until")))
+            if (next == "deferred" && !PyJson.Truthy(PyNode.Get(data, "deferred_until")))
             {
                 throw new StateError("deferral requires deferred_until");
             }
@@ -608,16 +608,16 @@ public sealed class Ledger : IDisposable
             }
 
             var confirmed = wasConfirmed || next == "confirmed";
-            var confirmation = PyDynamic.Truthy(row["confirmation"]) ? PyDynamic.AsString(row["confirmation"])
+            var confirmation = PyJson.Truthy(row["confirmation"]) ? PyNode.AsString(row["confirmation"])
                 : confirmed ? StateStore.CanonicalJson(evidence) : null;
             Conn.Execute("UPDATE work_items SET revision=revision+1,state=?,confirmed=?,data=?,confirmation=?,updated_at=? WHERE id=?",
                          next, confirmed ? 1L : 0L, StateStore.CanonicalJson(data), confirmation, StateStore.UtcNow(), itemId);
             ItemSnapshot(itemId, evidence);
             Event(itemId, "updated", new JsonObject
             {
-                ["from_revision"] = PyDynamic.Clone(revision),
+                ["from_revision"] = PyNode.Copy(revision),
                 ["state"] = next,
-                ["evidence"] = PyDynamic.Clone(evidence),
+                ["evidence"] = PyNode.Copy(evidence),
             });
             return Show(itemId);
         });
@@ -629,18 +629,18 @@ public sealed class Ledger : IDisposable
     /// </summary>
     public JsonObject Relate(JsonNode? sourceId, JsonNode? kind, JsonNode? targetId, JsonNode? revision, JsonNode? evidence = null)
     {
-        if (!PyDynamic.In(kind, RelationKinds))
+        if (!PyNode.In(kind, RelationKinds))
         {
             throw new StateError("unsupported relationship");
         }
 
-        var relation = PyDynamic.AsString(kind)!;
+        var relation = PyNode.AsString(kind)!;
         return Transaction(() =>
         {
             var source = Row("work_items", sourceId);
             CheckRevision(source, revision);
             var target = relation != "tracked_in" ? Row("work_items", targetId) : null;
-            if (PyDynamic.Eq(sourceId, targetId))
+            if (PyJson.PyEquals(sourceId, targetId))
             {
                 throw new StateError("self relationship is invalid");
             }
@@ -654,7 +654,7 @@ public sealed class Ledger : IDisposable
                 }
             }
 
-            if (PyDynamic.Truthy(source["confirmed"]) || (target is not null && PyDynamic.Truthy(target["confirmed"])))
+            if (PyJson.Truthy(source["confirmed"]) || (target is not null && PyJson.Truthy(target["confirmed"])))
             {
                 Human(evidence, sourceId, revision, "relate");
             }
@@ -682,21 +682,21 @@ public sealed class Ledger : IDisposable
             {
                 var node = pending[^1];
                 pending.RemoveAt(pending.Count - 1);
-                if (PyDynamic.Eq(node, start))
+                if (PyJson.PyEquals(node, start))
                 {
                     throw new StateError("relationship would create a cycle");
                 }
 
-                if (!seen.Any(value => PyDynamic.Eq(value, node)))
+                if (!seen.Any(value => PyJson.PyEquals(value, node)))
                 {
                     seen.Add(node);
-                    var name = PyDynamic.AsString(node);
-                    pending.AddRange(edges.Where(edge => edge.From == name).Select(edge => (JsonNode?)PyDynamic.Str(edge.To)));
+                    var name = PyNode.AsString(node);
+                    pending.AddRange(edges.Where(edge => edge.From == name).Select(edge => (JsonNode?)PyNode.Of(edge.To)));
                 }
             }
 
             var changed = Conn.Execute("INSERT OR IGNORE INTO work_relationships VALUES(?,?,?,?,?)",
-                                       sourceId, relation, targetId, PyDynamic.Truthy(evidence) ? StateStore.CanonicalJson(evidence) : null,
+                                       sourceId, relation, targetId, PyJson.Truthy(evidence) ? StateStore.CanonicalJson(evidence) : null,
                                        StateStore.UtcNow()).RowCount;
             if (changed != 0)
             {
@@ -705,8 +705,8 @@ public sealed class Ledger : IDisposable
                 Event(sourceId, "relationship_added", new JsonObject
                 {
                     ["kind"] = relation,
-                    ["target_id"] = PyDynamic.Clone(targetId),
-                    ["evidence"] = PyDynamic.Clone(evidence),
+                    ["target_id"] = PyNode.Copy(targetId),
+                    ["evidence"] = PyNode.Copy(evidence),
                 });
             }
 
@@ -735,7 +735,7 @@ public sealed class Ledger : IDisposable
             }
         }
 
-        if (!PyDynamic.Truthy(obj["target"]))
+        if (!PyJson.Truthy(obj["target"]))
         {
             throw new StateError("target must identify exact recipients or target IDs");
         }
@@ -745,12 +745,12 @@ public sealed class Ledger : IDisposable
             Row("work_items", obj["work_item_id"]);
         }
 
-        var result = PyDynamic.CloneObject(obj);
+        var result = PyNode.CopyObject(obj);
         result["source_refs"] = SourceRefs(obj["source_refs"]);
         foreach (var key in new[] { "affected_people", "dependencies" })
         {
             if (result.ContainsKey(key) && (result[key] is not JsonArray values
-                                            || !values.All(value => PyDynamic.AsString(value) is { } text && PyRepr.Strip(text).Length > 0)))
+                                            || !values.All(value => PyNode.AsString(value) is { } text && PyRepr.Strip(text).Length > 0)))
             {
                 throw new StateError(key + " must be a list of explicit people or work IDs");
             }
@@ -761,21 +761,21 @@ public sealed class Ledger : IDisposable
             throw new StateError("artifact_id and artifact_revision must be supplied together");
         }
 
-        foreach (var itemId in PyDynamic.Iter(PyDynamic.Get(result, "dependencies", new JsonArray())))
+        foreach (var itemId in PyNode.Iter(PyNode.Get(result, "dependencies", new JsonArray())))
         {
             Row("work_items", itemId);
         }
 
-        if (PyDynamic.Truthy(PyDynamic.Get(result, "artifact_id")))
+        if (PyJson.Truthy(PyNode.Get(result, "artifact_id")))
         {
             var artifact = Show(result["artifact_id"]);
-            if (!PyDynamic.Is(PyDynamic.Get(artifact, "kind"), "artifact")
-                || !PyDynamic.Eq(PyDynamic.Index(artifact, "revision"), PyDynamic.Get(result, "artifact_revision")))
+            if (!PyNode.Is(PyNode.Get(artifact, "kind"), "artifact")
+                || !PyJson.PyEquals(PyNode.Index(artifact, "revision"), PyNode.Get(result, "artifact_revision")))
             {
                 throw new StateError("artifact must name an exact current artifact revision");
             }
 
-            if (PyDynamic.Truthy(PyDynamic.Index(artifact, "stale")))
+            if (PyJson.Truthy(PyNode.Index(artifact, "stale")))
             {
                 throw new StateError("artifact is stale");
             }
@@ -789,24 +789,24 @@ public sealed class Ledger : IDisposable
         var actionHash = Digest(new JsonObject
         {
             ["account"] = Account,
-            ["id"] = PyDynamic.Clone(actionId),
-            ["revision"] = PyDynamic.Clone(revision),
-            ["action"] = PyDynamic.Clone(data),
+            ["id"] = PyNode.Copy(actionId),
+            ["revision"] = PyNode.Copy(revision),
+            ["action"] = PyNode.Copy(data),
         });
         Conn.Execute("INSERT INTO work_action_revisions VALUES(?,?,?,?,?)",
                      actionId, revision, actionHash, StateStore.CanonicalJson(data), StateStore.UtcNow());
-        foreach (var reference in PyDynamic.Iter(PyDynamic.Index(data, "source_refs")))
+        foreach (var reference in PyNode.Iter(PyNode.Index(data, "source_refs")))
         {
             Conn.Execute("INSERT INTO work_action_sources VALUES(?,?,?,?,?)",
-                         actionId, revision, PyDynamic.Index(reference, "source_id"), PyDynamic.Index(reference, "revision"),
-                         PyDynamic.Index(reference, "fingerprint"));
+                         actionId, revision, PyNode.Index(reference, "source_id"), PyNode.Index(reference, "revision"),
+                         PyNode.Index(reference, "fingerprint"));
         }
     }
 
     private void CheckActionHash(JsonNode? actionId, JsonNode? revision, JsonNode? expectedHash)
     {
         var stored = Conn.Execute("SELECT action_hash FROM work_action_revisions WHERE action_id=? AND revision=?", actionId, revision).FetchOne();
-        if (expectedHash is not null && (stored is null || !PyDynamic.Eq(FromSql(stored["action_hash"]), expectedHash)))
+        if (expectedHash is not null && (stored is null || !PyJson.PyEquals(PyNode.FromSql(stored["action_hash"]), expectedHash)))
         {
             throw new StateError("action hash conflict; reload the current revision");
         }
@@ -818,10 +818,10 @@ public sealed class Ledger : IDisposable
         return Transaction(() =>
         {
             var action = ActionData(data);
-            var actionId = PyDynamic.Str("act_" + PyIds.Uuid4Hex());
+            var actionId = PyNode.Of("act_" + PyIds.Uuid4Hex());
             var stamp = StateStore.UtcNow();
             Conn.Execute("INSERT INTO work_actions VALUES(?,?,?,?,?,?,?)", actionId, Account, 1L, "ready", null, stamp, stamp);
-            PutActionRevision(actionId, PyDynamic.Int(1), action);
+            PutActionRevision(actionId, PyNode.Of(1), action);
             Event(actionId, "proposed", new JsonObject { ["revision"] = 1 });
             return Show(actionId);
         });
@@ -832,7 +832,7 @@ public sealed class Ledger : IDisposable
     {
         Conn.Execute("UPDATE work_approvals SET invalidated_at=? WHERE action_id=? AND invalidated_at IS NULL", StateStore.UtcNow(), actionId);
         Conn.Execute("UPDATE work_actions SET state=?,updated_at=? WHERE id=?", state, StateStore.UtcNow(), actionId);
-        Event(actionId, reason, PyDynamic.Truthy(data) ? data : new JsonObject());
+        Event(actionId, reason, PyJson.Truthy(data) ? data : new JsonObject());
     }
 
     /// <summary><c>edit_action(action_id, revision, data, expected_hash=None)</c>: a new immutable revision; invalidates approvals.</summary>
@@ -843,13 +843,13 @@ public sealed class Ledger : IDisposable
             var row = Row("work_actions", actionId);
             CheckRevision(row, revision);
             CheckActionHash(actionId, revision, expectedHash);
-            if (PyDynamic.In(row["state"], ExecutionStates))
+            if (PyNode.In(row["state"], ExecutionStates))
             {
                 throw new StateError("cannot edit an executed or unresolved action; reconcile first");
             }
 
             var action = ActionData(data);
-            Invalidate(actionId, "edited", new JsonObject { ["from_revision"] = PyDynamic.Clone(revision) }, state: "ready");
+            Invalidate(actionId, "edited", new JsonObject { ["from_revision"] = PyNode.Copy(revision) }, state: "ready");
             Conn.Execute("UPDATE work_actions SET revision=revision+1,deferred_until=NULL WHERE id=?", actionId);
             PutActionRevision(actionId, Next(revision), action);
             return Show(actionId);
@@ -874,37 +874,37 @@ public sealed class Ledger : IDisposable
             var row = Row("work_actions", actionId);
             CheckRevision(row, revision);
             CheckActionHash(actionId, revision, expectedHash);
-            if (PyDynamic.In(row["state"], ExecutionStates))
+            if (PyNode.In(row["state"], ExecutionStates))
             {
                 throw new StateError("cannot hide an unresolved or completed execution");
             }
 
             var snapshot = Conn.Execute("SELECT data FROM work_action_revisions WHERE action_id=? AND revision=?", actionId, revision).FetchOne();
-            Invalidate(actionId, state, new JsonObject { ["until"] = PyDynamic.Clone(until) }, state: state);
+            Invalidate(actionId, state, new JsonObject { ["until"] = PyNode.Copy(until) }, state: state);
             Conn.Execute("UPDATE work_actions SET revision=revision+1,deferred_until=? WHERE id=?", until, actionId);
-            PutActionRevision(actionId, Next(revision), (JsonObject)Loads(snapshot!["data"])!);
+            PutActionRevision(actionId, Next(revision), (JsonObject)PyNode.Loads(snapshot!["data"])!);
             return Show(actionId);
         });
     }
 
     private void FreshAction(JsonObject action)
     {
-        SourceRefs(PyDynamic.Index(action, "source_refs"));
-        if (PyDynamic.Truthy(PyDynamic.Get(action, "artifact_id")))
+        SourceRefs(PyNode.Index(action, "source_refs"));
+        if (PyJson.Truthy(PyNode.Get(action, "artifact_id")))
         {
             var artifact = Show(action["artifact_id"]);
-            if (!PyDynamic.Eq(PyDynamic.Index(artifact, "revision"), PyDynamic.Index(action, "artifact_revision"))
-                || PyDynamic.Truthy(PyDynamic.Index(artifact, "stale")))
+            if (!PyJson.PyEquals(PyNode.Index(artifact, "revision"), PyNode.Index(action, "artifact_revision"))
+                || PyJson.Truthy(PyNode.Index(artifact, "stale")))
             {
                 throw new StateError("linked artifact changed; create a new action revision");
             }
         }
 
-        foreach (var itemId in PyDynamic.Iter(PyDynamic.Get(action, "dependencies", new JsonArray())))
+        foreach (var itemId in PyNode.Iter(PyNode.Get(action, "dependencies", new JsonArray())))
         {
-            if (!PyDynamic.Is(Row("work_items", itemId)["state"], "resolved"))
+            if (!PyNode.Is(Row("work_items", itemId)["state"], "resolved"))
             {
-                throw new StateError("action dependency is not resolved: " + PyDynamic.ToStr(itemId));
+                throw new StateError("action dependency is not resolved: " + PyNode.Str(itemId));
             }
         }
     }
@@ -918,24 +918,24 @@ public sealed class Ledger : IDisposable
         return Transaction(() =>
         {
             var action = Show(actionId);
-            if (!PyDynamic.Is(action["type"], "action"))
+            if (!PyNode.Is(action["type"], "action"))
             {
                 throw new StateError("only actions use delivery approvals");
             }
 
             CheckRevision(action, revision);
-            if (!PyDynamic.In(PyDynamic.Index(action, "state"), Set("ready", "approved")))
+            if (!PyNode.In(PyNode.Index(action, "state"), Set("ready", "approved")))
             {
                 throw new StateError("action is not ready for approval; explicitly edit/review it first");
             }
 
-            if (!PyDynamic.Eq(PyDynamic.Index(action, "action_hash"), actionHash))
+            if (!PyJson.PyEquals(PyNode.Index(action, "action_hash"), actionHash))
             {
                 throw new StateError("approval hash does not match displayed action");
             }
 
             var approval = Human(evidence, actionId, revision, "approve");
-            if (!PyDynamic.Eq(PyDynamic.Get(approval, "action_hash"), actionHash))
+            if (!PyJson.PyEquals(PyNode.Get(approval, "action_hash"), actionHash))
             {
                 throw new StateError("human evidence must include the displayed action_hash");
             }
@@ -955,8 +955,8 @@ public sealed class Ledger : IDisposable
             Event(actionId, "approved", new JsonObject
             {
                 ["approval_id"] = approvalId,
-                ["evidence"] = PyDynamic.Clone(evidence),
-                ["expires_at"] = PyDynamic.Clone(expiresAt),
+                ["evidence"] = PyNode.Copy(evidence),
+                ["expires_at"] = PyNode.Copy(expiresAt),
             });
             return Show(actionId);
         });
@@ -975,7 +975,7 @@ public sealed class Ledger : IDisposable
         {
             var action = Show(actionId);
             CheckRevision(action, revision);
-            if (!PyDynamic.Is(PyDynamic.Get(action, "type"), "action") || !PyDynamic.Is(PyDynamic.Index(action, "state"), "approved"))
+            if (!PyNode.Is(PyNode.Get(action, "type"), "action") || !PyNode.Is(PyNode.Index(action, "state"), "approved"))
             {
                 throw new StateError("action has no executable approval or has already started");
             }
@@ -986,12 +986,12 @@ public sealed class Ledger : IDisposable
                 AND invalidated_at IS NULL ORDER BY created_at DESC LIMIT 1
 
 """, actionId, revision).FetchOne();
-            if (approval is null || Timestamp(FromSql(approval["expires_at"])) <= Now())
+            if (approval is null || Timestamp(PyNode.FromSql(approval["expires_at"])) <= Now())
             {
                 throw new StateError("approval has expired or was invalidated");
             }
 
-            if (!Equals(approval["account"], Account) || !PyDynamic.Eq(FromSql(approval["action_hash"]), PyDynamic.Index(action, "action_hash")))
+            if (!Equals(approval["account"], Account) || !PyJson.PyEquals(PyNode.FromSql(approval["action_hash"]), PyNode.Index(action, "action_hash")))
             {
                 throw new StateError("approval account/hash mismatch");
             }
@@ -1016,14 +1016,14 @@ public sealed class Ledger : IDisposable
                 throw new StateError("preflight must be a fresh foreground read within five minutes");
             }
 
-            if (!PyDynamic.Eq(preflight["target_fingerprint"], PyDynamic.Index(action, "target_fingerprint")))
+            if (!PyJson.PyEquals(preflight["target_fingerprint"], PyNode.Index(action, "target_fingerprint")))
             {
                 staleReason = "target changed; revise and request a new approval";
             }
 
             try
             {
-                if (!PyDynamic.Eq(SourceRefs(preflight["source_refs"]), PyDynamic.Index(action, "source_refs")))
+                if (!PyJson.PyEquals(SourceRefs(preflight["source_refs"]), PyNode.Index(action, "source_refs")))
                 {
                     staleReason = "source changed; revise and request a new approval";
                 }
@@ -1044,17 +1044,17 @@ public sealed class Ledger : IDisposable
                              attemptId, actionId, revision, approval["id"], "executing", StateStore.CanonicalJson(preflight), null,
                              StateStore.UtcNow(), null);
                 Conn.Execute("UPDATE work_actions SET state='executing',updated_at=? WHERE id=?", StateStore.UtcNow(), actionId);
-                Event(actionId, "execution_started", new JsonObject { ["attempt_id"] = attemptId, ["revision"] = PyDynamic.Clone(revision) });
+                Event(actionId, "execution_started", new JsonObject { ["attempt_id"] = attemptId, ["revision"] = PyNode.Copy(revision) });
                 result = new JsonObject
                 {
                     ["account"] = Account,
-                    ["action_id"] = PyDynamic.Clone(actionId),
-                    ["revision"] = PyDynamic.Clone(revision),
+                    ["action_id"] = PyNode.Copy(actionId),
+                    ["revision"] = PyNode.Copy(revision),
                     ["attempt_id"] = attemptId,
-                    ["action_hash"] = PyDynamic.Clone(action["action_hash"]),
-                    ["kind"] = PyDynamic.Clone(PyDynamic.Index(action, "kind")),
-                    ["target"] = PyDynamic.Clone(PyDynamic.Index(action, "target")),
-                    ["payload"] = PyDynamic.Clone(PyDynamic.Index(action, "payload")),
+                    ["action_hash"] = PyNode.Copy(action["action_hash"]),
+                    ["kind"] = PyNode.Copy(PyNode.Index(action, "kind")),
+                    ["target"] = PyNode.Copy(PyNode.Index(action, "target")),
+                    ["payload"] = PyNode.Copy(PyNode.Index(action, "payload")),
                     ["instruction"] = "Foreground Work IQ executor only. Do not retry an uncertain write.",
                 };
             }
@@ -1073,12 +1073,12 @@ public sealed class Ledger : IDisposable
     /// </summary>
     public JsonObject Finish(JsonNode? attemptId, JsonNode? state, JsonNode? receipt = null, bool reconcile = false)
     {
-        if (!PyDynamic.In(state, Outcomes))
+        if (!PyNode.In(state, Outcomes))
         {
             throw new StateError("invalid execution outcome");
         }
 
-        var outcome = PyDynamic.AsString(state)!;
+        var outcome = PyNode.AsString(state)!;
         if (outcome != "outcome_unknown" || reconcile)
         {
             ValidateReceipt(receipt, outcome);
@@ -1088,10 +1088,10 @@ public sealed class Ledger : IDisposable
         {
             var attempt = Conn.Execute("SELECT * FROM work_executions WHERE id=?", attemptId).FetchOne()
                           ?? throw new StateError("unknown attempt");
-            var action = Row("work_actions", FromSql(attempt["action_id"]));
+            var action = Row("work_actions", PyNode.FromSql(attempt["action_id"]));
             var allowed = reconcile ? Set("executing", "partial", "outcome_unknown") : Set("executing");
             var attemptState = (string?)attempt["state"];
-            if (attemptState is null || !allowed.Contains(attemptState) || !PyDynamic.In(action["state"], allowed))
+            if (attemptState is null || !allowed.Contains(attemptState) || !PyNode.In(action["state"], allowed))
             {
                 throw new StateError("execution is already settled; no replay");
             }
@@ -1101,15 +1101,15 @@ public sealed class Ledger : IDisposable
                 throw new StateError("known partial effects cannot become a no-effect failure or unknown outcome");
             }
 
-            CheckRevision(action, FromSql(attempt["revision"]));
+            CheckRevision(action, PyNode.FromSql(attempt["revision"]));
             Conn.Execute("UPDATE work_executions SET state=?,receipt=?,finished_at=? WHERE id=?",
                          outcome, StateStore.CanonicalJson(receipt), StateStore.UtcNow(), attemptId);
             Conn.Execute("UPDATE work_actions SET state=?,updated_at=? WHERE id=?", outcome, StateStore.UtcNow(), action["id"]);
             Event(action["id"], reconcile ? "execution_reconciled" : "execution_finished", new JsonObject
             {
-                ["attempt_id"] = PyDynamic.Clone(attemptId),
+                ["attempt_id"] = PyNode.Copy(attemptId),
                 ["state"] = outcome,
-                ["receipt"] = PyDynamic.Clone(receipt),
+                ["receipt"] = PyNode.Copy(receipt),
             });
             return Show(action["id"]);
         });
@@ -1125,25 +1125,25 @@ public sealed class Ledger : IDisposable
 
         foreach (var key in new[] { "reference", "kind" })
         {
-            Text(PyDynamic.Get(obj, key), "receipt." + key);
+            Text(PyNode.Get(obj, key), "receipt." + key);
         }
 
-        if (!ReceiptKinds.Contains(PyDynamic.AsString(obj["kind"])!))
+        if (!ReceiptKinds.Contains(PyNode.AsString(obj["kind"])!))
         {
             throw new StateError("receipt kind must identify an actual tool result or reconciliation read");
         }
 
-        if (!string.IsNullOrEmpty(outcome) && !PyDynamic.Is(PyDynamic.Get(obj, "outcome"), outcome))
+        if (!string.IsNullOrEmpty(outcome) && !PyNode.Is(PyNode.Get(obj, "outcome"), outcome))
         {
             throw new StateError("receipt outcome must match recorded outcome");
         }
 
-        if (Timestamp(PyDynamic.Get(obj, "recorded_at")) > Now() + PyTimeDelta.FromMinutes(1))
+        if (Timestamp(PyNode.Get(obj, "recorded_at")) > Now() + PyTimeDelta.FromMinutes(1))
         {
             throw new StateError("receipt cannot be in the future");
         }
 
-        if (outcome == "failed" && !(PyDynamic.Get(obj, "definitive_no_effect") is JsonValue flag && PyJson.Scalar(flag) is true))
+        if (outcome == "failed" && !(PyNode.Get(obj, "definitive_no_effect") is JsonValue flag && PyJson.Scalar(flag) is true))
         {
             throw new StateError("failed requires proof of no effect; otherwise use partial/outcome_unknown");
         }
@@ -1163,42 +1163,42 @@ public sealed class Ledger : IDisposable
                 continue;
             }
 
-            var row = RowDict(found);
+            var row = PyNode.FromRow(found);
             row["type"] = kind;
             if (kind == "action")
             {
                 var revision = Conn.Execute("SELECT * FROM work_action_revisions WHERE action_id=? AND revision=?", entityId, row["revision"]).FetchOne()!;
-                UpdateFrom(row, Loads(revision["data"]));
-                row["action_hash"] = FromSql(revision["action_hash"]);
+                UpdateFrom(row, PyNode.Loads(revision["data"]));
+                row["action_hash"] = PyNode.FromSql(revision["action_hash"]);
                 var approvals = new JsonArray();
                 foreach (var approval in Conn.Execute("SELECT id,revision,action_hash,expires_at,invalidated_at FROM work_approvals WHERE action_id=?", entityId))
                 {
-                    approvals.Add(RowDict(approval));
+                    approvals.Add(PyNode.FromRow(approval));
                 }
 
                 row["approvals"] = approvals;
                 var executions = new JsonArray();
                 foreach (var execution in Conn.Execute("SELECT * FROM work_executions WHERE action_id=?", entityId))
                 {
-                    var result = RowDict(execution);
-                    result["receipt"] = PyDynamic.Truthy(result["receipt"]) ? Loads(execution["receipt"]) : null;
-                    result["preflight"] = Loads(execution["preflight"]);
+                    var result = PyNode.FromRow(execution);
+                    result["receipt"] = PyJson.Truthy(result["receipt"]) ? PyNode.Loads(execution["receipt"]) : null;
+                    result["preflight"] = PyNode.Loads(execution["preflight"]);
                     executions.Add(result);
                 }
 
                 row["executions"] = executions;
-                row["stale"] = RefsStale(PyDynamic.Index(row, "source_refs"));
-                row["sources"] = SourceEvidence(PyDynamic.Index(row, "source_refs"));
-                if (PyDynamic.Truthy(PyDynamic.Get(row, "artifact_id")))
+                row["stale"] = RefsStale(PyNode.Index(row, "source_refs"));
+                row["sources"] = SourceEvidence(PyNode.Index(row, "source_refs"));
+                if (PyJson.Truthy(PyNode.Get(row, "artifact_id")))
                 {
                     var artifact = Show(row["artifact_id"]);
-                    row["stale"] = PyDynamic.Truthy(row["stale"]) || PyDynamic.Truthy(PyDynamic.Index(artifact, "stale"))
-                                   || !PyDynamic.Eq(PyDynamic.Index(artifact, "revision"), PyDynamic.Index(row, "artifact_revision"));
+                    row["stale"] = PyJson.Truthy(row["stale"]) || PyJson.Truthy(PyNode.Index(artifact, "stale"))
+                                   || !PyJson.PyEquals(PyNode.Index(artifact, "revision"), PyNode.Index(row, "artifact_revision"));
                 }
 
-                if (PyDynamic.In(row["state"], Set("succeeded", "dismissed")))
+                if (PyNode.In(row["state"], Set("succeeded", "dismissed")))
                 {
-                    row["historical_sources_changed"] = PyDynamic.Clone(row["stale"]);
+                    row["historical_sources_changed"] = PyNode.Copy(row["stale"]);
                     row["stale"] = false;
                 }
             }
@@ -1206,35 +1206,35 @@ public sealed class Ledger : IDisposable
             {
                 var raw = row["data"];
                 row.Remove("data");
-                var data = Loads(PyDynamic.AsString(raw));
+                var data = PyNode.Loads(PyNode.AsString(raw));
                 row["data"] = data;
-                var refs = PyDynamic.Get(PyDynamic.Dict(data), "source_refs", new JsonArray());
+                var refs = PyNode.Get(PyNode.Dict(data), "source_refs", new JsonArray());
                 row["stale"] = RefsStale(refs);
                 row["sources"] = SourceEvidence(refs);
                 if (kind == "item")
                 {
-                    row["confirmed"] = PyDynamic.Truthy(row["confirmed"]);
-                    row["confirmation"] = PyDynamic.Truthy(row["confirmation"]) ? Loads(PyDynamic.AsString(row["confirmation"])) : null;
+                    row["confirmed"] = PyJson.Truthy(row["confirmed"]);
+                    row["confirmation"] = PyJson.Truthy(row["confirmation"]) ? PyNode.Loads(PyNode.AsString(row["confirmation"])) : null;
                     var relationships = new JsonArray();
                     foreach (var relationship in Conn.Execute("SELECT source_id,kind,target_id FROM work_relationships WHERE source_id=? OR target_id=?", entityId, entityId))
                     {
-                        relationships.Add(RowDict(relationship));
+                        relationships.Add(PyNode.FromRow(relationship));
                     }
 
                     row["relationships"] = relationships;
                 }
-                else if (PyDynamic.Is(row["kind"], "artifact"))
+                else if (PyNode.Is(row["kind"], "artifact"))
                 {
                     var deliveries = new JsonArray();
                     foreach (var shared in Conn.Execute("SELECT data FROM work_events WHERE entity_id=? AND event='shared' ORDER BY seq", entityId))
                     {
-                        deliveries.Add(Loads(shared["data"]));
+                        deliveries.Add(PyNode.Loads(shared["data"]));
                     }
 
                     var current = row["revision"];
                     row["sharing"] = new JsonObject
                     {
-                        ["state"] = deliveries.Any(delivery => PyDynamic.Eq(PyDynamic.Index(delivery, "revision"), current)) ? "shared" : "private",
+                        ["state"] = deliveries.Any(delivery => PyJson.PyEquals(PyNode.Index(delivery, "revision"), current)) ? "shared" : "private",
                         ["deliveries"] = deliveries,
                     };
                 }
@@ -1244,8 +1244,8 @@ public sealed class Ledger : IDisposable
                 var revisions = new JsonArray();
                 foreach (var revision in Conn.Execute("SELECT * FROM work_source_revisions WHERE source_id=?", entityId))
                 {
-                    var entry = RowDict(revision);
-                    entry["data"] = Loads(revision["data"]);
+                    var entry = PyNode.FromRow(revision);
+                    entry["data"] = PyNode.Loads(revision["data"]);
                     revisions.Add(entry);
                 }
 
@@ -1255,11 +1255,11 @@ public sealed class Ledger : IDisposable
             return row;
         }
 
-        throw new StateError("unknown entity: " + PyDynamic.ToStr(entityId));
+        throw new StateError("unknown entity: " + PyNode.Str(entityId));
     }
 
     /// <summary><c>show(entity_id)</c> for a string id.</summary>
-    public JsonObject Show(string entityId) => Show(PyDynamic.Str(entityId));
+    public JsonObject Show(string entityId) => Show(PyNode.Of(entityId));
 
     /// <summary><c>history(entity_id)</c>: the entity's events (in order) and stored revisions.</summary>
     public JsonObject History(JsonNode? entityId)
@@ -1268,8 +1268,8 @@ public sealed class Ledger : IDisposable
         var events = new JsonArray();
         foreach (var row in Conn.Execute("SELECT * FROM work_events WHERE account=? AND entity_id=? ORDER BY seq", Account, entityId))
         {
-            var entry = RowDict(row);
-            entry["data"] = Loads(row["data"]);
+            var entry = PyNode.FromRow(row);
+            entry["data"] = PyNode.Loads(row["data"]);
             events.Add(entry);
         }
 
@@ -1278,12 +1278,12 @@ public sealed class Ledger : IDisposable
         {
             foreach (var row in Conn.Execute("SELECT * FROM " + table + " WHERE " + column + "=? ORDER BY revision", entityId))
             {
-                var entry = RowDict(row);
+                var entry = PyNode.FromRow(row);
                 foreach (var key in new[] { "snapshot", "data", "evidence" })
                 {
-                    if (PyDynamic.Truthy(PyDynamic.Get(entry, key)))
+                    if (PyJson.Truthy(PyNode.Get(entry, key)))
                     {
-                        entry[key] = Loads(PyDynamic.AsString(entry[key]));
+                        entry[key] = PyNode.Loads(PyNode.AsString(entry[key]));
                     }
                 }
 
@@ -1291,11 +1291,11 @@ public sealed class Ledger : IDisposable
             }
         }
 
-        return new JsonObject { ["id"] = PyDynamic.Clone(entityId), ["events"] = events, ["revisions"] = revisions };
+        return new JsonObject { ["id"] = PyNode.Copy(entityId), ["events"] = events, ["revisions"] = revisions };
     }
 
     /// <summary><c>history(entity_id)</c> for a string id.</summary>
-    public JsonObject History(string entityId) => History(PyDynamic.Str(entityId));
+    public JsonObject History(string entityId) => History(PyNode.Of(entityId));
 
     /// <summary><c>list(view="decisions")</c>: the portable review views (also the optional canvas contract).</summary>
     public JsonObject List(string view = "decisions")
@@ -1317,17 +1317,17 @@ public sealed class Ledger : IDisposable
         {
             foreach (var row in Conn.Execute("SELECT id FROM " + table + " WHERE account=? ORDER BY created_at,id", Account))
             {
-                var obj = Show(FromSql(row["id"]));
-                var until = PyDynamic.Get(obj, "deferred_until");
-                if (!PyDynamic.Truthy(until))
+                var obj = Show(PyNode.FromSql(row["id"]));
+                var until = PyNode.Get(obj, "deferred_until");
+                if (!PyJson.Truthy(until))
                 {
-                    until = PyDynamic.Get(PyDynamic.Dict(PyDynamic.Get(obj, "data", new JsonObject())), "deferred_until");
+                    until = PyNode.Get(PyNode.Dict(PyNode.Get(obj, "data", new JsonObject())), "deferred_until");
                 }
 
-                var state = PyDynamic.Index(obj, "state");
-                var due = PyDynamic.Is(state, "deferred") && PyDynamic.Truthy(until) && Timestamp(until) <= Now();
-                var staleActionable = PyDynamic.Truthy(PyDynamic.Get(obj, "stale")) && !PyDynamic.In(state, ClosedStates);
-                if (view == "all" || PyDynamic.In(state, ViewStates[view])
+                var state = PyNode.Index(obj, "state");
+                var due = PyNode.Is(state, "deferred") && PyJson.Truthy(until) && Timestamp(until) <= Now();
+                var staleActionable = PyJson.Truthy(PyNode.Get(obj, "stale")) && !PyNode.In(state, ClosedStates);
+                if (view == "all" || PyNode.In(state, ViewStates[view])
                     || (view is "decisions" or "problems" && staleActionable)
                     || (view == "decisions" && due))
                 {
@@ -1365,8 +1365,8 @@ public sealed class Ledger : IDisposable
             };
         }
 
-        if (data is not JsonObject obj || !PyDynamic.Eq(PyDynamic.Get(obj, "schema_version"), PyDynamic.Int(1))
-            || PyDynamic.Get(obj, "items") is not JsonArray items)
+        if (data is not JsonObject obj || !PyJson.PyEquals(PyNode.Get(obj, "schema_version"), PyNode.Of(1))
+            || PyNode.Get(obj, "items") is not JsonArray items)
         {
             throw new StateError("structured legacy import requires schema_version:1 and items list");
         }
@@ -1385,7 +1385,7 @@ public sealed class Ledger : IDisposable
                 throw new StateError("duplicate legacy_id");
             }
 
-            if (!PyDynamic.In(row["state"], ItemStates))
+            if (!PyNode.In(row["state"], ItemStates))
             {
                 throw new StateError("invalid imported state");
             }
@@ -1402,7 +1402,7 @@ public sealed class Ledger : IDisposable
             ["safe_structured"] = true,
             ["requires_review"] = true,
             ["count"] = items.Count,
-            ["items"] = PyDynamic.Clone(items),
+            ["items"] = PyNode.Copy(items),
         };
     }
 
@@ -1410,27 +1410,27 @@ public sealed class Ledger : IDisposable
     public JsonObject ImportCommitments(string path, string expectedDigest, JsonNode? evidence)
     {
         var preview = ImportPreview(path);
-        if (!PyDynamic.Is(preview["digest"], expectedDigest) || !PyDynamic.Truthy(preview["safe_structured"]))
+        if (!PyNode.Is(preview["digest"], expectedDigest) || !PyJson.Truthy(preview["safe_structured"]))
         {
             throw new StateError("unsafe or changed import; preview and review structured JSON first");
         }
 
-        Human(evidence, PyDynamic.Str("import:" + expectedDigest), PyDynamic.Int(1), "import");
+        Human(evidence, PyNode.Of("import:" + expectedDigest), PyNode.Of(1), "import");
         return Transaction(() =>
         {
             var old = Conn.Execute("SELECT item_ids FROM work_imports WHERE digest=?", expectedDigest).FetchOne();
             if (old is not null)
             {
-                return new JsonObject { ["imported"] = false, ["item_ids"] = Loads(old["item_ids"]) };
+                return new JsonObject { ["imported"] = false, ["item_ids"] = PyNode.Loads(old["item_ids"]) };
             }
 
             var ids = new JsonArray();
             foreach (var imported in (JsonArray)preview["items"]!)
             {
                 var data = ItemData(imported!["data"]);
-                var key = Digest(new JsonArray(Account, "legacy", PyDynamic.Clone(imported["legacy_id"])));
+                var key = Digest(new JsonArray(Account, "legacy", PyNode.Copy(imported["legacy_id"])));
                 var itemId = "item_" + key[..32];
-                var contentHash = Digest(new JsonObject { ["state"] = PyDynamic.Clone(imported["state"]), ["data"] = PyDynamic.Clone(data) });
+                var contentHash = Digest(new JsonObject { ["state"] = PyNode.Copy(imported["state"]), ["data"] = PyNode.Copy(data) });
                 var existing = Conn.Execute("SELECT ingest_hash FROM work_items WHERE id=?", itemId).FetchOne();
                 if (existing is not null)
                 {
@@ -1441,13 +1441,13 @@ public sealed class Ledger : IDisposable
                 }
                 else
                 {
-                    var confirmed = PyDynamic.In(imported["state"], ImportConfirmed);
+                    var confirmed = PyNode.In(imported["state"], ImportConfirmed);
                     var stamp = StateStore.UtcNow();
                     Conn.Execute("INSERT INTO work_items VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                                  itemId, Account, 1L, imported["state"], confirmed ? 1L : 0L, key, contentHash, StateStore.CanonicalJson(data),
                                  confirmed ? StateStore.CanonicalJson(evidence) : null, stamp, stamp);
-                    ItemSnapshot(PyDynamic.Str(itemId), evidence);
-                    Event(PyDynamic.Str(itemId), "legacy_imported", new JsonObject { ["digest"] = expectedDigest, ["evidence"] = PyDynamic.Clone(evidence) });
+                    ItemSnapshot(PyNode.Of(itemId), evidence);
+                    Event(PyNode.Of(itemId), "legacy_imported", new JsonObject { ["digest"] = expectedDigest, ["evidence"] = PyNode.Copy(evidence) });
                 }
 
                 ids.Add(itemId);
@@ -1490,20 +1490,20 @@ public sealed class Ledger : IDisposable
 
             var lines = new List<string> { "# Commitments", "", "<!-- Generated compatibility view; edit the work ledger, not this file. -->", "" };
             static string Clean(JsonNode? value) =>
-                (value is null ? "unknown" : PyDynamic.ToStr(value)).Replace("\n", " ", StringComparison.Ordinal).Replace("\r", " ", StringComparison.Ordinal);
+                (value is null ? "unknown" : PyNode.Str(value)).Replace("\n", " ", StringComparison.Ordinal).Replace("\r", " ", StringComparison.Ordinal);
             foreach (var row in Conn.Execute("SELECT id FROM work_items WHERE account=? AND confirmed=1 ORDER BY created_at,id", Account))
             {
-                var obj = Show(FromSql(row["id"]));
+                var obj = Show(PyNode.FromSql(row["id"]));
                 var data = obj["data"];
-                lines.Add("- [" + PyDynamic.ToStr(obj["state"]) + "] " + Clean(PyDynamic.Index(data, "title")) + " — owner: "
-                          + Clean(PyDynamic.Index(data, "owner")) + "; due: " + Clean(PyDynamic.Index(data, "due")) + "; id: `"
-                          + PyDynamic.ToStr(obj["id"]) + "`");
-                foreach (var reference in PyDynamic.Iter(PyDynamic.Index(data, "source_refs")))
+                lines.Add("- [" + PyNode.Str(obj["state"]) + "] " + Clean(PyNode.Index(data, "title")) + " — owner: "
+                          + Clean(PyNode.Index(data, "owner")) + "; due: " + Clean(PyNode.Index(data, "due")) + "; id: `"
+                          + PyNode.Str(obj["id"]) + "`");
+                foreach (var reference in PyNode.Iter(PyNode.Index(data, "source_refs")))
                 {
                     var source = Conn.Execute("SELECT data FROM work_source_revisions WHERE source_id=? AND revision=?",
-                                              PyDynamic.Index(reference, "source_id"), PyDynamic.Index(reference, "revision")).FetchOne()!;
-                    lines.Add("  - Source: " + Clean(PyDynamic.Index(Loads(source["data"]), "web_link")) + " (revision "
-                              + Clean(PyDynamic.Index(reference, "revision")) + ")");
+                                              PyNode.Index(reference, "source_id"), PyNode.Index(reference, "revision")).FetchOne()!;
+                    lines.Add("  - Source: " + Clean(PyNode.Index(PyNode.Loads(source["data"]), "web_link")) + " (revision "
+                              + Clean(PyNode.Index(reference, "revision")) + ")");
                 }
             }
 
@@ -1530,7 +1530,7 @@ public sealed class Ledger : IDisposable
                     throw new StateError("compatibility view changed during export");
                 }
 
-                PosixFiles.Replace(staging, path);
+                PosixNative.Replace(staging, path);
             }
             finally
             {

@@ -2,7 +2,7 @@
 """Contract probe for proactive_state.py's library API and clock (reference implementation).
 
 Not a Margo command. tools/state_parity.py runs this file and its C# twin
-(Margo.Cloud.State.Proactive.ProactiveProbeScript, ``margo-state proactive_probe.py``)
+(Margo.Cloud.State.Probes.ProactiveProbeScript, ``margo-state proactive_probe.py``)
 on the same inputs. It reaches what separate ``proactive_state.py`` processes cannot:
 
   [--now TS] [--account A] [--state-dir D] cli ARGS...

@@ -13,14 +13,14 @@ Margo has two implementations that share the persona (`agents/`) and skills (`sk
 cd cloud
 dotnet build Margo.Cloud.slnx
 dotnet test --solution Margo.Cloud.slnx
-python3 ../tools/state_parity.py --check      # C# state commands vs the Python helpers
+python3 ../tools/state_parity.py --check      # C# state commands vs the Python helpers (Debug build)
 ```
 
 ## Layout
 
 | Project | Ports | Notes |
 | --- | --- | --- |
-| `Margo.Cloud.State.Core` | `margo_store.py` | Paths, private files, SQLite connections, transactions, Python-compatible JSON, time and argument parsing |
+| `Margo.Cloud.State.Core` | `margo_store.py` | Paths, private files, SQLite connections, transactions, Python-compatible JSON, time and argument parsing, and the Python value semantics every state port shares (`PyNode`, `PyObj`, `PyNumbers`, `PySort`, `PyText`, `PyCall`) |
 | `Margo.Cloud.State.Work` | `work_ledger.py`, `work_productivity.py`, `work_state.py` | Ledger, action desk, approvals |
 | `Margo.Cloud.State.Proactive` | `proactive_state.py` | |
 | `Margo.Cloud.State.Tasks` | `task_runs.py`, `task_state.py` | |
@@ -29,6 +29,7 @@ python3 ../tools/state_parity.py --check      # C# state commands vs the Python 
 | `Margo.Cloud.State.MemoryLearning` | `memory_learning.py`, `memory_consolidation.py` | |
 | `Margo.Cloud.State.MemoryCommands` | `memory_dream.py`, `memory_state.py` | |
 | `Margo.Cloud.State.Helpers` | `capacity.py`, `teams_feedback.py`, `engage_parse.py` | Stateless |
+| `Margo.Cloud.State.Probes` | `cloud/contracts/state/probes/*_probe.py` | Contract probes for the parity judge only: in `margo-state` only when built with `MargoStateProbes=true` (Debug default, never Release) and run only with `MARGO_STATE_PROBES=1` |
 | `Margo.Cloud.StateCli` (`margo-state`) | the script entry points | `margo-state SCRIPT.py --account A --state-dir D ARGS...` |
 | `Margo.Cloud.Core` | `instances.py`, `activity.py`, `instance.py` | Names, route table, lifecycle, activity helpers, instance binding |
 | `Margo.Cloud.WorkIQ` | `transport.py` | Work IQ MCP client |
@@ -53,9 +54,11 @@ These hold for every project. They exist so independent ports fit together.
 2. **State commands must be indistinguishable from the Python helpers.** Same subcommands and
    options, same exit codes, same stdout bytes (JSON key order, spacing, `ensure_ascii` escaping,
    number formatting, text views), same SQLite schema text, pragmas and rows. Use the shared
-   helpers in `Margo.Cloud.State.Core` (`PyJson`, `PyTime`, `PyArgs`, `StateStore`) rather than
-   re-implementing them. `tools/state_parity.py` is the judge: every subcommand needs scenarios in
-   `cloud/contracts/state/`, including failure paths.
+   helpers in `Margo.Cloud.State.Core` (`PyJson`, `PyTime`, `PyArgs`, `StateStore`, and `PyNode`/`PyObj`
+   for Python's dynamic semantics) rather than re-implementing them; if one is missing, add it there
+   instead of a private copy. Copy Python values with `PyNode.Copy`, never `JsonNode.DeepClone` (a test
+   enforces it). `tools/state_parity.py` is the judge: every subcommand needs scenarios in
+   `cloud/contracts/state/`, including failure paths; contract probes go in `Margo.Cloud.State.Probes`.
 3. **Nothing reaches the network from state code**, as in Python.
 4. **No secrets, tokens, message bodies or real workplace data** in code, tests, fixtures or logs.
    Fictional data and `example.com` only.

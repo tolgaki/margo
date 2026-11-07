@@ -170,7 +170,7 @@ public sealed class WorkStateScript : IStateScript
                                          data!.ContainsKey("sensitivity") ? data["sensitivity"] : JsonValue.Create("unknown"),
                                          Arg(data, "observed_at"));
             case "ingest":
-                return ledger.Ingest(PyDynamic.Index(data, "data"), PyDynamic.Index(data, "claim_key"));
+                return ledger.Ingest(PyNode.Index(data, "data"), PyNode.Index(data, "claim_key"));
             case "list":
                 return ledger.List(args.GetString("view")!);
             case "show":
@@ -195,12 +195,12 @@ public sealed class WorkStateScript : IStateScript
             {
                 var id = Str(args.GetString("id"));
                 var entity = ledger.Show(id);
-                if (PyDynamic.Is(entity["type"], "action"))
+                if (PyNode.Is(entity["type"], "action"))
                 {
                     return ledger.Disposition(id, Int(args, "revision"), "deferred", Str(args.GetString("until")), Str(args.GetString("expected_hash")));
                 }
 
-                if (PyDynamic.Is(entity["type"], "item"))
+                if (PyNode.Is(entity["type"], "item"))
                 {
                     if (args.GetString("expected_hash") is not null)
                     {

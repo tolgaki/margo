@@ -19,6 +19,19 @@ public interface IStateScript
     int Run(IReadOnlyList<string> args, TextReader stdin, TextWriter stdout, TextWriter stderr);
 }
 
+/// <summary>
+/// A contract probe: the C# twin of a <c>cloud/contracts/state/probes/*_probe.py</c> reference that
+/// <c>tools/state_parity.py</c> runs to judge shared helpers and libraries. Probes are not Margo commands (they run
+/// arbitrary SQL and write files), so they live only in <c>Margo.Cloud.State.Probes</c>, which <c>margo-state</c>
+/// references only when built with <c>MargoStateProbes=true</c> (the Debug default, never Release), and
+/// <c>margo-state</c> runs one only when the environment sets <c>MARGO_STATE_PROBES=1</c>.
+/// </summary>
+#pragma warning disable CA1040 // A marker: margo-state refuses these scripts unless probes are enabled.
+public interface IStateProbeScript : IStateScript
+{
+}
+#pragma warning restore CA1040
+
 /// <summary>Discovery of <see cref="IStateScript"/> implementations and the Python process semantics around them.</summary>
 public static class StateScripts
 {

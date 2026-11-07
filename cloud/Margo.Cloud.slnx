@@ -14,6 +14,7 @@
     <Project Path="src/Margo.Cloud.State.MemoryLearning/Margo.Cloud.State.MemoryLearning.csproj" />
     <Project Path="src/Margo.Cloud.State.MemorySearch/Margo.Cloud.State.MemorySearch.csproj" />
     <Project Path="src/Margo.Cloud.State.Proactive/Margo.Cloud.State.Proactive.csproj" />
+    <Project Path="src/Margo.Cloud.State.Probes/Margo.Cloud.State.Probes.csproj" />
     <Project Path="src/Margo.Cloud.State.Tasks/Margo.Cloud.State.Tasks.csproj" />
     <Project Path="src/Margo.Cloud.State.Work/Margo.Cloud.State.Work.csproj" />
     <Project Path="src/Margo.Cloud.StateCli/Margo.Cloud.StateCli.csproj" />

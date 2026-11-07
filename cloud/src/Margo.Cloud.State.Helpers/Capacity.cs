@@ -42,7 +42,7 @@ public static class Capacity
     public static List<CapacityInterval> Intervals(object? values, string label)
     {
         ArgumentNullException.ThrowIfNull(label);
-        if (PyObj.Kind(values) != PyKind.List)
+        if (!PyObj.IsList(values))
         {
             throw new PyValueError(label + " must be an array of start/end objects");
         }
@@ -238,7 +238,7 @@ public static class Capacity
         var focusMinimum = Number(PyObj.Get(input, "minimum_focus_minutes", new BigInteger(90)), "minimum_focus_minutes", positive: true);
         var focus = free.Where(value => PyNumbers.Compare(Minutes([value]), focusMinimum) is >= 0).ToList();
         var estimates = PyObj.Get(input, "estimates", new List<object?>());
-        if (PyObj.Kind(estimates) != PyKind.List)
+        if (!PyObj.IsList(estimates))
         {
             throw new PyValueError("estimates must be an array");
         }
@@ -355,9 +355,9 @@ public sealed class CapacityScript : IStateScript
         try
         {
             var input = args.GetString("input")!;
-            var text = input == "-" ? PyProcess.ReadStdin(stdin) : PyIO.ReadTextFile(PyPath.Normalize(input));
-            // json.loads from main(): PyJsonLoad also models the C recursion budget near the nesting limit.
-            PyIO.Print(stdout, PyJson.Dumps(Capacity.Calculate(PyJsonLoad.Loads(text)), indent: 2, allowNan: false));
+            var text = input == "-" ? PyIO.ReadText(stdin) : PyIO.ReadTextFile(PyPath.Normalize(input));
+            // json.loads from main(): PyJson.Loads also models the C recursion budget near the nesting limit.
+            PyIO.Print(stdout, PyJson.Dumps(Capacity.Calculate(PyJson.Loads(text)), indent: 2, allowNan: false));
         }
         catch (Exception ex) when (ex is PyValueError or PyOSError)
         {

@@ -128,16 +128,6 @@ public sealed class PyRow : IReadOnlyList<object?>
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
-/// <summary><c>IndexError</c> as raised by <c>sqlite3.Row</c> for a missing key.</summary>
-public sealed class PyIndexError : PyException
-{
-    public PyIndexError(string message) : base(message)
-    {
-    }
-
-    public override string PythonType => "IndexError";
-}
-
 /// <summary>
 /// The result of <c>execute()</c>: rows are read eagerly (Python reads lazily; the difference is not
 /// observable for the helpers' statements), consumed by <see cref="FetchOne"/>/<see cref="FetchAll"/> like a cursor.

@@ -4,83 +4,6 @@ using Margo.Cloud.State.Core;
 namespace Margo.Cloud.State.Memory;
 
 /// <summary>
-/// <c>work_ledger.human</c> (with its <c>text</c>, <c>timestamp</c> and <c>now</c> helpers), which memory_store calls
-/// for every reviewed change. The Work port owns <c>work_ledger.py</c>; this copy keeps the memory port independent
-/// of it until the two assemblies are integrated (PORTING.md: replace with <c>WorkLedger.Human</c>).
-/// </summary>
-public static class HumanEvidence
-{
-    private static readonly string[] Prefixes = ["conversation:", "host-interaction:", "legacy-review:"];
-
-    /// <summary><c>work_ledger.text(value, field)</c>.</summary>
-    public static string Text(JsonNode? value, string field) =>
-        Py.IsText(value) ? Py.AsString(value)! : throw new StateError(field + " must be a nonempty string");
-
-    /// <summary><c>work_ledger.timestamp(value)</c>: an aware ISO datetime converted to UTC.</summary>
-    public static PyDateTime Timestamp(JsonNode? value)
-    {
-        var text = Text(value, "timestamp");
-        PyDateTime parsed;
-        try
-        {
-            parsed = PyDateTime.FromIsoformat(text.Replace("Z", "+00:00", StringComparison.Ordinal));
-            if (!parsed.IsAware)
-            {
-                throw new PyValueError("");
-            }
-        }
-        catch (PyValueError ex)
-        {
-            throw new StateError("timestamp requires an ISO datetime with UTC offset", ex);
-        }
-
-        // astimezone() is inside Python's try, but its OverflowError is not a ValueError: it escapes.
-        return parsed.ToUtc();
-    }
-
-    /// <summary>
-    /// <c>work_ledger.human(evidence, subject_id, revision, decision)</c>: validates a recorded human decision for the
-    /// exact subject and revision; it does not authenticate the caller as a human.
-    /// </summary>
-    public static JsonObject Human(JsonNode? evidence, JsonNode? subjectId, JsonNode? revision, string? decision = null)
-    {
-        if (evidence is not JsonObject record || !PyJson.PyEquals(Py.Get(record, "kind"), JsonValue.Create("human_confirmation")))
-        {
-            throw new StateError("explicit human_confirmation evidence is required");
-        }
-
-        foreach (var key in new[] { "actor", "statement", "evidence_ref", "decision" })
-        {
-            Text(Py.Get(record, key), key);
-        }
-
-        var reference = Py.AsString(record["evidence_ref"])!;
-        if (!Prefixes.Any(prefix => reference.StartsWith(prefix, StringComparison.Ordinal)))
-        {
-            throw new StateError("human evidence must reference a conversation, host interaction, or legacy review");
-        }
-
-        if (!PyJson.PyEquals(Py.Get(record, "subject_id"), subjectId) || !PyJson.IsInt(Py.Get(record, "revision"))
-            || !PyJson.PyEquals(Py.Get(record, "revision"), revision))
-        {
-            throw new StateError("human evidence must name the exact subject and revision");
-        }
-
-        if (!string.IsNullOrEmpty(decision) && !PyJson.PyEquals(record["decision"], JsonValue.Create(decision)))
-        {
-            throw new StateError("human evidence must record the " + decision + " decision");
-        }
-
-        if (Timestamp(Py.Get(record, "decided_at")) > PyDateTime.Now() + PyTimeDelta.FromMinutes(1))
-        {
-            throw new StateError("human decision cannot be in the future");
-        }
-
-        return record;
-    }
-}
-
-/// <summary>
 /// The session-checkpoint source helpers of <c>memory_dream.py</c> that memory_store and memory_governance call:
 /// <c>source_keys</c>, <c>validate_source</c> and its bounded <c>text</c> check. They live here, the lowest layer
 /// that needs them; the MemoryCommands port of memory_dream.py should call these instead of re-porting them.
@@ -90,7 +13,7 @@ public static class DreamSources
     /// <summary><c>memory_dream.text(value, field, maximum)</c>.</summary>
     public static string Text(JsonNode? value, string field, int maximum = 1000)
     {
-        if (Py.AsString(value) is not { } text || PyRepr.Strip(text).Length == 0 || PyRepr.Length(text) > maximum)
+        if (PyNode.AsString(value) is not { } text || PyRepr.Strip(text).Length == 0 || PyRepr.Length(text) > maximum)
         {
             throw new StateError(field + " must be a bounded nonempty string");
         }
@@ -110,18 +33,18 @@ public static class DreamSources
         switch (identity)
         {
             case JsonArray parts:
-                var head = new JsonArray(parts.Take(5).Select(Py.Clone).ToArray());
-                var locator = new JsonArray(parts.Take(3).Select(Py.Clone).ToArray());
+                var head = new JsonArray(parts.Take(5).Select(PyNode.Copy).ToArray());
+                var locator = new JsonArray(parts.Take(3).Select(PyNode.Copy).ToArray());
                 if (parts.Count <= 5)
                 {
                     throw new PyIndexError("list index out of range");
                 }
 
-                locator.Add(Py.Clone(parts[5]));
+                locator.Add(PyNode.Copy(parts[5]));
                 return ("dream-source:" + StateStore.CanonicalJson(head), "dream-locator:" + StateStore.CanonicalJson(locator));
             case JsonObject:
                 // dict[:5]: slices are hashable since Python 3.12, so the lookup fails with the slice as the key.
-                throw new PySliceKeyError();
+                throw PyKeyError.ForSlice(5);
             case JsonValue value when PyJson.Scalar(value) is string text:
                 // str[:5] works; then identity[5] fails on a short string, or str + list fails.
                 throw PyRepr.Length(text) <= 5
@@ -148,13 +71,13 @@ public static class DreamSources
         }
 
         if (identity is not JsonArray parts || parts.Count != 6 || !PyJson.PyEquals(parts[0], JsonValue.Create(memory.Account))
-            || parts.Any(part => !Py.IsText(part))
-            || StateStore.CanonicalJson(parts) != Py.AsString(reference["ref"]))
+            || parts.Any(part => !PyNode.IsText(part))
+            || StateStore.CanonicalJson(parts) != PyNode.AsString(reference["ref"]))
         {
             throw new StateError("session source requires canonical account, host, workspace, session, event and locator");
         }
 
-        Text(Py.Get(reference, "revision"), "source revision", 200);
+        Text(PyNode.Get(reference, "revision"), "source revision", 200);
         var (source, locator) = SourceKeys(reference);
         foreach (var key in new[] { source, locator })
         {
@@ -165,7 +88,7 @@ public static class DreamSources
             }
         }
 
-        return "dream-event:" + MemoryGovernance.Digest(JsonValue.Create(StateStore.CanonicalJson(new JsonArray(parts.Take(5).Select(Py.Clone).ToArray()))));
+        return "dream-event:" + MemoryGovernance.Digest(JsonValue.Create(StateStore.CanonicalJson(new JsonArray(parts.Take(5).Select(PyNode.Copy).ToArray()))));
     }
 
     /// <summary>
@@ -179,17 +102,7 @@ public static class DreamSources
             throw new PyKeyError("ref");
         }
 
-        return Py.AsString(value) ?? throw new StateError(
+        return PyNode.AsString(value) ?? throw new StateError(
             "invalid JSON", new PyTypeError("the JSON object must be str, bytes or bytearray, not " + PyJson.TypeName(value)));
     }
-}
-
-/// <summary><c>KeyError(slice(None, 5, None))</c>: <c>dict[:5]</c> in Python 3.12+ (its text is the key's repr).</summary>
-public sealed class PySliceKeyError : PyKeyError
-{
-    public PySliceKeyError() : base("slice(None, 5, None)")
-    {
-    }
-
-    public override string Message => "slice(None, 5, None)";
 }

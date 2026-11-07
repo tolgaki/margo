@@ -1,0 +1,19 @@
+{
+ "description": "dict(original) in MemoryStore._resolve_work_sources given a source reference written as key/value pairs (state consolidation: the memory port's own dict() copy raised the StateError 'value must contain finite JSON data' at the first non-string key; the shared PyNode.DictWith reads every pair first, as CPython 3.13's dict() does, so a later unhashable key or wrong-length pair raises TypeError/ValueError). Python callers pass normalised references; the library accepts any value.",
+ "steps": [
+  {
+   "script": "memory_probe.py",
+   "args": ["--account", "{account}", "--state-dir", "{state_dir}", "--dir", "{root}/work"],
+   "stdin": [
+    {"call": "_resolve_work_sources", "on": "store", "args": [{"source_refs": [[["kind", "memory_record"], [1, "x"], [[], "y"]]]}]},
+    {"call": "_resolve_work_sources", "on": "store", "args": [{"source_refs": [[["kind", "memory_record"], [true, "x"], {"a": 1}]]}]},
+    {"call": "_resolve_work_sources", "on": "store", "args": [{"source_refs": [[["kind", "memory_record"], [null, "x"], ["a"]]]}]},
+    {"call": "_resolve_work_sources", "on": "store", "args": [{"source_refs": [[["kind", "memory_record"], [2.5, "x"], "abc"]]}]},
+    {"call": "_resolve_work_sources", "on": "store", "args": [{"source_refs": [[["kind", "memory_record"], [1, "x"], 7]]}]},
+    {"call": "_resolve_work_sources", "on": "store", "args": [{"source_refs": [[["kind", "memory_record"], ["ref", "mem_missing"], "ab"]]}]},
+    {"call": "_resolve_work_sources", "on": "store", "args": [{"source_refs": [[["kind", "memory_record"], ["ref", "mem_missing"]]]}]}
+   ],
+   "expect_exit": 0
+  }
+ ]
+}

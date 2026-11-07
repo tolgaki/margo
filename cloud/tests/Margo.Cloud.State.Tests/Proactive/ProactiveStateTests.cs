@@ -104,7 +104,7 @@ public sealed class ProactiveStateTests : IDisposable
                      _conn.Execute("SELECT digest FROM proactive_pages").FetchOne()![0]);
 
         var value = new JsonObject { ["a"] = new JsonArray(PyJson.Int(BigInteger.Pow(2, 63)), 1L, 1.5, "x", true, null) };
-        var copy = Py.Copy(value);
+        var copy = PyNode.Copy(value);
         Assert.NotSame(value, copy);
         Assert.Equal("{\"a\":[9223372036854775808,1,1.5,\"x\",true,null]}", StateStore.CanonicalJson(copy));
     }

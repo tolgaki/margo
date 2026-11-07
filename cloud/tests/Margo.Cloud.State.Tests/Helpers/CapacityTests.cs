@@ -1,5 +1,4 @@
 using System.Numerics;
-using System.Text;
 using System.Text.Json.Nodes;
 using Margo.Cloud.State.Core;
 using Margo.Cloud.State.Helpers;
@@ -222,7 +221,7 @@ public sealed class CapacityTests
     public void Stdin_decode_errors_name_the_reason_and_absolute_position()
     {
         var bytes = Enumerable.Repeat((byte)' ', 20000).Concat(new byte[] { 0xE2, 0x82 }).ToArray();
-        using var reader = new StreamReader(new MemoryStream(bytes), new UTF8Encoding(false, true));
+        using var reader = PyIO.StdinReader(new MemoryStream(bytes)); // margo-state's stdin
         var stdout = new StringWriter();
         var stderr = new StringWriter();
         var code = new CapacityScript().Run(["--input", "-"], reader, stdout, stderr);

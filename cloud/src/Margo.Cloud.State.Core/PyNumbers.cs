@@ -1,12 +1,12 @@
 using System.Numerics;
-using Margo.Cloud.State.Core;
 
-namespace Margo.Cloud.State.Helpers.Python;
+namespace Margo.Cloud.State.Core;
 
 /// <summary>
 /// CPython 3.13 arithmetic on <c>int</c> (<see cref="BigInteger"/>) and <c>float</c> (<see cref="double"/>)
 /// where .NET's defaults differ: correctly rounded <c>float(int)</c> with <c>OverflowError</c>, correctly
-/// rounded <c>int / int</c>, exact mixed int/float comparison, and <c>sum()</c>'s compensated float summation.
+/// rounded <c>int / int</c>, exact mixed int/float comparison, <c>sum()</c>'s compensated float summation,
+/// <c>int(float)</c>, <c>float // float</c> and <c>value + n</c> on values read from SQLite.
 /// </summary>
 public static class PyNumbers
 {
@@ -197,14 +197,73 @@ public static class PyNumbers
         double number => number / divisor,
         _ => throw new ArgumentException("not a Python number"),
     };
-}
 
-/// <summary>Python <c>ZeroDivisionError</c>.</summary>
-public sealed class PyZeroDivisionError : PyException
-{
-    public PyZeroDivisionError(string message) : base(message)
+    /// <summary><c>int(x)</c> of a float: exact and unbounded; NaN and infinities raise as in Python.</summary>
+    public static BigInteger Trunc(double value) =>
+        double.IsNaN(value) ? throw new PyValueError("cannot convert float NaN to integer")
+        : double.IsInfinity(value) ? throw new PyOverflowError("cannot convert float infinity to integer")
+        : new BigInteger(Math.Truncate(value));
+
+    /// <summary>
+    /// Python <c>value + n</c> for a value read from SQLite: an int stays an int (a sum beyond 64 bits is a
+    /// <see cref="BigInteger"/>, which sqlite3 binding refuses with <c>OverflowError</c>, as in Python), a float
+    /// (REAL in a hand-edited INTEGER column) stays a float; str, bytes and None raise Python's <c>TypeError</c>.
+    /// </summary>
+    public static object Add(object? value, long n)
     {
+        switch (value)
+        {
+            case long integer:
+                var sum = (BigInteger)integer + n;
+                return sum >= long.MinValue && sum <= long.MaxValue ? (object)(long)sum : sum;
+            case BigInteger big:
+                return big + n;
+            case double number:
+                return number + n;
+            case string:
+                throw new PyTypeError("can only concatenate str (not \"int\") to str");
+            case byte[]:
+                throw new PyTypeError("can't concat int to bytes");
+            default:
+                throw new PyTypeError("unsupported operand type(s) for +: '" + PyObj.TypeName(value) + "' and 'int'");
+        }
     }
 
-    public override string PythonType => "ZeroDivisionError";
+    /// <summary>
+    /// <c>float // float</c> (CPython's <c>float_floor_div</c>/<c>_float_div_mod</c>): the remainder from
+    /// <c>fmod</c>, then the quotient snapped to the nearest integral value.
+    /// </summary>
+    public static double FloorDivide(double vx, double wx)
+    {
+        if (wx == 0)
+        {
+            throw new PyZeroDivisionError("float floor division by zero");
+        }
+
+        var mod = vx % wx; // C# % on doubles is C fmod: the remainder has the dividend's sign
+        var div = (vx - mod) / wx;
+        if (mod != 0)
+        {
+            if ((wx < 0) != (mod < 0))
+            {
+                div -= 1.0;
+            }
+        }
+
+        double floordiv;
+        if (div != 0)
+        {
+            floordiv = Math.Floor(div);
+            if (div - floordiv > 0.5)
+            {
+                floordiv += 1.0;
+            }
+        }
+        else
+        {
+            floordiv = Math.CopySign(0.0, vx / wx);
+        }
+
+        return floordiv;
+    }
 }

@@ -1,4 +1,4 @@
-namespace Margo.Cloud.State.Helpers.Python;
+namespace Margo.Cloud.State.Core;
 
 /// <summary>
 /// CPython 3.13's <c>list.sort</c> (<c>Objects/listobject.c</c>: natural runs found by <c>count_run</c>,

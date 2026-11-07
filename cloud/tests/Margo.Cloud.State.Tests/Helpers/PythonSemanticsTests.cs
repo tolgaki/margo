@@ -86,7 +86,7 @@ public sealed class PythonSemanticsTests
     {
         Assert.Equal("\U0001F600b", PyObj.Slice("\U0001F600bc", 2));
         Assert.Equal(2, ((List<object?>)PyObj.Slice(PyJson.Loads("[1, 2, 3]"), 2)!).Count);
-        Assert.Equal("slice(None, 10, None)", Assert.Throws<PyKeyErrorRepr>(() => PyObj.Slice(new JsonObject(), 10)).Message);
+        Assert.Equal("slice(None, 10, None)", Assert.Throws<PyKeyError>(() => PyObj.Slice(new JsonObject(), 10)).Message);
         Assert.Throws<PyTypeError>(() => PyObj.Slice(5L, 10));
         Assert.Equal(1, PyObj.Len("\U0001F600"));
         Assert.Throws<PyTypeError>(() => PyObj.Len(3L));
@@ -189,7 +189,7 @@ public sealed class PythonSemanticsTests
         Assert.False(PyText.IsWord('\u203F'));    // undertie: .NET's \w includes Pc
         Assert.False(PyText.IsWord(0x10D40));     // Garay digit zero: Unicode 16, unassigned in 15.1
         Assert.True(PyText.IsWord(0x1D7CE));      // mathematical bold digit zero (astral)
-        Assert.True(PyText.IsDigit(0x1D7CE));
+        Assert.True(PyText.IsDecimal(0x1D7CE));
         Assert.True(PyText.IsSpace('\u001C'));      // .NET's \s does not include the information separators
         Assert.False(PyText.IsSpace('\u200B'));
         Assert.Equal(" a b ", PyText.CollapseWhitespace("\u3000a\u001C\u0085b\u2029"));
@@ -213,11 +213,15 @@ public sealed class PythonSemanticsTests
     public void Json_load_depth_limit_lets_an_earlier_decode_error_win()
     {
         static string Nested(int depth, string tail = "") => new string('[', depth) + new string(']', depth) + tail;
-        Assert.NotNull(PyJsonLoad.Loads(Nested(5), 5));
-        Assert.Throws<PyRecursionError>(() => PyJsonLoad.Loads(Nested(6), 5));
-        Assert.Throws<PyJsonDecodeError>(() => PyJsonLoad.Loads("[1,, " + Nested(6) + "]", 5));
-        Assert.Throws<PyRecursionError>(() => PyJsonLoad.Loads("[" + Nested(6) + ",,]", 5));
-        Assert.Throws<PyRecursionError>(() => PyJsonLoad.Loads("[\"[[[[[[\", " + Nested(6) + "]", 5));
-        Assert.NotNull(PyJsonLoad.Loads("[\"[[[[[[[[[\"]", 5));
+        Assert.NotNull(Loads(Nested(5), 5));
+        Assert.Throws<PyRecursionError>(() => Loads(Nested(6), 5));
+        Assert.Throws<PyJsonDecodeError>(() => Loads("[1,, " + Nested(6) + "]", 5));
+        Assert.Throws<PyRecursionError>(() => Loads("[" + Nested(6) + ",,]", 5));
+        Assert.Throws<PyRecursionError>(() => Loads("[\"[[[[[[\", " + Nested(6) + "]", 5));
+        Assert.NotNull(Loads("[\"[[[[[[[[[\"]", 5));
     }
+
+    /// <summary><c>json.loads(text)</c> at a call site whose C recursion budget allows <paramref name="depth"/> containers.</summary>
+    private static System.Text.Json.Nodes.JsonNode? Loads(string text, int depth) =>
+        PyJson.Loads(text, new PyJsonLoadOptions { MaxDepth = depth });
 }

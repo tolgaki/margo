@@ -1,6 +1,6 @@
 using Margo.Cloud.State.Core;
 using Margo.Cloud.State.Helpers;
-using Margo.Cloud.State.Helpers.Python;
+using Margo.Cloud.State.Probes;
 using Xunit;
 
 namespace Margo.Cloud.State.Tests.Helpers;
@@ -24,6 +24,10 @@ public sealed class JsonRecursionBudgetTests : IDisposable
 
     private static string Nest(int depth, string inner) => new string('[', depth) + inner + new string(']', depth);
 
+    /// <summary><c>json.loads(text)</c> at a call site whose C recursion budget allows <paramref name="depth"/> containers.</summary>
+    private static System.Text.Json.Nodes.JsonNode? Loads(string text, int depth) =>
+        PyJson.Loads(text, new PyJsonLoadOptions { MaxDepth = depth });
+
     [Fact]
     public void Float_fraction_and_exponent_digits_are_not_an_over_long_int()
     {
@@ -31,11 +35,11 @@ public sealed class JsonRecursionBudgetTests : IDisposable
         foreach (var number in new[] { "1e" + new string('0', 4400), "1E+" + new string('0', 4400), "1e-" + new string('0', 4400), "0." + new string('0', 4400) + "1" })
         {
             var text = "[" + number + ", " + Nest(5, "") + ", " + LongDigits + "]";
-            Assert.Throws<PyRecursionError>(() => PyJsonLoad.Loads(text, 5));
+            Assert.Throws<PyRecursionError>(() => Loads(text, 5));
         }
 
         // Without the deep list the over-long int is the first failure.
-        Assert.Throws<PyValueError>(() => PyJsonLoad.Loads("[1e" + new string('0', 4400) + ", " + LongDigits + "]", 5));
+        Assert.Throws<PyValueError>(() => Loads("[1e" + new string('0', 4400) + ", " + LongDigits + "]", 5));
     }
 
     [Fact]
@@ -45,8 +49,8 @@ public sealed class JsonRecursionBudgetTests : IDisposable
         foreach (var error in new[] { "1 2", "1,", "\"\\q\"", "\"abc", "\"a\\u12\"", "{\"a\" 1}" })
         {
             var level = error.StartsWith('{') ? 3 : 4; // an object adds its own level
-            Assert.Throws<PyJsonDecodeError>(() => PyJsonLoad.Loads(Nest(level, error), 8));
-            var recursion = Assert.Throws<PyRecursionError>(() => PyJsonLoad.Loads(Nest(level + 1, error), 8));
+            Assert.Throws<PyJsonDecodeError>(() => Loads(Nest(level, error), 8));
+            var recursion = Assert.Throws<PyRecursionError>(() => Loads(Nest(level + 1, error), 8));
             Assert.Equal("maximum recursion depth exceeded while calling a Python object", recursion.Message);
         }
     }
@@ -56,38 +60,38 @@ public sealed class JsonRecursionBudgetTests : IDisposable
     {
         foreach (var constant in new[] { "NaN", "Infinity", "-Infinity" })
         {
-            Assert.NotNull(PyJsonLoad.Loads(Nest(4, constant), 5));
-            var recursion = Assert.Throws<PyRecursionError>(() => PyJsonLoad.Loads(Nest(5, constant), 5));
+            Assert.NotNull(Loads(Nest(4, constant), 5));
+            var recursion = Assert.Throws<PyRecursionError>(() => Loads(Nest(5, constant), 5));
             Assert.Equal("maximum recursion depth exceeded while calling a Python object", recursion.Message);
         }
 
         // Inside strings they are text, not constants.
-        Assert.NotNull(PyJsonLoad.Loads(Nest(5, "\"NaN Infinity\""), 5));
+        Assert.NotNull(Loads(Nest(5, "\"NaN Infinity\""), 5));
     }
 
     [Fact]
     public void Expecting_value_and_long_ints_fail_to_normalize_at_the_limit()
     {
-        Assert.Throws<PyJsonDecodeError>(() => PyJsonLoad.Loads(Nest(4, ","), 5));
-        var stop = Assert.Throws<PyRecursionError>(() => PyJsonLoad.Loads(Nest(5, ","), 5));
+        Assert.Throws<PyJsonDecodeError>(() => Loads(Nest(4, ","), 5));
+        var stop = Assert.Throws<PyRecursionError>(() => Loads(Nest(5, ","), 5));
         Assert.Equal("maximum recursion depth exceeded while calling a Python object\nNormalization failed: type=StopIteration args=<unknown>", stop.Message);
-        Assert.Throws<PyRecursionError>(() => PyJsonLoad.Loads(Nest(4, "{\"a\": }"), 5));
-        Assert.Throws<PyJsonDecodeError>(() => PyJsonLoad.Loads(Nest(3, "{\"a\": }"), 5));
+        Assert.Throws<PyRecursionError>(() => Loads(Nest(4, "{\"a\": }"), 5));
+        Assert.Throws<PyJsonDecodeError>(() => Loads(Nest(3, "{\"a\": }"), 5));
 
-        var value = Assert.Throws<PyValueError>(() => PyJsonLoad.Loads(Nest(4, LongDigits), 5));
+        var value = Assert.Throws<PyValueError>(() => Loads(Nest(4, LongDigits), 5));
         Assert.StartsWith("Exceeds the limit (4300 digits)", value.Message, StringComparison.Ordinal);
-        var normalization = Assert.Throws<PyRecursionError>(() => PyJsonLoad.Loads(Nest(5, LongDigits), 5));
+        var normalization = Assert.Throws<PyRecursionError>(() => Loads(Nest(5, LongDigits), 5));
         Assert.EndsWith("\nNormalization failed: type=ValueError args=<unknown>", normalization.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Errors_outside_containers_are_unaffected()
     {
-        Assert.Throws<PyJsonDecodeError>(() => PyJsonLoad.Loads("[1] x", 1));
-        Assert.Throws<PyJsonDecodeError>(() => PyJsonLoad.Loads("\uFEFF[1]", 1));
-        Assert.Throws<PyJsonDecodeError>(() => PyJsonLoad.Loads("", 1));
+        Assert.Throws<PyJsonDecodeError>(() => Loads("[1] x", 1));
+        Assert.Throws<PyJsonDecodeError>(() => Loads("\uFEFF[1]", 1));
+        Assert.Throws<PyJsonDecodeError>(() => Loads("", 1));
         // An error after a too-deep container is never reached.
-        Assert.Throws<PyRecursionError>(() => PyJsonLoad.Loads("[" + Nest(5, "") + "] x", 5));
+        Assert.Throws<PyRecursionError>(() => Loads("[" + Nest(5, "") + "] x", 5));
     }
 
     [Fact]

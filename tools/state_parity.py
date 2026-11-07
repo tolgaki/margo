@@ -22,6 +22,11 @@ must match the C# output literally, so a wrong hash or a wrong normalised
 timestamp is caught. When the two Python runs cannot be aligned token by token,
 every token is normalised and the report says so.
 
+Contract probes (``cloud/contracts/state/probes/*_probe.py``) are not Margo
+commands: the C# CLI contains them only when built with ``MargoStateProbes=true``
+(the Debug default, which this tool uses) and runs one only when
+``MARGO_STATE_PROBES=1``, which every step here sets.
+
 Usage::
 
     python3 tools/state_parity.py --check            # all scenarios; exit 1 on any mismatch
@@ -279,6 +284,8 @@ def base_environment(root):
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONIOENCODING": "utf-8",
         "MARGO_ALLOW_UNSAFE_STATE_DIR": "1",
+        # margo-state runs contract probes (Debug builds only) when this is 1; Python ignores it.
+        "MARGO_STATE_PROBES": "1",
         "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
         "DOTNET_NOLOGO": "1",
         "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
@@ -481,7 +488,7 @@ def main(argv=None):
     parser.add_argument("--filter", help="only scenarios whose path contains this substring")
     parser.add_argument("--scenario", action="append", help="run this scenario file (repeatable)")
     parser.add_argument("--verbose", "-v", action="store_true", help="unified diff of the first mismatch per scenario")
-    parser.add_argument("--cli", help="margo-state executable or .dll (default: the Debug build)")
+    parser.add_argument("--cli", help="margo-state executable or .dll (default: the Debug build, which has the probes)")
     parser.add_argument("--build", action="store_true", help="dotnet build the CLI first")
     arguments = parser.parse_args(argv)
     # Labels and diffs may hold undecodable bytes (surrogate escapes) from scenario arguments or output.

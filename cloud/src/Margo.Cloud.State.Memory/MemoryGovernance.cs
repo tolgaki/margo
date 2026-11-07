@@ -58,7 +58,7 @@ public static class MemoryGovernance
         return new JsonObject
         {
             ["account"] = memory.Account,
-            ["revision"] = row is not null ? Py.FromDb(row["revision"]) : 0L,
+            ["revision"] = row is not null ? PyNode.FromSql(row["revision"]) : 0L,
             ["configured"] = row is not null,
             ["data"] = row is not null ? MemoryStore.ParseStored(row["data"]) : DefaultPolicy(),
         };
@@ -85,7 +85,7 @@ public static class MemoryGovernance
             }
         }
 
-        var normal = Py.DictWith(input, ("capture", Py.Copy(capture)));
+        var normal = PyNode.DictWith(input, ("capture", PyNode.CopyObject(capture)));
         var captureNormal = normal["capture"]!.AsObject();
         var enabled = PyJson.Truthy(capture["enabled"]);
         foreach (var (field, allowed) in new (string, IReadOnlySet<string>?)[]
@@ -95,7 +95,7 @@ public static class MemoryGovernance
         {
             var values = capture[field];
             if (values is not JsonArray list || list.Count > 100
-                || list.Any(value => !Py.IsText(value) || (allowed is not null && !allowed.Contains(Py.AsString(value)!))))
+                || list.Any(value => !PyNode.IsText(value) || (allowed is not null && !allowed.Contains(PyNode.AsString(value)!))))
             {
                 throw new StateError("invalid capture " + field);
             }
@@ -105,7 +105,7 @@ public static class MemoryGovernance
                 throw new StateError("enabled capture needs an explicit nonempty " + field);
             }
 
-            captureNormal[field] = Py.StrArray(Py.Sorted(list.Select(value => Py.AsString(value)!).Distinct(StringComparer.Ordinal)));
+            captureNormal[field] = PyNode.StrList(PyText.Sorted(list.Select(value => PyNode.AsString(value)!).Distinct(StringComparer.Ordinal)));
         }
 
         foreach (var field in new[] { "retention_days", "review_days" })
@@ -117,7 +117,7 @@ public static class MemoryGovernance
                 throw new StateError(field + " must map memory kinds to 1..3650 days");
             }
 
-            normal[field] = Py.Copy(values);
+            normal[field] = PyNode.CopyObject(values);
         }
 
         var usageDays = input["usage_retention_days"];
@@ -130,7 +130,7 @@ public static class MemoryGovernance
     }
 
     private static PyDateTime Due(JsonNode? stamp, JsonNode? days) =>
-        PyDateTime.FromIsoformat(Py.AsString(stamp) ?? throw new PyTypeError("fromisoformat: argument must be str"))
+        PyDateTime.FromIsoformat(PyNode.AsString(stamp) ?? throw new PyTypeError("fromisoformat: argument must be str"))
         + PyTimeDelta.FromDays((long)PyJson.AsInt(days));
 
     /// <summary>
@@ -149,19 +149,19 @@ public static class MemoryGovernance
         foreach (var node in memory.List())
         {
             var record = node!.AsObject();
-            var days = Py.AsString(record["kind"]) is { } kind ? Py.Get(retention, kind) : null;
+            var days = PyNode.AsString(record["kind"]) is { } kind ? PyNode.Get(retention, kind) : null;
             if (!PyJson.PyEquals(record["status"], JsonValue.Create("forgotten")) && days is not null && Due(record["updated_at"], days) <= stamp)
             {
-                roots.Add(new JsonObject { ["id"] = Py.Clone(record["id"]), ["revision"] = Py.Clone(record["revision"]) });
-                affected.UnionWith(memory.DerivedDescendants(Py.AsString(record["id"])!));
+                roots.Add(new JsonObject { ["id"] = PyNode.Copy(record["id"]), ["revision"] = PyNode.Copy(record["revision"]) });
+                affected.UnionWith(memory.DerivedDescendants(PyNode.AsString(record["id"])!));
             }
         }
 
-        var due = roots.OrderBy(row => Py.Str(row["id"]), PyRepr.StringComparer).Take(50).Select(row => (JsonNode?)row).ToArray();
+        var due = roots.OrderBy(row => PyObj.Str(row["id"]), PyRepr.StringComparer).Take(50).Select(row => (JsonNode?)row).ToArray();
         var value = new JsonObject
         {
             ["account"] = memory.Account,
-            ["expected_revision"] = Py.Clone(current["revision"]),
+            ["expected_revision"] = PyNode.Copy(current["revision"]),
             ["data"] = normal,
             ["current_retention_impact"] = new JsonObject
             {
@@ -171,7 +171,7 @@ public static class MemoryGovernance
                 ["truncated"] = roots.Count > 50,
             },
         };
-        return Py.DictWith(value, ("subject_id", JsonValue.Create("memory-policy:" + Digest(value))), ("revision", JsonValue.Create(1L)),
+        return PyNode.DictWith(value, ("subject_id", JsonValue.Create("memory-policy:" + Digest(value))), ("revision", JsonValue.Create(1L)),
                            ("warning", JsonValue.Create(RetentionWarning)));
     }
 
@@ -241,7 +241,7 @@ public static class MemoryGovernance
     }
 
     private static bool Contains(JsonNode? list, JsonNode? value) => list is JsonArray array
-        ? Py.InList(value, array)
+        ? PyNode.InList(value, array)
         : throw new PyTypeError("argument of type '" + PyJson.TypeName(list) + "' is not iterable");
 
     /// <summary>
@@ -256,17 +256,17 @@ public static class MemoryGovernance
         {
             var normal = memory.ResolveWorkSources(memory.NormaliseData(data), checkpointRef);
             var current = AuthorizeCapture(memory, normal);
-            normal["metadata"] = Py.DictWith(normal["metadata"], ("capture_policy_revision", Py.Clone(current["revision"])));
+            normal["metadata"] = PyNode.DictWith(normal["metadata"], ("capture_policy_revision", PyNode.Copy(current["revision"])));
             var reviewDays = MemoryStore.Item(MemoryStore.Item(current, "data"), "review_days");
-            var kind = Py.AsString(normal["kind"])!;
-            if (reviewDays is JsonObject days && days.ContainsKey(kind) && !PyJson.Truthy(Py.Get(normal, "review_after")))
+            var kind = PyNode.AsString(normal["kind"])!;
+            if (reviewDays is JsonObject days && days.ContainsKey(kind) && !PyJson.Truthy(PyNode.Get(normal, "review_after")))
             {
                 var previous = memory.Conn.Execute("SELECT data FROM memory_records WHERE id=? AND account=?",
                                                    memory.RecordId(normal["domain"], key), memory.Account).FetchOne();
                 var old = previous is not null ? MemoryStore.ParseStored(previous["data"]) : new JsonObject();
                 normal["review_after"] = PyJson.Truthy(MemoryStore.DictGet(old, "review_after"))
                                          && PyJson.PyEquals(MemoryStore.DictGet(old, "source_refs"), normal["source_refs"])
-                    ? Py.Clone(MemoryStore.Item(old, "review_after"))
+                    ? PyNode.Copy(MemoryStore.Item(old, "review_after"))
                     : (PyDateTime.Now() + PyTimeDelta.FromDays((long)PyJson.AsInt(days[kind]))).Isoformat();
             }
 
@@ -304,8 +304,8 @@ public static class MemoryGovernance
         var retention = MemoryStore.Item(MemoryStore.Item(current, "data"), "retention_days");
         // .get(record["kind"]): an unhashable kind raises; a non-string one is never a key (keys are memory kinds).
         var kind = MemoryStore.Item(record, "kind");
-        Py.EnsureHashable(kind);
-        var days = Py.AsString(kind) is { } name ? MemoryStore.DictGet(retention, name) : retention is JsonObject ? null : MemoryStore.DictGet(retention, "");
+        PyNode.RequireHashable(kind);
+        var days = PyNode.AsString(kind) is { } name ? MemoryStore.DictGet(retention, name) : retention is JsonObject ? null : MemoryStore.DictGet(retention, "");
         if (days is null || Due(MemoryStore.Item(record, "updated_at"), days) > PyDateTime.Now())
         {
             throw new StateError("memory is not due under the approved retention policy");
@@ -343,25 +343,25 @@ public static class MemoryGovernance
             var data = MemoryStore.Item(current, "data");
             foreach (var row in rows.Take(count))
             {
-                var record = memory.Show(Py.FromDb(row["id"]));
+                var record = memory.Show(PyNode.FromSql(row["id"]));
                 if (PyJson.PyEquals(record["status"], JsonValue.Create("forgotten")))
                 {
                     continue;
                 }
 
-                var days = MemoryStore.DictGet(MemoryStore.Item(data, "retention_days"), Py.Str(record["kind"]));
+                var days = MemoryStore.DictGet(MemoryStore.Item(data, "retention_days"), PyObj.Str(record["kind"]));
                 if (days is not null && Due(record["updated_at"], days) <= stamp)
                 {
                     var result = memory.Forget(record["id"], record["revision"], policyRevision: current["revision"]);
-                    erased.AddRange(((JsonArray)result["forgotten_ids"]!).Select(id => Py.Str(id)));
+                    erased.AddRange(((JsonArray)result["forgotten_ids"]!).Select(id => PyObj.Str(id)));
                 }
-                else if (PyJson.Truthy(Py.Get(record, "review_after"))
-                         && PyDateTime.FromIsoformat(Py.AsString(record["review_after"])!) <= stamp)
+                else if (PyJson.Truthy(PyNode.Get(record, "review_after"))
+                         && PyDateTime.FromIsoformat(PyNode.AsString(record["review_after"])!) <= stamp)
                 {
                     review.Add(new JsonObject
                     {
-                        ["id"] = Py.Clone(record["id"]),
-                        ["revision"] = Py.Clone(record["revision"]),
+                        ["id"] = PyNode.Copy(record["id"]),
+                        ["revision"] = PyNode.Copy(record["revision"]),
                         ["reason"] = "review_due",
                     });
                 }
@@ -374,10 +374,10 @@ public static class MemoryGovernance
             return new JsonObject
             {
                 ["processed"] = (long)Math.Min(rows.Count, count),
-                ["forgotten_ids"] = Py.StrArray(Py.Sorted(erased.Distinct(StringComparer.Ordinal))),
+                ["forgotten_ids"] = PyNode.StrList(PyText.Sorted(erased.Distinct(StringComparer.Ordinal))),
                 ["review_due"] = review,
-                ["next_cursor"] = rows.Count > count ? Py.FromDb(rows[count - 1]["id"]) : null,
-                ["policy_revision"] = Py.Clone(current["revision"]),
+                ["next_cursor"] = rows.Count > count ? PyNode.FromSql(rows[count - 1]["id"]) : null,
+                ["policy_revision"] = PyNode.Copy(current["revision"]),
                 ["outbound_actions"] = false,
             };
         });
@@ -392,9 +392,9 @@ public static class MemoryGovernance
         {
             entries.Add(new JsonObject
             {
-                ["id"] = Py.FromDb(row["id"]),
-                ["key_hash"] = Py.FromDb(row["key_hash"]),
-                ["forgotten_at"] = Py.FromDb(row["forgotten_at"]),
+                ["id"] = PyNode.FromSql(row["id"]),
+                ["key_hash"] = PyNode.FromSql(row["key_hash"]),
+                ["forgotten_at"] = PyNode.FromSql(row["forgotten_at"]),
             });
         }
 
@@ -429,28 +429,28 @@ public static class MemoryGovernance
         foreach (var item in entries)
         {
             if (item is not JsonObject entry || !SameKeys(entry, ["id", "key_hash", "forgotten_at"])
-                || Py.AsString(entry["key_hash"]) is not { } keyHash || !PyPatterns.Sha256Hex(keyHash)
-                || !PyJson.PyEquals(entry["id"], JsonValue.Create("mem_" + keyHash[..40])) || ids.Contains(Py.AsString(entry["id"])!))
+                || PyNode.AsString(entry["key_hash"]) is not { } keyHash || !PyPatterns.Sha256Hex(keyHash)
+                || !PyJson.PyEquals(entry["id"], JsonValue.Create("mem_" + keyHash[..40])) || ids.Contains(PyNode.AsString(entry["id"])!))
             {
                 throw new StateError("invalid or duplicate tombstone identity");
             }
 
-            MemoryStore.ValidateTimestamp(entry["forgotten_at"]);
-            var id = Py.AsString(entry["id"])!;
+            StateStore.ValidateTimestamp(entry["forgotten_at"]);
+            var id = PyNode.AsString(entry["id"])!;
             ids.Add(id);
             var row = memory.Conn.Execute("SELECT id,revision,status FROM memory_records WHERE id=? AND account=?", id, memory.Account).FetchOne();
-            if (row is not null && !Py.Equal(row["status"], "forgotten"))
+            if (row is not null && !PyObj.Eq(row["status"], "forgotten"))
             {
-                affected.Add(new JsonObject { ["id"] = Py.FromDb(row["id"]), ["revision"] = Py.FromDb(row["revision"]) });
+                affected.Add(new JsonObject { ["id"] = PyNode.FromSql(row["id"]), ["revision"] = PyNode.FromSql(row["revision"]) });
             }
         }
 
-        var known = affected.Select(entry => Py.Str(entry["id"])).ToHashSet(StringComparer.Ordinal);
+        var known = affected.Select(entry => PyObj.Str(entry["id"])).ToHashSet(StringComparer.Ordinal);
         foreach (var row in memory.Conn.Execute(
                      "SELECT r.memory_id,r.data,m.revision FROM memory_revisions r JOIN memory_records m "
                      + "ON m.id=r.memory_id WHERE m.account=? AND m.status<>'forgotten'", memory.Account).FetchAll())
         {
-            var memoryId = Py.Str(row["memory_id"]);
+            var memoryId = PyObj.Str(row["memory_id"]);
             if (known.Contains(memoryId))
             {
                 continue;
@@ -469,13 +469,13 @@ public static class MemoryGovernance
             });
             if (restored)
             {
-                affected.Add(new JsonObject { ["id"] = Py.FromDb(row["memory_id"]), ["revision"] = Py.FromDb(row["revision"]) });
+                affected.Add(new JsonObject { ["id"] = PyNode.FromSql(row["memory_id"]), ["revision"] = PyNode.FromSql(row["revision"]) });
                 known.Add(memoryId);
             }
         }
 
         var sorted = affected.Select((entry, index) => (entry, index))
-                             .OrderBy(pair => Py.Str(pair.entry["id"]), PyRepr.StringComparer).ThenBy(pair => pair.index)
+                             .OrderBy(pair => PyObj.Str(pair.entry["id"]), PyRepr.StringComparer).ThenBy(pair => pair.index)
                              .Select(pair => (JsonNode?)pair.entry).ToArray();
         var value = new JsonObject
         {
@@ -483,7 +483,7 @@ public static class MemoryGovernance
             ["journal_hash"] = Digest(journal),
             ["affected"] = new JsonArray(sorted),
         };
-        return Py.DictWith(value, ("subject_id", JsonValue.Create("memory-restore:" + Digest(value))), ("revision", JsonValue.Create(1L)));
+        return PyNode.DictWith(value, ("subject_id", JsonValue.Create("memory-restore:" + Digest(value))), ("revision", JsonValue.Create(1L)));
     }
 
     /// <summary>
@@ -501,9 +501,9 @@ public static class MemoryGovernance
             foreach (var target in targets)
             {
                 // The reviewed restore names every resurrected root and binds its current revision.
-                var confirmation = Py.DictWith(evidence, ("subject_id", Py.Clone(target!["id"])), ("revision", Py.Clone(target["revision"])),
+                var confirmation = PyNode.DictWith(evidence, ("subject_id", PyNode.Copy(target!["id"])), ("revision", PyNode.Copy(target["revision"])),
                                                ("decision", JsonValue.Create("forget")),
-                                               ("approved_restore_subject", Py.Clone(preview["subject_id"])));
+                                               ("approved_restore_subject", PyNode.Copy(preview["subject_id"])));
                 memory.Forget(target["id"], target["revision"], confirmation);
             }
 
@@ -537,15 +537,15 @@ public static class MemoryGovernance
             throw new StateError("only an active, explicitly confirmed lesson can be exported");
         }
 
-        if (!memory.WorkSourcesCurrent(row) || PyJson.PyEquals(Py.Get(row, "sensitivity"), JsonValue.Create("sensitive")))
+        if (!memory.WorkSourcesCurrent(row) || PyJson.PyEquals(PyNode.Get(row, "sensitivity"), JsonValue.Create("sensitive")))
         {
             throw new StateError("lesson is stale, inaccessible or sensitive; export refused");
         }
 
         var stamp = StateStore.UtcNow();
-        if (Compare(Py.Has(row, "valid_from") ? row["valid_from"] : JsonValue.Create(stamp), stamp) > 0
-            || Compare(Py.Has(row, "valid_to") ? row["valid_to"] : JsonValue.Create("9999"), stamp) <= 0
-            || Compare(Py.Has(row, "review_after") ? row["review_after"] : JsonValue.Create("9999"), stamp) <= 0)
+        if (Compare(row.ContainsKey("valid_from") ? row["valid_from"] : JsonValue.Create(stamp), stamp) > 0
+            || Compare(row.ContainsKey("valid_to") ? row["valid_to"] : JsonValue.Create("9999"), stamp) <= 0
+            || Compare(row.ContainsKey("review_after") ? row["review_after"] : JsonValue.Create("9999"), stamp) <= 0)
         {
             throw new StateError("lesson validity or review period has expired");
         }
@@ -557,7 +557,7 @@ public static class MemoryGovernance
 
         foreach (var (_, value) in fields)
         {
-            if (Py.AsString(value) is not { } text || PyRepr.Strip(text).Length == 0 || PyRepr.Length(text) > 4000)
+            if (PyNode.AsString(value) is not { } text || PyRepr.Strip(text).Length == 0 || PyRepr.Length(text) > 4000)
             {
                 throw new StateError("recipe fields must be nonempty strings of at most 4000 characters");
             }
@@ -572,17 +572,17 @@ public static class MemoryGovernance
         var preview = new JsonObject
         {
             ["account"] = memory.Account,
-            ["memory_id"] = Py.Clone(memoryId),
-            ["memory_revision"] = Py.Clone(row["revision"]),
-            ["recipe"] = Py.Clone(fields),
+            ["memory_id"] = PyNode.Copy(memoryId),
+            ["memory_revision"] = PyNode.Copy(row["revision"]),
+            ["recipe"] = PyNode.Copy(fields),
         };
-        return Py.DictWith(preview, ("subject_id", JsonValue.Create("memory-export:" + Digest(preview))), ("revision", JsonValue.Create(1L)),
+        return PyNode.DictWith(preview, ("subject_id", JsonValue.Create("memory-export:" + Digest(preview))), ("revision", JsonValue.Create(1L)),
                            ("warning", JsonValue.Create(ExportWarning)));
     }
 
     private static int Compare(JsonNode? value, string stamp) =>
-        Py.AsString(value) is { } text
-            ? Py.Compare(text, stamp)
+        PyNode.AsString(value) is { } text
+            ? PyRepr.CompareStrings(text, stamp)
             : throw new PyTypeError("'>' not supported between instances of '" + PyJson.TypeName(value) + "' and 'str'");
 
     /// <summary>
@@ -603,23 +603,16 @@ public static class MemoryGovernance
             var parent = StateStore.SafeDirectory(PyPath.Parent(destination), explicitOverride: true);
             StateStore.MkdirPrivate(parent);
             StateStore.Private(parent, directory: true);
-            var content = new StringBuilder("# ").Append(PyRepr.Strip(Py.AsString(fields["title"])!)).Append("\n\n");
+            var content = new StringBuilder("# ").Append(PyRepr.Strip(PyNode.AsString(fields["title"])!)).Append("\n\n");
             content.Append(string.Join("\n\n", RecipeSections
-                                           .Select(field => "## " + char.ToUpperInvariant(field[0]) + field[1..] + "\n\n" + PyRepr.Strip(Py.AsString(fields[field])!))));
+                                           .Select(field => "## " + char.ToUpperInvariant(field[0]) + field[1..] + "\n\n" + PyRepr.Strip(PyNode.AsString(fields[field])!))));
             content.Append('\n');
             var text = content.ToString();
             var bytes = PyIO.EncodeUtf8(text);
             var temporary = CreateTemporary(parent, bytes);
             try
             {
-                try
-                {
-                    PosixNative.Link(temporary, destination);
-                }
-                catch (PyOSError ex) when (ex.Errno != 0)
-                {
-                    throw new PyOSErrorTwoPaths(ex.Errno, ex.StrError, temporary, destination);
-                }
+                PosixNative.Link(temporary, destination); // OSError names both paths, as Python's does
             }
             finally
             {
@@ -675,23 +668,4 @@ public static class MemoryGovernance
 
         throw new PyOSError(PyErrno.EEXIST, "No usable temporary file name found");
     }
-}
-
-/// <summary>
-/// An <c>OSError</c> raised with two file names (<c>os.link(a, b)</c>): <c>[Errno 17] File exists: 'a' -&gt; 'b'</c>.
-/// State.Core's <see cref="PosixNative.Link"/> names only the source; this belongs there.
-/// </summary>
-public sealed class PyOSErrorTwoPaths : PyOSError
-{
-    public PyOSErrorTwoPaths(int errno, string strerror, string filename, string filename2)
-        : base(errno, strerror, filename)
-    {
-        Filename2 = filename2;
-    }
-
-    /// <summary><c>exc.filename2</c>.</summary>
-    public string Filename2 { get; }
-
-    public override string Message => "[Errno " + Errno.ToString(System.Globalization.CultureInfo.InvariantCulture) + "] " + StrError + ": "
-                                      + PyRepr.Str(Filename!) + " -> " + PyRepr.Str(Filename2);
 }

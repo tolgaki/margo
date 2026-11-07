@@ -1272,7 +1272,7 @@ public sealed class PyArgumentParser
     {
         value = BigInteger.Zero;
         tooLongDigits = 0;
-        var stripped = PyRepr.Strip(text);
+        var stripped = StripIntWhitespace(text);
         if (stripped.Length == 0)
         {
             return false;
@@ -1330,6 +1330,31 @@ public sealed class PyArgumentParser
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// The whitespace <c>int(text)</c> ignores around the number: <c>_PyUnicode_TransformDecimalAndSpaceToASCII</c>
+    /// turns non-ASCII whitespace (U+0085, U+00A0, U+3000, ...) into spaces, then <c>PyLong_FromString</c> strips
+    /// only ASCII <c>' \t\n\v\f\r'</c>. So U+001C..U+001F, which <c>str.isspace()</c> (and
+    /// <see cref="PyRepr.Strip"/>) treat as whitespace, are not stripped and make the literal invalid.
+    /// </summary>
+    private static string StripIntWhitespace(string text)
+    {
+        static bool Ignored(char c) => c is ' ' or '\t' or '\n' or '\v' or '\f' or '\r' || (c > 0x7f && PyRepr.IsSpace(c));
+
+        var start = 0;
+        var end = text.Length;
+        while (start < end && Ignored(text[start]))
+        {
+            start++;
+        }
+
+        while (end > start && Ignored(text[end - 1]))
+        {
+            end--;
+        }
+
+        return text[start..end];
     }
 
     /// <summary>Python <c>float(text)</c> for decimal text, <c>inf</c>/<c>nan</c> spellings and underscores.</summary>

@@ -314,11 +314,8 @@ public static class PyRepr
         return value[start..end];
     }
 
-    /// <summary>Python <c>str.isspace()</c> for one BMP character.</summary>
-    public static bool IsSpace(char c) =>
-        c is ' ' or '\t' or '\n' or '\r' or '\v' or '\f' or '\x1c' or '\x1d' or '\x1e' or '\x1f' or '\x85'
-        || (c > 0x7f && (char.GetUnicodeCategory(c) is UnicodeCategory.SpaceSeparator
-            or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator));
+    /// <summary>Python <c>str.isspace()</c> for one character (CPython's table, <see cref="PyText.IsSpace"/>).</summary>
+    public static bool IsSpace(char c) => PyText.IsSpace(c);
 
     /// <summary>Python <c>str.splitlines(keepends)</c>, which splits on every Unicode line boundary.</summary>
     public static List<string> SplitLines(string value, bool keepEnds = false)

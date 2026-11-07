@@ -4,6 +4,11 @@
     <RootNamespace>Margo.Cloud.StateCli</RootNamespace>
     <OutputType>Exe</OutputType>
     <AssemblyName>margo-state</AssemblyName>
+    <!--
+      Contract probes (Margo.Cloud.State.Probes) run arbitrary SQL and write files; only the parity judge needs them.
+      Debug builds include them unless told otherwise; Release builds never do unless MargoStateProbes=true is passed.
+    -->
+    <MargoStateProbes Condition="'$(MargoStateProbes)' == '' and '$(Configuration)' == 'Debug'">true</MargoStateProbes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +21,10 @@
     <ProjectReference Include="../Margo.Cloud.State.MemoryLearning/Margo.Cloud.State.MemoryLearning.csproj" />
     <ProjectReference Include="../Margo.Cloud.State.MemoryCommands/Margo.Cloud.State.MemoryCommands.csproj" />
     <ProjectReference Include="../Margo.Cloud.State.Helpers/Margo.Cloud.State.Helpers.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(MargoStateProbes)' == 'true'">
+    <ProjectReference Include="../Margo.Cloud.State.Probes/Margo.Cloud.State.Probes.csproj" />
   </ItemGroup>
 
 </Project>
