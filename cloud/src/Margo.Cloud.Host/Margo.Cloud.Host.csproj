@@ -6,9 +6,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.Host.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../Margo.Cloud.Core/Margo.Cloud.Core.csproj" />
+    <ProjectReference Include="../Margo.Cloud.WorkIQ/Margo.Cloud.WorkIQ.csproj" />
+    <ProjectReference Include="../Margo.Cloud.Guard/Margo.Cloud.Guard.csproj" />
+    <ProjectReference Include="../Margo.Cloud.Engine/Margo.Cloud.Engine.csproj" />
     <ProjectReference Include="../Margo.Cloud.Orchestrator/Margo.Cloud.Orchestrator.csproj" />
     <ProjectReference Include="../Margo.Cloud.Voice/Margo.Cloud.Voice.csproj" />
+    <!-- margo-state.dll (and its runtimeconfig) next to the host: the engine runs it as `dotnet margo-state.dll`.
+         Release builds of the CLI never include the contract probes (see the check below). -->
     <ProjectReference Include="../Margo.Cloud.StateCli/Margo.Cloud.StateCli.csproj" />
     <PackageReference Include="Microsoft.Agents.Hosting.AspNetCore" />
     <PackageReference Include="Microsoft.Agents.Authentication.Msal" />
@@ -18,5 +27,13 @@
     <PackageReference Include="Azure.Storage.Blobs" />
     <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" />
   </ItemGroup>
+
+  <!-- The contract probes run arbitrary SQL and write files: they must never ship. A Release build or publish that
+       would place them next to the host fails. -->
+  <Target Name="MargoRefuseProbesInRelease" AfterTargets="Build;Publish" Condition="'$(Configuration)' == 'Release'">
+    <Error Condition="Exists('$(OutDir)Margo.Cloud.State.Probes.dll')" Text="Margo.Cloud.State.Probes.dll is in the Release output of the host; it must not ship." />
+    <Error Condition="'$(PublishDir)' != '' and Exists('$(PublishDir)Margo.Cloud.State.Probes.dll')" Text="Margo.Cloud.State.Probes.dll is in the published host; it must not ship." />
+    <Error Condition="!Exists('$(OutDir)margo-state.dll')" Text="margo-state.dll is missing from the Release output of the host." />
+  </Target>
 
 </Project>
