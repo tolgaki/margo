@@ -49,14 +49,17 @@ public static class ActivityEvents
         });
     }
 
-    /// <summary><c>_email_reference(activity)</c>: the Outlook message behind a mail activity, if it carries one.</summary>
+    /// <summary>
+    /// <c>_email_reference(activity)</c>: the Outlook message behind a mail activity, if it carries one. Like Python
+    /// (<c>except Exception: return None</c>), a reference the SDK cannot read is none.
+    /// </summary>
     public static EmailReference? EmailReference(IActivity activity)
     {
         try
         {
             return new AgentNotificationActivity(activity).EmailNotification;
         }
-        catch (Exception exc) when (exc is ArgumentException or InvalidOperationException or System.Text.Json.JsonException)
+        catch (Exception exc) when (exc is not OperationCanceledException and not OutOfMemoryException)
         {
             return null;
         }
@@ -96,12 +99,18 @@ public static class ActivityEvents
     /// <summary>
     /// The event of an Agent 365 mail notification (<c>on_mail_notification</c>), or null when it has no agent identity.
     /// </summary>
-    public static InboundEvent? MailNotification(IActivity activity, AgentNotificationActivity notification)
+    public static InboundEvent? MailNotification(IActivity activity, AgentNotificationActivity notification) =>
+        MailNotification(activity, notification?.EmailNotification);
+
+    /// <summary>
+    /// The same from the Outlook reference alone: null when the activity has none, or one the SDK cannot read (Python's
+    /// wrapper then left <c>email</c> None and the handler used the transport's IDs).
+    /// </summary>
+    public static InboundEvent? MailNotification(IActivity activity, EmailReference? mail)
     {
         ArgumentNullException.ThrowIfNull(activity);
         var inbound = Identity(activity);
         var sender = activity.From;
-        var mail = notification?.EmailNotification;
         var text = activity.Text ?? string.Empty;
         var senderId = Or(sender?.AadObjectId, sender?.Id);
         var ids = ActivityClassifier.StableIds(Or(mail?.Id, activity.Id), Or(mail?.ConversationId, activity.Conversation?.Id), senderId, text);

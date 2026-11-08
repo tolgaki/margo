@@ -100,6 +100,37 @@ public sealed class ActivityEventsTests
         Assert.Equal("mail-conversation-transport", plain.ConversationId);
     }
 
+    /// <summary>
+    /// <c>_email_reference</c> caught every exception (<c>except Exception: return None</c>): a reference the SDK cannot
+    /// read falls back to the transport's IDs instead of failing the turn (whose error handler would then answer the
+    /// mail with the exception text).
+    /// </summary>
+    [Fact]
+    public void An_unreadable_outlook_reference_falls_back_to_the_transport_ids()
+    {
+        JsonObject Broken(JsonArray entities)
+        {
+            var json = Activities.Mail("Please review");
+            json["entities"] = entities;
+            return json;
+        }
+
+        var shapes = new[]
+        {
+            new JsonArray(new JsonObject { ["type"] = "emailNotification", ["id"] = new JsonObject { ["nested"] = 1 } }),
+            new JsonArray(new JsonObject { ["type"] = "emailNotification", ["id"] = 5, ["conversationId"] = "outlook-conversation-1" }),
+        };
+        foreach (var entities in shapes)
+        {
+            var activity = Read(Broken(entities));
+            Assert.Null(ActivityEvents.EmailReference(activity));
+            var mail = ActivityEvents.Message(activity, out var email)!;
+            Assert.True(email);
+            Assert.Equal("transport-1", mail.ActivityId);
+            Assert.Equal("mail-conversation-transport", mail.ConversationId);
+        }
+    }
+
     [Fact]
     public void A_mail_notification_uses_the_sender_object_id_or_its_channel_id()
     {

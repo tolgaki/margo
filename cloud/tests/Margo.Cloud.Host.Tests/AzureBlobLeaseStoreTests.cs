@@ -186,6 +186,54 @@ public sealed class AzureBlobLeaseStoreTests : IDisposable
             (await Assert.ThrowsAsync<SyncException>(() => lease.WriteAsync([1], Token))).Message);
     }
 
+    /// <summary>
+    /// Python's <c>except AzureError</c> also caught connection failures (<c>ServiceRequestError</c>). With the SDK's
+    /// retries on, as in production, .NET reports those as an <see cref="AggregateException"/> of the attempts; they are
+    /// the same typed failures (and a failed release is still ignored).
+    /// </summary>
+    [Fact]
+    public async Task Connection_failures_after_the_sdk_s_retries_are_typed_sync_errors()
+    {
+        var store = AzureBlobLeaseStore.Factory(_blobs.RetryingClient())("margo-a");
+        _blobs.Unreachable.Add("acquire");
+        var busy = await Assert.ThrowsAsync<SyncException>(() => store.AcquireAsync("state.zip", Token));
+        Assert.Equal("instance state is busy or unavailable", busy.Message);
+        Assert.Equal(3, _blobs.Calls.Count(call => call == "acquire")); // the SDK retried
+        _blobs.Unreachable.Clear();
+
+        var lease = await store.AcquireAsync("state.zip", Token);
+        _blobs.Unreachable.Add("download");
+        Assert.Equal("could not read instance state", (await Assert.ThrowsAsync<SyncException>(() => lease.ReadAsync(Token))).Message);
+        _blobs.Unreachable.Add("upload");
+        Assert.Equal("could not save instance state; the lease may have been lost",
+            (await Assert.ThrowsAsync<SyncException>(() => lease.WriteAsync([1], Token))).Message);
+        _blobs.Unreachable.Add("release");
+        await lease.DisposeAsync(); // an expired lease frees itself
+        Assert.Equal(3, _blobs.Calls.Count(call => call == "release"));
+    }
+
+    /// <summary>Python: <c>ServiceResponseTimeoutError</c> is an <c>AzureError</c> too.</summary>
+    [Fact]
+    public async Task Network_timeouts_are_typed_sync_errors_but_the_caller_s_cancellation_is_not()
+    {
+        var store = AzureBlobLeaseStore.Factory(_blobs.RetryingClient(TimeSpan.FromMilliseconds(50)))("margo-a");
+        _blobs.Hanging.Add("acquire");
+        Assert.Equal("instance state is busy or unavailable",
+            (await Assert.ThrowsAsync<SyncException>(() => store.AcquireAsync("state.zip", Token))).Message);
+        _blobs.Hanging.Clear();
+
+        var lease = await store.AcquireAsync("state.zip", Token);
+        _blobs.Hanging.Add("download");
+        Assert.Equal("could not read instance state", (await Assert.ThrowsAsync<SyncException>(() => lease.ReadAsync(Token))).Message);
+        _blobs.Hanging.Clear();
+
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => lease.ReadAsync(cancelled.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => store.AcquireAsync("other.zip", cancelled.Token));
+        await lease.DisposeAsync();
+    }
+
     [Fact]
     public async Task A_failed_renewal_propagates_and_a_failed_release_is_ignored()
     {

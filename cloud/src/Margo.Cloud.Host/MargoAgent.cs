@@ -33,13 +33,29 @@ public sealed class MargoAgent : AgentApplication
                    autoSignInHandlers: handlers, isAgenticOnly: true);
         // Only mail notifications become requests to the office. Lifecycle events and document comments are not
         // messages to Margo and are never queued.
-        this.OnAgenticEmailNotification((context, state, notification, token) => turns.OnMailNotificationAsync(this, context, notification, token),
-                                        autoSignInHandlers: handlers);
+        // The selector of the notification extension's OnAgenticEmailNotification (channel "agents", sub-channel "email",
+        // agentic requests), but the handler reads the Outlook reference itself: the extension's wrapper throws on one it
+        // cannot read, failing the turn (and the SDK's error handler would answer the mail), where Python's dropped it.
+        AddRoute((context, token) => Task.FromResult(IsMailNotification(context.Activity)),
+                 (context, state, token) => turns.OnMailNotificationAsync(this, context, ActivityEvents.EmailReference(context.Activity), token),
+                 isInvokeRoute: false, autoSignInHandlers: handlers, isAgenticOnly: true);
         // Deployed, the router turns lifecycle events into provisioning and never forwards them; a single process
         // only records them.
         this.OnLifecycleNotification((context, state, notification, token) => turns.OnLifecycleAsync(context));
         OnActivity(ActivityTypes.Message, (context, state, token) => turns.OnMessageAsync(this, context, token), autoSignInHandlers: handlers);
         OnActivity(ActivityTypes.InstallationUpdate, (context, state, token) => turns.OnInstallationAsync(context));
+    }
+
+    /// <summary>
+    /// The notification extension's email selector: channel <c>agents</c> and sub-channel <c>email</c>, ignoring case,
+    /// any activity type (Python's <c>on_email</c> selector likewise).
+    /// </summary>
+    public static bool IsMailNotification(IActivity activity)
+    {
+        ArgumentNullException.ThrowIfNull(activity);
+        var channel = activity.ChannelId;
+        return channel?.Channel is { } name && name.Equals("agents", StringComparison.OrdinalIgnoreCase)
+               && channel.SubChannel is { } sub && sub.Equals("email", StringComparison.OrdinalIgnoreCase);
     }
 }
 
@@ -119,9 +135,9 @@ public sealed class MargoTurns
     }
 
     /// <summary><c>on_mail_notification</c>: queued as a request; never answered.</summary>
-    public async Task OnMailNotificationAsync(AgentApplication app, ITurnContext context, AgentNotificationActivity notification, CancellationToken cancellationToken)
+    public async Task OnMailNotificationAsync(AgentApplication app, ITurnContext context, EmailReference? mail, CancellationToken cancellationToken)
     {
-        var inbound = ActivityEvents.MailNotification(context.Activity, notification);
+        var inbound = ActivityEvents.MailNotification(context.Activity, mail);
         if (inbound is null)
         {
             Finished?.Invoke("mail", null);

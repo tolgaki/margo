@@ -48,6 +48,12 @@ public static class MargoHost
     /// <summary>The token check's logger (Python: the Agents SDK's own loggers).</summary>
     public const string AuthLogCategory = "margo.autopilot.auth";
 
+    /// <summary>
+    /// The largest activity body read (aiohttp's default <c>client_max_size</c>, 1 MiB, which the Python host kept): a
+    /// larger one is refused before the SDK reads it.
+    /// </summary>
+    public const int MaxActivityBytes = 1024 * 1024;
+
     /// <summary>The variable that keeps GenAI message content out of telemetry (set to <c>false</c> unless already set).</summary>
     public const string ContentCaptureVariable = "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT";
 
@@ -134,6 +140,13 @@ public static class MargoHost
 
         try
         {
+            // Python's configure_azure_monitor refused a bad connection string at once; the .NET exporter would only
+            // parse it when the host starts, and stop the host. The message never repeats the connection string.
+            if (TelemetryConnection.Problem(settings.ApplicationInsights) is { } problem)
+            {
+                throw new ArgumentException(problem);
+            }
+
             builder.Services.AddOpenTelemetry().UseAzureMonitor(options => options.ConnectionString = settings.ApplicationInsights);
             return (LogLevel.Information, "Application Insights configured (message content capture is off).", null);
         }
@@ -267,8 +280,19 @@ public static class MargoHost
         app.UseMiddleware<InboundAuthentication>();
         foreach (var path in HostSettings.ActivityPaths)
         {
-            app.MapPost(path, (HttpRequest request, HttpResponse response, IAgentHttpAdapter adapter, IAgent agent, CancellationToken cancellationToken) =>
-                adapter.ProcessAsync(request, response, agent, cancellationToken));
+            app.MapPost(path, async (HttpRequest request, HttpResponse response, IAgentHttpAdapter adapter, IAgent agent, CancellationToken cancellationToken) =>
+            {
+                if (!await BufferActivityAsync(request, cancellationToken))
+                {
+                    // Python: aiohttp's client_max_size made request.json() raise; the SDK answered this.
+                    response.StatusCode = StatusCodes.Status400BadRequest;
+                    response.ContentType = "application/json; charset=utf-8";
+                    await response.WriteAsync("{\"error\": \"Invalid JSON or unsupported Content-Type\"}", cancellationToken);
+                    return;
+                }
+
+                await adapter.ProcessAsync(request, response, agent, cancellationToken);
+            });
         }
 
         foreach (var path in HostSettings.HealthPaths)
@@ -283,6 +307,45 @@ public static class MargoHost
         }
 
         return app;
+    }
+
+    /// <summary>
+    /// Read the activity body into memory, at most <see cref="MaxActivityBytes"/> (aiohttp: <c>body_size &gt;
+    /// client_max_size</c> raised). False when it is larger, including a declared length beyond Kestrel's own limit.
+    /// </summary>
+    private static async Task<bool> BufferActivityAsync(HttpRequest request, CancellationToken cancellationToken)
+    {
+        if (request.ContentLength > MaxActivityBytes)
+        {
+            return false;
+        }
+
+        var buffer = new MemoryStream();
+        var chunk = new byte[81920];
+        try
+        {
+            int read;
+            while ((read = await request.Body.ReadAsync(chunk, cancellationToken)) > 0)
+            {
+                if (buffer.Length + read > MaxActivityBytes)
+                {
+                    await buffer.DisposeAsync();
+                    return false;
+                }
+
+                buffer.Write(chunk, 0, read);
+            }
+        }
+        catch (BadHttpRequestException exc) when (exc.StatusCode == StatusCodes.Status413PayloadTooLarge)
+        {
+            await buffer.DisposeAsync();
+            return false;
+        }
+
+        buffer.Position = 0;
+        request.Body = buffer;
+        request.HttpContext.Response.RegisterForDisposeAsync(buffer);
+        return true;
     }
 }
 

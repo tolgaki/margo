@@ -56,6 +56,23 @@ internal sealed class FakeBlobService : HttpMessageHandler
         return options;
     }
 
+    /// <summary>Operations whose connection fails (no response at all), on every attempt, until removed.</summary>
+    public HashSet<string> Unreachable { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>Operations that never answer (the SDK's network timeout ends them), until removed.</summary>
+    public HashSet<string> Hanging { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>A client with the SDK's retries on (a few, quickly) and the given network timeout.</summary>
+    public BlobServiceClient RetryingClient(TimeSpan? networkTimeout = null)
+    {
+        var options = new BlobClientOptions { Transport = new HttpClientTransport(new HttpClient(this, disposeHandler: false)) };
+        options.Retry.MaxRetries = 2;
+        options.Retry.Delay = TimeSpan.FromMilliseconds(1);
+        options.Retry.MaxDelay = TimeSpan.FromMilliseconds(2);
+        options.Retry.NetworkTimeout = networkTimeout ?? TimeSpan.FromSeconds(100);
+        return new BlobServiceClient(new Uri(Account), options);
+    }
+
     public void Fail(string operation, HttpStatusCode status, string code)
     {
         lock (_gate)
@@ -132,6 +149,33 @@ internal sealed class FakeBlobService : HttpMessageHandler
         var container = Uri.UnescapeDataString(slash < 0 ? path : path[..slash]);
         var blobName = slash < 0 ? null : Uri.UnescapeDataString(path[(slash + 1)..]);
         var operation = Operation(request, query, blobName);
+        bool unreachable, hanging;
+        lock (_gate)
+        {
+            unreachable = Unreachable.Contains(operation);
+            hanging = Hanging.Contains(operation);
+        }
+
+        if (unreachable)
+        {
+            lock (_gate)
+            {
+                _calls.Add(operation);
+            }
+
+            throw new HttpRequestException("connection refused (fictional)");
+        }
+
+        if (hanging)
+        {
+            lock (_gate)
+            {
+                _calls.Add(operation);
+            }
+
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+        }
+
         lock (_gate)
         {
             _calls.Add(operation);

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json.Nodes;
 using Margo.Cloud.Orchestrator;
+using Microsoft.Extensions.Logging;
 
 namespace Margo.Cloud.Host.Tests;
 
@@ -27,6 +28,26 @@ public sealed class HostIntegrationTests
             Assert.Equal("application/json; charset=utf-8", response.Content.Headers.ContentType!.ToString());
             using var head = new HttpRequestMessage(HttpMethod.Head, path);
             Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(head, Token)).StatusCode);
+        }
+    }
+
+    /// <summary>
+    /// Python: <c>configure_azure_monitor</c> raised <c>ValueError</c> for a malformed connection string and
+    /// <c>_configure_telemetry</c> logged the failure and continued. The host must not stop over it.
+    /// </summary>
+    [Fact]
+    public async Task A_malformed_application_insights_connection_string_is_logged_and_the_host_serves_without_telemetry()
+    {
+        foreach (var value in new[] { "garbage", "InstrumentationKey=not-a-guid", "InstrumentationKey=" + TelemetryConnectionTests.Key + ";Extra=" })
+        {
+            using var state = new TempState();
+            await using var host = new HostFactory(state, new Dictionary<string, string?> { ["APPLICATIONINSIGHTS_CONNECTION_STRING"] = value });
+            var client = host.Start();
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/liveness", Token)).StatusCode);
+            var entry = Assert.Single(host.Logs.Entries, entry => entry.Category == MargoHost.LogCategory && entry.Message.Contains("elemetry", StringComparison.Ordinal));
+            Assert.Equal(LogLevel.Error, entry.Level);
+            Assert.Equal("Telemetry configuration failed; continuing without it.", entry.Message);
+            Assert.DoesNotContain(value, host.Logs.All, StringComparison.Ordinal);
         }
     }
 
@@ -107,6 +128,40 @@ public sealed class HostIntegrationTests
         Assert.Contains(host.Logs.Entries, entry => entry.Category == MargoHost.LogCategory && entry.Message.StartsWith("workiq {", StringComparison.Ordinal));
     }
 
+    /// <summary>
+    /// aiohttp's <c>client_max_size</c> (1 MiB, the Python host's default) made <c>request.json()</c> raise, which the
+    /// SDK's <c>process_request</c> answered <c>400 {"error": "Invalid JSON or unsupported Content-Type"}</c>. Exactly
+    /// 1 MiB was still read.
+    /// </summary>
+    [Fact]
+    public async Task An_activity_over_one_mebibyte_is_refused_as_python_s_host_did()
+    {
+        using var state = new TempState();
+        await using var host = new HostFactory(state);
+        var client = host.Start();
+
+        JsonObject Sized(int bytes, string conversation)
+        {
+            var activity = Activities.Message(string.Empty, sender: "colleague-1", conversation: conversation);
+            var padding = bytes - System.Text.Encoding.UTF8.GetByteCount(activity.ToJsonString());
+            activity["text"] = new string('x', padding);
+            Assert.Equal(bytes, System.Text.Encoding.UTF8.GetByteCount(activity.ToJsonString()));
+            return activity;
+        }
+
+        foreach (var path in HostSettings.ActivityPaths)
+        {
+            var refused = await HostFactory.PostAsync(client, Sized(MargoHost.MaxActivityBytes + 1, "conv-big"), path: path);
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            Assert.Equal("{\"error\": \"Invalid JSON or unsupported Content-Type\"}", await refused.Content.ReadAsStringAsync(Token));
+            Assert.Equal("application/json; charset=utf-8", refused.Content.Headers.ContentType!.ToString());
+        }
+
+        var accepted = await HostFactory.PostAsync(client, Sized(MargoHost.MaxActivityBytes, "conv-limit"));
+        Assert.Equal(HttpStatusCode.Accepted, accepted.StatusCode);
+        Assert.Equal(("message", "queued"), await host.NextTurnAsync());
+    }
+
     [Fact]
     public async Task A_colleague_is_queued_and_not_answered()
     {
@@ -151,6 +206,26 @@ public sealed class HostIntegrationTests
         Assert.Equal(("mail", "queued"), await host.NextTurnAsync());
         Assert.Empty(host.Connector.Sent);
         Assert.Contains(host.Logs.Entries, entry => entry.Message == "notification status=queued");
+        AssertLogsClean(host, "Quarterly numbers");
+    }
+
+    /// <summary>
+    /// Python's <c>AgentNotificationActivity</c> dropped an Outlook reference it could not validate (<c>email</c> is
+    /// None) and the handler fell back to the transport's IDs. The .NET wrapper throws instead; the turn must still be
+    /// queued, and nothing (not even the SDK's error text) may be sent to the mail conversation.
+    /// </summary>
+    [Fact]
+    public async Task A_mail_notification_with_an_unreadable_outlook_reference_is_still_queued_without_a_reply()
+    {
+        using var state = new TempState();
+        await using var host = new HostFactory(state);
+        var client = host.Start();
+        var mail = Activities.Mail("Quarterly numbers attached", type: "event");
+        mail["entities"]![0]!["id"] = 5;
+        var response = await HostFactory.PostAsync(client, mail);
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Equal(("mail", "queued"), await host.NextTurnAsync());
+        Assert.Empty(host.Connector.Sent);
         AssertLogsClean(host, "Quarterly numbers");
     }
 

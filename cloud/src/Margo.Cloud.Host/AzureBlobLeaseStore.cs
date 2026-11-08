@@ -85,11 +85,26 @@ public sealed class AzureBlobLeaseStore : ILeaseStore, IDisposable
     }
 
     /// <summary>
-    /// Whether an exception is one Python's <c>except AzureError</c> caught: a failed storage request (including a
-    /// transport failure after retries) or a failed credential.
+    /// Whether an exception is one Python's <c>except AzureError</c> caught: a failed storage request, a failed
+    /// credential, or a connection failure or network timeout. With retries on (the default), the Azure SDK for .NET
+    /// reports the last two as an <see cref="AggregateException"/> of every attempt (a <see cref="RequestFailedException"/>
+    /// with status 0, or the network timeout's <see cref="OperationCanceledException"/>); Python raised
+    /// <c>ServiceRequestError</c> / <c>ServiceResponseTimeoutError</c>, both <c>AzureError</c>.
     /// </summary>
-    public static bool IsAzureError(Exception exception) =>
-        exception is RequestFailedException or AuthenticationFailedException or CredentialUnavailableException;
+    /// <param name="exception">The exception.</param>
+    /// <param name="cancellationToken">The caller's token: a cancellation it requested is never an Azure error.</param>
+    public static bool IsAzureError(Exception exception, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        return exception switch
+        {
+            RequestFailedException or AuthenticationFailedException or CredentialUnavailableException => true,
+            AggregateException aggregate => aggregate.InnerExceptions.Count > 0
+                                            && aggregate.InnerExceptions.All(inner => IsAzureError(inner, cancellationToken)),
+            OperationCanceledException => !cancellationToken.IsCancellationRequested, // the SDK's network timeout
+            _ => false,
+        };
+    }
 
     /// <inheritdoc />
     public void Dispose() => _lock.Dispose();
@@ -185,7 +200,7 @@ public sealed class AzureBlobLeaseStore : ILeaseStore, IDisposable
                     }
                 }
             }
-            catch (Exception exc) when (IsAzureError(exc))
+            catch (Exception exc) when (IsAzureError(exc, cancellationToken))
             {
                 throw new SyncException("instance state is busy or unavailable", exc);
             }
@@ -234,7 +249,7 @@ public sealed class AzureBlobLeaseStore : ILeaseStore, IDisposable
             {
                 return (null, null);
             }
-            catch (Exception exc) when (IsAzureError(exc))
+            catch (Exception exc) when (IsAzureError(exc, cancellationToken))
             {
                 throw new SyncException("could not read instance state", exc);
             }
@@ -252,7 +267,7 @@ public sealed class AzureBlobLeaseStore : ILeaseStore, IDisposable
                 var info = await blob.UploadAsync(BinaryData.FromBytes(data), options, cancellationToken).ConfigureAwait(false);
                 return ETagText(info.Value.ETag);
             }
-            catch (Exception exc) when (IsAzureError(exc))
+            catch (Exception exc) when (IsAzureError(exc, cancellationToken))
             {
                 throw new SyncException("could not save instance state; the lease may have been lost", exc);
             }

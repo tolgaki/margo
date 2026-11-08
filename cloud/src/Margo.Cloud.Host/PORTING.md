@@ -14,7 +14,7 @@ Agent 365) and `host/azure_store.py` (the Azure Blob lease store), on ASP.NET Co
 | --- | --- | --- |
 | `WORKIQ_SCOPE`, `HEALTH_PATHS`, `ACTIVITY_PATHS` | `HostSettings.WorkIQScope`, `HealthPaths`, `ActivityPaths` | |
 | `HOSTING`, `AGENTIC_HANDLER`, `PRINCIPAL_HANDLER`, the `os.getenv` reads of `build_orchestrator` and `web_app` | `HostSettings.Load(IConfiguration)` | Same variables, same defaults, Python's order of failures (below) |
-| `_configure_telemetry` | `MargoHost.Configure` (`UseAzureMonitor`) | Same three log messages; `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` set to `false` unless already set |
+| `_configure_telemetry` | `MargoHost.Configure` (`TelemetryConnection.Problem`, then `UseAzureMonitor`) | Same three log messages; `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` set to `false` unless already set; a connection string Python's parser refused (or the .NET exporter would refuse at start-up) logs the failure and the host runs without telemetry, as in Python |
 | `_credential()` | the `TokenCredential` service | `ManagedIdentityCredential(AZURE_CLIENT_ID)` else `DefaultAzureCredential` |
 | `model_base_url`, `_model_client` | Engine's `AzureOpenAIModelClient` | Entra tokens for `https://cognitiveservices.azure.com/.default`, no keys |
 | `_receipt_logger` | the guard and state recorders of `BuildOrchestrator` | `workiq ` + `json.dumps(receipt, sort_keys=True)` (Core's `PythonJson.Dumps`) at INFO |
@@ -24,14 +24,14 @@ Agent 365) and `host/azure_store.py` (the Azure Blob lease store), on ASP.NET Co
 | `_email_reference(activity)` | `ActivityEvents.EmailReference` | `AgentNotificationActivity(activity).EmailNotification` |
 | `activity.is_email`, `stable_ids` | Core's `ActivityClassifier` via `ActivityEvents.IsEmail` | Entities passed as their JSON (`ActivityEntity.FromJson`), so `ProductInfoId` is not needed |
 | `MargoHost.__init__`, `MsalConnectionManager`, `CloudAdapter`, `Authorization`, `AgentApplication`, `MemoryStorage` | `MargoHost.Configure`: `AddDefaultMsalAuth`, `AddAgentApplicationOptions`, `AddAgent<MargoAgent, MargoCloudAdapter>`, `MemoryStorage` | Connections, user authorization and options from configuration, as `load_configuration_from_env` did |
-| `AgentNotification(app)` | `AgentNotificationExtensions.OnAgenticEmailNotification`, `OnLifecycleNotification` | |
+| `AgentNotification(app)` | the mail route (`MargoAgent.IsMailNotification`, the extension's email selector), `AgentNotificationExtensions.OnLifecycleNotification` | The mail route reads the Outlook reference with `ActivityEvents.EmailReference` instead of the extension's wrapper, which throws on a reference it cannot read (Python's dropped it) |
 | `_token_getter(context)` | `MargoTurns.TokenGetter` | `margo` through `AUTH_HANDLER_NAME`, `principal` through `PRINCIPAL_AUTH_HANDLER` (none when empty), scope `api://workiq.svc.cloud.microsoft/.default`, via `UserAuthorization.ExchangeTurnTokenAsync`; any failure logs `token exchange failed for <kind>` (never the token) and counts as none |
 | `on_message` | `MargoTurns.OnMessageAsync` (`ActivityEvents.Message`) | Ignored without agent identity, agent user or conversation (`message without agent identity or conversation; ignored`); mail keeps its Outlook IDs; typing indicator every 4 s; `turn failed` as the last resort; `turn status=<status>`; markdown reply, never to mail |
 | `on_mail_notification` | `MargoTurns.OnMailNotificationAsync` (`ActivityEvents.MailNotification`) | Sender `from.aadObjectId` or `from.id`; channel `mail`; `notification status=<status>` / `notification failed`; no reply |
 | `on_lifecycle` | `MargoTurns.OnLifecycleAsync` | Logs `lifecycle notification: <valueType>` only (deployed, the router turns these into provisioning) |
 | `on_installation` | `MargoTurns.OnInstallationAsync` | Logs `installation update: <action>` only |
 | `_typing` | private `TypingAsync` | Failures end it quietly |
-| `web_app()`: `jwt` middleware, `agent_configuration`, routes | `MargoHost.Map`, `InboundAuthentication` | Token check on everything but `/`, `/liveness`, `/readiness`, `/voice`, `/voice/...`; `POST` on both activity paths; `GET`/`HEAD` health answering `{"status": "ok"}` |
+| `web_app()`: `jwt` middleware, `agent_configuration`, routes | `MargoHost.Map`, `InboundAuthentication` | Token check on everything but `/`, `/liveness`, `/readiness`, `/voice`, `/voice/...`; `POST` on both activity paths (a body over 1 MiB, aiohttp's `client_max_size`, is `400 {"error": "Invalid JSON or unsupported Content-Type"}` as Python's SDK answered); `GET`/`HEAD` health answering `{"status": "ok"}` |
 | `jwt_authorization_middleware` (SDK) | `Authentication/AgentTokenValidator` (copied from `Margo.Cloud.Router`) | See "The token check" |
 | `VoiceService(...)`, `mount(app, voice)` | `VoiceService` and `VoiceEndpoints.Map` from `Margo.Cloud.Voice`, `SdkVoiceTokens` | When `MARGO_HOSTING=instance` and `VOICE_LIVE_MODEL`; `UseWebSockets`; logger `margo.voice`; scope `MARGO_VOICE_SCOPE` (default `Voice.Talk`) |
 | `main()` / `run_app(host=HOST, port=PORT)` | `Program.cs` | Kestrel on `HOST` (default `0.0.0.0`) and `PORT` (default 8088); a start-up failure prints its message and exits 1 |
@@ -51,7 +51,7 @@ Agent 365) and `host/azure_store.py` (the Azure Blob lease store), on ASP.NET Co
 | `renew()` | `RenewAsync`; exceptions propagate (StateSync treats them as a lost lease) |
 | `__exit__` | `DisposeAsync`: release once; a failed release is ignored (the lease expires) |
 | `put(name, data)` | `PutAsync`: container ensured, unleased overwrite (StateSync's daily copies `daily/YYYY-MM-DD.zip`) |
-| `except AzureError` | `IsAzureError`: `RequestFailedException` (status and transport failures), `AuthenticationFailedException`, `CredentialUnavailableException` |
+| `except AzureError` | `IsAzureError`: `RequestFailedException`, `AuthenticationFailedException`, `CredentialUnavailableException`, and, with the SDK's retries on, the `AggregateException` of connection failures or network timeouts (Python: `ServiceRequestError`, `ServiceResponseTimeoutError`); never the caller's own cancellation |
 | `SyncError(...)` | Orchestrator's `SyncException` with the same three messages, the Azure exception as inner exception |
 
 ## Configuration
@@ -139,6 +139,16 @@ and `SCOPES__0` changed the Python `AgentAuthConfiguration` but not what it acce
 9. **Cancellation.** The turn's cancellation token (the SDK's background service) reaches the orchestrator; Python had
    none. Cancellation is not logged as `turn failed`.
 10. **Health** answers `HEAD` too (aiohttp's `add_get` did as well).
+11. **Mail notification without a readable reference** (review): Python's `on_email` wrapper raised `ValueError` when an
+    activity had neither a readable `emailNotification` entity nor a known notification `name` (the turn then failed);
+    the host queues it with the transport's IDs instead. A reference that fails validation is dropped in both.
+12. **Telemetry connection strings** (review): Python's parser and the .NET exporter's accept different strings. The host
+    refuses what Python refused (same messages) and also what the .NET exporter would refuse at start-up (an empty value,
+    a value without a keyword, a repeated keyword, an endpoint that is not an absolute URI, a bad `Location` or
+    `EndpointSuffix`, over 4096 characters); either way it logs `Telemetry configuration failed; continuing without
+    it.` and runs without telemetry. The `APPINSIGHTS_INSTRUMENTATIONKEY` fallback of Python's parser is not read.
+13. **Bodies** (review): the 1 MiB limit is on the bytes received; aiohttp also decompressed a `Content-Encoding: gzip`
+    or `deflate` body first (the SDK for .NET does not decompress; the router forwards decompressed bodies).
 
 ## Not ported
 
@@ -173,9 +183,41 @@ and `SCOPES__0` changed the Python `AgentAuthConfiguration` but not what it acce
    the state lease, as in Python with several workers. Whether Agent 365 retries an activity that was answered 202 but
    whose turn later failed is unknown; the office queue's stable IDs make a redelivery a no-op either way.
 
+## Independent review (worktree-wf_d9a503d3-da2-2, on top of ec3f9c7)
+
+Found by differential runs against the Python SDKs in the reference venv and the decompiled .NET SDKs, each fixed with a
+failing-first test:
+
+1. **Connection failures and network timeouts escaped `except AzureError`.** With the Azure SDK's default retries,
+   .NET reports them as an `AggregateException` of the attempts, which `IsAzureError` did not recognise: a storage
+   outage became turn status `error` ("turn failed") instead of Python's `state_unsafe`, and a release over a dead
+   connection threw out of `DisposeAsync`. (`AzureBlobLeaseStoreTests.Connection_failures_after_the_sdk_s_retries_are_typed_sync_errors`,
+   `Network_timeouts_are_typed_sync_errors_but_the_caller_s_cancellation_is_not`.)
+2. **A malformed `APPLICATIONINSIGHTS_CONNECTION_STRING` stopped the host at start-up** (the exporter parses it only when
+   the host starts) after logging "Application Insights configured"; Python logged the failure and served without
+   telemetry. (`HostIntegrationTests.A_malformed_application_insights_connection_string_is_logged_and_the_host_serves_without_telemetry`,
+   `TelemetryConnectionTests`: Python's verdicts recorded from the venv, and the .NET exporter's own parser as the oracle
+   over 20,000 generated strings; the test reaches that internal parser by reflection, test-only.)
+3. **An activity over 1 MiB was processed**; Python's host (aiohttp `client_max_size`) answered 400.
+   (`HostIntegrationTests.An_activity_over_one_mebibyte_is_refused_as_python_s_host_did`.)
+4. **A mail notification whose Outlook reference the SDK could not read failed the turn** (the A365 extension's wrapper
+   throws on, for example, a numeric `id`); the SDK's turn-error handler then sends the exception text to the
+   conversation, a reply to mail. Python dropped the reference and queued the mail.
+   (`HostIntegrationTests.A_mail_notification_with_an_unreadable_outlook_reference_is_still_queued_without_a_reply`.)
+   `ActivityEvents.EmailReference` now also catches every exception, as `_email_reference` did.
+
+Checked and found consistent (no change): route order for mail as `message` versus `event`; the token check (a byte
+copy of the Router's); the four `AzureStoreTests`; the configuration keys through the SDK's types; the logging floors
+with Azure Monitor added (no provider-specific rule re-enables `Microsoft.Agents` debug output); the Release publish
+(`margo-state.dll` present, no probes assembly); `RemoveRecipientMention` against Python's; the SDK's default
+turn-error reply (both SDKs send the exception text, so it is not a regression). Not fixed, noted: the .NET lifecycle
+route still uses the extension's wrapper (a lifecycle event carrying an unreadable mail reference would fail its turn;
+Python's would not); the .NET `RemoveRecipientMention` throws on a recipient mention in a message without text (Python
+skipped such messages; read in the decompiled SDK, not run).
+
 ## Tests and evidence
 
-`cloud/tests/Margo.Cloud.Host.Tests` (37 tests), no network:
+`cloud/tests/Margo.Cloud.Host.Tests` (75 test cases after the review below), no network:
 
 - `AzureBlobLeaseStoreTests`: the four `AzureStoreTests` of `tests/test_autopilot_runtime.py` (stores reused and no
   network at construction; a 412 bootstrap waited for; other failures typed `SyncException`; a removed container
