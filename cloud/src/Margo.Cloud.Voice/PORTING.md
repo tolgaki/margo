@@ -190,7 +190,11 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
   (bearer token and scope, path and query, `ensure_ascii` JSON, text and binary events, a non-object, close), the
   bracketed-host rules against the SDK's outcomes, and an unhashable event `type`.
 - `MessageSocketTests`: unread messages hold the peer back (64 KiB) and arrive in order; closing still completes while
-  the peer has sent more than the queue holds.
+  the peer has sent more than the queue holds, and the peer's held-back sends finish (read and dropped) before it
+  answers the close frame. The test peer answers only after its own sends: a .NET `WebSocket` checks its state before
+  queueing a send behind its send lock, so a send concurrent with `CloseOutputAsync` can put a data frame after the
+  close frame, which nothing reads (RFC 6455 and aiohttp both stop at the close frame). The test once did exactly that
+  and hung about 1 run in 10; `MessageSocket` itself was not at fault and is unchanged.
 - `RuntimeVoiceTests`: the voice test of `tests/test_autopilot_runtime.py` (the `/voice` command).
 
 Not covered by tests: a real Voice Live service and a real Entra key set (no network or Azure account here).

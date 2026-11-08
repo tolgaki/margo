@@ -55,6 +55,10 @@ public sealed class MessageSocketTests
             await Task.WhenAny(more, Task.Delay(TimeSpan.FromMilliseconds(500), Cancel));
             Assert.False(more.IsCompleted); // held back again
 
+            // The peer answers the close frame only once its own sends have finished: a .NET WebSocket must not send
+            // and close its output concurrently (it checks its state before queueing a send, so a data frame can follow
+            // its close frame, and nothing reads past a close frame). `more` can only finish if the server, once
+            // closing, reads and drops the messages it is holding back.
             var answering = Task.Run(async () =>
             {
                 var buffer = new byte[200 * 1024];
@@ -63,14 +67,15 @@ public sealed class MessageSocketTests
                     var result = await client.ReceiveAsync(buffer, CancellationToken.None);
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
+                        await more.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
                         await client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
                         return;
                     }
                 }
             }, Cancel);
-            await socket.CloseAsync().WaitAsync(TimeSpan.FromSeconds(5), Cancel);
+            await socket.CloseAsync().WaitAsync(TimeSpan.FromSeconds(5), Cancel); // under CloseTimeout: no abort
             await answering.WaitAsync(TimeSpan.FromSeconds(5), Cancel);
-            await more.WaitAsync(TimeSpan.FromSeconds(5), Cancel); // once closing, the rest is read and dropped
+            Assert.True(more.IsCompletedSuccessfully); // once closing, the rest is read and dropped
             Assert.True(socket.Closed);
             Assert.Equal(SocketMessageKind.Closed, (await socket.ReceiveAsync(Cancel)).Kind);
         }
