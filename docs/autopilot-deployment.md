@@ -277,9 +277,9 @@ instances (below). Details, the custom voice and limits: [Voice](autopilot-voice
 | See what Margo read | Application Insights traces named `workiq`: subject, tool, path (no query text), status and outcome. No message content |
 | See her state | Storage account › containers named `margo-i-…`, one per hired Margo, with each manager's state under its own prefix. `state.zip` is current; `daily/` holds one copy per day |
 | Ship a change | Commit, then `azd provision` (it builds and pins a new image for the router and the provisioner), then redeploy all |
-| Redeploy all | `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll redeploy-all` with the provisioner's settings, for example as a one-off execution of the provisioner job with that command; or `… enqueue ensure <app> <user> --redeploy` for one |
+| Redeploy all | `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll redeploy-all` with the provisioner's settings, for example as a one-off execution of the provisioner job with that command; or `… enqueue ensure <agent-identity-id> <agent-user-id> --redeploy` for one |
 | Keep instances warm | Add `"instanceMinReplicas": { "value": 1 }` to `infra/main.parameters.json`, provision, then redeploy all |
-| Retire one instance | Delete it in the admin center: the lifecycle event retires it (app and identity go; state stays). Or `… enqueue retire <app> <user>`. Remove any mailbox permissions |
+| Retire one instance | Delete it in the admin center: the lifecycle event retires it (app and identity go; state stays). Or `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll enqueue retire <agent-identity-id> <agent-user-id>`. Remove any mailbox permissions |
 | Delete a retired instance's state | Delete its `margo-i-…` container after the retention period |
 | Stop everyone's Margo | Block Margo in the admin center |
 | Remove everything | Retire instances in the admin center, remove the blueprint with the Agent 365 CLI (`a365 cleanup`), then `azd down` |
@@ -290,7 +290,7 @@ Earlier versions ran Margo as a Microsoft Foundry hosted agent. That blueprint b
 Foundry and cannot be pointed at your own container, so this route starts with a new one.
 
 1. Block the old Margo in the admin center and retire its instances.
-2. Follow steps 1 to 6 above in the same azd environment (`MARGO_HOSTING` is no longer read). Provisioning is incremental, so the Foundry project and its hosted agent stay
+2. Follow steps 1 to 6 above in the same azd environment (the old azd setting `MARGO_HOSTING` is no longer read; each instance's container sets it itself). Provisioning is incremental, so the Foundry project and its hosted agent stay
    until you delete them in the Azure portal; delete them once the new Margo works.
 3. State is not carried over: each new hire has a new agent identity and starts fresh. The old
    `margo-…` state containers stay until you delete them.

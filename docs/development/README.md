@@ -49,6 +49,7 @@ request by itself, or sandbox other host tools. A prepared draft is not a sent m
 | `skills/*/SKILL.md` | Trigger descriptions, shared rules and routine routing | Which procedure a request loads |
 | `skills/*/references/` | Focused procedures, input/output contracts and recovery | How the assistant performs a routine |
 | `skills/chief-of-staff/scripts/` | Python 3.9+ standard-library core and CLI adapters | Durable state, validation, calculations or recovery |
+| `cloud/` | Margo Cloud: the hosted runtime in C# (.NET 10) and its `margo-state` port of the scripts above ([cloud/README.md](../../cloud/README.md)) | Hosted behaviour; a script change also needs its C# port and parity scenarios |
 | `.github/extensions/margo-action-desk/` | Optional thin action, memory and task-progress views | Presentation over existing CLI contracts |
 | `automations/`, `tools/margo-scheduled.*` | Schedule manifests and wrapper execution | Cadence, prompts and unattended restrictions |
 | `install.*`, `packaging/` | Copy/link installs, preservation, provenance and native wrappers | How changed files reach another machine |

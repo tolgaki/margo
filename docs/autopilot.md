@@ -159,7 +159,7 @@ grants **no** access to any principal's data; that is granted per instance at hi
 | --- | --- | --- |
 | Persona | `agents/margo.agent.md` | Loaded verbatim as the system persona |
 | Procedures | every `skills/*/` (SKILL.md, references, config) | Listed and loaded on demand, as the desktop host does |
-| Deterministic state | `skills/chief-of-staff/scripts/*.py` | The same scripts, run by the `margo-state` tool (4.1.1); storage shared through 4.3 |
+| Deterministic state | `skills/chief-of-staff/scripts/*.py` (the specification) | Their C# port (`Margo.Cloud.State.*`), run as the `margo-state` tool (4.1.1) with the same commands and outputs; storage shared through 4.3 |
 | Activity handler | `cloud/src/Margo.Cloud.Host`, `Margo.Cloud.Orchestrator` | Activity protocol endpoint, Teams cards, schedule triggers |
 | Work IQ guard | `cloud/src/Margo.Cloud.Guard` | Sits between the model and Work IQ MCP; picks the token by `on_data_of` (4.2.1) |
 | State tool | `cloud/src/Margo.Cloud.StateCli` (`margo-state`) | The desktop scripts' commands, ported to C# and judged byte for byte against them |
@@ -184,7 +184,7 @@ same through four function tools, so the procedures run unchanged:
 commitments only in the work ledger (the post-migration state the skill describes), so
 `commitments.md` is not a file there.
 
-**The state tool runs the same scripts, not a shell.** Each call is a separate process with no
+**The state tool runs the same commands (the C# `margo-state` port), not a shell.** Each call is a separate process with no
 shell, the instance's account and state directory supplied by the service, and input passed on
 stdin or as named files that exist for one call. Every subcommand of every state script is
 classified, and the run mode decides what may run: none when someone else's message started the

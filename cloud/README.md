@@ -56,7 +56,7 @@ and quiet hours need), running as the non-root user the .NET images provide; `ag
 | `Dockerfile` | The image (multi-stage: .NET 10 SDK build, ASP.NET Core runtime) |
 | `azure.yaml`, `infra/main.bicep`, `infra/main.parameters.json` | `azd` project: model, registry, storage, router, provisioner |
 | `infra/instance.bicep`, `infra/instance.json` | One instance's identity, scoped storage role and Container App (rebuild the JSON with `bicep build cloud/infra/instance.bicep --outfile cloud/infra/instance.json`) |
-| `scripts/` | `azd` hooks and helpers: `preprovision.sh`, `postprovision.sh` (roles, image, blueprint connection), `build-image.sh`, `connect-blueprint.sh`, `blueprint.sh` |
+| `scripts/` | `azd` hooks and helpers: `preprovision.sh`, `postprovision.sh` (roles, image, blueprint connection), `build-image.sh`, `connect-blueprint.sh`, `blueprint.sh`, and `lib.sh` (their shared helpers) |
 | `config/mcp.json`, `terms.md`, `assets/` | MCP config, terms and privacy, icons |
 
 ## Layout
