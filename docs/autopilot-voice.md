@@ -11,10 +11,12 @@ confirmed against the official page.
 
 | Part | Where | Tested |
 | --- | --- | --- |
-| Session config, event bridge, tool calls, claim checks | [`voice/session.py`](../autopilot/src/margo_autopilot/voice/session.py) | Offline (`tests/test_autopilot_voice.py`) |
-| Endpoint: page, sign-in config, WebSocket, token verification, manager check, Voice Live | [`voice/server.py`](../autopilot/src/margo_autopilot/voice/server.py) | A full session with real token verification and a fake Voice Live |
-| Browser page: sign-in (PKCE, no library), microphone, playback, barge-in, captions | [`voice/static/`](../autopilot/src/margo_autopilot/voice/static/) | 35 `node --test` tests and a stubbed-browser run; no real browser or microphone |
-| Router voice proxy (HTTP and WebSocket) | `router/app.py` | Against a fake instance |
+| Session config, event bridge, tool calls, claim checks | [`Margo.Cloud.Voice`](../cloud/src/Margo.Cloud.Voice/PORTING.md) (`VoiceSession`) | Offline (`Margo.Cloud.Voice.Tests`) |
+| Endpoint: page, sign-in config, WebSocket, token verification, manager check, Voice Live | `Margo.Cloud.Voice` (`VoiceEndpoints`, `VoiceService`) | A full session with real token verification and a fake Voice Live |
+| Browser page: sign-in (PKCE, no library), microphone, playback, barge-in, captions | [`wwwroot/`](../cloud/src/Margo.Cloud.Voice/wwwroot/README.md) | 35 `node --test` tests and a stubbed-browser run; no real browser or microphone |
+| Router voice proxy (HTTP and WebSocket) | `Margo.Cloud.Router` | Against a fake instance |
+
+Voice was first built in Python and ported to C# with the rest of Margo Cloud; the page moved unchanged.
 
 **Transport change: WebSocket to Margo, not WebRTC.** Azure Container Apps accepts only HTTP and
 TCP, with no UDP, and WebRTC media needs UDP or a TURN relay. So the page sends 20 ms PCM frames
@@ -36,7 +38,7 @@ limits as Margo in Teams. Voice is another way into the same Margo, not a second
 
 ## Requirements
 
-1. **Same Margo.** The same persona file, skills, guard, state tool and `parity.py` list. Voice adds
+1. **Same Margo.** The same persona file, skills, guard, state tool and not-hosted list. Voice adds
    only a short spoken-style note (short sentences, no tables, times read aloud); the persona
    file is unchanged.
 2. **Same guard.** The voice model gets only Margo's function tools. Every call runs on the
@@ -83,7 +85,7 @@ How the pieces connect, as built:
 Browser (Entra sign-in, mic with WebRTC audio processing)
    │  wss: hello{token}, 20 ms PCM frames            ▲ audio, captions, status, interrupt
    ▼                                                  │
-Router  /i/{instance}/voice/ws  ──────────────►  Margo's container (voice/server.py)
+Router  /i/{instance}/voice/ws  ──────────────►  Margo's container (Margo.Cloud.Voice)
                                                    │  verifies the token and the manager
                                                    │  Margo's token + the manager's on-behalf-of token
                                                    │  every tool call through the engine and guard

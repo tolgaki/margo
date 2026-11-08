@@ -30,7 +30,7 @@ public sealed record AgentIdentity(string AgentIdentityId, string AgentUserId);
 
 /// <summary>
 /// One container per hired Margo: names, routes, lifecycle and plans, without any Azure SDK.
-/// Python: <c>margo_autopilot/instances.py</c>. The router, the provisioner and each instance
+/// Python: <c>instances.py</c>. The router, the provisioner and each instance
 /// container use this so they agree on how an instance is named, where it lives and what a
 /// lifecycle event means.
 /// </summary>
@@ -246,14 +246,14 @@ public static class Instances
             : [PlanSteps.RouteRetired, PlanSteps.DeleteApp, PlanSteps.DeleteIdentity];
     }
 
-    /// <summary>ARM parameters for <c>autopilot/infra/instance.json</c>: one instance, from provisioner config.</summary>
+    /// <summary>ARM parameters for <c>cloud/infra/instance.json</c>: one instance, from provisioner config.</summary>
     public static JsonObject DeploymentParameters(string key, ProvisioningMessage message, JsonObject config)
     {
         ArgumentNullException.ThrowIfNull(message);
         return DeploymentParameters(key, message.AgentIdentityId, message.AgentUserId, config);
     }
 
-    /// <summary>ARM parameters for <c>autopilot/infra/instance.json</c>, as <c>{name: {"value": value}}</c>
+    /// <summary>ARM parameters for <c>cloud/infra/instance.json</c>, as <c>{name: {"value": value}}</c>
     /// in Python's order. Optional settings default as in the template; <c>environmentDomain</c> is
     /// configuration for the route URL, not a template parameter.</summary>
     /// <exception cref="RouteException">Required configuration is missing or falsy, the key is not an

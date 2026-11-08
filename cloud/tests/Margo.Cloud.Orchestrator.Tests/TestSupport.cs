@@ -44,7 +44,7 @@ internal static class Fixtures
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
             if (File.Exists(Path.Combine(directory.FullName, "agents", "margo.agent.md"))
-                && File.Exists(Path.Combine(directory.FullName, "autopilot", "src", "margo_autopilot", "orchestrator.py")))
+                && File.Exists(Path.Combine(directory.FullName, "cloud", "Margo.Cloud.slnx")))
             {
                 return directory.FullName;
             }

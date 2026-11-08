@@ -1,12 +1,15 @@
 # Deploy Margo as an Agent 365 agent
 
 [Design](autopilot.md) · [One container per instance](autopilot-instance-containers.md) ·
-[Voice](autopilot-voice.md) · [Autopilot code](../autopilot/README.md) · [Trust and safety](safety.md)
+[Voice](autopilot-voice.md) · [Margo Cloud code](../cloud/README.md) · [Trust and safety](safety.md)
 
-**Status: first deployable version, not yet proven in a live tenant.** Everything here is built
+**Status: first deployable version, not yet proven in a live tenant.** Hosted Margo is **Margo Cloud**, a C#
+(.NET 10) service in [`cloud/`](../cloud/README.md); it replaced the earlier Python runtime. Everything here is built
 and tested offline against fakes and Microsoft's published contracts. Nobody has yet run this
 route end to end in a real tenant. Deploy it first to a **test tenant with fictional users**, and
-treat the first run as the phase-0 verification described in the [design](autopilot.md#10-verification-list-phase-0).
+treat the first run as the phase-0 verification: the step-by-step checklist is
+[Margo.Cloud.Host/VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md), and the [design](autopilot.md#10-verification-list-phase-0)
+says what each check proves.
 Agent 365 and its CLI are in preview; where a step names a CLI flag, check it against
 `a365 --help` for the version you install.
 
@@ -40,12 +43,12 @@ There is no Microsoft Foundry project or hosted agent. Azure AI Services serves 
 
 ## What gets created
 
-`azd provision` in `autopilot/` creates, in one resource group:
+`azd provision` in `cloud/` creates, in one resource group:
 
 | Resource | Why |
 | --- | --- |
 | Azure AI Services account with a chat model deployment | Margo's model, and Voice Live for voice. Entra sign-in only; local keys are off |
-| Azure Container Registry | Holds the Margo image, built in the cloud from this repository |
+| Azure Container Registry | Holds the Margo Cloud image (`cloud/Dockerfile`), built in the cloud from this repository |
 | Log Analytics and Application Insights | Operational logs. Message content capture is off |
 | Storage account (no public access, no shared keys, versioning and 14-day soft delete) | Each hired Margo's private state, the route table and the provisioning queue |
 | Container Apps environment, the **router** app and the **provisioner** job | The public messaging endpoint, and the job that creates one container per hired Margo |
@@ -57,8 +60,11 @@ messaging endpoint. The post-provision hook (`scripts/postprovision.sh`) does th
 1. Grants the router and the provisioner their roles, by role name. The provisioner may grant
    only the four roles an instance needs (an ABAC condition): its state container, image pull,
    the chat model (`Cognitive Services OpenAI User`) and Voice Live (`Cognitive Services User`).
-2. Runs the repository privacy check, builds the image with `az acr build` and pins it by
-   digest. It refuses a checkout with uncommitted changes unless `ALLOW_DIRTY=true`.
+2. Runs the repository privacy check, builds the image from `cloud/Dockerfile` with `az acr build` and pins it
+   by digest. It refuses a checkout with uncommitted changes unless `ALLOW_DIRTY=true`. The one image serves all
+   three roles: the router and the provisioner job run `dotnet /app/router/Margo.Cloud.Router.dll` and
+   `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll run`; instance containers run the host,
+   `dotnet /app/host/Margo.Cloud.Host.dll`.
 3. Once the blueprint exists: switches the router and the provisioner to that image and blueprint,
    then runs `scripts/blueprint.sh`, which adds the blueprint's federated credential for instance
    containers and gives the blueprint Work IQ's delegated `WorkIQAgent.Ask` scope (inheritable by
@@ -92,7 +98,8 @@ messaging endpoint. The post-provision hook (`scripts/postprovision.sh`) does th
 ### Tools on your machine
 
 `az` (Azure CLI), `azd` 1.27.1 or later, the **Agent 365 CLI** (`a365`, a .NET tool), `git`, `curl`
-and `python3`. Docker is not needed; the image is built in Azure Container Registry.
+and `python3` (the hook scripts use it to read JSON). Docker and the .NET SDK are not needed: the image is built
+in Azure Container Registry. To build and test Margo Cloud yourself, see [cloud/README.md](../cloud/README.md).
 
 ### Choose how Margo reads her manager's work
 
@@ -109,10 +116,10 @@ both reach every instance container. After a change, provision and then redeploy
 
 ## 1. Provision Azure
 
-All commands run from `autopilot/` in a clean checkout of this repository.
+All commands run from `cloud/` in a clean checkout of this repository.
 
 ```sh
-cd autopilot
+cd cloud
 az login --tenant {tenant-id}
 azd auth login --tenant-id {tenant-id}
 
@@ -162,7 +169,7 @@ The CLI writes the blueprint's ID to `a365.generated.config.json` as `agentBluep
 ## 3. Connect the blueprint and finish
 
 ```sh
-cd path/to/margo/autopilot
+cd path/to/margo/cloud
 sh scripts/connect-blueprint.sh ~/margo-a365/a365.generated.config.json
 azd provision
 ```
@@ -184,8 +191,8 @@ and cannot read anything without the consent. Every step is idempotent; check ag
    | Short description | Your chief of staff. Proposes; never sends without your yes. |
    | Full description | A personal autopilot that briefs, triages, preps meetings and drafts replies for the person who hires it. Works only for its manager. Every outward action needs that manager's explicit approval of the exact action. |
    | Developer, website | Your organisation; this repository's URL |
-   | Terms of use, privacy | [`autopilot/terms.md`](../autopilot/terms.md) (or your own) |
-   | Icons | `autopilot/assets/` |
+   | Terms of use, privacy | [`cloud/terms.md`](../cloud/terms.md) (or your own) |
+   | Icons | `cloud/assets/` |
    | Respond without @mention in group chats | Off |
 
 2. A Microsoft 365 admin opens the [Microsoft 365 admin center](https://admin.cloud.microsoft/?#/agents/all/requested),
@@ -211,10 +218,11 @@ and cannot read anything without the consent. Every step is idempotent; check ag
 4. Wait a few minutes. The hire event reaches the router, which asks the provisioner to create her
    container (about two minutes). Margo does not message first.
 
-You can also create a container ahead of time:
+You can also create a container ahead of time, with the provisioner's settings (for example as a one-off execution
+of the provisioner job with this command):
 
 ```sh
-python -m margo_autopilot.provision enqueue ensure <agenticAppId> <agenticUserId>
+dotnet /app/provisioner/Margo.Cloud.Provisioner.dll enqueue ensure <agenticAppId> <agenticUserId>
 ```
 
 ### Delegation mode: grant mailbox access
@@ -266,7 +274,7 @@ instances (below). Details, the custom voice and limits: [Voice](autopilot-voice
 | See what Margo read | Application Insights traces named `workiq`: subject, tool, path (no query text), status and outcome. No message content |
 | See her state | Storage account › containers named `margo-i-…`, one per hired Margo, with each manager's state under its own prefix. `state.zip` is current; `daily/` holds one copy per day |
 | Ship a change | Commit, then `azd provision` (it builds and pins a new image for the router and the provisioner), then redeploy all |
-| Redeploy all | `python -m margo_autopilot.provision redeploy-all` with the provisioner's settings, for example as a one-off execution of the provisioner job with that command; or `… enqueue ensure <app> <user> --redeploy` for one |
+| Redeploy all | `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll redeploy-all` with the provisioner's settings, for example as a one-off execution of the provisioner job with that command; or `… enqueue ensure <app> <user> --redeploy` for one |
 | Keep instances warm | Add `"instanceMinReplicas": { "value": 1 }` to `infra/main.parameters.json`, provision, then redeploy all |
 | Retire one instance | Delete it in the admin center: the lifecycle event retires it (app and identity go; state stays). Or `provision enqueue retire …`. Remove any mailbox permissions |
 | Delete a retired instance's state | Delete its `margo-i-…` container after the retention period |
@@ -320,7 +328,7 @@ Foundry and cannot be pointed at your own container, so this route starts with a
   or scale-to-zero starts a fresh thread; durable facts live in her state, not the thread.
 - She has the same persona and skills as desktop Margo. What she cannot do here yet (GitHub
   review load, Azure DevOps work items, the team decision registry, the large-file bridge,
-  approvals and sends) is listed in `autopilot/src/margo_autopilot/parity.py`, and she says so
+  approvals and sends) is listed in `NotHosted` (`cloud/src/Margo.Cloud.Engine/NotHosted.cs`), and she says so
   when a routine needs one of them.
 - Mail is queued, never answered. Word, Excel and PowerPoint comment notifications have no
   handler of their own yet; how they arrive (and so how Margo treats them) is unverified.
@@ -331,3 +339,7 @@ Foundry and cannot be pointed at your own container, so this route starts with a
   sender, conversation and text. Two identical messages in the same thread count as one request.
 - Copilot Credits, licences and Azure usage are charged to the deploying organisation. No cost
   estimate is made here.
+- The image is ASP.NET Core 10 on Alpine plus the `tzdata` package, which the persona's clock and Margo's time zone
+  (`MARGO_TIMEZONE`) need; an image without IANA zone files fails every turn with an unknown time zone. Check
+  `ls /usr/share/zoneinfo/America/Los_Angeles` in a running container (VERIFY.md, step 0). The image has been
+  written and its inputs checked, but not yet built and run in a tenant.

@@ -2,7 +2,7 @@ using System.Text.Json.Nodes;
 
 namespace Margo.Cloud.Core.Tests;
 
-/// <summary>Fictional identities and configuration shared by the tests (tests/test_autopilot_instances.py).</summary>
+/// <summary>Fictional identities and configuration shared by the tests (the former Python instance tests).</summary>
 internal static class Fixtures
 {
     public const string Identity = "agent-identity-1";
@@ -62,7 +62,7 @@ internal static class RepoRoot
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
-            if (File.Exists(Path.Combine(directory.FullName, "autopilot", "infra", "instance.json")))
+            if (File.Exists(Path.Combine(directory.FullName, "cloud", "infra", "instance.json")))
             {
                 return directory.FullName;
             }

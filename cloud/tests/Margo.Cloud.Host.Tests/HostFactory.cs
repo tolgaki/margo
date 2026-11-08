@@ -56,7 +56,7 @@ internal sealed class HostFactory : WebApplicationFactory<Program>
 
     public static Dictionary<string, string?> Defaults(TempState state) => new(StringComparer.Ordinal)
     {
-        // autopilot/infra/instance.bicep
+        // cloud/infra/instance.bicep
         ["MARGO_HOSTING"] = "instance",
         ["MARGO_INSTANCE_KEY"] = "instance-key-1",
         ["MARGO_INSTANCE_AGENT_ID"] = Activities.AgentIdentity,
@@ -72,7 +72,7 @@ internal sealed class HostFactory : WebApplicationFactory<Program>
         ["CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID"] = Tokens.ClientId,
         ["CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID"] = Tokens.TenantId,
         ["CONNECTIONS__SERVICE_CONNECTION__SETTINGS__FEDERATEDCLIENTID"] = "fictional-credential-identity",
-        // autopilot/Dockerfile
+        // cloud/Dockerfile
         ["CONNECTIONS__SERVICE_CONNECTION__SETTINGS__SCOPES__0"] = "api://fictional-agents-service/.default",
         ["CONNECTIONSMAP__0__SERVICEURL"] = "*",
         ["CONNECTIONSMAP__0__CONNECTION"] = "SERVICE_CONNECTION",

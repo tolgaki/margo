@@ -1,7 +1,7 @@
 # Margo.Cloud.Guard: porting notes
 
-Port of `autopilot/src/margo_autopilot/guard.py` (the Work IQ guard: the only path from a hosted Margo's model to
-Microsoft 365) and `autopilot/src/margo_autopilot/claims.py` (execution claims through the approval journal), plus
+Port of `guard.py` (Python hosted runtime, removed at the cutover) (the Work IQ guard: the only path from a hosted Margo's model to
+Microsoft 365) and `claims.py` (Python hosted runtime, removed at the cutover) (execution claims through the approval journal), plus
 `instance.py`'s `InstanceBinding.open_ledger`, which `Margo.Cloud.Core` left out. The Python code is the
 specification; everything not listed under "Deliberate deviations" is meant to behave the same.
 
@@ -154,38 +154,36 @@ specification; everything not listed under "Deliberate deviations" is meant to b
 ## Not ported here
 
 - **`replies.py`** (`ReplyGate`, `load_reply_policy`) belongs to `Margo.Cloud.Orchestrator` (see `cloud/README.md`).
-  Its two tests in `tests/test_autopilot_guard.py` that use the journal (`test_reply_gate_*`) are ported here at
+  Its two tests in the former Python guard tests that use the journal (`test_reply_gate_*`) are ported here at
   the journal level (what the gate loads, compares, dispatches and settles); the gate's own decisions and
   `ReplyPolicyTests` are for the Orchestrator port.
-- **`InstanceBindingTests`** of `tests/test_autopilot_guard.py` are in `Margo.Cloud.Core.Tests`.
-- The `test_autopilot_runtime.py` engine and orchestrator tests that pass through the guard belong to those ports.
+- **`InstanceBindingTests`** of the former Python guard tests are in `Margo.Cloud.Core.Tests`.
+- The the former Python runtime tests engine and orchestrator tests that pass through the guard belong to those ports.
 
 ## Tests and evidence
 
 `cloud/tests/Margo.Cloud.Guard.Tests` (1770 test cases), fakes for the transport and tokens, a real temporary
 `Ledger` for claims:
 
-- `GuardPolicyTests`: every test of `GuardPolicyTests` in `tests/test_autopilot_guard.py` (19).
+- `GuardPolicyTests`: every test of `GuardPolicyTests` in the former Python guard tests (19).
 - `GuardedWriteTests`: the 13 guard tests of `GuardedWriteTests` there, against the real approval journal (receipts:
   action and attempt IDs, journal state, paths, status codes; ledger receipts: `status_code`, `reference`,
   `definitive_no_effect`; the `workiq_dispatched` event).
 - `ClaimJournalTests`: `claims.py` against the real ledger (every `ClaimError` message, the claim fields, the
   dispatched event, settle receipts, the approver of the current revision, another instance's account) and the two
   reply-gate tests at the journal level. Expected messages were checked against `claims.py` on the same scenarios.
-- `DelegationTests`: `DelegationTests` of `tests/test_autopilot_runtime.py` (5).
+- `DelegationTests`: `DelegationTests` of the former Python runtime tests (5).
 - `GuardRuntimeTests`: cancellation, the recorder hook, result and receipt shapes, payload copies, concurrent
   budgets, concurrent claimed writes (the journal is never entered by two calls at once), the `jsonBody` nesting
   boundary, constants, `OpenLedger`.
 - `GuardParityTests`: 1709 scenarios (809 hand-written for every branch, 900 seeded random; 1717 calls) recorded from
-  `guard.py` by `Parity/guard_cases.py` into `Parity/guard_cases.json`, replayed against the C# guard: same
+  `guard.py` into `Parity/guard_cases.json` (frozen at the cutover; see **Cutover**), replayed against the C# guard: same
   response, receipt (apart from its time stamp), transport call (tool, arguments, bearer), token requests and journal
-  interaction, compared as `json.dumps` text. Also `model_tools()` and `_status_codes`. `Fixture_is_current_with_guard_py`
-  runs `guard_cases.py --check`, so a change to `guard.py` fails the suite until the fixture is regenerated.
+  interaction, compared as `json.dumps` text. Also `model_tools()` and `_status_codes`. Until the cutover
+  `Fixture_is_current_with_guard_py` ran `guard_cases.py --check`; both were removed with `guard.py`.
 
 ```sh
 cd cloud && dotnet test --project tests/Margo.Cloud.Guard.Tests/Margo.Cloud.Guard.Tests.csproj
-python3 cloud/tests/Margo.Cloud.Guard.Tests/Parity/guard_cases.py --check   # fixture still matches guard.py
-python3 cloud/tests/Margo.Cloud.Guard.Tests/Parity/guard_cases.py --write   # regenerate after guard.py changes
 ```
 
 Verification at commit (re-run after the review fix): `dotnet build cloud/Margo.Cloud.slnx` 0 warnings;
@@ -217,3 +215,13 @@ version; the fixture was recorded on 3.13). These are policy and contract tests,
 4. **Hosted writes.** As in Python, the orchestrator builds its guard without a journal, so hosted turns have no
    claimed-write path today (the engine also refuses write tools before the guard). The journal path is complete
    and tested for when that changes; the `LedgerClaimJournal`'s ledger then needs one owner per call.
+
+## Cutover
+
+The Python hosted runtime was removed in the Phase 6 cutover. It was the specification of this
+port; the C# code is now the implementation of record, and the desktop state helpers in
+`skills/chief-of-staff/scripts/` stay the specification of the state commands (`tools/state_parity.py`).
+
+- `Parity/guard_cases.json` is frozen: `guard_cases.py --check` passed just before the cutover, and the script and
+  `Fixture_is_current_with_guard_py` were removed with `guard.py`. The 1709 replayed scenarios remain the guard's
+  regression baseline; a deliberate change to the guard's behaviour now edits the fixture by hand, with review.

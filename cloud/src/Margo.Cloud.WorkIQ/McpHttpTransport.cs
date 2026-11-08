@@ -11,7 +11,7 @@ namespace Margo.Cloud.WorkIQ;
 
 /// <summary>
 /// Minimal MCP client for the Work IQ endpoint (streamable HTTP, JSON-RPC 2.0); the port of
-/// <c>autopilot/src/margo_autopilot/transport.py</c>.
+/// the former Python <c>transport.py</c>.
 /// </summary>
 /// <remarks>
 /// <para>It does one thing: send a <c>tools/call</c> to <see cref="WorkIQEndpoints.McpUrl"/> with the bearer

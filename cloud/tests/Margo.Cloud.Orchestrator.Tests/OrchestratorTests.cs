@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace Margo.Cloud.Orchestrator.Tests;
 
 /// <summary>
-/// <c>OrchestratorTests</c> of <c>tests/test_autopilot_runtime.py</c> (including the instance-mode and voice-link tests),
+/// <c>OrchestratorTests</c> of the former Python runtime tests (including the instance-mode and voice-link tests),
 /// with a fake model, a fake Work IQ directory, the in-memory lease store, real temporary state and the real
 /// <c>margo-state</c> CLI (see <see cref="StateCli"/>), plus the statuses and rules the Python tests do not reach.
 /// </summary>

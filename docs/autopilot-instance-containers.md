@@ -1,7 +1,8 @@
 # Plan: one container per hired Margo
 
-**Status: built, 18 October 2026; since 6 November 2026 the only way Margo is hosted. Unproven in
-a live tenant.** Deploy it with the [deployment guide](autopilot-deployment.md).
+**Status: built, 18 October 2026; since 6 November 2026 the only way Margo is hosted; since the Phase 6 cutover
+(November 2026) every part is C# in [Margo Cloud](../cloud/README.md). Unproven in a live tenant.** Deploy it with the
+[deployment guide](autopilot-deployment.md).
 
 ## Self-hosted for Agent 365
 
@@ -27,14 +28,15 @@ the same persona and skills, and no general shell.
 
 | Part | Where | Tested |
 | --- | --- | --- |
-| Names, route table, lifecycle mapping, plans | [`instances.py`](../autopilot/src/margo_autopilot/instances.py) | Offline (`tests/test_autopilot_instances.py`) |
-| Router: platform-token check, forwarding, lifecycle to the queue, voice proxy | [`router/`](../autopilot/src/margo_autopilot/router/) | Decisions offline; the aiohttp app against a fake instance |
-| Provisioner job: deploy, suspend, retire, route table with ETags | [`provision/`](../autopilot/src/margo_autopilot/provision/) | Steps offline with a fake cloud; SDK calls checked against the libraries |
-| One instance: identity, scoped storage role, Container App | [`infra/instance.bicep`](../autopilot/infra/instance.bicep) → `instance.json` | Compiled with Bicep before the Agent 365 change; `instance.json` since edited by hand to match, with parameters checked against the provisioner. Rebuild with `bicep build` before deploying |
-| Shared: model, environment, router, provisioner job, queue, route table | [`infra/main.bicep`](../autopilot/infra/main.bicep) | Compiled with Bicep before the Agent 365 change; since edited by hand and checked by tests, not recompiled |
-| Roles by name, image, router and job update | [`scripts/postprovision.sh`](../autopilot/scripts/postprovision.sh) | Syntax; its required values checked against the Bicep outputs |
-| Blueprint: federated credential, Work IQ scope and consent | [`scripts/blueprint.sh`](../autopilot/scripts/blueprint.sh), [`connect-blueprint.sh`](../autopilot/scripts/connect-blueprint.sh) | Syntax only |
-| Instance mode in the host and orchestrator | `host/app.py`, `orchestrator.py`, `statesync.py` | Offline; the host started in instance mode |
+| Names, route table, lifecycle mapping, plans | [`Margo.Cloud.Core`](../cloud/src/Margo.Cloud.Core/Instances.cs) | Offline (`Margo.Cloud.Core.Tests`) |
+| Router: platform-token check, forwarding, lifecycle to the queue, voice proxy | [`Margo.Cloud.Router`](../cloud/src/Margo.Cloud.Router/PORTING.md) | Decisions offline; the ASP.NET Core app against a fake instance (`Margo.Cloud.Router.Tests`) |
+| Provisioner job: deploy, suspend, retire, route table with ETags | [`Margo.Cloud.Provisioner`](../cloud/src/Margo.Cloud.Provisioner/PORTING.md) | Steps offline with a fake cloud; SDK calls checked against the libraries |
+| One instance: identity, scoped storage role, Container App | [`infra/instance.bicep`](../cloud/infra/instance.bicep) → `instance.json` | Compiled with Bicep before the Agent 365 change; `instance.json` since edited by hand to match (at the cutover: the host's container command), with parameters checked against the provisioner. Rebuild with `bicep build` before deploying |
+| Shared: model, environment, router, provisioner job, queue, route table | [`infra/main.bicep`](../cloud/infra/main.bicep) | Compiled with Bicep before the Agent 365 change; since edited by hand and checked by tests, not recompiled |
+| One image for all three roles | [`cloud/Dockerfile`](../cloud/Dockerfile) | Inputs and each Release publish checked; not yet built and run in Azure |
+| Roles by name, image, router and job update | [`scripts/postprovision.sh`](../cloud/scripts/postprovision.sh) | Syntax; its required values checked against the Bicep outputs |
+| Blueprint: federated credential, Work IQ scope and consent | [`scripts/blueprint.sh`](../cloud/scripts/blueprint.sh), [`connect-blueprint.sh`](../cloud/scripts/connect-blueprint.sh) | Syntax only |
+| Instance mode in the host and orchestrator | `Margo.Cloud.Host`, `Margo.Cloud.Orchestrator` (`StateSync`) | Offline; the host started in instance mode |
 
 Nothing was deployed: no Azure subscription or tenant was used.
 
@@ -114,8 +116,9 @@ only from the router (internal ingress).
   for another instance is refused, as defence in depth behind the router.
 - **Host:** accepts only router-forwarded requests (internal token check), and gets its Blob
   container name and identity from configuration.
-- **New `router` service:** a small aiohttp app; stateless; route table from the provisioner.
-- **New `provisioner`:** Python with the Azure management SDKs, plus a per-instance Bicep module
+- **New `router` service:** a small ASP.NET Core app (`Margo.Cloud.Router`; first built in Python with aiohttp);
+  stateless; route table from the provisioner.
+- **New `provisioner`:** C# with the Azure management SDKs (`Margo.Cloud.Provisioner`), plus a per-instance Bicep module
   (identity, container, role assignment, Container App from a pinned image digest).
 - **Unchanged:** guard, engine, skills, state tool, parity test, `StateSync`.
 

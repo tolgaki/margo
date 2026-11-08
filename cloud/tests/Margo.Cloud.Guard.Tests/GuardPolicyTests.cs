@@ -6,7 +6,7 @@ using static Margo.Cloud.Guard.Tests.Fixtures;
 
 namespace Margo.Cloud.Guard.Tests;
 
-/// <summary>Port of <c>tests/test_autopilot_guard.py</c> <c>GuardPolicyTests</c> (fictional identifiers only).</summary>
+/// <summary>Port of the former Python guard tests <c>GuardPolicyTests</c> (fictional identifiers only).</summary>
 public sealed class GuardPolicyTests
 {
     private FakeTokens _tokens = new();

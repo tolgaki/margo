@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Margo.Cloud.Core;
@@ -10,10 +9,11 @@ using Xunit;
 namespace Margo.Cloud.Guard.Tests;
 
 /// <summary>
-/// Replays every scenario recorded from <c>guard.py</c> by <c>Parity/guard_cases.py</c> and requires the same
+/// Replays every scenario recorded from the Python <c>guard.py</c> in <c>Parity/guard_cases.json</c> and requires the same
 /// response, the same receipt (apart from its time stamp), the same transport call, the same token requests and the
 /// same journal interaction, compared as Python <c>json.dumps</c> text (key order and int/float/bool distinctions
-/// included). The fakes mirror the script's.
+/// included). The fakes mirror the recording script's. The Python guard and its recorder were removed at the cutover, so
+/// the fixture is now frozen: it is the guard's regression baseline (see PORTING.md).
 /// </summary>
 public sealed partial class GuardParityTests
 {
@@ -48,52 +48,6 @@ public sealed partial class GuardParityTests
             GuardStatuses.Ok, GuardStatuses.Partial, GuardStatuses.Error, GuardStatuses.Unknown, GuardStatuses.Refused,
             GuardStatuses.Unavailable, GuardStatuses.Blocked, GuardStatuses.BudgetExhausted,
         }, statuses);
-    }
-
-    /// <summary>
-    /// <c>guard_cases.py --check</c>: the fixture is still what <c>guard.py</c> decides today, so a change to the Python
-    /// guard fails here until the fixture is regenerated and the port follows it.
-    /// </summary>
-    [Fact]
-    public async Task Fixture_is_current_with_guard_py()
-    {
-        var repository = FindRepository();
-        var python = FindOnPath("python3");
-        if (python is null)
-        {
-            Assert.Skip("python3 is not installed; the fixture check needs CPython");
-        }
-
-        var start = new ProcessStartInfo(python)
-        {
-            WorkingDirectory = repository,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-        foreach (var argument in new[] { "-s", Path.Combine(repository, "cloud", "tests", "Margo.Cloud.Guard.Tests", "Parity", "guard_cases.py"), "--check" })
-        {
-            start.ArgumentList.Add(argument);
-        }
-
-        using var process = Process.Start(start)!;
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        timeout.CancelAfter(TimeSpan.FromMinutes(5));
-        var stdout = process.StandardOutput.ReadToEndAsync(timeout.Token);
-        var stderr = process.StandardError.ReadToEndAsync(timeout.Token);
-        try
-        {
-            await process.WaitForExitAsync(timeout.Token);
-        }
-        catch (OperationCanceledException)
-        {
-            process.Kill(entireProcessTree: true);
-            throw;
-        }
-
-        var report = await stdout + await stderr;
-        Assert.True(process.ExitCode == 0, "guard_cases.py --check failed:\n" + report);
-        Assert.Contains("guard_cases.json matches guard.py", report, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -158,24 +112,6 @@ public sealed partial class GuardParityTests
         var path = Path.Combine(AppContext.BaseDirectory, "Parity", "guard_cases.json");
         return PyJson.Loads(File.ReadAllText(path))!.AsObject();
     }
-
-    private static string FindRepository()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "autopilot", "src", "margo_autopilot", "guard.py")))
-            {
-                return directory.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("repository root with autopilot/src/margo_autopilot/guard.py not found above " + AppContext.BaseDirectory);
-    }
-
-    private static string? FindOnPath(string name) =>
-        (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-            .Select(directory => Path.Combine(directory, name))
-            .FirstOrDefault(File.Exists);
 
     private sealed class ParityTokens(JsonObject? spec) : ITokenProvider
     {

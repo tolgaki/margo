@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Outcomes recorded from transport.py by Parity/transport_cases.py. -->
+    <!-- Outcomes recorded from the Python transport.py before the cutover (frozen). -->
     <None Include="Parity/transport_cases.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

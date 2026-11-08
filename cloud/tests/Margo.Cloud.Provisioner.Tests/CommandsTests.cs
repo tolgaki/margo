@@ -86,7 +86,7 @@ public sealed partial class CommandsTests : IDisposable
         // Python: 18 messages (a good ensure, "not json", a suspend without a dequeue count and 15
         // other instances) are all deleted, and the job logs "processed 18 message(s)".
         SetJobEnvironment();
-        _environment["MARGO_INSTANCE_TEMPLATE"] = Path.Combine(RepoRoot.Find(), "autopilot", "infra", "instance.json");
+        _environment["MARGO_INSTANCE_TEMPLATE"] = Path.Combine(RepoRoot.Find(), "cloud", "infra", "instance.json");
         _queue.Add(Message("ensure"));
         _queue.Add("not json");
         _queue.Add(Message("suspend"));
@@ -320,7 +320,7 @@ public sealed partial class CommandsTests : IDisposable
     public void The_template_is_copied_next_to_the_binary_and_can_be_overridden()
     {
         Assert.Equal(Path.Combine(AppContext.BaseDirectory, "instance.json"), ProvisionerConfig.DefaultTemplatePath);
-        var source = File.ReadAllText(Path.Combine(RepoRoot.Find(), "autopilot", "infra", "instance.json"));
+        var source = File.ReadAllText(Path.Combine(RepoRoot.Find(), "cloud", "infra", "instance.json"));
         Assert.Equal(source, File.ReadAllText(ProvisionerConfig.DefaultTemplatePath));
         var template = ProvisionerConfig.LoadTemplate(_ => null);
         Assert.Equal(JsonNode.Parse(source)!.ToJsonString(), template!.ToJsonString());

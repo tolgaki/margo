@@ -4,13 +4,13 @@ using static Margo.Cloud.Core.Tests.Fixtures;
 
 namespace Margo.Cloud.Core.Tests;
 
-/// <summary>tests/test_autopilot_instances.py NamesAndRoutes.test_route_table_round_trip_and_validation, plus
+/// <summary>The former Python instance tests' NamesAndRoutes.test_route_table_round_trip_and_validation, plus
 /// byte-for-byte compatibility with blobs the Python provisioner writes.</summary>
 public sealed class RouteTableTests
 {
     private const string OtherKey = "7688250577852fdae674";
 
-    // Golden blobs written by margo_autopilot.instances.RouteTable.dumps with the clock at Fixtures.Now.
+    // Golden blobs written by the Python instances.py RouteTable.dumps with the clock at Fixtures.Now.
     private const string EmptyBlob = """
         {
          "routes": {},

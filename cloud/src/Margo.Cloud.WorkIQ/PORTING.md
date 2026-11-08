@@ -1,6 +1,6 @@
 # Margo.Cloud.WorkIQ: porting notes
 
-Port of `autopilot/src/margo_autopilot/transport.py`, the standard-library MCP client for
+Port of `transport.py` (Python hosted runtime, removed at the cutover), the standard-library MCP client for
 `https://workiq.svc.cloud.microsoft/mcp`, plus the transport-facing pieces of `guard.py` that the
 transport raises or defaults to. The Python code is the specification; everything below that is not
 listed under "Deliberate deviations" is meant to behave the same.
@@ -165,7 +165,7 @@ already processed. With one request per connection that resend cannot happen.
   the Python normalisation of tool results. No package was added.
 - **`guard.WORKIQ_RESOURCE`** (the token audience). The transport does not use it; it stays with the guard or
   host port.
-- **The guard's own tests** (`tests/test_autopilot_guard.py`) use a fake transport and belong to the Guard
+- **The guard's own tests** (the former Python guard tests) use a fake transport and belong to the Guard
   port. None of them exercises `transport.py` directly.
 
 ## Tests and evidence
@@ -179,21 +179,19 @@ already processed. With one request per connection that resend cannot happen.
   failures, id sequence, concurrency, detachment, user info in the URL, and the failure classification
   table above.
 - `TransportParityTests`: 89 response shapes whose outcomes were recorded from the real `_parse_body` and
-  `_normalise` by `Parity/transport_cases.py` into `Parity/transport_cases.json` (read back with
+  `_normalise` into `Parity/transport_cases.json` (frozen at the cutover; see **Cutover**) (read back with
   `PythonJson.Loads`, because expected values may hold lone surrogates).
-- `Parity/transport_paths.py`: runs the real `McpHttpTransport` through 28 network scenarios (hang-up, bad
+- `transport_paths.py` (removed at the cutover; it imported the Python transport) ran the real `McpHttpTransport` through 28 network scenarios (hang-up, bad
   status line, truncated, stalled and trickled bodies, an OS-level timeout and a reset while reading the body
   (simulated by patching `HTTPResponse.read`), notification 404, session forgotten twice, unsendable versions
-  and tokens, user info in the URL, refused connection) and checks Python's outcome is the one the C# tests
-  assert. It is a separate script; `dotnet test` does not run it.
+  and tokens, user info in the URL, refused connection) and checked that Python's outcome was the one the C#
+  tests assert (28 of 28 matched in its last run, just before the cutover).
 - `PythonJsonTests`, `ScriptedHandlerTests`: Python value rules (including the 4300-digit integer limit and
   lone surrogates), and failure classes a socket cannot produce on demand (OS-level timeout before and while
   reading the body, failure before vs after sending, redirect-following handlers).
 
 ```sh
 cd cloud && dotnet test --project tests/Margo.Cloud.WorkIQ.Tests/Margo.Cloud.WorkIQ.Tests.csproj
-python3 cloud/tests/Margo.Cloud.WorkIQ.Tests/Parity/transport_cases.py --check   # fixture still matches transport.py
-python3 cloud/tests/Margo.Cloud.WorkIQ.Tests/Parity/transport_paths.py           # Python network paths
 ```
 
 Not verified: anything against the real Work IQ endpoint, TLS or a proxy (all tests are loopback or
@@ -230,3 +228,12 @@ that failed before the fix and a Python check that confirms the expected outcome
   parsed them, with unbounded `BigInteger` work on server-sent numbers.
 - **Lone surrogate characters** inside a JSON string in a content text item became U+FFFD; Python keeps them.
   Also, a float `id` beyond 2^53 now compares with the request id exactly, as Python does.
+
+## Cutover
+
+The Python hosted runtime was removed in the Phase 6 cutover. It was the specification of this
+port; the C# code is now the implementation of record, and the desktop state helpers in
+`skills/chief-of-staff/scripts/` stay the specification of the state commands (`tools/state_parity.py`).
+
+- `Parity/transport_cases.json` is frozen (`transport_cases.py --check` passed just before the cutover);
+  `transport_cases.py` and `transport_paths.py` were removed with `transport.py`.

@@ -5,7 +5,7 @@ using Margo.Cloud.State.Core;
 
 namespace Margo.Cloud.Voice.Tests;
 
-/// <summary><c>tests/test_autopilot_voice.py</c> <c>SessionConfiguration</c>, plus the settings' environment rules.</summary>
+/// <summary>the former Python voice tests <c>SessionConfiguration</c>, plus the settings' environment rules.</summary>
 public sealed class SessionConfigurationTests
 {
     private static readonly VoiceSettings Settings = new("fictional-realtime", MaxToolCalls: 3);
@@ -88,10 +88,25 @@ public sealed class SessionConfigurationTests
     [Fact]
     public void Addendum_and_disclosure_are_python_s_text()
     {
-        var python = File.ReadAllText(Path.Combine(Fixtures.Root, "autopilot", "src", "margo_autopilot", "voice", "session.py"));
-        Assert.Contains("VOICE_ADDENDUM = \"\"\"" + VoiceSession.Addendum + "\"\"\"\n", python, StringComparison.Ordinal);
-        Assert.Contains("DISCLOSURE = \"" + VoiceSession.Disclosure + "\"\n", python, StringComparison.Ordinal);
-        Assert.Contains("DEFAULT_VOICE = \"" + VoiceSession.DefaultVoice + "\"\n", python, StringComparison.Ordinal);
+        // voice/session.py's VOICE_ADDENDUM, DISCLOSURE and DEFAULT_VOICE, as they were when the cutover removed it.
+        var python = """
+                     # Speaking
+
+                     This conversation is spoken. Your manager hears you through a synthetic voice, and you hear them
+                     through speech recognition, which can mishear.
+                     - Begin your first reply by saying, in a few words, that you are Margo, an AI assistant.
+                     - Speak in short sentences. No tables, Markdown, links read aloud or emoji. Say times and dates the
+                       way people say them, in your manager's time zone.
+                     - Before a lookup that takes time, say in a few words what you are checking.
+                     - Nothing is approved or sent by voice. When something needs approval, say exactly what you would
+                       do and that the approval happens in Teams.
+                     - If you are unsure what you heard, or who is speaking, ask before acting on it.
+
+                     """.ReplaceLineEndings("\n");
+        string addendum = VoiceSession.Addendum;
+        Assert.Equal(python, addendum);
+        Assert.Equal("You're talking to Margo, an AI assistant. Her voice is synthetic. Audio is not recorded.", VoiceSession.Disclosure);
+        Assert.Equal("en-US-Ava:DragonHDLatestNeural", VoiceSession.DefaultVoice);
     }
 
     [Fact]
@@ -109,7 +124,7 @@ public sealed class SessionConfigurationTests
     }
 }
 
-/// <summary><c>tests/test_autopilot_voice.py</c> <c>Bridge</c>, plus the cases the Python tests do not reach.</summary>
+/// <summary>the former Python voice tests <c>Bridge</c>, plus the cases the Python tests do not reach.</summary>
 public sealed class BridgeTests
 {
     private static readonly VoiceSettings Settings = new("fictional-realtime", MaxToolCalls: 3);
@@ -294,7 +309,7 @@ public sealed class BridgeTests
     }
 }
 
-/// <summary><c>tests/test_autopilot_voice.py</c> <c>Claims</c>.</summary>
+/// <summary>the former Python voice tests <c>Claims</c>.</summary>
 public sealed class ClaimsTests
 {
     private const double Now = 1_800_000_000;

@@ -4,7 +4,7 @@ using static Margo.Cloud.Core.Tests.Fixtures;
 
 namespace Margo.Cloud.Core.Tests;
 
-/// <summary>tests/test_autopilot_instances.py NamesAndRoutes.test_lifecycle_events_map_to_provisioning_actions,
+/// <summary>The former Python instance tests' NamesAndRoutes.test_lifecycle_events_map_to_provisioning_actions,
 /// activity_identity, and the provisioning queue message format.</summary>
 public sealed class LifecycleTests
 {

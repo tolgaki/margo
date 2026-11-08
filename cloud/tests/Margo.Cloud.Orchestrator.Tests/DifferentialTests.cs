@@ -7,7 +7,7 @@ using Margo.Cloud.State.Core;
 namespace Margo.Cloud.Orchestrator.Tests;
 
 /// <summary>
-/// Generated inputs answered by the Python helpers (the specification, <c>Parity/orchestrator_differential.py</c>) and
+/// Generated inputs answered by the Python helpers (recorded in <c>Parity/orchestrator_answers.json</c> before the cutover) and
 /// by the port: the reply setting, the manager's commands, <c>set_reply_mode</c>, <c>_manager_from</c>, the office
 /// excerpt and conversation key, and the reply gate. Seeded, so a failure names a reproducible case.
 /// </summary>
@@ -51,13 +51,12 @@ public sealed class DifferentialTests
         }
 
         using var state = new TempState();
-        var input = state.Combine("cases.json");
-        File.WriteAllText(input, PyJson.Dumps(cases));
-        var script = Path.Combine(AppContext.BaseDirectory, "Parity", "orchestrator_differential.py");
-        var (status, stdout, stderr) = Programs.RunWithInput(Fixtures.Python(), ["-B", "-I", script, Fixtures.Root, state.Combine("python")],
-                                                             File.ReadAllText(input));
-        Assert.True(status == 0, "orchestrator_differential.py failed:\n" + stderr);
-        var python = (JsonArray)PyJson.Loads(stdout)!;
+        var digest = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(PyJson.Dumps(cases))));
+        // The Python helpers' answers, recorded before the cutover removed them. The generator is seeded; a changed
+        // generator has no recorded answers and fails here rather than passing.
+        var recorded = (JsonObject)PyJson.Loads(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Parity", "orchestrator_answers.json")))!;
+        Assert.True(PyNode.AsString(recorded["cases_sha256"]) == digest, "the generated cases changed; the recorded Python answers no longer apply");
+        var python = (JsonArray)recorded["answers"]!;
         Assert.Equal(cases.Count, python.Count);
 
         var failures = new List<string>();

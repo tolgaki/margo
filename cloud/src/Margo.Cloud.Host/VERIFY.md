@@ -9,13 +9,16 @@ not a pass.
 
 ## 0. Before you start
 
-1. Build and publish: `dotnet publish cloud/src/Margo.Cloud.Host -c Release`. Confirm the output holds
-   `Margo.Cloud.Host.dll`, `margo-state.dll`, `margo-state.runtimeconfig.json`, and **no** `Margo.Cloud.State.Probes.dll`
-   (the build fails if it would).
-2. Image: .NET 10 ASP.NET runtime, the published output, `agents/` and `skills/` under `/app`, and the `tzdata` package
-   (`ls /usr/share/zoneinfo/America/Los_Angeles` inside the container must succeed). Entry point
-   `dotnet Margo.Cloud.Host.dll`. Keep the Dockerfile's `ENV` lines unchanged.
-3. Deploy one instance with `autopilot/infra/instance.bicep` exactly as for the Python image (only the image changes).
+1. Build the image from the repository root: `sh cloud/scripts/build-image.sh` (Azure Container Registry), or locally
+   `docker build --file cloud/Dockerfile --tag margo-cloud:dev .`. The build publishes the host, router and provisioner
+   in Release and refuses the image if any contract-probe assembly reached an output. Inside the image, confirm
+   `/app/host` holds `Margo.Cloud.Host.dll`, `margo-state.dll` and `margo-state.runtimeconfig.json`, and **no**
+   `Margo.Cloud.State.Probes.dll`.
+2. Image: `cloud/Dockerfile` (ASP.NET Core 10 runtime on Alpine, `agents/` and `skills/` under `/app`, non-root user).
+   `ls /usr/share/zoneinfo/America/Los_Angeles` inside the container must succeed (the `tzdata` package). The default
+   command is `dotnet /app/host/Margo.Cloud.Host.dll`. Keep the Dockerfile's `ENV` lines unchanged.
+3. Deploy one instance with `cloud/infra/instance.bicep` (through the provisioner or by hand), and the router and
+   provisioner with `cloud/infra/main.bicep` (`azd provision` from `cloud/`).
 4. Turn on `LOG_LEVEL=INFO` (the default). Have the container's log stream and Application Insights open.
 
 ## 1. Start-up

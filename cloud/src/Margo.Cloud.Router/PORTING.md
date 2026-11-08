@@ -1,6 +1,6 @@
 # Margo.Cloud.Router: porting notes
 
-Ports `autopilot/src/margo_autopilot/router/core.py` and `router/app.py`: the public front door that
+Ports `router/core.py` (Python hosted runtime, removed at the cutover) and `router/app.py`: the public front door that
 checks the platform token, forwards each activity to the one container serving the addressed
 instance, turns lifecycle notifications and first activities into provisioning messages, and proxies
 the voice page and its WebSocket. Instance names, the route table and lifecycle mapping come from
@@ -99,7 +99,7 @@ by the tests, to mint a token the way Microsoft's libraries do and show it is ac
 
 ## Configuration
 
-The environment variables the Python router read, which `autopilot/infra/main.bicep` sets (read through
+The environment variables the Python router read, which `cloud/infra/main.bicep` sets (read through
 `IConfiguration`, where `A__B` is the key `A:B`): `CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID`
 and `...__TENANTID` (both required, checked first: the router exits with
 `the agent blueprint client ID is not set; see docs/autopilot-deployment.md` and status 1),
@@ -221,7 +221,7 @@ ingress target port) and `LOG_LEVEL` (default `INFO`; Python's level names).
 
 - `AgentAuthConfiguration` features the router never configured: anonymous access, US Government
   authorities, `VALIDATE_ISSUER`, explicit issuer lists, several connections.
-- `python -m margo_autopilot.router` in `main.bicep`'s container command: the C# image needs its own
+- (Done at the cutover: `main.bicep` runs `dotnet /app/router/Margo.Cloud.Router.dll`.) The Python container command: the C# image needed its own
   entry point (infrastructure is outside this project; see open questions).
 
 ## Tests
@@ -230,7 +230,7 @@ ingress target port) and `LOG_LEVEL` (default `INFO`; Python's level names).
 raw request targets, a fake instance on a loopback port, fake Blob/Queue/key sources, a hand-moved
 clock, tokens signed with RSA keys generated in the test):
 
-- `RouterDecisionTests`: `tests/test_autopilot_instances.py` `RouterDecisions` scenario for scenario,
+- `RouterDecisionTests`: the former Python instance tests `RouterDecisions` scenario for scenario,
   plus `decide`/`voice_target` values computed with the Python functions.
 - `TokenValidationTests`, `SigningKeyCacheTests`: the token check and key cache. Every expected
   outcome (status and which key set was fetched) was produced by running the same cases through the
@@ -254,7 +254,7 @@ clock, tokens signed with RSA keys generated in the test):
   and the odd-exponent check of key sets. The side-by-side run (about 230 fixed requests, 13 WebSocket
   scenarios and 700 generated tokens) left only the differences listed under the deviations above.
 
-`tests/test_autopilot_runtime.py` has no router tests (its only router reference is a voice URL in an
+the former Python runtime tests has no router tests (its only router reference is a voice URL in an
 orchestrator test); there is nothing more to port from it. The probe scripts that drove the Python
 router are not in the repository (they import the scratch venv); the outcomes are in the tests.
 
@@ -265,15 +265,23 @@ router are not in the repository (they import the scratch venv); the outcomes ar
   owner may want the same fix.
 - **Issuer validation**: Python accepted tokens from any issuer for the blueprint audience (the SDK's
   `VALIDATE_ISSUER` off). Turning it on is a behaviour change for both implementations, not a port.
-- **Deployment**: `main.bicep` runs the router with `python -m margo_autopilot.router`; a C# image
+- **Deployment** (resolved at the cutover: `cloud/Dockerfile`, `main.bicep` runs the C# router): `main.bicep` ran the router with the Python module; a C# image
   needs a different command (for example `dotnet Margo.Cloud.Router.dll`). The environment variables
   and port are unchanged.
 - **`HOST`** `0.0.0.0` listens on IPv4 only, as aiohttp did with that value.
 - **Which Python is the reference.** This port follows the venv (Python 3.13.16, aiohttp 3.14.5), but
-  `autopilot/Dockerfile` builds the image from `python:3.12-slim`. Where they differ the deployed
+  the Python image's Dockerfile (removed at the cutover) builds the image from `python:3.12-slim`. Where they differ the deployed
   Python behaved otherwise: 3.12's `binascii.a2b_base64` stopped at the first complete padding (3.13
   skips `=` before the end), which changes the WebSocket key and key set decoding for inputs with a `=`
   inside, and 3.12's JSON nesting limit is lower. Neither matters for real browsers or Microsoft's keys.
 - **Configuration keys** are read through `IConfiguration`, which also takes `appsettings.json`,
   command-line arguments and `DOTNET_`/`ASPNETCORE_`-prefixed variables, and ignores case; Python read
   the exact environment variable names only. The infrastructure sets only the exact names.
+
+## Cutover
+
+The Python hosted runtime was removed in the Phase 6 cutover. It was the specification of this
+port; the C# code is now the implementation of record, and the desktop state helpers in
+`skills/chief-of-staff/scripts/` stay the specification of the state commands (`tools/state_parity.py`).
+
+- `main.bicep` runs `dotnet /app/router/Margo.Cloud.Router.dll` from the one Margo Cloud image (`cloud/Dockerfile`).

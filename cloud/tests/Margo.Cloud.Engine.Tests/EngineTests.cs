@@ -4,7 +4,7 @@ using Margo.Cloud.State.Core;
 
 namespace Margo.Cloud.Engine.Tests;
 
-/// <summary><c>EngineTests</c> of <c>tests/test_autopilot_runtime.py</c>, plus the request shape and dispatch rules of <c>engine.py</c>.</summary>
+/// <summary><c>EngineTests</c> of the former Python runtime tests, plus the request shape and dispatch rules of <c>engine.py</c>.</summary>
 public sealed class EngineTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 17, 8, 0, 0, TimeSpan.Zero);
@@ -188,6 +188,8 @@ public sealed class EngineTests
     [Fact]
     public async Task Dispatch_matches_the_python_engine()
     {
+        using var temp = new TempRoot();
+        var root = FixtureLibrary.Create(temp.Path);
         string?[][] cases =
         [
             ["workiq-fetch", """{"on_data_of": "principal", "entityUrls": ["/me/messages"]}""", RunModes.Attended, null],
@@ -221,9 +223,10 @@ public sealed class EngineTests
         var request = new JsonObject
         {
             ["dispatch"] = new JsonArray(cases.Select(c => (JsonNode?)new JsonArray(c.Select(v => (JsonNode?)(v is null ? null : JsonValue.Create(v))).ToArray())).ToArray()),
+            ["library"] = new JsonObject { ["root"] = root },
         };
         var python = (JsonArray)Programs.AskPython(request)["dispatch"]!;
-        var library = new SkillLibrary(Fixtures.Root);
+        var library = new SkillLibrary(root);
         for (var i = 0; i < cases.Length; i++)
         {
             var transport = new RecordingTransport();

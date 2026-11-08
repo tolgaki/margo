@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <!-- The one instance template, deployed for each hired Margo; the default for MARGO_INSTANCE_TEMPLATE. -->
-    <None Include="../../../autopilot/infra/instance.json" Link="instance.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../../infra/instance.json" Link="instance.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

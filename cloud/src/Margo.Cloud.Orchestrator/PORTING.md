@@ -1,6 +1,6 @@
 # Margo.Cloud.Orchestrator: porting notes
 
-Port of `autopilot/src/margo_autopilot/orchestrator.py` (one inbound activity: identity, manager lookup, one-to-one
+Port of `orchestrator.py` (Python hosted runtime, removed at the cutover) (one inbound activity: identity, manager lookup, one-to-one
 rule, tokens, the turn under the state lease), `office.py` (requests from other people as untrusted candidates),
 `replies.py` (the manager's `Replies to other people` setting and `ReplyGate`) and `statesync.py` (the leased Blob
 bundle). The Python code is the specification; everything not listed under "Deliberate deviations" is meant to behave
@@ -189,7 +189,7 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
 behind the real `WorkIQGuard`, `InMemoryLeaseStore`, real temporary state, the real engine and the real `margo-state`
 CLI (referenced by the test project, so `margo-state.dll` sits next to the tests; see request 1 for `memory_state.py`):
 
-- `OrchestratorTests`: every `OrchestratorTests` test of `tests/test_autopilot_runtime.py` (all 18 Python tests, the
+- `OrchestratorTests`: every `OrchestratorTests` test of the former Python runtime tests (all 18 Python tests, the
   group-chat one as a 3-case theory and the lookup failures as a 4-case theory), including the instance-mode
   (`An_instance_container_serves_only_its_own_instance`) and voice-link tests; plus a throwing token getter, invalid
   bindings, a misconfigured transport, unsafe state, initialisation failure, initialisation once per account,
@@ -197,16 +197,17 @@ CLI (referenced by the test project, so `margo-state.dll` sits next to the tests
 - `StateSyncTests`: every `StateSyncTests` test (9), plus the bundle and manifest contents and modes, installing once,
   bundles Python would refuse (not a zip, missing entries, bad JSON, hash mismatch, a forged manifest over another
   account's database), entries that fail their CRC-32 (preferences and manifest), bundles exchanged with the Python
-  `StateSync` in both directions (`Parity/statesync_bundle.py`), preferences removed with the bundle, a failed daily
+  `StateSync` in both directions (until the cutover; since then a bundle the Python service packed,
+  `Parity/python_state_bundle.zip`, installs here), preferences removed with the bundle, a failed daily
   copy, and the lease always released.
 - `OfficeTests`: the three `LedgerBackedTests` office tests, plus the recorded evidence and marker, pending order and
   limit, and a record without an ID.
-- `ReplyTests`: `ReplyPolicyTests` of `tests/test_autopilot_guard.py` (4) and the two `test_reply_gate_*` tests against
+- `ReplyTests`: `ReplyPolicyTests` of the former Python guard tests (4) and the two `test_reply_gate_*` tests against
   the real approval journal, plus 9 policy texts compared with Python's results and the gate's reasons.
 - `TurnSupportTests`: `TurnTokens`, `_manager_from` (15 results, 13 of them checked against Python's output), the commands (24 texts),
   `set_reply_mode` (4 files compared with Python's output), and every fixed text and limit compared with the Python
-  modules at test time (`Parity/orchestrator_constants.py`, `python3 -B -I`, no state, no network).
-- `DifferentialTests`: 1,800 seeded generated cases answered by the Python helpers (`Parity/orchestrator_differential.py`)
+  modules (recorded in `Parity/orchestrator_constants.json` at the cutover).
+- `DifferentialTests`: 1,800 seeded generated cases answered by the Python helpers (recorded in `Parity/orchestrator_answers.json` at the cutover)
   and by the port, compared exactly: `load_reply_policy`, the two command patterns, `set_reply_mode`, `_manager_from`,
   the office excerpt and conversation key, and `ReplyGate.decide` sequences in `none` and `acknowledge` modes.
 
@@ -242,3 +243,17 @@ manager lookup over 18,000 generated cases (one 10x run beyond the committed 1,8
 2. A turn with no shared bundle discards a local `preferences.md` before the work runs (as Python does), so a setting
    written by an operator onto local disk is lost unless it arrives through a saved turn. That is the documented
    design; noted because it surprised a test written for this port.
+
+## Cutover
+
+The Python hosted runtime was removed in the Phase 6 cutover. It was the specification of this
+port; the C# code is now the implementation of record, and the desktop state helpers in
+`skills/chief-of-staff/scripts/` stay the specification of the state commands (`tools/state_parity.py`).
+
+- `TurnSupportTests.Every_fixed_text_and_limit_matches_the_python_modules` reads `Parity/orchestrator_constants.json`,
+  the Python modules' values printed just before the cutover.
+- `DifferentialTests` reads `Parity/orchestrator_answers.json`: the Python helpers' answers to the 1,800 seeded cases,
+  with the SHA-256 of the cases, so a changed generator fails instead of comparing against the wrong answers.
+- `StateSyncTests.A_bundle_the_python_service_packed_installs_here` replaces the two-way bundle test: a deployment that
+  switches images finds Python-packed bundles in Blob storage, so `Parity/python_state_bundle.zip` (packed by the
+  Python `StateSync` from a fictional database) must install here; the other direction has no Python reader left.

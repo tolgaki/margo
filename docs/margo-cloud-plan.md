@@ -1,11 +1,14 @@
 # Plan: Margo Cloud in C#
 
-**Status: plan, 7 November 2026. Nothing here is built yet.** Decision: future development is
-**Margo Cloud**, the hosted Margo, written in **C# on .NET 10 (LTS)**. It replaces the Python
-autopilot in [`autopilot/`](../autopilot/README.md) step by step, and keeps its design: Agent 365
-self-hosted, one container per hired Margo, the same persona and skills, the Work IQ guard
-([design](autopilot.md), [instances](autopilot-instance-containers.md),
-[voice](autopilot-voice.md), [deployment](autopilot-deployment.md)).
+**Status: phases 1 to 6 done offline (November 2026); phase 0 prepared, not yet run.** Margo Cloud, the hosted
+Margo, is written in **C# on .NET 10 (LTS)** in [`cloud/`](../cloud/README.md). It replaced the Python hosted
+runtime, which was deleted in the phase 6 cutover, and keeps its design: Agent 365 self-hosted, one container per
+hired Margo, the same persona and skills, the Work IQ guard ([design](autopilot.md),
+[instances](autopilot-instance-containers.md), [voice](autopilot-voice.md), [deployment](autopilot-deployment.md)).
+
+**Nothing has run in a live tenant.** Everything below was built and tested offline against fakes, recorded Python
+behaviour and Microsoft's published contracts. The first live run is phase 0, which an operator runs in a test
+tenant with [Margo.Cloud.Host/VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md).
 
 Items marked **verify** are platform or package facts not yet confirmed against the source.
 
@@ -14,88 +17,83 @@ Items marked **verify** are platform or package facts not yet confirmed against 
 - **Microsoft's agent stack is .NET-first.** The Microsoft 365 Agents SDK, the Agent 365 SDK
   (`Microsoft.Agents.A365.*`, MIT) and the Agent 365 CLI are all .NET. New features, such as agentic
   sign-in and notifications, have tended to reach .NET first (**verify** current parity).
-- **Identity is maintained by Microsoft.** MSAL.NET and Microsoft.Identity.Web cover the token chain
-  Margo needs (managed identity → federated credential → blueprint → agent identity → agent user,
-  plus on-behalf-of), instead of code we would have to keep in step with a preview platform.
+- **Identity is maintained by Microsoft.** MSAL.NET covers the token chain Margo needs (managed identity →
+  federated credential → blueprint → agent identity → agent user, plus on-behalf-of), instead of code we would have
+  to keep in step with a preview platform.
 - **The Azure SDKs are complete**, including resource management, which the provisioner uses.
 - **Live meetings become possible.** Real-time media bots exist only for .NET (and run only on
   Windows; see phase 7).
 - **Rust was ruled out:** no Agents SDK, no official MSAL, and an early Azure SDK.
 
-## What stays, what moves, what goes
+## What stayed, what moved, what went
 
-| Part | Today | Margo Cloud |
+| Part | Before | Now |
 | --- | --- | --- |
-| Persona and skills (`agents/`, `skills/*/SKILL.md`, references) | Markdown, shared with local Margo | **Unchanged and shared.** Still the source of truth for what Margo does |
-| Voice page (`voice/static/`) | Browser JavaScript | **Unchanged**, served by the C# host |
-| Infrastructure (`autopilot/infra/`) | Bicep | **Kept**, with image and command changes only, then moved under `cloud/infra/` |
-| Hosted runtime: host, router, provisioner, guard, engine, orchestrator, voice server (~3,900 lines) | Python | **Ported to C#** |
-| State helpers behind `margo-state` (~11,900 lines: ledger, approvals, task runs, proactive state, memory) | Python, also used by local Margo | **Bridged first, then ported** (phase 4), with identical commands and SQLite schema |
-| Local Margo (GitHub Copilot + persona + skills + Python helpers) | Active | **Maintenance mode**: kept working; new features go to Margo Cloud (see decision D3) |
+| Persona and skills (`agents/`, `skills/*/SKILL.md`, references) | Markdown, shared with desktop Margo | **Unchanged and shared.** Still the source of truth for what Margo does |
+| Voice page | Browser JavaScript in the Python package | **Unchanged**, moved to `cloud/src/Margo.Cloud.Voice/wwwroot/` and served by the C# host |
+| Infrastructure | Bicep under the Python package | **Moved** to `cloud/infra/`; only the container commands changed (the C# router, provisioner and host) |
+| Hosted runtime: host, router, provisioner, guard, engine, orchestrator, voice server | Python | **Ported to C#; the Python runtime is deleted** |
+| State helpers behind `margo-state` (ledger, approvals, task runs, proactive state, memory) | Python, also used by desktop Margo | **Ported natively to C#** (the `margo-state` CLI), byte-compatible with the Python helpers, which stay for desktop Margo |
+| Desktop Margo (GitHub Copilot + persona + skills + Python helpers) | Active | **Maintenance mode**: kept working; new features go to Margo Cloud (decision D3) |
 
-## Target shape
+## Shape, as built
 
 ```text
 cloud/
-  Margo.Cloud.sln
+  Margo.Cloud.slnx, Directory.Build.props (warnings are errors), Directory.Packages.props (central versions)
+  Dockerfile                  # one image, three roles (host, router, provisioner)
+  azure.yaml, infra/, scripts/, config/, assets/, terms.md   # the azd deployment
   src/
+    Margo.Cloud.State.*       # the desktop state helpers ported to C#: Core, Work, Proactive, Tasks, Memory,
+                              # MemorySearch, MemoryLearning, MemoryCommands, Helpers; Probes (judge only)
+    Margo.Cloud.StateCli/     # margo-state: the script entry points
+    Margo.Cloud.Core/         # instance names, route table, lifecycle, activity helpers, instance binding
+    Margo.Cloud.WorkIQ/       # MCP client for https://workiq.svc.cloud.microsoft/mcp
     Margo.Cloud.Guard/        # Work IQ guard: subject tokens, path policy, run modes, claims, receipts
-    Margo.Cloud.WorkIQ/       # MCP client for https://workiq.svc.cloud.microsoft/mcp (official MCP C# SDK)
     Margo.Cloud.Engine/       # model turn loop (Responses API), skills library, margo-state tool
-    Margo.Cloud.State/        # the state commands (bridge to Python first, native later), leased Blob sync
-    Margo.Cloud.Orchestrator/ # who is speaking, manager lookup, office queue, reply gate
-    Margo.Cloud.Host/         # ASP.NET Core + Agents SDK: /api/messages, notifications, voice endpoint
+    Margo.Cloud.Orchestrator/ # who is speaking, manager lookup, office queue, reply gate, leased state sync
+    Margo.Cloud.Voice/        # Voice Live session bridge, voice endpoint, browser page (wwwroot/)
+    Margo.Cloud.Host/         # ASP.NET Core + Agents SDK: /api/messages, notifications, voice
     Margo.Cloud.Router/       # public messaging endpoint, token check, forwarding, lifecycle → queue
     Margo.Cloud.Provisioner/  # Container Apps job: per-instance deploy, suspend, retire, route table
-    Margo.Cloud.Voice/        # Voice Live session bridge
-  tests/                      # xUnit; fakes for Work IQ, model, Blob, Voice Live
-  contracts/                  # language-neutral JSON fixtures shared with the Python tests
-  infra/                      # Bicep (moved from autopilot/infra)
-  Dockerfile                  # one image, three entry points (host, router, provisioner)
+  tests/                      # xUnit v3, one project per component; fakes for Work IQ, model, Blob, Voice Live
+  contracts/state/            # parity scenarios: margo-state against the desktop Python helpers
+tools/state_parity.py         # the differential judge (CPython 3.13 behaviour)
 ```
 
-Packages (versions pinned at phase 1; **verify** names and maturity):
-
-| Need | Package |
-| --- | --- |
-| Activities, auth handlers, hosting | `Microsoft.Agents.Hosting.AspNetCore`, `Microsoft.Agents.Authentication.Msal`, `Microsoft.Agents.Builder` |
-| Agent 365 notifications, agentic sign-in, observability | `Microsoft.Agents.A365.*` |
-| Model (Responses API on the AI Services v1 endpoint) | `OpenAI` (official .NET SDK) with an Entra token |
-| Work IQ MCP | `ModelContextProtocol` (official C# SDK) |
-| Azure | `Azure.Identity`, `Azure.Storage.Blobs`, `Azure.Storage.Queues`, `Azure.ResourceManager.*` |
-| Voice | `Azure.AI.VoiceLive` (**verify** availability and version) |
-| State | `Microsoft.Data.Sqlite` |
-| Tests | xUnit, `Microsoft.AspNetCore.Mvc.Testing` |
+Packages (central versions in `cloud/Directory.Packages.props`): `Microsoft.Agents.Hosting.AspNetCore`,
+`Microsoft.Agents.Authentication.Msal`, `Microsoft.Agents.Builder`, `Microsoft.Agents.A365.Notifications` and
+`.Runtime`; `Azure.Identity`, `Azure.Storage.Blobs`, `Azure.Storage.Queues`, `Azure.ResourceManager.*`,
+`Azure.Monitor.OpenTelemetry.AspNetCore`; `Microsoft.IdentityModel.*` for token checks; `Microsoft.Data.Sqlite`;
+xUnit v3 and `Microsoft.AspNetCore.Mvc.Testing` for tests. The Work IQ MCP client, the Responses API client and the
+Voice Live client are small hand-written HTTP/WebSocket clients that port the Python ones' exact behaviour, not the
+`ModelContextProtocol`, `OpenAI` or Voice Live SDKs the plan first listed.
 
 ## Principles
 
-1. **Behaviour first, not line-by-line translation.** Each port is accepted when it passes the
-   same scenarios as the Python version, through shared contract fixtures.
-2. **Shared contracts.** Guard decisions, router decisions, instance names, `margo-state` commands
-   and the state bundle format become JSON fixtures in `cloud/contracts/`. Python and C# test
-   runners both read them, so the two implementations cannot drift while both exist.
-3. **Same data.** The SQLite schema, the state bundle (`state.zip` + manifest) and the Blob layout
-   stay identical, so the cutover needs no data migration and can be rolled back.
-4. **One owner per component during the move.** A component is either Python or C# in production,
-   never both. The router can be C# while instances are still Python, and the reverse.
-5. **The repository's safety rules carry over unchanged**: approval of exact actions, unattended
-   routines never send, observed content is data, the guard is the only path to Work IQ.
+1. **Behaviour first, not line-by-line translation.** Each port was accepted when it passed the same scenarios as
+   the Python version: the Python tests' scenarios ported to xUnit, plus differential comparisons with the Python
+   code itself.
+2. **Same data.** The SQLite schema, the state bundle (`state.zip` + manifest) and the Blob layout are identical, so
+   the cutover needs no data migration. A bundle packed by the Python service installs in C# (a test keeps one).
+3. **The state helpers stay byte-compatible.** Desktop Margo keeps the Python helpers; `margo-state` must stay
+   indistinguishable from them (stdout bytes, exit codes, SQLite rows). `tools/state_parity.py` judges it on every
+   change, under CPython 3.13 (the version the reference behaviour was recorded with).
+4. **The repository's safety rules carry over unchanged**: approval of exact actions, unattended routines never
+   send, observed content is data, the guard is the only path to Work IQ.
 
 ## Phases
 
-Sizes are relative effort, not calendar dates: **S** about a week, **M** two to three, **L** four
-to six, for one engineer working with coding agents.
-
-| Phase | Outcome | Size | Exit evidence |
-| --- | --- | --- | --- |
-| **0. Prove the platform** (parallel with 1) | The Python deployment runs end to end in a test tenant: blueprint from the Agent 365 CLI, approval, hire, chat, mail queueing, the Work IQ token. A .NET spike signs in as an agent user and receives a notification | M | Written results for the [verification list](autopilot.md#10-verification-list-phase-0); no real data |
-| **1. Foundation** | `cloud/` solution, CI (`dotnet build`, `dotnet test`, `dotnet format --verify-no-changes`, analyzers as errors), chiseled container image, contract-fixture format, AGENTS.md rules for C# | S | CI green; image builds in ACR |
-| **2. Security core** | Guard, Work IQ MCP client, engine, skills library, `margo-state` tool (bridge to the Python helpers inside the image) | L | Guard and engine contract fixtures pass in both languages; `tests/test_autopilot_guard.py` scenarios ported |
-| **3. Services** | Host (Agents SDK), orchestrator, office queue, reply gate, router, provisioner, state sync. Deployed by swapping images; infrastructure unchanged | L | The phase-0 tenant scenarios pass on C#; Python images retired from the deployment |
-| **4. Native state** | `margo-state` commands in C#, same arguments, same SQLite schema, same outputs. The Python bridge and Python runtime leave the image | L | Every state-command fixture identical across languages; a bundle written by Python opens in C# and back |
-| **5. Voice** | Voice endpoint and Voice Live bridge in C#; the page unchanged; voice settings (voice profile, name, responsiveness) as deployment settings | M | Live session measured: p50 and p95 latency, barge-in, tool calls |
-| **6. Cutover and clean-up** | Python `autopilot/` runtime deleted; docs, feature catalog and installers updated; `autopilot/` renamed or redirected to `cloud/` | S | No Python in the image; docs describe only Margo Cloud |
-| **7. Margo Cloud features** | See below | Ongoing | Each feature lands as one vertical slice: code, scenario, docs |
+| Phase | Outcome | Status |
+| --- | --- | --- |
+| **0. Prove the platform** | The deployment runs end to end in a test tenant: blueprint from the Agent 365 CLI, approval, hire, chat, mail queueing, the Work IQ token, agentic sign-in, voice | **Prepared, not run.** It is now run against the C# image (the Python deployment was never run live). The checklist is [VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md); the open platform questions are the [verification list](autopilot.md#10-verification-list-phase-0). An operator runs it in a test tenant with fictional users |
+| **1. Foundation** | `cloud/` solution (.NET 10, warnings as errors, analyzers, central package versions), xUnit v3, porting conventions | **Done.** CI job (build, test, parity judge, Release publish check) added at the cutover. No `dotnet format` gate; the image is Alpine-based, not chiseled (chiseled images lack `tzdata`) |
+| **2. Security core** | Guard, Work IQ MCP client, engine, skills library, `margo-state` tool | **Done**, with every scenario of the Python guard and runtime tests ported and the guard replayed against 1,709 recorded Python decisions |
+| **3. Services** | Host (Agents SDK), orchestrator, office queue, reply gate, router, provisioner, state sync | **Done offline.** Not deployed: the "phase-0 scenarios pass on C#" exit evidence waits for phase 0 |
+| **4. Native state** | `margo-state` commands in C#, same arguments, schema and outputs | **Done, differently from the plan:** the Python bridge was skipped. The state helpers were ported natively from the start and judged by a differential judge (`tools/state_parity.py`, scenarios in `cloud/contracts/state/` with contract probes for library functions) |
+| **5. Voice** | Voice endpoint and Voice Live bridge in C#; the page unchanged | **Done offline.** The live latency measurement (p50/p95, barge-in, tool calls) waits for phase 0 |
+| **6. Cutover and clean-up** | Python runtime deleted; deployment, docs and CI updated | **Done.** `cloud/Dockerfile` (one image, three roles); infrastructure, scripts, terms and icons moved to `cloud/`; the Python runtime and its tests deleted after their scenarios were confirmed in C#; the differential tests that ran the Python runtime now replay its recorded answers and frozen fixtures; the voice page moved to `wwwroot/`; CI builds, tests and judges Margo Cloud |
+| **7. Margo Cloud features** | See below | Not started |
 
 ### Phase 7: what Margo Cloud adds
 
@@ -116,39 +114,40 @@ unattended) unless the manager approves the exact action.
 
 ## Testing
 
-- **Unit and scenario tests** in xUnit with the same fakes as today: Work IQ, model, Blob lease
-  store, Voice Live, a local MCP server.
-- **Contract fixtures** shared with Python until phase 6: inputs and expected decisions for the
-  guard, router, instance planner and state commands.
-- **Parity test:** every skill the persona lists loads, and every `margo-state` command a skill
-  shows exists (the C# version of `tests/test_autopilot_parity.py`).
-- **Model evaluations** stay separate from tests, as today: a fixture contract is not a model result.
-- **Live checks** in the test tenant at the end of phases 0, 3 and 5, with fictional users only.
+- **Unit and scenario tests** in xUnit with fakes: Work IQ, model, Blob lease store, Voice Live, a local MCP server.
+- **State parity:** `tools/state_parity.py --check` runs every scenario in `cloud/contracts/state/` through the
+  desktop Python helpers and through `margo-state` and requires identical output, files and SQLite rows.
+- **Recorded Python behaviour:** the hosted modules' differential tests replay answers recorded from the Python
+  runtime before it was deleted (each project's `PORTING.md`, **Cutover**). They are regression baselines now; a
+  deliberate behaviour change edits them by hand, with review.
+- **Parity test:** every skill the persona lists loads, and every `margo-state` command a skill shows exists and is
+  implemented with the desktop script's parser (`Margo.Cloud.Engine.Tests/ParityTests.cs`, against the live desktop
+  scripts).
+- **Model evaluations** stay separate from tests: a fixture contract is not a model result.
+- **Live checks** in the test tenant (phase 0), with fictional users only.
 
 ## Risks
 
 | Risk | Mitigation |
 | --- | --- |
-| Agents SDK or Agent 365 SDK behaviour differs from Python, or changes during the preview | Phase 0 spike; pin versions; read the source (MIT) when behaviour is unclear |
-| Native AOT not supported by the Agents SDK, so images are larger | Use ReadyToRun on a chiseled image; measure cold start; keep busy instances warm |
-| Two implementations drift while both exist | Shared contract fixtures; one production owner per component; short overlap |
-| The state port changes data subtly | Identical schema; round-trip tests on real bundle formats with fictional data; phase 4 last among the core ports |
-| Local Margo falls behind | Decision D3; skills stay shared, so procedure improvements still reach it |
-| Scope creep from new features during the port | Phase 7 starts after phase 3 at the earliest; new features go only to C# |
+| Agents SDK or Agent 365 SDK behaviour differs from what was ported, or changes during the preview | Phase 0 run; pinned versions; read the source (MIT) when behaviour is unclear |
+| The desktop helpers and `margo-state` drift | `tools/state_parity.py` in CI; a desktop helper change needs the matching C# change in the same commit |
+| The recorded Python answers age | They pin behaviour that was deliberately specified; changing it is a reviewed edit, never a re-recording |
+| Native AOT not supported by the Agents SDK, so images are larger | Framework-dependent publish on the Alpine ASP.NET image; measure cold start; keep busy instances warm |
+| Desktop Margo falls behind | Decision D3; skills stay shared, so procedure improvements still reach it |
 
-## Decisions needed
+## Decisions
 
-| # | Decision | Recommendation |
+| # | Decision | Outcome |
 | --- | --- | --- |
-| D1 | Same repository or a new one | **Same repository**, in `cloud/`: the persona and skills are shared, and the contract fixtures need both languages side by side |
-| D2 | State store: SQLite per instance (as now) or a managed database | **Keep SQLite per instance** through phase 6 (no migration, isolation per instance). Revisit a managed database only if schedules or notifications need concurrent writers |
-| D3 | Local Margo's future | **Maintenance mode**: keep it working and shipping; no new features. Revisit retiring it after phase 6 |
-| D4 | Which tenant Margo lives in (blueglass.app or microsoft.com) | **The managers' tenant.** On-behalf-of and the manager link only work within one tenant today |
-| D5 | Repository positioning | The README calls Margo "a reference implementation, not a hosted product". Margo Cloud changes that; reword when phase 3 ships |
+| D1 | Same repository or a new one | **Same repository**, in `cloud/` |
+| D2 | State store | **SQLite per instance**, as before; revisit only if schedules or notifications need concurrent writers |
+| D3 | Desktop Margo's future | **Maintenance mode**: kept working; no new features. Revisit retiring it later |
+| D4 | Which tenant Margo lives in | **The managers' tenant.** On-behalf-of and the manager link only work within one tenant today |
+| D5 | Repository positioning | The README still calls Margo a reference implementation; reword once phase 0 and phase 7 make Margo Cloud a product |
 | D6 | .NET version | **.NET 10 LTS** |
 
-## First steps
+## Next steps
 
-1. Answer D1 to D4.
-2. Start phase 0 on the existing Python deployment, and in parallel the .NET agentic sign-in spike.
-3. Phase 1: create `cloud/`, CI and the contract-fixture format, and add C# rules to AGENTS.md.
+1. Run phase 0 in a test tenant with [VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md) and record each result.
+2. Fix what phase 0 finds; then start phase 7 with schedules.

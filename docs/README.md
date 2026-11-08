@@ -86,10 +86,11 @@ Read these after the current implementation, not as extra setup requirements.
 | --- | --- |
 | [Running in a container](container.md) | Optional deployment guidance, including separate Copilot and Work IQ sign-ins; not a ready-made security sandbox |
 | [Margo as an autopilot](autopilot.md) | Agent 365 autopilot design and decisions; not part of the local install |
-| [Deploy Margo as an Agent 365 agent](autopilot-deployment.md) | Step-by-step, self-hosted deployment of the first, read-only autopilot version to a test tenant |
+| [Deploy Margo as an Agent 365 agent](autopilot-deployment.md) | Step-by-step, self-hosted deployment of the first, read-only version of Margo Cloud (C#) to a test tenant |
 | [One container per hired Margo](autopilot-instance-containers.md) | Per-instance isolation, router, provisioning, scoped identity; built, unproven in a tenant |
 | [Talk to Margo](autopilot-voice.md) | Voice with low latency and her own voice; built for the browser, unproven against a live service |
-| [Margo Cloud in C#](margo-cloud-plan.md) | Plan: hosted Margo becomes Margo Cloud, ported to C# in phases; not built yet |
+| [Margo Cloud in C#](margo-cloud-plan.md) | Hosted Margo ported to C# in phases: phases 1 to 6 done offline, the Python hosted runtime removed; phase 0 (live tenant) still to run |
+| [Margo Cloud code](../cloud/README.md) | Build, test, publish and deploy Margo Cloud; the C# projects and what each ports |
 | [Agentic development plan](agentic-development-plan.md) | Delivery strategy and sequencing; use the current architecture, catalog, and workflow for implementation facts |
 
 ## Help and documentation maintenance

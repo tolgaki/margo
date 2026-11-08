@@ -3,7 +3,7 @@ using static Margo.Cloud.Guard.Tests.Fixtures;
 
 namespace Margo.Cloud.Guard.Tests;
 
-/// <summary>Port of <c>tests/test_autopilot_runtime.py</c> <c>DelegationTests</c>: the delegation fallback.</summary>
+/// <summary>Port of the former Python runtime tests <c>DelegationTests</c>: the delegation fallback.</summary>
 public sealed class DelegationTests
 {
     private readonly FakeTokens _tokens = new(token: subject => subject + "-token");

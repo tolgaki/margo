@@ -1,6 +1,6 @@
 # Margo.Cloud.Engine: porting notes
 
-Port of `autopilot/src/margo_autopilot/engine.py` (the model turn loop), `skills.py` (the persona and skills served
+Port of `engine.py` (Python hosted runtime, removed at the cutover) (the model turn loop), `skills.py` (the persona and skills served
 unchanged), `parity.py` (what is not hosted yet, told to the model) and `statecmd.py` (the `margo-state` tool), plus
 the model client `host/app.py` built with `openai.AsyncOpenAI`. The Python code is the specification; everything not
 listed under "Deliberate deviations" is meant to behave the same.
@@ -149,7 +149,7 @@ failure of a write as `unknown`, and receipts are all as in Python.
   `voice/server.py`, `host/app.py` apart from the model client) belong to `Margo.Cloud.Orchestrator`,
   `Margo.Cloud.Voice` and `Margo.Cloud.Host`. They implement `IOfficeRequests`, build one `StateCommands` per turn
   (with the turn's `CallBudget`) and call `InitialiseAsync` once per instance, as Python does.
-- **`LedgerBackedTests`, `StateSyncTests`, `OrchestratorTests`** and the rest of `tests/test_autopilot_runtime.py`
+- **`LedgerBackedTests`, `StateSyncTests`, `OrchestratorTests`** and the rest of the former Python runtime tests
   belong to those ports; `DelegationTests` and `TransportTests` are in `Margo.Cloud.Guard.Tests` and
   `Margo.Cloud.WorkIQ.Tests`.
 
@@ -211,9 +211,10 @@ No defect was found in `Margo.Cloud.Engine`'s sources, so none were changed.
 `cloud/tests/Margo.Cloud.Engine.Tests` (55 tests): a fake model, a recording Work IQ transport behind the real
 `WorkIQGuard`, real temporary state through the real `margo-state` CLI (the test project references
 `Margo.Cloud.StateCli`, so `margo-state.dll` sits next to the tests and is the default command), and live
-comparisons with the Python modules through `Parity/engine_cases.py` (`python3 -B -I`, no network, no state).
+comparisons with the Python modules' answers (live through `engine_cases.py` until the cutover; recorded in
+`Parity/engine_answers.jsonl` since, see **Cutover** below).
 
-- `EngineTests`: every `EngineTests` test of `tests/test_autopilot_runtime.py` (guard path and feedback, read tools
+- `EngineTests`: every `EngineTests` test of the former Python runtime tests (guard path and feedback, read tools
   only, third-party tools, refused writes and bad arguments, bounded rounds, large results), plus the request shape,
   odd model responses, office and state dispatch by mode, and 27 dispatch cases compared with Python's `_dispatch`.
 - `SkillLibraryTests`: `test_skill_files_are_served_unchanged_and_confined`, `normpath`, 34 paths and 13 front
@@ -229,7 +230,7 @@ comparisons with the Python modules through `Parity/engine_cases.py` (`python3 -
   `test_budget_is_charged_before_running_and_receipts_hold_no_content`, cancellation, programs that cannot start,
   `InitialiseAsync` failure, and 64 argument sets in 5 modes (320 cases) compared with Python's `run` result and
   receipts, plus the tables.
-- `ParityTests`: every test of `tests/test_autopilot_parity.py` (persona and skills word for word, every skill file
+- `ParityTests`: every test of the former Python parity tests (persona and skills word for word, every skill file
   reachable, every script, subcommand, program and Work IQ tool a procedure names hosted or listed, the model told
   what is missing; the Dockerfile check as described above), plus: every subcommand classified against the Python
   scripts' argparse parsers; every hosted command implemented by the C# CLI (`margo-state SCRIPT --help` choices
@@ -241,8 +242,8 @@ comparisons with the Python modules through `Parity/engine_cases.py` (`python3 -
   solution run small.
 - `GeneratedCaseTests` (fixed seeds; `MARGO_ENGINE_SEED` tries others): 3,000 generated `margo-state` calls, 200
   generated command outcomes from a fake CLI (both sides run it), 3,000 generated function calls, 800 generated
-  turns and 16,000 generated skill paths and front matter texts, each compared with the Python modules through
-  `engine_cases.py` (which gained `runs` and `state_exec` for this). The review ran the same generators at larger
+  turns and 16,000 generated skill paths and front matter texts, each compared with the Python modules' recorded
+  answers (see **Cutover**). The review ran the same generators at larger
   counts and other seeds (numbers above).
 - `ModelClientTests`: URL, bearer token and scope, body, token caching and refresh, retries and their delays, retry
   headers, error messages, connection failures and timeouts, cancellation, an engine turn over the HTTP client, and
@@ -251,8 +252,8 @@ comparisons with the Python modules through `Parity/engine_cases.py` (`python3 -
 Skipped, honestly (they skip, never pass, while the condition holds; they run in full once it does):
 `Initialise_prepares_memory_and_task_state`, `Every_hosted_command_is_implemented_by_the_cli` and
 `Every_state_command_a_procedure_shows_is_classified_and_implemented` (request 1; their other checks run first and
-must pass, `task_state.py` and `work_state.py`/`proactive_state.py` included), and
-`The_image_carries_the_persona_and_every_skill` (no C# image yet). Any hosted script missing from the CLI other than
+must pass, `task_state.py` and `work_state.py`/`proactive_state.py` included). Since the cutover
+`The_image_carries_the_persona_and_every_skill` runs against `cloud/Dockerfile` and no longer skips. Any hosted script missing from the CLI other than
 `memory_state.py` fails.
 
 Verification at the review commit: `dotnet build cloud/Margo.Cloud.slnx` 0 warnings; `dotnet test --solution
@@ -309,3 +310,25 @@ tests -p 'test_*.py'` 520 OK (4 skipped); `./tools/check-clean.sh` clean.
    Should both catch them as refusals?
 2. `EngineResult.ResponseId` drops a non-string `id` (deviation 7). The orchestrator port stores it per conversation;
    a string is all the Responses API returns.
+
+## Cutover
+
+The Python hosted runtime was removed in the Phase 6 cutover. It was the specification of this
+port; the C# code is now the implementation of record, and the desktop state helpers in
+`skills/chief-of-staff/scripts/` stay the specification of the state commands (`tools/state_parity.py`).
+
+- **Recorded answers.** The tests asked `Parity/engine_cases.py` (the Python engine, skills, parity and statecmd
+  modules) each question live. Before the modules were removed, every question the tests ask was answered once and
+  recorded in `Parity/engine_answers.jsonl` (`EngineOracle`): one line per request, keyed by the SHA-256 of the
+  request's JSON with the repository path and the test's temporary directories replaced by placeholders. The
+  generators are seeded, so the requests are stable; a changed request finds no answer and fails (never passes). The
+  200 generated command outcomes are kept as SHA-256 digests plus their first 300 characters (their outputs ran to
+  6 MB). `MARGO_ENGINE_SEED` no longer helps: other seeds have no recorded answers.
+- **Fictional skill tree.** The dispatch, turn and instruction comparisons used to read the repository's persona and
+  skills, which would make the recorded answers stale at the first skill edit. They now read `FixtureLibrary`, a
+  small fictional tree with the same skill names and files the generators ask for, on both sides (recorded with it).
+  The real persona and skills are still checked directly against the files (`ParityTests`).
+- **Desktop subcommands stay live.** `Every_subcommand_of_a_hosted_script_is_classified` and the state-command check
+  read the desktop scripts' argparse parsers with `Parity/subcommands.py` (desktop helpers only), so a subcommand
+  added to the desktop still fails until it is classified. The `--help` comparisons run the desktop scripts as before.
+- `The_image_carries_the_persona_and_every_skill` now checks `cloud/Dockerfile` (no skip).

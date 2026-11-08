@@ -53,7 +53,7 @@ public static partial class VoiceEndpoints
         return endpoints.Map("/voice/{**rest}", context => HandleAsync(context, service));
     }
 
-    /// <summary>The contents of one of the page's files (embedded from <c>autopilot/src/margo_autopilot/voice/static/</c>).</summary>
+    /// <summary>The contents of one of the page's files (embedded from <c>wwwroot/</c>).</summary>
     public static byte[] FileContents(string file) => Contents.GetOrAdd(file, static name =>
     {
         using var stream = typeof(VoiceEndpoints).Assembly.GetManifestResourceStream("voice/" + name)

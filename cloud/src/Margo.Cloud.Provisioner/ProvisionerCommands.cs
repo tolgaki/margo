@@ -5,7 +5,7 @@ namespace Margo.Cloud.Provisioner;
 
 /// <summary>
 /// The provisioner job: drain the queue, create or retire instances, keep the route table.
-/// Python: <c>margo_autopilot/provision/azure.py</c> (<c>run</c>, <c>enqueue</c>, <c>redeploy_all</c>,
+/// Python: <c>provision/azure.py</c> (<c>run</c>, <c>enqueue</c>, <c>redeploy_all</c>,
 /// <c>main</c>) and <c>__main__.py</c>.
 /// </summary>
 /// <remarks>

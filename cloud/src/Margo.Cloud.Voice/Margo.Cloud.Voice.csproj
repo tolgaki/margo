@@ -21,13 +21,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The browser page, served unchanged from the Python package (the cutover will move these files). Only the
-         files voice/server.py serves (FILES); the page's tests and README stay out. -->
-    <EmbeddedResource Include="../../../autopilot/src/margo_autopilot/voice/static/index.html" LogicalName="voice/index.html" />
-    <EmbeddedResource Include="../../../autopilot/src/margo_autopilot/voice/static/voice.css" LogicalName="voice/voice.css" />
-    <EmbeddedResource Include="../../../autopilot/src/margo_autopilot/voice/static/voice.js" LogicalName="voice/voice.js" />
-    <EmbeddedResource Include="../../../autopilot/src/margo_autopilot/voice/static/voice-core.mjs" LogicalName="voice/voice-core.mjs" />
-    <EmbeddedResource Include="../../../autopilot/src/margo_autopilot/voice/static/pcm-worklets.js" LogicalName="voice/pcm-worklets.js" />
+    <!-- The browser page in wwwroot/, embedded and served unchanged. Only the files VoiceEndpoints.Files serves; the
+         page's node tests and README stay out. -->
+    <EmbeddedResource Include="wwwroot/index.html" LogicalName="voice/index.html" />
+    <EmbeddedResource Include="wwwroot/voice.css" LogicalName="voice/voice.css" />
+    <EmbeddedResource Include="wwwroot/voice.js" LogicalName="voice/voice.js" />
+    <EmbeddedResource Include="wwwroot/voice-core.mjs" LogicalName="voice/voice-core.mjs" />
+    <EmbeddedResource Include="wwwroot/pcm-worklets.js" LogicalName="voice/pcm-worklets.js" />
   </ItemGroup>
 
 </Project>

@@ -9,7 +9,7 @@ using static Margo.Cloud.Guard.Tests.Fixtures;
 namespace Margo.Cloud.Guard.Tests;
 
 /// <summary>
-/// Port of <c>tests/test_autopilot_guard.py</c> <c>GuardedWriteTests</c>. Claims come from the real approval journal
+/// Port of the former Python guard tests <c>GuardedWriteTests</c>. Claims come from the real approval journal
 /// (a <see cref="Ledger"/> opened with <see cref="InstanceLedger.OpenLedger"/>); only the database
 /// location is synthetic.
 /// </summary>

@@ -111,10 +111,8 @@ public sealed class TurnSupportTests
     [Fact]
     public void Every_fixed_text_and_limit_matches_the_python_modules()
     {
-        var script = Path.Combine(AppContext.BaseDirectory, "Parity", "orchestrator_constants.py");
-        var (status, stdout, stderr) = Programs.Run(Fixtures.Python(), ["-B", "-I", script, Fixtures.Root]);
-        Assert.True(status == 0, "orchestrator_constants.py failed:\n" + stderr);
-        var python = (JsonObject)PyJson.Loads(stdout)!;
+        // Printed by the Python orchestrator, office, replies and statesync modules before the cutover removed them.
+        var python = (JsonObject)PyJson.Loads(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Parity", "orchestrator_constants.json")))!;
         var csharp = new JsonObject
         {
             ["TURN_CALL_BUDGET"] = Orchestrator.TurnCallBudget,

@@ -1,10 +1,10 @@
 # Margo.Cloud.Voice: porting notes
 
-Port of `autopilot/src/margo_autopilot/voice/session.py` (settings, the Voice Live `session.update`, the event bridge,
+Port of `voice/session.py` (Python hosted runtime, removed at the cutover) (settings, the Voice Live `session.update`, the event bridge,
 `check_claims`) and `voice/server.py` (the voice endpoint: page, sign-in config, WebSocket session). The Python code is
 the specification; everything not listed under "Deliberate deviations" is meant to behave the same. The browser page
-(`voice/static/`) is not copied: its five served files are embedded from that folder by the csproj (the cutover will
-move them), and `node --test autopilot/src/margo_autopilot/voice/static/*.test.mjs` still covers it.
+lives in `wwwroot/` (moved there unchanged from the Python package's `voice/static/` at the cutover): the csproj
+embeds its five served files, and `node --test cloud/src/Margo.Cloud.Voice/wwwroot/*.test.mjs` covers it.
 
 ## What maps to what
 
@@ -173,7 +173,7 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
 
 `cloud/tests/Margo.Cloud.Voice.Tests` (78 test cases):
 
-- `SessionConfigurationTests`, `BridgeTests`, `ClaimsTests`: every test of `tests/test_autopilot_voice.py`, plus the
+- `SessionConfigurationTests`, `BridgeTests`, `ClaimsTests`: every test of the former Python voice tests, plus the
   settings' environment rules, the exact `session.update` JSON, the texts compared with `session.py`, strict base64,
   progress messages, unhashable tool names, ready-once, caption trimming and clipping, expiry, and claim edge cases.
 - `TokenVerifierTests`: locally minted RSA tokens (by hand and by `Microsoft.IdentityModel.JsonWebTokens`) against an
@@ -191,7 +191,7 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
   bracketed-host rules against the SDK's outcomes, and an unhashable event `type`.
 - `MessageSocketTests`: unread messages hold the peer back (64 KiB) and arrive in order; closing still completes while
   the peer has sent more than the queue holds.
-- `RuntimeVoiceTests`: the voice test of `tests/test_autopilot_runtime.py` (the `/voice` command).
+- `RuntimeVoiceTests`: the voice test of the former Python runtime tests (the `/voice` command).
 
 Not covered by tests: a real Voice Live service and a real Entra key set (no network or Azure account here).
 
@@ -210,3 +210,14 @@ every run here.
 
 - PyJWT checked `iat` against the wall clock at decode time and `check_claims` used `time.time()` again; here both use
   the same injected clock, which is the same in production.
+
+## Cutover
+
+The Python hosted runtime was removed in the Phase 6 cutover. It was the specification of this
+port; the C# code is now the implementation of record, and the desktop state helpers in
+`skills/chief-of-staff/scripts/` stay the specification of the state commands (`tools/state_parity.py`).
+
+- The page moved with `git mv` from `voice/static/` to `wwwroot/`; the csproj embeds it from there and the node tests
+  run from there. `The_page_lists_the_python_server_s_files_and_policy` and
+  `Addendum_and_disclosure_are_python_s_text` compare with the Python values recorded at the cutover instead of
+  reading `server.py` and `session.py`.

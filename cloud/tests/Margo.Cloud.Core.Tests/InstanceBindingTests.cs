@@ -2,8 +2,8 @@ using Xunit;
 
 namespace Margo.Cloud.Core.Tests;
 
-/// <summary>tests/test_autopilot_guard.py InstanceBindingTests and the binding used across
-/// tests/test_autopilot_runtime.py.</summary>
+/// <summary>The former Python guard tests' InstanceBindingTests and the binding used across
+/// the former Python runtime tests.</summary>
 public sealed class InstanceBindingTests
 {
     private static readonly InstanceBinding Binding = new("agent-identity-1", "margo-user-1", "principal-1", "chat-principal-1");

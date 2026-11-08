@@ -10,7 +10,7 @@ namespace Margo.Cloud.Guard.Tests;
 /// <summary>
 /// <c>claims.py</c> <c>LedgerClaimJournal</c> against a real temporary ledger. Expected messages and claim fields were
 /// checked against the Python journal on the same scenarios. The reply-gate scenarios of
-/// <c>tests/test_autopilot_guard.py</c> (<c>test_reply_gate_*</c>) are ported here at the journal level; the gate's own
+/// the former Python guard tests (<c>test_reply_gate_*</c>) are ported here at the journal level; the gate's own
 /// decisions (<c>replies.py</c>) belong to the Orchestrator port.
 /// </summary>
 public sealed class ClaimJournalTests

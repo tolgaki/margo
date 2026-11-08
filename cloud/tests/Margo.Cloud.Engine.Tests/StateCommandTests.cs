@@ -5,7 +5,7 @@ using Margo.Cloud.State.Core;
 namespace Margo.Cloud.Engine.Tests;
 
 /// <summary>
-/// <c>StateCommandTests</c> of <c>tests/test_autopilot_runtime.py</c>: the skill scripts, run for one instance with the
+/// <c>StateCommandTests</c> of the former Python runtime tests: the skill scripts, run for one instance with the
 /// same arguments the procedures show, through the real <c>margo-state</c> CLI against a temporary state directory.
 /// </summary>
 public sealed class StateCommandTests

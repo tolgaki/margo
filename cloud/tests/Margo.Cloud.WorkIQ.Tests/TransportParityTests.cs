@@ -7,7 +7,8 @@ namespace Margo.Cloud.WorkIQ.Tests;
 
 /// <summary>
 /// Replays every response shape recorded from <c>transport.py</c> (<c>_parse_body</c> and <c>_normalise</c>)
-/// by <c>Parity/transport_cases.py</c> and requires the same outcome: the same object, or the same error.
+/// before the cutover removed the Python transport (<c>Parity/transport_cases.json</c>, now frozen) and requires the same
+/// outcome: the same object, or the same error.
 /// </summary>
 public sealed class TransportParityTests
 {

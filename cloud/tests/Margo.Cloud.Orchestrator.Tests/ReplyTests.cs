@@ -7,7 +7,7 @@ using Margo.Cloud.State.Work;
 namespace Margo.Cloud.Orchestrator.Tests;
 
 /// <summary>
-/// <c>ReplyPolicyTests</c> and the reply-gate tests of <c>GuardedWriteTests</c> in <c>tests/test_autopilot_guard.py</c>
+/// <c>ReplyPolicyTests</c> and the reply-gate tests of <c>GuardedWriteTests</c> in the former Python guard tests
 /// (<c>replies.py</c>), the gate's approve mode against the real approval journal. Expected policy results were checked
 /// against <c>load_reply_policy</c> on Python 3.13.
 /// </summary>

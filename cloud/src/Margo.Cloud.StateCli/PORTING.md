@@ -1,7 +1,7 @@
 # Margo.Cloud.StateCli (`margo-state`): porting notes
 
 `margo-state SCRIPT.py ARGS...` is the C# stand-in for `python3 SCRIPT.py ARGS...` from
-`skills/chief-of-staff/scripts/`, as `autopilot/src/margo_autopilot/statecmd.py` invokes the scripts
+`skills/chief-of-staff/scripts/`, as `statecmd.py` (Python hosted runtime, removed at the cutover) invokes the scripts
 (the hosted engine's port of `statecmd` passes `--account`/`--state-dir` and stdin the same way).
 
 ## What maps to what

@@ -5,7 +5,7 @@ using Azure.Storage.Blobs;
 using Margo.Cloud.Router;
 using Margo.Cloud.Router.Authentication;
 
-// Python: margo_autopilot.router.app.main.
+// Python (removed at the cutover): router/app.py main.
 var builder = WebApplication.CreateBuilder(args);
 RouterSettings settings;
 try

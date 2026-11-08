@@ -6,7 +6,7 @@ using Margo.Cloud.State.Core;
 namespace Margo.Cloud.Engine.Tests;
 
 /// <summary>
-/// <c>tests/test_autopilot_parity.py</c>: hosted Margo is desktop Margo, with the same persona and skills and every
+/// the former Python parity tests: hosted Margo is desktop Margo, with the same persona and skills and every
 /// difference named. Plus what only the C# port can drift on: every <c>margo-state</c> command the skills show must be
 /// classified and actually implemented by the C# CLI, and the tables, tools and instructions must match the Python
 /// modules.
@@ -88,20 +88,15 @@ public sealed partial class ParityTests
     [Fact]
     public void The_image_carries_the_persona_and_every_skill()
     {
-        // Python checks autopilot/Dockerfile. The C# image is built from cloud/ (Margo.Cloud.Host owns it); it must
-        // carry the same agents/ and skills/ the engine serves, and margo-state next to the host.
-        var dockerfiles = Directory.Exists(Path.Combine(Fixtures.Root, "cloud"))
-            ? Directory.GetFiles(Path.Combine(Fixtures.Root, "cloud"), "Dockerfile*", SearchOption.AllDirectories)
-                .Where(path => !path.Contains("/bin/", StringComparison.Ordinal) && !path.Contains("/obj/", StringComparison.Ordinal)).ToList()
-            : [];
-        Assert.SkipWhen(dockerfiles.Count == 0, "Margo Cloud has no container image definition yet (Margo.Cloud.Host owns it); "
-                                                + "when it does, this checks that it copies agents/ and skills/");
-        foreach (var dockerfile in dockerfiles)
-        {
-            var text = File.ReadAllText(dockerfile);
-            Assert.Matches(@"COPY\s+agents/\s", text);
-            Assert.Matches(@"COPY\s+skills/\s", text);
-        }
+        // The image is cloud/Dockerfile: it must carry the same agents/ and skills/ the engine serves (at MARGO_REPO_ROOT)
+        // and margo-state next to the host, where StateCommands.DefaultCliCommand finds it.
+        var text = File.ReadAllText(Path.Combine(Fixtures.Root, "cloud", "Dockerfile"));
+        Assert.Matches(@"COPY\s+agents/\s+/app/agents/", text);
+        Assert.Matches(@"COPY\s+skills/\s+/app/skills/", text);
+        Assert.Matches(@"MARGO_REPO_ROOT=/app\b", text);
+        Assert.Matches(@"dotnet publish src/Margo\.Cloud\.Host/Margo\.Cloud\.Host\.csproj -c Release -o /out/host", text);
+        Assert.Matches(@"dotnet publish src/Margo\.Cloud\.StateCli/Margo\.Cloud\.StateCli\.csproj -c Release -o /out/host", text);
+        Assert.DoesNotContain("MargoStateProbes", text, StringComparison.Ordinal);
     }
 
     // -- EveryDifferenceIsNamed ----------------------------------------------------------------------
@@ -135,7 +130,7 @@ public sealed partial class ParityTests
     [Fact]
     public void Every_subcommand_of_a_hosted_script_is_classified()
     {
-        var python = (JsonObject)Programs.AskPython(new JsonObject { ["subcommands"] = true })["subcommands"]!;
+        var python = Programs.Subcommands();
         Assert.Equal(PyText.Sorted(StateCommands.Stateful), python.Select(pair => pair.Key).ToList());
         foreach (var script in StateCommands.Stateful)
         {
@@ -203,7 +198,7 @@ public sealed partial class ParityTests
         // A procedure shows a command in two ways: after its script (`work_state.py --account A list --view decisions`),
         // and bare in a file about that script (`create KEY --input FILE` in task-runs.md, which names task_state.py).
         // A bare word counts when it is a subcommand of a stateful script the same file names.
-        var subcommands = (JsonObject)Programs.AskPython(new JsonObject { ["subcommands"] = true })["subcommands"]!;
+        var subcommands = Programs.Subcommands();
         var shown = new SortedDictionary<(string Script, string Command), SortedSet<string>>();
         void Show(string script, string command, string rest)
         {
@@ -355,13 +350,15 @@ public sealed partial class ParityTests
     public void Tools_instructions_and_lists_match_python()
     {
         string[] modes = [RunModes.Attended, RunModes.Unattended, RunModes.ThirdParty, "not-a-mode"];
+        using var temp = new TempRoot();
+        var root = FixtureLibrary.Create(temp.Path);
         var request = new JsonObject
         {
             ["modes"] = PyNode.StrList(modes),
             ["instructions"] = new JsonArray(
-                new JsonObject { ["timezone"] = "America/Los_Angeles", ["now"] = "2026-10-17T08:00:00+00:00" },
-                new JsonObject { ["timezone"] = "Asia/Kolkata", ["now"] = "2026-01-01T23:59:59.999999+00:00" },
-                new JsonObject { ["timezone"] = "UTC", ["now"] = "2026-02-28T12:05:00-08:00" }),
+                new JsonObject { ["root"] = root, ["timezone"] = "America/Los_Angeles", ["now"] = "2026-10-17T08:00:00+00:00" },
+                new JsonObject { ["root"] = root, ["timezone"] = "Asia/Kolkata", ["now"] = "2026-01-01T23:59:59.999999+00:00" },
+                new JsonObject { ["root"] = root, ["timezone"] = "UTC", ["now"] = "2026-02-28T12:05:00-08:00" }),
             ["clip"] = new JsonArray(
                 new JsonObject { ["status"] = "ok", ["text"] = "caf\u00e9 \U0001F600 \u2028" },
                 new JsonObject { ["data"] = new string('\u00e9', EngineTools.MaxOutputChars) },
@@ -391,7 +388,7 @@ public sealed partial class ParityTests
         {
             var spec = request["instructions"]![i]!;
             var now = DateTimeOffset.Parse(PyNode.AsString(spec["now"])!, System.Globalization.CultureInfo.InvariantCulture);
-            Assert.Equal(PyNode.AsString(instructions[i]), EngineTools.LoadInstructions(Fixtures.Root, PyNode.AsString(spec["timezone"])!, now));
+            Assert.Equal(PyNode.AsString(instructions[i]), EngineTools.LoadInstructions(root, PyNode.AsString(spec["timezone"])!, now));
         }
 
         var clips = (JsonArray)python["clip"]!;

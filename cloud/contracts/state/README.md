@@ -35,7 +35,7 @@ are not Margo commands: they exist so that helpers and libraries are judged byte
 only through whichever scripts happen to call them. They run arbitrary SQL and write files, so `margo-state`
 contains them only when built with `MargoStateProbes=true` (the Debug default; Release builds never do) and runs
 one only when `MARGO_STATE_PROBES=1`, which the judge sets for every step. The hosted tool
-(`autopilot/src/margo_autopilot/statecmd.py`) runs only classified scripts and never sets it.
+(`StateCommands` in `cloud/src/Margo.Cloud.Engine`) runs only classified scripts and never sets it.
 
 | Probe | C# twin | What it reaches |
 | --- | --- | --- |

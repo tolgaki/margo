@@ -5,7 +5,7 @@ using static Margo.Cloud.Core.Tests.Fixtures;
 
 namespace Margo.Cloud.Core.Tests;
 
-/// <summary>tests/test_autopilot_instances.py Plans, including the instance.json/instance.bicep consistency check.</summary>
+/// <summary>The former Python instance tests' Plans, including the instance.json/instance.bicep consistency check.</summary>
 public sealed class PlanTests
 {
     private static RouteEntry Route(string state)
@@ -70,8 +70,8 @@ public sealed class PlanTests
     public void Parameters_match_the_compiled_template_and_its_source()
     {
         var root = RepoRoot.Find();
-        var template = (JsonObject)PythonJson.Loads(File.ReadAllText(Path.Combine(root, "autopilot", "infra", "instance.json")))!;
-        var source = File.ReadAllText(Path.Combine(root, "autopilot", "infra", "instance.bicep"));
+        var template = (JsonObject)PythonJson.Loads(File.ReadAllText(Path.Combine(root, "cloud", "infra", "instance.json")))!;
+        var source = File.ReadAllText(Path.Combine(root, "cloud", "infra", "instance.bicep"));
         var declared = Regex.Matches(source, @"^param (\w+)", RegexOptions.Multiline).Select(match => match.Groups[1].Value).ToHashSet();
         var templateParameters = (JsonObject)template["parameters"]!;
         Assert.True(declared.SetEquals(templateParameters.Select(pair => pair.Key)), "rebuild instance.json from instance.bicep");

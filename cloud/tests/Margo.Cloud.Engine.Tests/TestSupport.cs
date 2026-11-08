@@ -16,7 +16,7 @@ internal static class Fixtures
 {
     public static InstanceBinding Binding { get; } = new("agent-identity-1", "margo-user-1", "principal-1", "chat-principal-1");
 
-    /// <summary>The repository root (holds <c>agents/margo.agent.md</c> and <c>autopilot/src/margo_autopilot</c>).</summary>
+    /// <summary>The repository root (holds <c>agents/margo.agent.md</c> and <c>cloud/Margo.Cloud.slnx</c>).</summary>
     public static string Root { get; } = FindRoot();
 
     /// <summary>The <c>margo-state.dll</c> copied next to this test assembly (the test project references the CLI).</summary>
@@ -37,13 +37,51 @@ internal static class Fixtures
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
             if (File.Exists(Path.Combine(directory.FullName, "agents", "margo.agent.md"))
-                && File.Exists(Path.Combine(directory.FullName, "autopilot", "src", "margo_autopilot", "engine.py")))
+                && File.Exists(Path.Combine(directory.FullName, "cloud", "Margo.Cloud.slnx")))
             {
                 return directory.FullName;
             }
         }
 
         throw new InvalidOperationException("repository root not found above " + AppContext.BaseDirectory);
+    }
+}
+
+/// <summary>
+/// A small fictional persona and skill tree with the names and files the dispatch, turn and instruction cases ask for.
+/// The cases compared with recorded Python answers read this tree, never the repository's skills, so editing a skill
+/// does not invalidate them; <c>ParityTests</c> checks the real persona and skills directly.
+/// </summary>
+internal static class FixtureLibrary
+{
+    private static readonly (string Path, string Text)[] Files =
+    [
+        ("agents/margo.agent.md", "---\nname: margo\ndescription: Fictional persona\n---\n\n# Margo (fictional)\n\nA fictional chief of staff for tests.\n"),
+        ("skills/chief-of-staff/SKILL.md", "---\nname: chief-of-staff\ndescription: Fictional chief of staff skill\n---\n\n# Chief of staff\n\nRead `references/daily-brief.md`.\n"),
+        ("skills/chief-of-staff/commitments.md", "ledger only, never served\n"),
+        ("skills/chief-of-staff/preferences.md", "repository copy, never served\n"),
+        ("skills/chief-of-staff/references/daily-brief.md", "# Daily brief\n\nFictional steps.\n"),
+        ("skills/chief-of-staff/references/DAILY-BRIEF.md", "# Upper-case twin\n"),
+        ("skills/chief-of-staff/README.md", "# Readme\n"),
+        ("skills/chief-of-staff/scripts/README.md", "scripts are not served\n"),
+        ("skills/chief-of-staff/scripts/work_state.py", "print('fictional')\n"),
+        ("skills/chief-of-staff/state/x.md", "state is not served\n"),
+        ("skills/decision-log/SKILL.md", "---\nname: decision-log\ndescription: Fictional decision log\n---\n\nDecision log body é\n"),
+        ("skills/decision-log/config.md", "fictional config\n"),
+        ("skills/decision-log/references/schema.md", "# Schema\n\nFictional schema.\n"),
+    ];
+
+    /// <summary>Writes the tree under <paramref name="root"/> and returns <paramref name="root"/>.</summary>
+    public static string Create(string root)
+    {
+        foreach (var (relative, text) in Files)
+        {
+            var path = System.IO.Path.Combine(root, relative);
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, System.Text.Encoding.UTF8.GetBytes(text));
+        }
+
+        return root;
     }
 }
 
@@ -209,13 +247,22 @@ internal static class Programs
         return python;
     }
 
-    /// <summary>Asks <c>Parity/engine_cases.py</c> (the Python modules) the same questions the C# test answers.</summary>
-    public static JsonObject AskPython(JsonObject request)
+    /// <summary>
+    /// What the Python engine, skills, parity and statecmd modules answered to this request. Those modules (the
+    /// specification) were removed at the cutover; their answers to every request these tests ask were recorded first
+    /// in <c>Parity/engine_answers.jsonl</c> (see <c>Margo.Cloud.Engine/PORTING.md</c>).
+    /// </summary>
+    public static JsonObject AskPython(JsonObject request) => EngineOracle.Ask(request);
+
+    private static readonly Lazy<JsonObject> DesktopSubcommands = new(() =>
     {
-        var script = System.IO.Path.Combine(AppContext.BaseDirectory, "Parity", "engine_cases.py");
-        var (status, stdout, stderr) = Run(Python(), ["-B", "-I", script, Fixtures.Root], PyJson.Dumps(request),
-                                           new Dictionary<string, string> { ["PYTHONDONTWRITEBYTECODE"] = "1", ["PYTHONIOENCODING"] = "utf-8" });
-        Assert.True(status == 0, "engine_cases.py failed:\n" + stderr);
+        var script = System.IO.Path.Combine(AppContext.BaseDirectory, "Parity", "subcommands.py");
+        var (status, stdout, stderr) = Run(Python(), ["-B", "-I", script, Fixtures.Root, .. StateCommands.Stateful],
+                                           environment: new Dictionary<string, string> { ["PYTHONDONTWRITEBYTECODE"] = "1", ["PYTHONIOENCODING"] = "utf-8" });
+        Assert.True(status == 0, "subcommands.py failed:\n" + stderr);
         return (JsonObject)PyJson.Loads(stdout)!;
-    }
+    });
+
+    /// <summary>The subcommands each stateful script's parser accepts, read live from the desktop Python helpers.</summary>
+    public static JsonObject Subcommands() => DesktopSubcommands.Value;
 }

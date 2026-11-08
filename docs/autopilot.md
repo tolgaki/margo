@@ -3,8 +3,8 @@
 **Status: design with a first deployable version, not a supported mode.** The
 [deployment guide](autopilot-deployment.md) creates Azure resources and connects an Agent 365
 blueprint; it has not been proven in a live tenant, and nothing here changes the current
-[trust and safety](safety.md) policy for the local assistant. The pieces in
-[`autopilot/`](../autopilot/README.md) are tested offline against synthetic data only.
+[trust and safety](safety.md) policy for the local assistant. Hosted Margo is **Margo Cloud**, a C# (.NET 10)
+service in [`cloud/`](../cloud/README.md) (decision 14); its pieces are tested offline against synthetic data only.
 Items marked **VERIFY** are platform behaviours the public documentation does not settle; each
 needs a separately authorised test-tenant proof before any build depends on it.
 
@@ -23,6 +23,12 @@ She is self-hosted for Agent 365: one container per hired Margo behind a router 
 blueprint's messaging endpoint, with the blueprint created by the Agent 365 CLI. Sections below
 that mention the Foundry sample describe where a design idea came from, not what runs.
 
+**Margo Cloud is C# (decision 14, November 2026).** The hosted runtime was ported from Python to C# and the Python
+hosted runtime was removed. Desktop Margo stays Python (maintenance mode) and shares `agents/` and `skills/` with
+Margo Cloud; Margo Cloud's state commands stay byte-compatible with the desktop helpers, checked by
+`tools/state_parity.py`. File names below are Margo Cloud's; where this page names a Python module of the earlier
+hosted runtime (`guard.py`, `parity.py`, ...), the C# project that ports it is listed in [cloud/README.md](../cloud/README.md#layout).
+
 ---
 
 ## 1. What we are building, in one paragraph
@@ -38,7 +44,7 @@ another person without the principal's approval of that exact action.
 **She is desktop Margo, hosted and always on.** The persona file and every skill are loaded
 unchanged; only how they are reached differs. Every capability desktop Margo has and hosted Margo
 does not yet have is named, with its reason, in one list
-([`parity.py`](../autopilot/src/margo_autopilot/parity.py)). The model is told that list, and a
+([`NotHosted.cs`](../cloud/src/Margo.Cloud.Engine/NotHosted.cs)). The model is told that list, and a
 test fails when a skill starts using something that is neither hosted nor listed (§4.1.1).
 
 ### Non-goals (v1)
@@ -154,11 +160,12 @@ grants **no** access to any principal's data; that is granted per instance at hi
 | Persona | `agents/margo.agent.md` | Loaded verbatim as the system persona |
 | Procedures | every `skills/*/` (SKILL.md, references, config) | Listed and loaded on demand, as the desktop host does |
 | Deterministic state | `skills/chief-of-staff/scripts/*.py` | The same scripts, run by the `margo-state` tool (4.1.1); storage shared through 4.3 |
-| Activity handler | **new** `autopilot/src/margo_autopilot/` | Activity protocol endpoint, Teams cards, schedule triggers |
-| Work IQ guard | **new** `autopilot/src/margo_autopilot/guard/` | Sits between the model and Work IQ MCP; picks the token by `on_data_of` (4.2.1) |
+| Activity handler | `cloud/src/Margo.Cloud.Host`, `Margo.Cloud.Orchestrator` | Activity protocol endpoint, Teams cards, schedule triggers |
+| Work IQ guard | `cloud/src/Margo.Cloud.Guard` | Sits between the model and Work IQ MCP; picks the token by `on_data_of` (4.2.1) |
+| State tool | `cloud/src/Margo.Cloud.StateCli` (`margo-state`) | The desktop scripts' commands, ported to C# and judged byte for byte against them |
 
-The core stays Python 3.9+, standard library only. The hosted adapter is a separate package
-with its own dependencies, the same way optional embeddings are isolated today.
+The desktop core stays Python 3.9+, standard library only. Margo Cloud is a separate C# solution with its own
+dependencies (the Microsoft 365 Agents SDK and Azure SDKs); it mirrors the desktop core rather than importing it.
 
 ### 4.1.1 Parity with desktop Margo
 
@@ -168,10 +175,10 @@ same through four function tools, so the procedures run unchanged:
 
 | Desktop | Hosted | Implementation |
 | --- | --- | --- |
-| Skill list and loading | Skill index in the instructions; `load_skill` | [`skills.py`](../autopilot/src/margo_autopilot/skills.py) |
-| Reading `references/…`, `../preferences.md` | `read_skill_file`, confined to the skill's Markdown files | `skills.py` |
-| `python3 scripts/work_state.py --account A …` | `margo-state` with the same script and arguments | [`statecmd.py`](../autopilot/src/margo_autopilot/statecmd.py) |
-| `workiq-fetch`, `workiq-retrieve`, … | The same names, through the guard, plus `on_data_of` | `engine.py`, `guard.py` |
+| Skill list and loading | Skill index in the instructions; `load_skill` | [`SkillLibrary.cs`](../cloud/src/Margo.Cloud.Engine/SkillLibrary.cs) |
+| Reading `references/…`, `../preferences.md` | `read_skill_file`, confined to the skill's Markdown files | `SkillLibrary.cs` |
+| `python3 scripts/work_state.py --account A …` | `margo-state` with the same script and arguments | [`StateCommands.cs`](../cloud/src/Margo.Cloud.Engine/StateCommands.cs), run by the C# `margo-state` CLI |
+| `workiq-fetch`, `workiq-retrieve`, … | The same names, through the guard, plus `on_data_of` | `Margo.Cloud.Engine`, `Margo.Cloud.Guard` |
 
 **Private files.** `preferences.md` is the instance's private copy. Hosted instances keep
 commitments only in the work ledger (the post-migration state the skill describes), so
@@ -188,7 +195,7 @@ hosted approval must come from the manager's authenticated card, not from chat t
 times out or crashes is `unknown`, never "failed" or "done". Receipts hold no arguments or
 output.
 
-**What is not hosted yet is one list.** [`parity.py`](../autopilot/src/margo_autopilot/parity.py)
+**What is not hosted yet is one list.** [`NotHosted.cs`](../cloud/src/Margo.Cloud.Engine/NotHosted.cs)
 names every program, script, subcommand and Work IQ tool desktop Margo can use and hosted Margo
 cannot, each with its reason: `gh` (GitHub review load), `az`/`curl`/`jq` (Azure DevOps work
 items) and `git` (the team decision registry) each wait on a credential decision;
@@ -196,10 +203,11 @@ items) and `git` (the team decision registry) each wait on a credential decision
 service; Work IQ writes wait for approval cards. The engine puts this list in the model's
 instructions, so a routine that needs one of them reports the gap instead of an empty result.
 
-**The parity test** ([`tests/test_autopilot_parity.py`](../tests/test_autopilot_parity.py))
+**The parity test** ([`ParityTests.cs`](../cloud/tests/Margo.Cloud.Engine.Tests/ParityTests.cs))
 fails when the persona or a `SKILL.md` is not loaded word for word, a skill file cannot be read,
-a state subcommand is unclassified, the image does not carry every skill, or a procedure uses a
-program, script or Work IQ tool that is neither hosted nor listed.
+a state subcommand is unclassified or not implemented by the C# `margo-state` with the desktop script's parser, the
+image does not carry every skill, or a procedure uses a program, script or Work IQ tool that is neither hosted nor
+listed.
 
 ### 4.2 Tools: Work IQ MCP only
 
@@ -249,7 +257,7 @@ one extra argument, `on_data_of: "principal" | "self"`. The guard picks the matc
 | principal, write | `do_action /me/sendMail` | Principal (OBO) | unchanged | Only with a live approval-journal claim (§6.3); never unattended |
 
 **What the guard enforces (fails closed).** Implemented in
-[`autopilot/src/margo_autopilot/guard.py`](../autopilot/src/margo_autopilot/guard.py):
+[`Margo.Cloud.Guard`](../cloud/src/Margo.Cloud.Guard/WorkIQGuard.cs):
 
 0. **One endpoint.** The guard refuses any transport not bound to
    `https://workiq.svc.cloud.microsoft/mcp`. Agent 365 tooling servers and the Foundry Toolbox
@@ -332,7 +340,7 @@ unchanged. Where the file lives, and why it is not enough on its own:
   working SQLite file lives on its local disk, which is not durable: the app scales to zero when
   idle, restarts, and is replaced on every new revision.
 - **So the shared copy lives in Blob Storage, behind a lease**
-  ([`statesync.py`](../autopilot/src/margo_autopilot/statesync.py)). Each turn takes a
+  ([`StateSync.cs`](../cloud/src/Margo.Cloud.Orchestrator/StateSync.cs)). Each turn takes a
   60-second exclusive lease on the instance's `state.zip` (renewed while it runs), installs the
   newest bundle if its local copy is stale, runs, uploads a verified online-backup snapshot under
   the same lease, and releases it. One writer at a time, across restarts and revisions. A failed turn marks the
@@ -361,8 +369,8 @@ The partition key is the instance's agent identity plus the principal ID
   "fullDescription": "A personal autopilot that briefs, triages, preps meetings and drafts replies for the person who hires it. Works only for its manager. Every outward action needs that manager's explicit approval.",
   "developerName": "Tolga Kilicli",
   "developerWebsiteUrl": "https://github.com/tolgaki/margo",
-  "privacyUrl": "https://github.com/tolgaki/margo/blob/main/autopilot/terms.md#privacy",
-  "termsOfUseUrl": "https://github.com/tolgaki/margo/blob/main/autopilot/terms.md",
+  "privacyUrl": "https://github.com/tolgaki/margo/blob/main/cloud/terms.md#privacy",
+  "termsOfUseUrl": "https://github.com/tolgaki/margo/blob/main/cloud/terms.md",
   "useAgenticUserTemplate": true,
   "agenticUserTemplate": {
     "Id": "digitalWorkerTemplate",
@@ -374,9 +382,9 @@ The partition key is the instance's agent identity plus the principal ID
 }
 ```
 
-The same payload is in [`autopilot/config/publish.template.json`](../autopilot/config/publish.template.json).
-Terms and privacy are in [`autopilot/terms.md`](../autopilot/terms.md); the icons are in
-[`autopilot/assets/`](../autopilot/assets/) (192 px colour and 32 px white outline PNGs, with SVG
+The publish details are also in the [deployment guide](autopilot-deployment.md#4-publish-and-approve).
+Terms and privacy are in [`cloud/terms.md`](../cloud/terms.md); the icons are in
+[`cloud/assets/`](../cloud/assets/) (192 px colour and 32 px white outline PNGs, with SVG
 sources). The URLs resolve once these files are on `main`.
 
 `canRespondWithoutMention: false` keeps Margo silent in any group surface she is added to.
@@ -502,7 +510,7 @@ procedure describes when she consults them.
 - **Whether she replies is the principal's setting (decided).** One line in their private
   `preferences.md`, `- **Replies to other people:** none | acknowledge | approve`, read by the
   runtime with `load_reply_policy` and enforced by `ReplyGate`
-  ([`autopilot/src/margo_autopilot/replies.py`](../autopilot/src/margo_autopilot/replies.py)).
+  ([`ReplyPolicy`](../cloud/src/Margo.Cloud.Orchestrator/Replies.cs)).
   `none` is the default and the fallback for anything missing, unknown or conflicting.
   `acknowledge` sends one fixed note per conversation and discards model text. `approve` sends
   only the exact text the manager approved for that recipient. There is no autonomous mode.
@@ -573,25 +581,26 @@ starts, and partial results are reported as partial.
 [Deploy Margo as an Agent 365 agent](autopilot-deployment.md).
 
 ```text
-autopilot/
+cloud/
   README.md, terms.md, assets/   # overview, terms and privacy, icons
-  Dockerfile, requirements.txt   # image (built from the repository root) and hosted-only dependencies
+  Dockerfile                     # one image for instance, router and provisioner (built from the repository root)
   azure.yaml, infra/main.bicep   # azd project: model, registry, monitoring, storage, router, provisioner
+  infra/instance.bicep           # one instance (compiled to instance.json for the provisioner)
   scripts/*.sh                   # roles by name, image build, blueprint connection (Agent 365 CLI)
   config/                        # single MCP server
-  src/margo_autopilot/
-    guard.py        transport.py # Work IQ guard and MCP client (standard library)
-    engine.py       orchestrator.py  # model turn loop; who is speaking and what follows
-    skills.py       statecmd.py  # the desktop persona and skills; the skill scripts as one tool
-    parity.py                    # everything not hosted yet, with its reason
-    instances.py  router/  provision/  # one container per instance: names, front door, provisioner
-    voice/                       # talk to Margo: session bridge, endpoint, browser page (static/)
-    statesync.py    office.py    # leased state bundle; queue of other people's requests
-    replies.py      claims.py    instance.py
-    host/                        # Agents SDK endpoint and Azure Blob store (hosted dependencies)
-  infra/instance.bicep           # one instance (compiled to instance.json for the provisioner)
-tests/test_autopilot_guard.py, tests/test_autopilot_runtime.py, tests/test_autopilot_parity.py,
-tests/test_autopilot_instances.py, tests/test_autopilot_voice.py
+  Margo.Cloud.slnx               # the C# solution (.NET 10)
+  src/
+    Margo.Cloud.Guard  Margo.Cloud.WorkIQ          # Work IQ guard and MCP client
+    Margo.Cloud.Engine                             # model turn loop, persona and skills, margo-state tool, NotHosted
+    Margo.Cloud.Orchestrator                       # who is speaking; leased state bundle; office queue; replies
+    Margo.Cloud.Core  Margo.Cloud.Router  Margo.Cloud.Provisioner  # one container per instance
+    Margo.Cloud.Voice                              # talk to Margo: session bridge, endpoint, browser page (wwwroot/)
+    Margo.Cloud.Host                               # Agents SDK endpoint and Azure Blob store
+    Margo.Cloud.State.*  Margo.Cloud.StateCli      # the desktop state helpers ported to C# (margo-state)
+  tests/                         # xUnit tests, one project per component
+  contracts/state/               # parity scenarios: margo-state against the desktop Python helpers
+tools/state_parity.py            # the parity judge (CPython 3.13 behaviour)
+tests/test_cloud_deployment.py   # repository checks of the deployment files
 ```
 
 `InstanceBinding.account` is `autopilot:{agent_identity_id}:{principal_id}`, passed to the
@@ -604,7 +613,7 @@ desktop Margo, including her work ledger, proactive state, task runs and memory 
 `margo-state`; queued requests from others; the reply setting (`none`/`acknowledge`);
 delegation or on-behalf-of access; leased SQLite state.
 **Not yet:** approval cards and writes, schedules, mail replies, Key Vault-held refresh tokens
-for unattended on-behalf-of, the items in `parity.py`, a feature-catalog entry.
+for unattended on-behalf-of, the items in `NotHosted`, a feature-catalog entry.
 
 Required repository gates still apply (unit tests, feature catalog, journey contracts,
 `check-clean`). New scenarios use synthetic principals and `example.com` only.
@@ -656,10 +665,13 @@ and [talking to Margo by voice](autopilot-voice.md).
 | 6 | Exchange delegation is an acceptable fallback if OBO refresh is blocked | Mail and calendar only; Teams reported unavailable |
 | 7 | Approvals bind the exact Work IQ call (`payload.workiq`) | Kept; cards must render the call readably |
 | 8 | Hiring scope is whatever the admin configures | Blueprint does not restrict it (4.5) |
-| 9 | Publisher Tolga Kilicli; terms and icon in this repository | `autopilot/terms.md`, `autopilot/assets/`, publish details in the deployment guide |
-| 10 | Hosted Margo is desktop Margo, hosted and live: the same persona and skills regardless of engine (18 Oct 2026) | Persona and every skill loaded unchanged; the skill scripts through `margo-state`, not a shell; every gap named in `parity.py`; a parity test in CI (4.1.1) |
+| 9 | Publisher Tolga Kilicli; terms and icon in this repository | `cloud/terms.md`, `cloud/assets/`, publish details in the deployment guide |
+| 10 | Hosted Margo is desktop Margo, hosted and live: the same persona and skills regardless of engine (18 Oct 2026) | Persona and every skill loaded unchanged; the skill scripts through `margo-state`, not a shell; every gap named in one list (`NotHosted`); a parity test in CI (4.1.1) |
 | 11 | One container per hired instance (18–19 Oct 2026) | Each instance gets its own Container App, identity and state container, scale to zero by default, storage never deleted automatically ([plan](autopilot-instance-containers.md)). First built beside a Foundry agent; the only hosting since decision 13 |
 | 12 | Talk to Margo by voice (18 Oct 2026) | Voice Live behind Margo's own server, same tools and guard, HD voice until a custom voice is trained, nothing recorded; WebSocket transport because Container Apps has no UDP ([plan](autopilot-voice.md)) |
 | 13 | Self-hosted for Agent 365; Foundry removed (6 Nov 2026) | A Foundry-created blueprint cannot point its messaging at our own containers, so chat could never reach them. The Agent 365 CLI creates the blueprint with the router as its messaging endpoint; Agent 365 publishes, approves and hires; Azure AI Services serves the model directly ([deployment](autopilot-deployment.md)) |
 
-Still open: Copilot Credits billing subject (verification item 4) and the phase-0 results.
+| 14 | Margo Cloud in C#; desktop stays Python (November 2026) | The hosted runtime is a C# (.NET 10) solution in `cloud/` and the Python hosted runtime is removed. The desktop (GitHub Copilot, persona, skills, Python state helpers) stays, in maintenance mode, and shares `agents/` and `skills/`. The C# state commands stay byte-compatible with the desktop helpers (`tools/state_parity.py`, CPython 3.13 behaviour) ([plan](margo-cloud-plan.md)) |
+
+Still open: Copilot Credits billing subject (verification item 4) and the phase-0 results (run by an operator in a
+test tenant with [VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md)).
