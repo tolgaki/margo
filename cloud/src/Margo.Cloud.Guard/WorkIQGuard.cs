@@ -30,7 +30,8 @@ namespace Margo.Cloud.Guard;
 /// <item>Requests triggered by someone other than the principal never read as the principal, and as Margo may only
 /// open the triggering message. Claims are consumed durably in the ledger before dispatch, so no attempt is ever
 /// sent twice.</item>
-/// <item>A missing token is <c>blocked</c>. The guard never falls back to the other subject.</item>
+/// <item>A missing token is <c>blocked</c>, and so is a readable principal token whose subject is not the bound
+/// principal (<see cref="TokenSubject"/>). The guard never falls back to the other subject.</item>
 /// <item>Every attempt leaves a receipt: subject, tool, path (no query text), status and outcome. Tokens, bodies and
 /// results are never recorded.</item>
 /// </list>
@@ -183,7 +184,12 @@ public sealed class WorkIQGuard
         string bearer;
         try
         {
-            bearer = _tokens.TokenFor(intent == Subjects.Principal && !delegated ? Subjects.Principal : Subjects.Margo);
+            var asPrincipal = intent == Subjects.Principal && !delegated;
+            bearer = _tokens.TokenFor(asPrincipal ? Subjects.Principal : Subjects.Margo);
+            if (asPrincipal && !TokenSubject.MayBe(bearer, Binding.PrincipalId))
+            {
+                throw new TokenUnavailableException("the token is not the bound principal's");
+            }
         }
         catch (Exception exc) // nothing was sent, so a claim settles as a no-effect failure
         {

@@ -150,6 +150,13 @@ specification; everything not listed under "Deliberate deviations" is meant to b
 7. **Journal exceptions from the database.** A SQLite failure inside `Load` is reported in the refusal reason with
    Microsoft.Data.Sqlite's message where Python shows sqlite3's. A ledger that is not this guard's account is caught
    by the account check either way.
+8. **The principal's token must be the principal's (security review).** Before a principal call is sent (on-behalf-of
+   access), the guard reads the subject of the token it was handed: a compact JWS whose payload has no `oid`, or an
+   `oid` other than the bound principal's directory object ID (compared without case), is `blocked`
+   (`token unavailable for principal: the token is not the bound principal's`), nothing is sent and a claim settles
+   `failed`. Python sent whatever `token_for("principal")` returned. The token is never verified or recorded here;
+   a token that is not a three-segment JWS (opaque or encrypted) cannot be read and is sent as before. Margo's own
+   token and delegated principal reads (Margo's token) are not checked. Tests: `TokenSubjectTests`.
 
 ## Not ported here
 
@@ -176,6 +183,8 @@ specification; everything not listed under "Deliberate deviations" is meant to b
 - `GuardRuntimeTests`: cancellation, the recorder hook, result and receipt shapes, payload copies, concurrent
   budgets, concurrent claimed writes (the journal is never entered by two calls at once), the `jsonBody` nesting
   boundary, constants, `OpenLedger`.
+- `TokenSubjectTests` (security review, deviation 8): a principal token for someone else or without a subject is
+  blocked and never sent, claimed writes included; the bound principal's, opaque, self and delegated tokens are sent.
 - `GuardParityTests`: 1709 scenarios (809 hand-written for every branch, 900 seeded random; 1717 calls) recorded from
   `guard.py` into `Parity/guard_cases.json` (frozen at the cutover; see **Cutover**), replayed against the C# guard: same
   response, receipt (apart from its time stamp), transport call (tool, arguments, bearer), token requests and journal

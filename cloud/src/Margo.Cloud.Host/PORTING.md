@@ -160,7 +160,9 @@ and `SCOPES__0` changed the Python `AgentAuthConfiguration` but not what it acce
 
 1. **Shared token check** (integration owner): `Authentication/` is a copy of `Margo.Cloud.Router/Authentication` plus
    `PythonCompat`, `PythonBase64`, `PythonJsonBytes`. Moving them into one library both services reference (and Voice's
-   `Jwt/` pieces with them) would leave one implementation to review. Until then, a change to one must be made to both.
+   `Jwt/` pieces with them) would leave one implementation to review. Until then, a change to one must be made to both;
+   `TokenCheckCopyTests` fails when the seven copied files differ from the router's in anything but the copy note and
+   the namespace.
 2. **Cutover (image and Dockerfile, not done here):** a .NET 10 ASP.NET runtime image; `dotnet publish -c Release` of
    this project (it brings `margo-state.dll` and its `runtimeconfig.json`; the build fails if the contract probes would
    ship); `agents/` and `skills/` under `/app` (`MARGO_REPO_ROOT=/app`); **the `tzdata` package** (State's `PyZoneInfo`
