@@ -25,8 +25,8 @@ param registryId string
 @description('Azure AI Services account that serves the chat model and Voice Live')
 param aiAccountName string
 param modelDeployment string
-// Role definition GUIDs are looked up by name at deployment time (postprovision-instance.sh), so
-// no identifier lives in this file.
+// Role definition GUIDs are looked up by name at deployment time (cloud/scripts/postprovision.sh, which
+// hands them to the provisioner as MARGO_*_ROLE_ID), so no identifier lives in this file.
 @description('Storage Blob Data Contributor role definition GUID')
 param storageRoleDefinitionId string
 @description('AcrPull role definition GUID')

@@ -196,11 +196,8 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
   close frame, which nothing reads (RFC 6455 and aiohttp both stop at the close frame). The test once did exactly that
   and hung about 1 run in 10; `MessageSocket` itself was not at fault and is unchanged. A scratch console program
   (not committed) confirmed the .NET order directly: a send blocked on a full pipe, then `CloseOutputAsync`, then a
-  second send produced the frames data, close, data on the wire.
-- `RuntimeVoiceTests`: the voice test of `tests/test_autopilot_runtime.py` (the `/voice` command).
-  the peer has sent more than the queue holds. The test's peer answers the close only after its held-back sends have
-  finished: otherwise a send that passed its state check could write after the peer's close frame into a transport
-  nobody reads, and the test timed out (it failed in 2 of 2 full-solution runs under load, never alone).
+  second send produced the frames data, close, data on the wire. Under load the race also failed 2 of 2
+  full-solution runs (never alone).
 - `RuntimeVoiceTests`: the voice test of the former Python runtime tests (the `/voice` command).
 
 Not covered by tests: a real Voice Live service and a real Entra key set (no network or Azure account here).
