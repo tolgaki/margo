@@ -9,7 +9,7 @@ public sealed class EndpointTests
 {
     private static CancellationToken Cancel => TestContext.Current.CancellationToken;
 
-    private static string Static(string file) => Path.Combine(Fixtures.Root, "autopilot", "src", "margo_autopilot", "voice", "static", file);
+    private static string Static(string file) => Path.Combine(Fixtures.Root, "cloud", "src", "Margo.Cloud.Voice", "wwwroot", file);
 
     [Fact]
     public async Task The_page_files_are_served_unchanged_with_their_headers()
@@ -35,24 +35,33 @@ public sealed class EndpointTests
     }
 
     [Fact]
-    public void The_python_page_lists_the_same_files_and_policy()
+    public void The_page_lists_the_python_server_s_files_and_policy()
     {
-        var python = File.ReadAllText(Path.Combine(Fixtures.Root, "autopilot", "src", "margo_autopilot", "voice", "server.py"));
-        foreach (var (name, (file, contentType)) in VoiceEndpoints.Files)
+        // voice/server.py's FILES, CSP and limits, as they were when the cutover removed the Python server.
+        Dictionary<string, (string, string)> files = new(StringComparer.Ordinal)
         {
-            Assert.Contains($"\"{name}\": (\"{file}\", \"{contentType}\")", python, StringComparison.Ordinal);
+            [""] = ("index.html", "text/html"),
+            ["index.html"] = ("index.html", "text/html"),
+            ["voice.css"] = ("voice.css", "text/css"),
+            ["voice.js"] = ("voice.js", "text/javascript"),
+            ["voice-core.mjs"] = ("voice-core.mjs", "text/javascript"),
+            ["pcm-worklets.js"] = ("pcm-worklets.js", "text/javascript"),
+        };
+        Assert.Equal(files.Count, VoiceEndpoints.Files.Count);
+        foreach (var (name, entry) in VoiceEndpoints.Files)
+        {
+            Assert.Equal(files[name], entry);
         }
 
-        Assert.Equal(VoiceEndpoints.Files.Count, python.Split("\": (\"").Length - 1);
-        var csp = python[(python.IndexOf("CSP = (", StringComparison.Ordinal) + 7)..];
-        csp = csp[..csp.IndexOf(")\n", StringComparison.Ordinal)];
-        Assert.Equal(VoiceEndpoints.ContentSecurityPolicy, string.Concat(csp.Split('"').Where((_, index) => index % 2 == 1)));
-        Assert.Contains("MAX_FRAME = 256 * 1024", python, StringComparison.Ordinal);
-        Assert.Contains("VOICE_CALL_BUDGET, VOICE_STATE_BUDGET = 120, 60", python, StringComparison.Ordinal);
-        Assert.Contains("HELLO_SECONDS = 15", python, StringComparison.Ordinal);
-        Assert.Contains("heartbeat=20", python, StringComparison.Ordinal);
-        Assert.Contains("\"" + VoiceService.SignInRefused + "\"", python, StringComparison.Ordinal);
-        Assert.Contains("\"" + VoiceService.SessionFailed + "\"", python, StringComparison.Ordinal);
+        Assert.Equal("default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https://login.microsoftonline.com; "
+                     + "img-src 'self' data:; media-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; "
+                     + "frame-ancestors 'none'", VoiceEndpoints.ContentSecurityPolicy);
+        Assert.Equal(256 * 1024, VoiceService.MaxFrame);
+        Assert.Equal((120, 60), (VoiceService.VoiceCallBudget, VoiceService.VoiceStateBudget));
+        Assert.Equal(TimeSpan.FromSeconds(15), VoiceService.HelloSeconds);
+        Assert.Equal(TimeSpan.FromSeconds(20), VoiceService.Heartbeat);
+        Assert.Equal("Your sign-in can't be used to talk to this Margo.", VoiceService.SignInRefused);
+        Assert.Equal("Something failed on my side, so the call ended. Nothing was sent.", VoiceService.SessionFailed);
     }
 
     [Fact]

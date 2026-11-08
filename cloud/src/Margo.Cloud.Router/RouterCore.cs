@@ -40,7 +40,7 @@ public static class RouterDecisionKinds
 public sealed record VoiceTarget(int Status, string? Key = null, string? Url = null, int? RetryAfter = null);
 
 /// <summary>
-/// Where one inbound request goes. Python: <c>margo_autopilot/router/core.py</c>.
+/// Where one inbound request goes. Python: <c>router/core.py</c>.
 /// </summary>
 /// <remarks>
 /// The router holds no Microsoft 365 token and no instance state. It validates the platform token,

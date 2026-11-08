@@ -2,7 +2,7 @@ using Margo.Cloud.Orchestrator;
 
 namespace Margo.Cloud.Voice.Tests;
 
-/// <summary>The voice test of <c>tests/test_autopilot_runtime.py</c>: the manager's <c>/voice</c> command in Teams answers
+/// <summary>The voice test of the former Python runtime tests: the manager's <c>/voice</c> command in Teams answers
 /// with the voice page's link, or says voice is not set up; nobody else gets the link. (The same scenario is also in
 /// <c>Margo.Cloud.Orchestrator.Tests</c>, which owns the command.)</summary>
 public sealed class RuntimeVoiceTests

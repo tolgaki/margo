@@ -1,7 +1,7 @@
 using System.Net;
 using Margo.Cloud.Host;
 
-// Python: margo_autopilot.host.app.main (python -m margo_autopilot.host).
+// Python (removed at the cutover): host/app.py main (python -m ... host).
 var builder = WebApplication.CreateBuilder(args);
 HostSettings settings;
 try

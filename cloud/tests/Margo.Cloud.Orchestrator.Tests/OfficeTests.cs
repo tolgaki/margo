@@ -6,7 +6,7 @@ using Margo.Cloud.State.Work;
 namespace Margo.Cloud.Orchestrator.Tests;
 
 /// <summary>
-/// <c>LedgerBackedTests</c> of <c>tests/test_autopilot_runtime.py</c> (<c>office.py</c>), against the instance's real
+/// <c>LedgerBackedTests</c> of the former Python runtime tests (<c>office.py</c>), against the instance's real
 /// ledger in a temporary state root.
 /// </summary>
 public sealed class OfficeTests

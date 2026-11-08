@@ -39,8 +39,8 @@ public static class ProvisionerConfig
         new("blueprintClientId", "MARGO_BLUEPRINT_CLIENT_ID"),
     ];
 
-    /// <summary><c>autopilot/infra/instance.json</c> as copied next to the binary by the build.
-    /// Python read <c>/app/autopilot/infra/instance.json</c> in its image.</summary>
+    /// <summary><c>cloud/infra/instance.json</c> as copied next to the binary by the build.
+    /// Python read <c>/app/cloud/infra/instance.json</c> in its image.</summary>
     public static string DefaultTemplatePath => Path.Combine(AppContext.BaseDirectory, TemplateFileName);
 
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);

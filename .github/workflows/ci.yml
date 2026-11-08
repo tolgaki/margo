@@ -50,8 +50,8 @@ jobs:
           MARGO_CANVAS_TEST_PARENT="$HOME/.margo-canvas-ci" node --test .github/extensions/margo-action-desk/*.test.mjs
           rmdir "$HOME/.margo-canvas-ci"
 
-      - name: Autopilot voice page (audio, sign-in and protocol helpers)
-        run: node --test autopilot/src/margo_autopilot/voice/static/*.test.mjs
+      - name: Margo Cloud voice page (audio, sign-in and protocol helpers)
+        run: node --test cloud/src/Margo.Cloud.Voice/wwwroot/*.test.mjs
 
       - name: Shell syntax
         run: |
@@ -61,6 +61,7 @@ jobs:
           bash -n tools/gen-automations-docs.sh
           bash -n packaging/macos/build-pkg.sh
           bash -n packaging/macos/scripts/postinstall
+          for script in cloud/scripts/*.sh; do sh -n "$script"; done
 
       - name: ShellCheck
         uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # 2.0.0
@@ -302,6 +303,34 @@ jobs:
         run: |
           python -m unittest discover -s tests -p test_memory_encoder.py
           python -m unittest discover -s tests -p test_semantic_e2e.py
+
+  cloud:
+    name: Margo Cloud (C#)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with: { dotnet-version: '10.0.x' }
+      # The parity judge compares margo-state with the desktop Python helpers byte for byte; it pins CPython 3.13
+      # behaviour (json, argparse, sqlite3 and zoneinfo output), so it runs on 3.13 exactly as the reference does.
+      - uses: actions/setup-python@v6
+        with: { python-version: '3.13' }
+      - name: Build (warnings are errors)
+        working-directory: cloud
+        run: dotnet build Margo.Cloud.slnx -warnaserror
+      - name: Test
+        working-directory: cloud
+        run: dotnet test --solution Margo.Cloud.slnx --no-build
+      - name: State commands match the desktop Python helpers (parity judge)
+        run: python tools/state_parity.py --check
+      - name: Release publish carries no contract probes
+        run: |
+          for app in Host Router Provisioner StateCli; do
+            dotnet publish "cloud/src/Margo.Cloud.$app/Margo.Cloud.$app.csproj" -c Release -o "$RUNNER_TEMP/publish/$app" -nologo -v q
+          done
+          if find "$RUNNER_TEMP/publish" -iname '*Probes*' | grep .; then echo 'contract probes in a Release publish' >&2; exit 1; fi
+          test -f "$RUNNER_TEMP/publish/Host/margo-state.dll"
+          test -f "$RUNNER_TEMP/publish/Provisioner/instance.json"
 
   docs:
     name: Documentation links

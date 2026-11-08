@@ -1,6 +1,6 @@
 # Margo.Cloud.Host: porting notes
 
-Port of `autopilot/src/margo_autopilot/host/app.py` (the Microsoft 365 Agents SDK activity endpoint, self-hosted for
+Port of `host/app.py` (Python hosted runtime, removed at the cutover) (the Microsoft 365 Agents SDK activity endpoint, self-hosted for
 Agent 365) and `host/azure_store.py` (the Azure Blob lease store), on ASP.NET Core with the Agents SDK for .NET
 (`Microsoft.Agents.Hosting.AspNetCore`, `.Builder`, `.Authentication.Msal` 1.9.205) and Agent 365 notifications
 (`Microsoft.Agents.A365.Notifications` 2.0.0). The Python code is the specification; everything not listed under
@@ -56,7 +56,7 @@ Agent 365) and `host/azure_store.py` (the Azure Blob lease store), on ASP.NET Co
 
 ## Configuration
 
-The host reads the same environment variables the Python host read and `autopilot/infra/instance.bicep` and the
+The host reads the same environment variables the Python host read and `cloud/infra/instance.bicep` and the
 Dockerfile set; nothing in the infrastructure changes. .NET maps an environment variable `A__B` to the configuration key
 `A:B`, and configuration keys ignore case, so the upper-case names with `SERVICE_CONNECTION` reach the SDK as they are:
 
@@ -219,7 +219,7 @@ skipped such messages; read in the decompiled SDK, not run).
 
 `cloud/tests/Margo.Cloud.Host.Tests` (75 test cases after the review below), no network:
 
-- `AzureBlobLeaseStoreTests`: the four `AzureStoreTests` of `tests/test_autopilot_runtime.py` (stores reused and no
+- `AzureBlobLeaseStoreTests`: the four `AzureStoreTests` of the former Python runtime tests (stores reused and no
   network at construction; a 412 bootstrap waited for; other failures typed `SyncException`; a removed container
   created again), plus a container missing twice, the 60 s lease and `If-None-Match: *` bootstrap, 409 retried every
   second up to 120 s, reads/writes under the lease ID with quoted ETags, a missing blob and failed reads/writes, renewal
@@ -248,3 +248,19 @@ Release build or publish that would ship the probes.
 
 Not verified: anything against real Entra, Agent 365, Teams, Outlook, Work IQ, Blob Storage, Azure OpenAI or Voice Live.
 These are contract tests with fakes, not a live run; `VERIFY.md` is the checklist for the first test-tenant run.
+
+## Cutover
+
+The Python hosted runtime was removed in the Phase 6 cutover. It was the specification of this
+port; the C# code is now the implementation of record, and the desktop state helpers in
+`skills/chief-of-staff/scripts/` stay the specification of the state commands (`tools/state_parity.py`).
+
+- Image: `cloud/Dockerfile` publishes the host (with `margo-state` next to it), the router and the provisioner in
+  Release and runs them on `mcr.microsoft.com/dotnet/aspnet:10.0-alpine` plus `tzdata`, as the non-root `APP_UID`
+  user; the default command is the host. The ENV lines are the Python Dockerfile's (minus the Python ones).
+  `instance.bicep`/`instance.json` name the host's command explicitly. The cutover review built it with
+  Docker (outside Azure; the Alpine package mirror was unreachable, so the zone files were copied in instead of
+  `apk add tzdata`, which stays unverified) and started each role in it as the non-root user: the host and router
+  answered `/`, `/liveness` and `/readiness`, the provisioner printed its usage and failed on the missing
+  `AZURE_SUBSCRIPTION_ID` as designed, and `margo-state` created its SQLite databases (musl `e_sqlite3`). Never run in
+  a tenant.

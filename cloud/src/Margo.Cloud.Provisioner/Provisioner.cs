@@ -20,7 +20,7 @@ public enum HandleOutcome
 
 /// <summary>
 /// The provisioner's decisions, without Azure: what to do with one queue message, step by step.
-/// Python: <c>margo_autopilot/provision/core.py</c>.
+/// Python: <c>provision/core.py</c>.
 /// </summary>
 /// <remarks>
 /// Each step is idempotent, so a message that fails part-way is safe to retry from the start. The
@@ -55,7 +55,7 @@ public sealed class Provisioner
     /// <param name="config">The provisioner configuration (<see cref="ProvisionerConfig.Load"/>). Kept as
     /// JSON, as Python keeps whatever <c>json.loads</c> returned: a value that is not an object fails
     /// each step that needs it, as in Python.</param>
-    /// <param name="template">The ARM template for one instance (<c>autopilot/infra/instance.json</c>).</param>
+    /// <param name="template">The ARM template for one instance (<c>cloud/infra/instance.json</c>).</param>
     /// <param name="log">Receives one line per decision; never identifiers, only instance keys.</param>
     /// <param name="timeProvider">The clock for route <c>updated_at</c>; the system clock by default.</param>
     public Provisioner(ICloud cloud, JsonNode? config, JsonNode? template, Action<string>? log = null, TimeProvider? timeProvider = null)

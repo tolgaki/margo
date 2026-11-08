@@ -96,7 +96,8 @@ or written to Outlook/shared storage unattended. An anchor may make its brief av
 availability is not proof that a human has read it.
 
 **The hosted autopilot design has one approved exception.** If Margo runs as an Agent 365
-autopilot with her own identity (a design, not a shipped mode; see [autopilot](autopilot.md)),
+autopilot with her own identity (Margo Cloud: built and tested offline, unproven in a live tenant, not a supported
+mode; see [autopilot](autopilot.md)),
 she may message her own manager in their one-to-one chat at any time, including unattended. The
 target is fixed at hire and enforced in code, and a run started by anyone else's message cannot
 use it; every other outbound action keeps the rules above.

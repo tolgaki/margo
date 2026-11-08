@@ -1,7 +1,8 @@
 # Running Margo in a container
 
 **Status: illustrative deployment recipe; no Dockerfile, published image or container CI is
-shipped by this repository.** A container is optional and is not required to contribute.
+shipped by this repository for desktop Margo.** (Margo Cloud's image, `cloud/Dockerfile`, is the hosted
+runtime, not a container for Copilot CLI; see [cloud/README.md](../cloud/README.md).) A container is optional and is not required to contribute.
 Start with the credential-free [developer journey](development/README.md) for normal development.
 
 Potential uses are repeatable unattended private preparation and a smaller filesystem exposure

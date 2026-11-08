@@ -6,7 +6,7 @@ using Xunit;
 namespace Margo.Cloud.WorkIQ.Tests;
 
 /// <summary>
-/// <c>tests/test_autopilot_runtime.py</c> <c>TransportTests</c> and <c>RedirectTests</c>, against a real
+/// the former Python runtime tests <c>TransportTests</c> and <c>RedirectTests</c>, against a real
 /// loopback HTTP server, plus the transport paths those tests do not reach.
 /// </summary>
 public sealed class TransportTests : IAsyncLifetime

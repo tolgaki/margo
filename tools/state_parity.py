@@ -58,7 +58,7 @@ SCENARIOS = REPO / "cloud" / "contracts" / "state"
 CLI_PROJECT = REPO / "cloud" / "src" / "Margo.Cloud.StateCli" / "Margo.Cloud.StateCli.csproj"
 DEFAULT_CLI = REPO / "cloud" / "src" / "Margo.Cloud.StateCli" / "bin" / "Debug" / "net10.0" / "margo-state.dll"
 
-# Scripts that receive the instance account and state directory, as autopilot statecmd passes them.
+# Scripts that receive the instance account and state directory, as Margo Cloud's StateCommands passes them.
 STATEFUL = {"work_state.py", "proactive_state.py", "memory_state.py", "task_state.py"}
 DEFAULT_ACCOUNT = "parity-owner@example.com"
 STEP_TIMEOUT = 120

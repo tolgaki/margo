@@ -1,8 +1,8 @@
 # Margo.Cloud.Core: porting notes
 
-Ports `autopilot/src/margo_autopilot/instances.py`, `activity.py` and `instance.py`: instance keys and
+Ports `instances.py` (Python hosted runtime, removed at the cutover), `activity.py` and `instance.py`: instance keys and
 Azure names, the route table, Agent 365 lifecycle mapping, provisioning messages and plans, ARM
-parameters for `autopilot/infra/instance.json`, email classification, stable message IDs and the
+parameters for `cloud/infra/instance.json`, email classification, stable message IDs and the
 instance binding. The project has no package references: no Agents SDK, no Azure SDK.
 
 ## What maps to what
@@ -160,13 +160,13 @@ planned as a retirement; `config.get("voiceName", "")` keeps a present `null`.
 
 `cloud/tests/Margo.Cloud.Core.Tests` ports, scenario for scenario:
 
-- `tests/test_autopilot_instances.py` `NamesAndRoutes` (keys, route table round trip and
+- the former Python instance tests `NamesAndRoutes` (keys, route table round trip and
   validation, lifecycle mapping) and `Plans` (plans, deployment parameters, and the
   `instance.json`/`instance.bicep` consistency check, reading both files from the repository root
   found above `AppContext.BaseDirectory`). `RouterDecisions`, `ProvisionerSteps` and `Deployment`
   belong to the Router and Provisioner ports.
-- `tests/test_autopilot_runtime.py` `EmailClassificationTests` and `StableIdTests`, and
-  `tests/test_autopilot_guard.py` `InstanceBindingTests` (the binding scenarios live there).
+- the former Python runtime tests `EmailClassificationTests` and `StableIdTests`, and
+  the former Python guard tests `InstanceBindingTests` (the binding scenarios live there).
 - Edge cases checked against Python 3.13 output: identifier characters and lengths in code
   points, Python lower-casing, `activity_identity` truthiness, `_value` key lookup, `int()`
   conversions, `list()` of `extraEnv`, missing-configuration order, float formatting, key order by
@@ -202,3 +202,11 @@ An independent review compared this port with the Python code by differential te
 - `BindingException` and `RouteException` were not sealed (cloud/README.md: sealed by default).
 
 The only remaining difference the generated cases found is deviation 3 (lone surrogates).
+
+## Cutover
+
+The Python hosted runtime was removed in the Phase 6 cutover. It was the specification of this
+port; the C# code is now the implementation of record, and the desktop state helpers in
+`skills/chief-of-staff/scripts/` stay the specification of the state commands (`tools/state_parity.py`).
+
+- The infrastructure moved to `cloud/infra/`; `PlanTests` reads it there.

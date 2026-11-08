@@ -107,6 +107,20 @@ python3 tools/feature_catalog.py --check
 python3 tools/journey_contracts.py --check
 ```
 
+If you touched Margo Cloud (`cloud/`) or a desktop state helper in `skills/chief-of-staff/scripts/`, also run
+(needs the .NET 10 SDK):
+
+```bash
+cd cloud && dotnet build Margo.Cloud.slnx && dotnet test --solution Margo.Cloud.slnx && cd ..
+python3 tools/state_parity.py --check        # margo-state must match the desktop helpers byte for byte
+node --test cloud/src/Margo.Cloud.Voice/wwwroot/*.test.mjs
+```
+
+Margo Cloud is C#; desktop Margo stays Python and shares `agents/` and `skills/` with it. A change to a desktop
+state helper needs the matching change in the C# port in the same commit, or the parity judge fails. The judge pins
+**CPython 3.13** behaviour (the JSON, argparse, sqlite3 and zoneinfo output the scenarios record), so run it with
+Python 3.13; CI does. See [cloud/README.md](cloud/README.md).
+
 For full canvas integration, create a fresh private non-repository fixture directory beneath
 your home, set `MARGO_CANVAS_TEST_PARENT` to it, and rerun the Node tests. The fixture must satisfy
 the production storage guard; do not disable it against real data. The test creates and removes
@@ -134,7 +148,7 @@ native packagers enumerate tracked **and non-ignored untracked** files, and loca
 walk their source trees with explicit exclusions. Build only from a sanitized checkout and inspect
 the payload. Three GUIDs are allowed and documented: the fixed public Azure DevOps resource ID, the
 Windows installer's own AppId, and the Microsoft 365 Agents SDK's public service-connection
-scope, permitted only in `autopilot/Dockerfile`.
+scope, permitted only in `cloud/Dockerfile`.
 
 If you touched the installers or packaging, see **[packaging/README.md](packaging/README.md)** —
 the `.pkg` and `.exe` delegate to these same scripts, so a change here reaches all three surfaces.

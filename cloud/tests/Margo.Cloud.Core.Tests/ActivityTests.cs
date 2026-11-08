@@ -5,7 +5,7 @@ using static Margo.Cloud.Core.Tests.Fixtures;
 
 namespace Margo.Cloud.Core.Tests;
 
-/// <summary>tests/test_autopilot_runtime.py EmailClassificationTests and StableIdTests, plus the adapters.</summary>
+/// <summary>The former Python runtime tests' EmailClassificationTests and StableIdTests, plus the adapters.</summary>
 public sealed class ActivityTests
 {
     // The Python test's Activity(channel_id, entities) and Channel(channel, sub_channel) shapes.
@@ -92,7 +92,7 @@ public sealed class ActivityTests
     [Fact]
     public void Derived_ids_match_the_python_implementation()
     {
-        // Golden values from margo_autopilot.activity.stable_ids.
+        // Golden values from the Python activity.py stable_ids.
         const string first = "sha256-845a9552e35b96d2f4fbdb4ac70272606d897847883a5041f0c11c075c630d0f";
         Assert.Equal(new MessageIds(first, "message-" + first), ActivityClassifier.StableIds(null, null, "colleague-1", "first"));
         var text = "line\nbreak " + U(0x2028) + " " + U(0x1f600) + " " + U(0x7f) + " " + U(0x01) + " \"q\" \\";

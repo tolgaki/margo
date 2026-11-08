@@ -90,7 +90,7 @@ public sealed record EmailFacts
 /// <param name="ConversationId">The conversation the request belongs to.</param>
 public sealed record MessageIds(string ExternalId, string ConversationId);
 
-/// <summary>Activity classification that needs no SDK. Python: <c>margo_autopilot/activity.py</c>.</summary>
+/// <summary>Activity classification that needs no SDK. Python: <c>activity.py</c>.</summary>
 public static class ActivityClassifier
 {
     /// <summary>

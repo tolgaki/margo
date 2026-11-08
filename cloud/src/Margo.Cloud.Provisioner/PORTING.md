@@ -1,6 +1,6 @@
 # Margo.Cloud.Provisioner: porting notes
 
-Ports `autopilot/src/margo_autopilot/provision/` (`core.py`, `azure.py`, `__main__.py`): the
+Ports `provision/` (Python hosted runtime, removed at the cutover) (`core.py`, `azure.py`, `__main__.py`): the
 scheduled Container Apps job that drains the provisioning queue, deploys or retires one container
 per hired Margo and keeps the route table. Naming, plans, ARM parameters, provisioning messages and
 the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
@@ -21,7 +21,7 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
 | `VISIBILITY_SECONDS`, `messages_per_page=16` | `ProvisionerCommands.VisibilitySeconds`, `MessagesPerPage` |
 | `APP_API`, `IDENTITY_API` | `AzureCloud.AppApiVersion`, `AzureCloud.IdentityApiVersion` |
 | `load_config` | `ProvisionerConfig.Load` (`ProvisionerConfig.Overrides`) |
-| `json.loads(Path(MARGO_INSTANCE_TEMPLATE or /app/autopilot/infra/instance.json).read_text())` | `ProvisionerConfig.LoadTemplate` |
+| `json.loads(Path(MARGO_INSTANCE_TEMPLATE or the image's `instance.json`).read_text())` | `ProvisionerConfig.LoadTemplate` |
 | `os.environ[name]` (KeyError) | `ProvisionerConfig.Require` (`KeyNotFoundException`) |
 | `logging.basicConfig(...)` + `logging.getLogger("margo.provision")` | `ProvisionerLog` |
 
@@ -85,9 +85,9 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
 
 ## Deliberate deviations
 
-1. **Template location.** Python read `/app/autopilot/infra/instance.json` unless
+1. **Template location.** Python read `the image's `instance.json`` unless
    `MARGO_INSTANCE_TEMPLATE` was set. Here the default is `instance.json` next to the binary: the
-   csproj links `autopilot/infra/instance.json` and copies it to the build and publish output
+   csproj links `cloud/infra/instance.json` and copies it to the build and publish output
    (requested for this port). `MARGO_INSTANCE_TEMPLATE` still wins, even when empty, as
    `os.getenv(name, default)` did.
 2. **Exception type names on failed routes.** The route's `error` is the .NET type name
@@ -97,7 +97,7 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
    The ported Python test asserts the fake's type name accordingly.
 3. **Uncaught errors.** Python printed a traceback and exited 1; `InvokeAsync` writes the
    exception's `ToString()` (type, message, stack) to standard error and returns 1. Usage text names
-   `Margo.Cloud.Provisioner` instead of `python -m margo_autopilot.provision`.
+   `Margo.Cloud.Provisioner` instead of the Python module.
 4. **Cancellation.** Python has none. Here an `OperationCanceledException` raised because the job's
    token was cancelled propagates instead of being recorded as a step failure (the analogue of the
    process being stopped); `Program.cs` passes no token, so the job behaves as Python's did.
@@ -144,18 +144,18 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
 
 - `logging.basicConfig` for every logger (Azure SDK loggers included): only `margo.provision`
   lines are written, see deviation 6.
-- The `Deployment` tests in `tests/test_autopilot_instances.py` (`main.bicep` outputs against
+- The `Deployment` tests in the former Python instance tests (`main.bicep` outputs against
   `postprovision.sh`, no Foundry hosted agent): they check the deployment scripts and infrastructure,
   not the provisioner. The `instance.json`/`instance.bicep` parameter check is in
   `Margo.Cloud.Core.Tests` (`PlanTests`).
-- `main.bicep` still runs `python -m margo_autopilot.provision run` in the job; pointing the job at
+- (Done at the cutover: `main.bicep` runs `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll run`.) Pointing the job at
   this binary is infrastructure work outside this project.
 
 ## Tests
 
 `cloud/tests/Margo.Cloud.Provisioner.Tests`:
 
-- `ProvisionerStepsTests`: the three `ProvisionerSteps` tests of `tests/test_autopilot_instances.py`
+- `ProvisionerStepsTests`: the three `ProvisionerSteps` tests of the former Python instance tests
   with the same `FakeCloud`, plus scenarios whose expected logs, calls, outcomes and route blob were
   recorded by running `provision/core.py` on Python 3.13 with the same fake and `_utc_now` fixed
   (lifecycle, failure records, persistent conflicts, bad configuration, unreadable table),
@@ -217,3 +217,12 @@ Evidence gathered outside the repository (scratch harnesses, not committed):
   deployments can take longer. A message handled after its visibility timeout may already have
   been received again (new pop receipt), so its delete fails and the job exits 1 (`replicaTimeout`
   is 1800 seconds). Should the job receive fewer messages per page, or renew visibility?
+
+## Cutover
+
+The Python hosted runtime was removed in the Phase 6 cutover. It was the specification of this
+port; the C# code is now the implementation of record, and the desktop state helpers in
+`skills/chief-of-staff/scripts/` stay the specification of the state commands (`tools/state_parity.py`).
+
+- `main.bicep` runs `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll run`; the template moved to
+  `cloud/infra/instance.json` and the csproj copies it from there (the image also copies it to the same place).

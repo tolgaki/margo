@@ -25,7 +25,7 @@ public sealed class RouterStartupException : Exception
 
 /// <summary>
 /// The router's configuration, from the environment variables the Python router read and
-/// <c>autopilot/infra/main.bicep</c> sets (read through <see cref="IConfiguration"/>, where
+/// <c>cloud/infra/main.bicep</c> sets (read through <see cref="IConfiguration"/>, where
 /// <c>A__B</c> is the key <c>A:B</c>).
 /// </summary>
 /// <param name="ClientId"><c>CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID</c>: the agent blueprint.</param>

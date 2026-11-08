@@ -166,7 +166,7 @@ the following, each now covered by a test that failed before the fix:
 ## Not ported
 
 Nothing from the three scripts. The hosted classification (`statecmd.COMMANDS`,
-`READ: {None}`) and the refusal of path arguments (`tests/test_autopilot_runtime.py` cases for
+`READ: {None}`) and the refusal of path arguments (the former Python runtime tests cases for
 `capacity.py --input /etc/passwd`) belong to `Margo.Cloud.Engine`.
 
 ## Requests for State.Core

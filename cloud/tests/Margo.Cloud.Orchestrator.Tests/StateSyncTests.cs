@@ -6,7 +6,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Margo.Cloud.Orchestrator.Tests;
 
-/// <summary><c>StateSyncTests</c> of <c>tests/test_autopilot_runtime.py</c>, with the in-memory lease store, plus the bundle checks.</summary>
+/// <summary><c>StateSyncTests</c> of the former Python runtime tests, with the in-memory lease store, plus the bundle checks.</summary>
 public sealed class StateSyncTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 17, 0, 0, 0, TimeSpan.Zero);
@@ -362,52 +362,25 @@ public sealed class StateSyncTests
     }
 
     [Fact]
-    public async Task Bundles_move_between_the_python_service_and_this_port_in_both_directions()
+    public async Task A_bundle_the_python_service_packed_installs_here()
     {
+        // Parity/python_state_bundle.zip was packed by the Python StateSync (deflate, its own manifest) before the
+        // cutover removed it, from a fictional database with two notes. A deployment that switches images finds such a
+        // bundle in Blob storage; this port installs it. The other direction (Python installing this port's bundle)
+        // was checked the same way until the cutover; no Python reader remains.
         using var state = new TempState();
-        var script = Path.Combine(AppContext.BaseDirectory, "Parity", "statesync_bundle.py");
-        var account = Fixtures.Binding.Account;
-
-        // This port packs; Python's _install accepts it and installs the same database and preferences.
-        var (dbA, syncA) = Session(state, "sandbox-a");
-        await Turn(syncA, () =>
-        {
-            MakeDb(dbA, account);
-            AddNote(dbA, "packed in C#");
-            WriteFile(state.Combine("sandbox-a", "preferences.md"), "- **Replies to other people:** acknowledge\n");
-        });
-        var packed = state.Combine("packed.zip");
-        File.WriteAllBytes(packed, _store.Get(StateSync.Bundle)!.Value.Data);
-        var pythonDb = state.Combine("python", "state", "margo.sqlite3");
-        var pythonPreferences = state.Combine("python", "preferences.md");
-        var (status, stdout, stderr) = Programs.Run(Fixtures.Python(), ["-B", "-I", script, Fixtures.Root, "install", packed, pythonDb, pythonPreferences, account]);
-        Assert.True(status == 0, stderr);
-        var installed = (JsonObject)PyJson.Loads(stdout)!;
-        Assert.True(installed.ContainsKey("manifest"), stdout);
-        Assert.Equal(["packed in C#"], Notes(pythonDb));
-        Assert.Equal("- **Replies to other people:** acknowledge\n", File.ReadAllText(pythonPreferences));
-        Assert.Equal("2026-10-17T00:00:00+00:00", PyNode.AsString(installed["manifest"]!["taken_at"]));
-
-        // Python packs (deflate, its own manifest); this port installs it.
-        AddNote(pythonDb, "packed in Python");
-        var pythonBundle = state.Combine("python.zip");
-        (status, _, stderr) = Programs.Run(Fixtures.Python(), ["-B", "-I", script, Fixtures.Root, "pack", pythonDb, pythonPreferences, account, pythonBundle]);
-        Assert.True(status == 0, stderr);
-        _store.Set(StateSync.Bundle, File.ReadAllBytes(pythonBundle), "etag-python");
+        var pythonBundle = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Parity", "python_state_bundle.zip"));
+        _store.Set(StateSync.Bundle, pythonBundle, "etag-python");
         var (dbB, syncB) = Session(state, "sandbox-b");
         var outcome = await Turn(syncB, () => { });
         Assert.Equal("2026-10-17T09:30:00+00:00", PyNode.AsString(outcome.Restored!["taken_at"]));
         Assert.Equal(["packed in C#", "packed in Python"], Notes(dbB));
         Assert.Equal("- **Replies to other people:** acknowledge\n", File.ReadAllText(state.Combine("sandbox-b", "preferences.md")));
 
-        // A bundle of another account is refused by both, with the same reason.
+        // A bundle of another account is refused, with the reason the Python service gave.
         var (otherDb, otherSync) = Session(state, "other", account: "autopilot:agent-identity-1:principal-2", store: new InMemoryLeaseStore());
-        (status, stdout, stderr) = Programs.Run(Fixtures.Python(), ["-B", "-I", script, Fixtures.Root, "install", packed, state.Combine("python-other", "margo.sqlite3"),
-                                                                    state.Combine("python-other", "preferences.md"), "autopilot:agent-identity-1:principal-2"]);
-        Assert.True(status == 0, stderr);
-        Assert.Equal("""{"sync_error": "state bundle belongs to another account; refusing it"}""", stdout.Trim());
         Assert.Equal("state bundle belongs to another account; refusing it",
-                     Assert.Throws<SyncException>(() => otherSync.Install(File.ReadAllBytes(packed))).Message);
+                     Assert.Throws<SyncException>(() => otherSync.Install(pythonBundle)).Message);
         Assert.False(File.Exists(otherDb));
     }
 

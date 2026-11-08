@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Decisions recorded from guard.py by Parity/guard_cases.py. -->
+    <!-- Decisions recorded from the Python guard.py before the cutover (frozen). -->
     <None Include="Parity/guard_cases.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

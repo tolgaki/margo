@@ -5,7 +5,7 @@ using static Margo.Cloud.Core.Tests.Fixtures;
 
 namespace Margo.Cloud.Core.Tests;
 
-/// <summary>tests/test_autopilot_instances.py NamesAndRoutes.test_keys_are_stable_opaque_and_valid_azure_names, and more.</summary>
+/// <summary>The former Python instance tests' NamesAndRoutes.test_keys_are_stable_opaque_and_valid_azure_names, and more.</summary>
 public sealed class NamesTests
 {
     [Fact]
@@ -48,7 +48,7 @@ public sealed class NamesTests
     [Fact]
     public void Keys_match_the_python_implementation()
     {
-        // Golden values from margo_autopilot.instances.instance_key.
+        // Golden values from the Python instances.py instance_key.
         Assert.Equal(Key, Instances.InstanceKey(Identity, User));
         Assert.Equal("a0f90081efd683453c1a", Instances.InstanceKey(Identity, "margo-user-2"));
         Assert.Equal("7688250577852fdae674", Instances.InstanceKey("agent-" + U(0xe9) + "-1", "user-" + U(0x1f600)));

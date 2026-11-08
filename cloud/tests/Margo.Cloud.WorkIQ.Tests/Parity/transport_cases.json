@@ -1,5 +1,5 @@
 {
- "generated_by": "cloud/tests/Margo.Cloud.WorkIQ.Tests/Parity/transport_cases.py",
+ "generated_by": "recorded from the Python transport.py (removed in the Phase 6 cutover); frozen",
  "cases": [
   {
    "name": "json single message",

@@ -13,7 +13,7 @@ namespace Margo.Cloud.Router;
 
 /// <summary>
 /// The router service: one public endpoint in front of every hired Margo's own container. Python:
-/// <c>margo_autopilot/router/app.py</c> (<c>Router</c> and <c>build_app</c>).
+/// <c>router/app.py</c> (<c>Router</c> and <c>build_app</c>).
 /// </summary>
 /// <remarks>
 /// <list type="bullet">

@@ -181,7 +181,14 @@ public sealed class GeneratedCaseTests
             var state = new StateCommands(Fixtures.Binding.Account, "/nonexistent-margo-state", recorder: receipts.Add,
                                           cliCommand: [Programs.Python(), "-s", Path.Combine(fake, "runner.py")]);
             var mine = await RunState(state, cases[i]!, receipts);
-            Compare(failures, File.ReadAllText(Path.Combine(specs, "spec-" + i.ToString(CultureInfo.InvariantCulture) + ".json")), python[i], mine);
+            // The recorded answers hold each outcome's SHA-256 and its first characters (the outputs run to megabytes).
+            var actual = Fixtures.Dumps(mine);
+            var digest = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(actual)));
+            if (PyNode.AsString(python[i]!["sha256"]) != digest)
+            {
+                failures.Add("case spec-" + i.ToString(CultureInfo.InvariantCulture) + "\npython: " + PyNode.AsString(python[i]!["head"])
+                             + "...\nC#:     " + Clip(actual));
+            }
         }
 
         Assert.True(failures.Count == 0, failures.Count + " of " + cases.Count + " differ:\n" + string.Join("\n\n", failures.Take(10)));
@@ -219,8 +226,10 @@ public sealed class GeneratedCaseTests
             cases.Add(new JsonArray(name, raw, mode is null ? null : JsonValue.Create(mode), office is null ? null : JsonValue.Create(office)));
         }
 
-        var python = (JsonArray)Programs.AskPython(new JsonObject { ["dispatch"] = PyNode.Copy(cases) })["dispatch"]!;
-        var library = new SkillLibrary(Fixtures.Root);
+        using var temp = new TempRoot();
+        var root = FixtureLibrary.Create(temp.Path);
+        var python = (JsonArray)Programs.AskPython(new JsonObject { ["dispatch"] = PyNode.Copy(cases), ["library"] = new JsonObject { ["root"] = root } })["dispatch"]!;
+        var library = new SkillLibrary(root);
         var failures = new List<string>();
         for (var i = 0; i < cases.Count; i++)
         {
@@ -257,7 +266,9 @@ public sealed class GeneratedCaseTests
             cases.Add(new JsonObject { ["script"] = script, ["mode"] = mode, ["max_rounds"] = maxRounds, ["text"] = "Brief me \u00e9", ["previous"] = previous });
         }
 
-        var python = (JsonArray)Programs.AskPython(new JsonObject { ["runs"] = PyNode.Copy(cases) })["runs"]!;
+        using var temp = new TempRoot();
+        var root = FixtureLibrary.Create(temp.Path);
+        var python = (JsonArray)Programs.AskPython(new JsonObject { ["runs"] = PyNode.Copy(cases), ["root"] = root })["runs"]!;
         var failures = new List<string>();
         for (var i = 0; i < cases.Count; i++)
         {
@@ -265,7 +276,7 @@ public sealed class GeneratedCaseTests
             var model = new FakeModel([.. ((JsonArray)spec["script"]!).Select(node => (object?)node)]);
             var transport = new RecordingTransport();
             var guard = new WorkIQGuard(Fixtures.Binding, new FakeTokens(), transport);
-            var runner = new Engine(model, "fictional-model", Fixtures.Root, maxRounds: (int)spec["max_rounds"]!);
+            var runner = new Engine(model, "fictional-model", root, maxRounds: (int)spec["max_rounds"]!);
             JsonNode result;
             try
             {

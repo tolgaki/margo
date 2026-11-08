@@ -6,7 +6,7 @@ using Margo.Cloud.Orchestrator;
 namespace Margo.Cloud.Host.Tests;
 
 /// <summary>
-/// <c>AzureStoreTests</c> of <c>tests/test_autopilot_runtime.py</c>, against the real Azure SDK over an in-memory Blob
+/// <c>AzureStoreTests</c> of the former Python runtime tests, against the real Azure SDK over an in-memory Blob
 /// service, plus the rest of <c>azure_store.py</c>'s contract (lease waits, reads, writes, renewals, release, daily
 /// copies) and a state bundle shared by two sandboxes through it.
 /// </summary>

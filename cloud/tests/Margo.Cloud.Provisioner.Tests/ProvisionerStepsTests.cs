@@ -6,7 +6,7 @@ using static Margo.Cloud.Provisioner.Tests.Fixtures;
 namespace Margo.Cloud.Provisioner.Tests;
 
 /// <summary>
-/// tests/test_autopilot_instances.py <c>ProvisionerSteps</c>, scenario for scenario, plus the edge
+/// the former Python instance tests' <c>ProvisionerSteps</c>, scenario for scenario, plus the edge
 /// cases whose expected values were recorded by running <c>provision/core.py</c> on Python 3.13 with
 /// the same <c>FakeCloud</c> and <c>instances._utc_now</c> fixed at 2026-11-07T09:30:00+00:00.
 /// </summary>

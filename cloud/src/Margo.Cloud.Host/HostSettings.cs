@@ -24,7 +24,7 @@ public sealed class HostStartupException : Exception
 
 /// <summary>
 /// The host's own configuration: the same environment variables <c>host/app.py</c> read and
-/// <c>autopilot/infra/instance.bicep</c> and the Dockerfile set, read through <see cref="IConfiguration"/> (an
+/// <c>cloud/infra/instance.bicep</c> and the Dockerfile set, read through <see cref="IConfiguration"/> (an
 /// environment variable <c>A__B</c> is the key <c>A:B</c>; keys ignore case). The Agents SDK reads its own sections
 /// (<c>CONNECTIONS</c>, <c>CONNECTIONSMAP</c>, <c>AGENTAPPLICATION</c>) from the same configuration.
 /// </summary>

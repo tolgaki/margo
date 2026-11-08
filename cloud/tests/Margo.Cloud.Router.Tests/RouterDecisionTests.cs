@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Margo.Cloud.Router.Tests;
 
-/// <summary>Port of <c>tests/test_autopilot_instances.py</c> <c>RouterDecisions</c>, plus edge cases
+/// <summary>Port of the former Python instance tests <c>RouterDecisions</c>, plus edge cases
 /// checked against the Python <c>router/core.py</c>.</summary>
 public sealed class RouterDecisionTests
 {
@@ -75,7 +75,7 @@ public sealed class RouterDecisionTests
     [Fact]
     public void Every_decision_carries_python_fields()
     {
-        // Values from margo_autopilot.router.core.decide on Python 3.13.
+        // Values from the Python router/core.py decide on Python 3.13.
         var key = Instances.InstanceKey(Identity, User);
         Assert.Equal(new RouterDecision("wait", 503, key, RetryAfter: 30), RouterCore.Decide(Activity(), Table(RouteStates.Provisioning)));
         Assert.Equal(new RouterDecision("ignore", 200, key, Reason: "instance is suspended"), RouterCore.Decide(Activity(), Table(RouteStates.Suspended)));
@@ -145,7 +145,7 @@ public sealed class RouterDecisionTests
     [Fact]
     public void Voice_targets_match_python_values()
     {
-        // Values from margo_autopilot.router.core.voice_target on Python 3.13.
+        // Values from the Python router/core.py voice_target on Python 3.13.
         var key = Instances.InstanceKey(Identity, User);
         var ready = Table(RouteStates.Ready, "https://margo-x.internal.example.com//");
         Assert.Equal(new VoiceTarget(200, key, "https://margo-x.internal.example.com/voice/app.js"), RouterCore.VoiceTargetFor("/i/" + key + "/voice/app.js", ready));

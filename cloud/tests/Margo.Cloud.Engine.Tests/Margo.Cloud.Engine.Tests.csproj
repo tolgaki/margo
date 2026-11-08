@@ -17,8 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Asks the Python engine, skills, parity and statecmd modules (the specification) the tests' questions. -->
-    <None Include="Parity/engine_cases.py" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The Python engine's answers, recorded before the cutover removed it (EngineOracle). -->
+    <None Include="Parity/engine_answers.jsonl" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Reads the desktop state helpers' parsers live (they stay the specification of the state commands). -->
+    <None Include="Parity/subcommands.py" CopyToOutputDirectory="PreserveNewest" />
     <!-- These tests start many processes (margo-state, python3); one class at a time keeps the machine responsive for
          the timing-sensitive tests of other assemblies that run alongside. -->
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />

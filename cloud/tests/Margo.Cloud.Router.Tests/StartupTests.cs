@@ -63,7 +63,7 @@ public sealed class StartupTests
         Assert.Throws<RouterStartupException>(() => RouterSettings.Load(Configuration([.. Complete, ("PORT", "http")])));
 
         // The double-underscore names map to these keys; the bicep file sets exactly these variables.
-        var bicep = File.ReadAllText(Path.Combine(RepositoryRoot(), "autopilot", "infra", "main.bicep"));
+        var bicep = File.ReadAllText(Path.Combine(RepositoryRoot(), "cloud", "infra", "main.bicep"));
         foreach (var name in (string[])["AZURE_CLIENT_ID", "MARGO_ROUTES_URL", "MARGO_PROVISION_QUEUE_URL",
                      "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID"])
         {

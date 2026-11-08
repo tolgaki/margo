@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 namespace Margo.Cloud.Host.Tests;
 
 /// <summary>
-/// Configuration from the same environment variables the Python host, <c>autopilot/infra/instance.bicep</c> and the
+/// Configuration from the same environment variables the Python host, <c>cloud/infra/instance.bicep</c> and the
 /// Dockerfile use, and the start-up refusals.
 /// </summary>
 public sealed class ConfigurationTests
