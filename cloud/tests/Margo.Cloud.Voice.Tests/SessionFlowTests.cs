@@ -31,11 +31,11 @@ public sealed class SessionFlowTests
         using var page = await host.OpenAsync();
         await page.HelloAsync(host.SignIn());
 
-        // Audio is not passed on before the session is configured. Sent now, while the session is still being set up,
-        // so it is certainly queued before Voice Live reports the session ready (sent after session.update, it raced
-        // the in-memory session.updated below and was usually read after it).
-        await page.SendAsync("""{"type": "audio", "audio": "AAAA"}""");
-
+        // No audio before ready here: the server reads the page and Voice Live in two concurrent pumps started after
+        // session.update (Python: two tasks under asyncio.wait), so audio queued before session.updated may still be read
+        // after it and passed on. Queued is not read; asserting that it is dropped raced and failed about 1 run in 200
+        // under load. The bridge's rule (no audio before ready) is checked deterministically in
+        // SessionTests.Audio_flows_only_after_ready_and_barge_in_interrupts.
         var connection = await host.VoiceLive.NextConnectionAsync();
         Assert.Equal([("https://voice.example.com/", "fictional-realtime")], host.VoiceLive.Connects);
         var update = await connection.NextSentAsync();

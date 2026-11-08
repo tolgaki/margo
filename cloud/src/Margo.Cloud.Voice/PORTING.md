@@ -182,7 +182,7 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
 - `EndpointTests`: the page files byte for byte with headers, HEAD, 404/405/301, config JSON, the plain-GET 400, the
   start-up checks, and the files and CSP compared with `server.py`.
 - `SessionFlowTests`: the whole session through a test server with the real orchestrator, guard, engine dispatcher,
-  `StateSync` and `margo-state` CLI and a fake Voice Live: tokens, audio gating, Work IQ reads with the manager's token,
+  `StateSync` and `margo-state` CLI and a fake Voice Live: tokens, audio after ready, Work IQ reads with the manager's token,
   a real `margo-state` call, refused writes, `response.create`, captions, stop; delegation mode; every refused hello;
   wrong caller, expired token, other tenant, no manager; the generic failures (bad JSON, no agent token, directory
   failure, Voice Live failure, hello timeout); binary hello; the 1009 frame limit; the time limit; the tool budget.
@@ -194,7 +194,9 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
   answers the close frame. The test peer answers only after its own sends: a .NET `WebSocket` checks its state before
   queueing a send behind its send lock, so a send concurrent with `CloseOutputAsync` can put a data frame after the
   close frame, which nothing reads (RFC 6455 and aiohttp both stop at the close frame). The test once did exactly that
-  and hung about 1 run in 10; `MessageSocket` itself was not at fault and is unchanged.
+  and hung about 1 run in 10; `MessageSocket` itself was not at fault and is unchanged. A scratch console program
+  (not committed) confirmed the .NET order directly: a send blocked on a full pipe, then `CloseOutputAsync`, then a
+  second send produced the frames data, close, data on the wire.
 - `RuntimeVoiceTests`: the voice test of `tests/test_autopilot_runtime.py` (the `/voice` command).
 
 Not covered by tests: a real Voice Live service and a real Entra key set (no network or Azure account here).
@@ -209,6 +211,14 @@ cases, no differences); and the SDK's `_prepare_url` against `RealtimeUrl` (6,00
 only difference is the exception type). It fixed: the bracketed-host rules, the unhashable event `type`, the reader's
 unbounded queue, and `SessionFlowTests` sending pre-ready audio in a way that raced the fake service and failed on
 every run here.
+
+A second review (of the `MessageSocketTests` close fix) found that `SessionFlowTests` still raced: audio sent before
+`session.updated` is queued before the session is ready but read by the page pump, which starts only after
+`session.update` and runs concurrently with the service pump (as Python's two tasks under `asyncio.wait`), so it was
+sometimes read after `session.updated` and passed on (`AAAA` instead of `AAAB`; 1 failure in 30 project runs, 3 in 600
+repetitions under 4-way load). The flow test no longer sends pre-ready audio (0 in 600 under the same load); the rule
+itself is the bridge's and is checked deterministically by `SessionTests.Audio_flows_only_after_ready_and_barge_in_interrupts`.
+At the flow level, audio queued before ready may be passed on if read after ready, in Python and here alike.
 
 ## Open questions
 
