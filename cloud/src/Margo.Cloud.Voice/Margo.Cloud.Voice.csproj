@@ -5,13 +5,29 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.Voice.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../Margo.Cloud.Core/Margo.Cloud.Core.csproj" />
     <ProjectReference Include="../Margo.Cloud.Guard/Margo.Cloud.Guard.csproj" />
     <ProjectReference Include="../Margo.Cloud.Engine/Margo.Cloud.Engine.csproj" />
     <ProjectReference Include="../Margo.Cloud.Orchestrator/Margo.Cloud.Orchestrator.csproj" />
-    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
-    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" />
+    <ProjectReference Include="../Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
+    <!-- Voice Live authentication (managed identity), as the Python server used azure-identity. Already a dependency
+         of Margo.Cloud.Engine; the version is the central one. -->
+    <PackageReference Include="Azure.Identity" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The browser page, served unchanged from the Python package (the cutover will move these files). Only the
+         files voice/server.py serves (FILES); the page's tests and README stay out. -->
+    <EmbeddedResource Include="../../../autopilot/src/margo_autopilot/voice/static/index.html" LogicalName="voice/index.html" />
+    <EmbeddedResource Include="../../../autopilot/src/margo_autopilot/voice/static/voice.css" LogicalName="voice/voice.css" />
+    <EmbeddedResource Include="../../../autopilot/src/margo_autopilot/voice/static/voice.js" LogicalName="voice/voice.js" />
+    <EmbeddedResource Include="../../../autopilot/src/margo_autopilot/voice/static/voice-core.mjs" LogicalName="voice/voice-core.mjs" />
+    <EmbeddedResource Include="../../../autopilot/src/margo_autopilot/voice/static/pcm-worklets.js" LogicalName="voice/pcm-worklets.js" />
   </ItemGroup>
 
 </Project>

@@ -5,12 +5,22 @@
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- Expected values written inline in assertions read better than static fields. -->
+    <NoWarn>$(NoWarn);CA1861</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/Margo.Cloud.Voice/Margo.Cloud.Voice.csproj" />
+    <!-- The real margo-state CLI, copied next to the tests: a voice session initialises state and runs margo-state. -->
+    <ProjectReference Include="../../src/Margo.Cloud.StateCli/Margo.Cloud.StateCli.csproj" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <!-- Tests only: mint a token the way Microsoft's libraries do and show the verifier accepts it. -->
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
