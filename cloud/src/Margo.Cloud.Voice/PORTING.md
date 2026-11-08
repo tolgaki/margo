@@ -190,7 +190,9 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
   (bearer token and scope, path and query, `ensure_ascii` JSON, text and binary events, a non-object, close), the
   bracketed-host rules against the SDK's outcomes, and an unhashable event `type`.
 - `MessageSocketTests`: unread messages hold the peer back (64 KiB) and arrive in order; closing still completes while
-  the peer has sent more than the queue holds.
+  the peer has sent more than the queue holds. The test's peer answers the close only after its held-back sends have
+  finished: otherwise a send that passed its state check could write after the peer's close frame into a transport
+  nobody reads, and the test timed out (it failed in 2 of 2 full-solution runs under load, never alone).
 - `RuntimeVoiceTests`: the voice test of the former Python runtime tests (the `/voice` command).
 
 Not covered by tests: a real Voice Live service and a real Entra key set (no network or Azure account here).

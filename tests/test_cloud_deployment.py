@@ -92,6 +92,19 @@ class Deployment(unittest.TestCase):
         for entry in ("**/state/", "**/bin/", "**/obj/", "cloud/tests/", "tests/", "docs/", "**/*.sqlite3", "**/.env"):
             self.assertIn(entry, ignored)
 
+    def test_dockerignore_keeps_what_git_ignores_as_private_out_of_the_registry_upload(self):
+        # build-image.sh uploads the repository to the registry build and only refuses *uncommitted* changes, so a file
+        # git ignores is uploaded unless .dockerignore drops it too: the Agent 365 CLI's files (tenant identifiers and
+        # possibly a client secret, which .gitignore expects to find here by mistake), local agent settings and
+        # worktrees, and the publish outputs cloud/README.md writes.
+        ignored = set((ROOT / ".dockerignore").read_text(encoding="utf-8").split())
+        for entry in ("**/a365.config.json", "**/a365.generated.config.json", ".claude/", "cloud/out/",
+                      "cloud/artifacts/"):
+            self.assertIn(entry, ignored)
+        gitignored = set((ROOT / ".gitignore").read_text(encoding="utf-8").split())
+        self.assertIn("cloud/out/", gitignored)
+        self.assertIn("-o out/host", read("README.md"))
+
 
 if __name__ == "__main__":
     unittest.main()

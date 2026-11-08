@@ -342,4 +342,7 @@ Foundry and cannot be pointed at your own container, so this route starts with a
 - The image is ASP.NET Core 10 on Alpine plus the `tzdata` package, which the persona's clock and Margo's time zone
   (`MARGO_TIMEZONE`) need; an image without IANA zone files fails every turn with an unknown time zone. Check
   `ls /usr/share/zoneinfo/America/Los_Angeles` in a running container (VERIFY.md, step 0). The image has been
-  written and its inputs checked, but not yet built and run in a tenant.
+  built with Docker outside Azure, with one substitution: the Alpine package mirror was unreachable there, so the
+  zone files were copied in instead of `apk add tzdata`, which therefore remains unverified. In that image the host,
+  the router and the provisioner started as the non-root user, the host and router answered their health and probe
+  paths, and `margo-state` created its SQLite databases. It has not been built with `az acr build` or run in a tenant.

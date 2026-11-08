@@ -258,5 +258,9 @@ port; the C# code is now the implementation of record, and the desktop state hel
 - Image: `cloud/Dockerfile` publishes the host (with `margo-state` next to it), the router and the provisioner in
   Release and runs them on `mcr.microsoft.com/dotnet/aspnet:10.0-alpine` plus `tzdata`, as the non-root `APP_UID`
   user; the default command is the host. The ENV lines are the Python Dockerfile's (minus the Python ones).
-  `instance.bicep`/`instance.json` name the host's command explicitly. The image has not been built here (no
-  container daemon); every COPY source exists and each publish succeeds (see the cutover commit's report).
+  `instance.bicep`/`instance.json` name the host's command explicitly. The cutover review built it with
+  Docker (outside Azure; the Alpine package mirror was unreachable, so the zone files were copied in instead of
+  `apk add tzdata`, which stays unverified) and started each role in it as the non-root user: the host and router
+  answered `/`, `/liveness` and `/readiness`, the provisioner printed its usage and failed on the missing
+  `AZURE_SUBSCRIPTION_ID` as designed, and `margo-state` created its SQLite databases (musl `e_sqlite3`). Never run in
+  a tenant.

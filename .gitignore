@@ -81,3 +81,4 @@ a365.generated.config.json
 cloud/**/bin/
 cloud/**/obj/
 cloud/artifacts/
+cloud/out/

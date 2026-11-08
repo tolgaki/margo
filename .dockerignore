@@ -32,4 +32,11 @@ cloud/assets/
 **/.venv/
 **/venv/
 **/forbidden.local.txt
+# Ignored by git (so the build script's clean-checkout check does not see them) but never to be uploaded: the Agent
+# 365 CLI's files (tenant identifiers, possibly a client secret), local agent settings and worktrees, publish outputs.
+**/a365.config.json
+**/a365.generated.config.json
+.claude/
+cloud/out/
+cloud/artifacts/
 .memory-store-test-*

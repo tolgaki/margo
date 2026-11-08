@@ -63,6 +63,9 @@ public sealed class MessageSocketTests
                     var result = await client.ReceiveAsync(buffer, CancellationToken.None);
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
+                        // Answer only once the held-back messages are out: a send that passed its state check before
+                        // the close frame would otherwise write after it, into a transport nobody reads any more.
+                        await more.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
                         await client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
                         return;
                     }
