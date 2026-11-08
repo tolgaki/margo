@@ -60,12 +60,14 @@ messaging endpoint. The post-provision hook (`scripts/postprovision.sh`) does th
 1. Grants the router and the provisioner their roles, by role name. The provisioner may grant
    only the four roles an instance needs (an ABAC condition): its state container, image pull,
    the chat model (`Cognitive Services OpenAI User`) and Voice Live (`Cognitive Services User`).
-2. Runs the repository privacy check, builds the image from `cloud/Dockerfile` with `az acr build` and pins it
-   by digest. It refuses a checkout with uncommitted changes unless `ALLOW_DIRTY=true`. The one image serves all
-   three roles: the router and the provisioner job run `dotnet /app/router/Margo.Cloud.Router.dll` and
+2. Runs the repository privacy check, builds the image from `cloud/Dockerfile` with `az acr build`, pins it
+   by digest and records it in the azd environment (`MARGO_PINNED_IMAGE`), so the next provision keeps the router on
+   a Margo image instead of resetting it to the public placeholder. It refuses a checkout with uncommitted changes
+   unless `ALLOW_DIRTY=true`. The one image serves all three roles: the router and the provisioner job run `dotnet /app/router/Margo.Cloud.Router.dll` and
    `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll run`; instance containers run the host,
    `dotnet /app/host/Margo.Cloud.Host.dll`.
-3. Once the blueprint exists: switches the router and the provisioner to that image and blueprint,
+3. Once the blueprint exists and the router runs a pinned image (from the second provision on): switches the router
+   and the provisioner to the new image and blueprint,
    then runs `scripts/blueprint.sh`, which adds the blueprint's federated credential for instance
    containers and gives the blueprint Work IQ's delegated `WorkIQAgent.Ask` scope (inheritable by
    every hired Margo, with tenant-wide consent). Any of these the deployer may not do is printed as
@@ -138,7 +140,7 @@ az cognitiveservices usage list --location westus3 -o table | grep -i gpt-5-mini
 
 **Expected result:** the hook ends with "Azure is ready; the router waits for an agent
 blueprint", and prints the messaging endpoint, `https://<router>/api/messages`. The router keeps
-its placeholder image until the blueprint exists.
+a public placeholder image (port 80, without Margo's command) until an image is pinned and the blueprint exists.
 
 ## 2. Create the blueprint with the Agent 365 CLI
 
@@ -174,9 +176,10 @@ sh scripts/connect-blueprint.sh ~/margo-a365/a365.generated.config.json
 azd provision
 ```
 
-**Expected result:** the hook ends with "Done. Margo's messaging endpoint is …" and lists what
-remains. If it printed steps for an administrator (the federated credential, the Work IQ scope or
-its consent), have them done now. Margo cannot sign in as her agent user without the credential,
+This provision starts the router on the image pinned in step 1. **Expected result:** the hook ends with "Done.
+Margo's messaging endpoint is …" and lists what remains. If it ends with "Run 'azd provision' once more" instead (the
+blueprint was set before any image was pinned), run `azd provision` again. If it printed steps for an administrator
+(the federated credential, the Work IQ scope or its consent), have them done now. Margo cannot sign in as her agent user without the credential,
 and cannot read anything without the consent. Every step is idempotent; check again with
 `azd hooks run postprovision`.
 
@@ -276,7 +279,7 @@ instances (below). Details, the custom voice and limits: [Voice](autopilot-voice
 | Ship a change | Commit, then `azd provision` (it builds and pins a new image for the router and the provisioner), then redeploy all |
 | Redeploy all | `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll redeploy-all` with the provisioner's settings, for example as a one-off execution of the provisioner job with that command; or `… enqueue ensure <app> <user> --redeploy` for one |
 | Keep instances warm | Add `"instanceMinReplicas": { "value": 1 }` to `infra/main.parameters.json`, provision, then redeploy all |
-| Retire one instance | Delete it in the admin center: the lifecycle event retires it (app and identity go; state stays). Or `provision enqueue retire …`. Remove any mailbox permissions |
+| Retire one instance | Delete it in the admin center: the lifecycle event retires it (app and identity go; state stays). Or `… enqueue retire <app> <user>`. Remove any mailbox permissions |
 | Delete a retired instance's state | Delete its `margo-i-…` container after the retention period |
 | Stop everyone's Margo | Block Margo in the admin center |
 | Remove everything | Retire instances in the admin center, remove the blueprint with the Agent 365 CLI (`a365 cleanup`), then `azd down` |

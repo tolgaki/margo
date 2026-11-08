@@ -112,8 +112,8 @@ only from the router (internal ingress).
 
 ## Code changes
 
-- **Orchestrator:** the instance is fixed by configuration (`MARGO_INSTANCE_ID`); any activity
-  for another instance is refused, as defence in depth behind the router.
+- **Orchestrator:** the instance is fixed by configuration (`MARGO_INSTANCE_AGENT_ID`, `MARGO_INSTANCE_USER_ID`);
+  any activity for another instance is refused, as defence in depth behind the router.
 - **Host:** accepts only router-forwarded requests (internal token check), and gets its Blob
   container name and identity from configuration.
 - **New `router` service:** a small ASP.NET Core app (`Margo.Cloud.Router`; first built in Python with aiohttp);
