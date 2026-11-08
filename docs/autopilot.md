@@ -396,7 +396,7 @@ sources). The URLs resolve once these files are on `main`.
 | --- | --- | --- |
 | Activate (hiring scope) | Whatever the admin chooses (decided). The blueprint does not restrict it | Each instance costs a licence seat; Frontier preview gives 25 |
 | Policy template | Microsoft defaults + custom: block external recipients, apply DLP | Margo never mails outside the tenant in v1 |
-| Admin consent | Only `api://workiq.svc.cloud.microsoft/WorkIQAgent.Ask` (delegated), configured as an **inheritable permission on the blueprint** so instances can do OBO without a consent prompt, plus the platform's own observability permissions | Consent governs what calls are ever possible, not whose data |
+| Admin consent | Work IQ's delegated `WorkIQAgent.Ask`, `WorkIQ.Read` and `WorkIQ.Act` (decided 8 Nov 2026; `WorkIQ.Act` is consent only: the guard still refuses every write without the manager's approval of that exact action), configured as an **inheritable permission on the blueprint** so instances can do OBO without a consent prompt, plus the platform's own observability permissions | Consent governs what calls are ever possible, not whose data |
 
 Blueprint-level controls then apply to every instance: update the blueprint and all instances
 update; block it and all instances stop. That is the kill switch.

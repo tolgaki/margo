@@ -69,7 +69,7 @@ messaging endpoint. The post-provision hook (`scripts/postprovision.sh`) does th
 3. Once the blueprint exists and the router runs a pinned image (from the second provision on): switches the router
    and the provisioner to the new image and blueprint,
    then runs `scripts/blueprint.sh`, which adds the blueprint's federated credential for instance
-   containers and gives the blueprint Work IQ's delegated `WorkIQAgent.Ask` scope (inheritable by
+   containers and gives the blueprint Work IQ's delegated `WorkIQAgent.Ask`, `WorkIQ.Read` and `WorkIQ.Act` scopes (inheritable by
    every hired Margo, with tenant-wide consent). Any of these the deployer may not do is printed as
    a step for an administrator instead.
 
@@ -308,7 +308,7 @@ Foundry and cannot be pointed at your own container, so this route starts with a
 | Router logs `kind=reject` | An activity without an agent recipient (for example the app itself, not a hired instance) | Chat with a hired instance |
 | Activities get 503 and nothing happens | The provisioner has not created the instance, or failed | Check the job's logs and the route's `error` in `margo-routes/routes.json` |
 | Instance logs "token exchange failed for margo" | The federated credential is missing on the blueprint, or the agent user is not licensed yet | Add the credential (step 3); license the agent user |
-| Every Work IQ read is `blocked` | No consent for `WorkIQAgent.Ask`, or it is not inheritable | Have an admin finish what `blueprint.sh` printed |
+| Every Work IQ read is `blocked` | No consent for the Work IQ scopes (`WorkIQAgent.Ask`, `WorkIQ.Read`, `WorkIQ.Act`), or they are not inheritable | Have an admin finish what `blueprint.sh` printed |
 | Margo says she can't find her manager | The directory answered that her account has no manager | Set the manager on Margo's account in the directory |
 | "I couldn't check who I work for just now" | The `/me/manager` lookup failed: outage, throttling, or a Copilot Credits denial for Margo's account. It is not a missing manager | Retry. If it persists, check the `workiq` traces for the lookup's status code and Margo's licences |
 | "Something failed on my side before I could finish" | The model call or the turn failed (throttling, content filter, bad `MARGO_TIMEZONE` or `MARGO_PRINCIPAL_ACCESS`) | Check the `turn failed` log entry; fix configuration and retry |
