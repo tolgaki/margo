@@ -76,6 +76,68 @@ class Deployment(unittest.TestCase):
         self.assertNotIn("MargoStateProbes", dockerfile)
         self.assertNotRegex(dockerfile, r"(?m)^COPY .*state/")
 
+    def test_the_router_placeholder_never_gets_the_margo_command_or_port(self):
+        # The public placeholder image has no dotnet and listens on port 80. Given the router's command or port 8088 it
+        # never starts, so the minReplicas=1 router never becomes ready and every `azd provision` (the first one, and
+        # each one after the blueprint is connected, which reset the router to the placeholder) fails or leaves the
+        # messaging endpoint dead. The router runs the Margo image, its command and port only once postprovision.sh has
+        # pinned an image (MARGO_PINNED_IMAGE) and the blueprint exists; re-provisioning then keeps that image.
+        main = read("infra", "main.bicep")
+        router = main[main.index("resource router "):main.index("var provisionerConfig")]
+        self.assertIn("param margoImage string = ''", main)
+        self.assertIn("var routerOnMargo = !empty(margoImage) && !empty(blueprintClientId)", main)
+        self.assertIn("image: routerOnMargo ? margoImage : placeholderImage", router)
+        self.assertIn("targetPort: routerOnMargo ? 8088 : 80,", router)
+        self.assertIn("routerOnMargo ? { command: [ 'dotnet', '/app/router/Margo.Cloud.Router.dll' ] } : {}", router)
+        self.assertNotRegex(router, r"(?m)^\s*command:", "the router's command must depend on routerOnMargo")
+        self.assertIn("registries: routerOnMargo ? [ { server: registry.properties.loginServer, identity: routerIdentity.id } ] : []",
+                      router)
+        parameters = json.loads(read("infra", "main.parameters.json"))["parameters"]
+        self.assertEqual(parameters["margoImage"], {"value": "${MARGO_PINNED_IMAGE=}"})
+        script = read("scripts", "postprovision.sh")
+        self.assertIn('azd env set MARGO_PINNED_IMAGE "$pinned"', script)
+        # The image may be switched in place only when this provision already started the router on a Margo image;
+        # otherwise the router still has the placeholder's port and no command.
+        switch = script.index('az containerapp update -n "$ROUTER_NAME"')
+        guard = script.index('if [ -z "$deployed_image" ]')
+        self.assertLess(script.index('deployed_image=${MARGO_PINNED_IMAGE:-}'), guard)
+        self.assertLess(guard, switch)
+
+    def test_the_infrastructure_sets_what_each_role_requires(self):
+        # The provisioner refuses to deploy unless every RequiredConfig key is in MARGO_PROVISIONER_CONFIG (main.bicep
+        # provisionerConfig) or set by an override variable postprovision.sh gives the job.
+        main = read("infra", "main.bicep")
+        instances = read("src", "Margo.Cloud.Core", "Instances.cs")
+        required = re.findall(r'"(\w+)"', re.search(r"RequiredConfig \{ get; \} =\s*\[(.*?)\];", instances, re.S).group(1))
+        self.assertIn("environmentDomain", required)
+        overrides = dict(re.findall(r'new\("(\w+)", "(\w+)"\)', read("src", "Margo.Cloud.Provisioner", "ProvisionerConfig.cs")))
+        config = main[main.index("var provisionerConfig = {"):main.index("resource provisioner ")]
+        configured = set(re.findall(r"(?m)^  (\w+):", config))
+        self.assertEqual(sorted(set(required) - configured - set(overrides)), [])
+        job_update = read("scripts", "postprovision.sh")
+        job_update = job_update[job_update.index('az containerapp job update'):]
+        for name, variable in overrides.items():
+            self.assertIn(variable + "=", job_update, "postprovision.sh must set %s (%s)" % (variable, name))
+        # Variables each role reads without a default, and where the infrastructure sets them.
+        router = main[main.index("resource router "):main.index("var provisionerConfig")]
+        job = main[main.index("resource provisioner "):main.index("output ")]
+        instance = read("infra", "instance.bicep")
+        for block, names in ((router, ["MARGO_ROUTES_URL", "MARGO_PROVISION_QUEUE_URL", "AZURE_CLIENT_ID",
+                                       "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID",
+                                       "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID"]),
+                             (job, ["AZURE_SUBSCRIPTION_ID", "AZURE_RESOURCE_GROUP", "MARGO_ROUTES_URL",
+                                    "MARGO_PROVISION_QUEUE_URL", "MARGO_PROVISIONER_CONFIG", "AZURE_CLIENT_ID"]),
+                             (instance, ["MARGO_HOSTING", "MARGO_INSTANCE_KEY", "MARGO_INSTANCE_AGENT_ID",
+                                         "MARGO_INSTANCE_USER_ID", "MARGO_STATE_BLOB_URL", "MARGO_STATE_CONTAINER",
+                                         "MARGO_PUBLIC_BASE_URL", "MARGO_TENANT_ID", "AZURE_CLIENT_ID",
+                                         "AZURE_OPENAI_ENDPOINT", "MARGO_MODEL_DEPLOYMENT", "VOICE_LIVE_ENDPOINT",
+                                         "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID",
+                                         "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID"])):
+            for name in names:
+                self.assertIn("{ name: '%s', value: " % name, block, name)
+        for name in ("MARGO_PRINCIPAL_ACCESS", "MARGO_TIMEZONE"):
+            self.assertIn("{ name: '%s', value: " % name, config)
+
     def test_every_copy_source_exists_and_the_build_scripts_point_at_cloud(self):
         dockerfile = read("Dockerfile")
         for source in re.findall(r"(?m)^COPY (?!--from)(.+) \S+$", dockerfile):

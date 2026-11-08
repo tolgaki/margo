@@ -52,7 +52,13 @@ param voiceName string = ''
 @description('Deployment ID of a trained custom voice; empty uses voiceName as a standard voice.')
 param voiceEndpointId string = ''
 
+@description('The Margo Cloud image pinned by digest, recorded by scripts/postprovision.sh (MARGO_PINNED_IMAGE). Empty on the first provision.')
+param margoImage string = ''
+
+// The public placeholder has no dotnet and listens on port 80, so it never gets the router's command or port: the
+// router runs on it until an image is pinned and the blueprint exists, then provisioning keeps the router on Margo.
 var placeholderImage = 'mcr.microsoft.com/k8se/quickstart:latest'
+var routerOnMargo = !empty(margoImage) && !empty(blueprintClientId)
 
 var token = toLower(uniqueString(subscription().id, resourceGroup().id, environmentName))
 var compact = toLower(replace(replace(environmentName, '-', ''), '_', ''))
@@ -133,7 +139,8 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01'
 
 // -- one container per instance --------------------------------------------------------------------
 // Apps start from a public placeholder image; scripts/postprovision.sh assigns roles by name, builds
-// the Margo image and, once the blueprint exists, switches the router and provisioner to it.
+// and pins the Margo image and, once the blueprint exists, switches the router (from the next provision on, through
+// margoImage) and the provisioner to it.
 
 resource queues 'Microsoft.Storage/storageAccounts/queueServices@2023-05-01' = {
   parent: storage
@@ -194,14 +201,14 @@ resource router 'Microsoft.App/containerApps@2024-03-01' = {
     managedEnvironmentId: containerEnvironment.id
     configuration: {
       activeRevisionsMode: 'Single'
-      ingress: { external: true, targetPort: 8088, transport: 'auto', allowInsecure: false }
+      ingress: { external: true, targetPort: routerOnMargo ? 8088 : 80, transport: 'auto', allowInsecure: false }
+      registries: routerOnMargo ? [ { server: registry.properties.loginServer, identity: routerIdentity.id } ] : []
     }
     template: {
       containers: [
-        {
+        union({
           name: 'router'
-          image: placeholderImage
-          command: [ 'dotnet', '/app/router/Margo.Cloud.Router.dll' ]
+          image: routerOnMargo ? margoImage : placeholderImage
           resources: { cpu: json('0.5'), memory: '1Gi' }
           env: [
             { name: 'AZURE_CLIENT_ID', value: routerIdentity.properties.clientId }
@@ -210,7 +217,7 @@ resource router 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID', value: blueprintClientId }
             { name: 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID', value: tenant().tenantId }
           ]
-        }
+        }, routerOnMargo ? { command: [ 'dotnet', '/app/router/Margo.Cloud.Router.dll' ] } : {})
       ]
       scale: { minReplicas: 1, maxReplicas: 3 }
     }

@@ -7,6 +7,7 @@
     "modelName": { "value": "${MARGO_MODEL_NAME=gpt-5-mini}" },
     "modelVersion": { "value": "${MARGO_MODEL_VERSION=2025-08-07}" },
     "blueprintClientId": { "value": "${MARGO_BLUEPRINT_CLIENT_ID=}" },
+    "margoImage": { "value": "${MARGO_PINNED_IMAGE=}" },
     "principalAccess": { "value": "${MARGO_PRINCIPAL_ACCESS=obo}" },
     "principalAuthHandler": { "value": "${PRINCIPAL_AUTH_HANDLER=}" },
     "timezone": { "value": "${MARGO_TIMEZONE=America/Los_Angeles}" },

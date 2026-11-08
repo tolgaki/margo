@@ -2,9 +2,11 @@
 # After 'azd provision' (docs/autopilot-deployment.md). Margo is self-hosted for Agent 365: the router
 # is the agent blueprint's messaging endpoint and each hired Margo runs in her own container.
 #   1. roles for the router and the provisioner (by name; the provisioner may grant only four roles);
-#   2. build the Margo image and pin it by digest;
-#   3. once the Agent 365 CLI has created the blueprint (MARGO_BLUEPRINT_CLIENT_ID), switch the router
-#      and provisioner to the image and connect the blueprint (scripts/blueprint.sh).
+#   2. build the Margo image, pin it by digest and record it (MARGO_PINNED_IMAGE): the next provision starts the
+#      router on it (main.bicep margoImage) instead of the public placeholder;
+#   3. once the Agent 365 CLI has created the blueprint (MARGO_BLUEPRINT_CLIENT_ID) and this provision started the
+#      router on a pinned image, switch the router and provisioner to the new image and connect the blueprint
+#      (scripts/blueprint.sh).
 # Every step is idempotent; re-run with 'azd hooks run postprovision'.
 . "$(dirname -- "$0")/lib.sh"
 need TENANT_ID SUBSCRIPTION_ID RESOURCE_GROUP AZURE_CONTAINER_REGISTRY_ENDPOINT AZURE_CONTAINER_REGISTRY_ID \
@@ -12,6 +14,9 @@ need TENANT_ID SUBSCRIPTION_ID RESOURCE_GROUP AZURE_CONTAINER_REGISTRY_ENDPOINT 
   PROVISIONER_PRINCIPAL_ID PROVISIONER_IDENTITY_ID ROUTES_CONTAINER_ID PROVISION_QUEUE_ID
 
 group_scope="/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+# The image this provision gave the router (main.bicep margoImage); empty: the router still runs the placeholder, on
+# its port and without the router's command, so its image must not be switched in place.
+deployed_image=${MARGO_PINNED_IMAGE:-}
 
 blob_role=$(role_id "Storage Blob Data Contributor")
 pull_role=$(role_id "AcrPull")
@@ -47,6 +52,7 @@ digest=$(az acr repository show --name "$registry" --image "$repository_tag" --q
 [ -n "$digest" ] || die "could not resolve the image digest"
 pinned="$AZURE_CONTAINER_REGISTRY_ENDPOINT/${repository_tag%%:*}@$digest"
 say "pinned image: $pinned"
+azd env set MARGO_PINNED_IMAGE "$pinned" >/dev/null
 
 BLUEPRINT_CLIENT_ID=${MARGO_BLUEPRINT_CLIENT_ID:-}
 if [ -z "$BLUEPRINT_CLIENT_ID" ]; then
@@ -66,6 +72,13 @@ fi
 case "$BLUEPRINT_CLIENT_ID" in
   *[!0-9a-fA-F-]*|"") die "MARGO_BLUEPRINT_CLIENT_ID is not a client ID: $BLUEPRINT_CLIENT_ID" ;;
 esac
+if [ -z "$deployed_image" ]; then
+  cat <<EOF
+==> The image is pinned, but this provision started the router on the placeholder (no image was pinned yet).
+    Run 'azd provision' once more: it starts the router on the pinned image and finishes the setup.
+EOF
+  exit 0
+fi
 
 say "router: switch to the Margo image; check activity tokens against blueprint $BLUEPRINT_CLIENT_ID"
 az containerapp registry set -n "$ROUTER_NAME" -g "$RESOURCE_GROUP" --server "$AZURE_CONTAINER_REGISTRY_ENDPOINT" \
