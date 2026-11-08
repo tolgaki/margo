@@ -41,10 +41,17 @@ internal sealed class MessageSocket : IAsyncDisposable
 {
     internal static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(10);
 
+    /// <summary>aiohttp's <c>WebSocketDataQueue</c> limit (<c>2**16</c>): once more bytes than this wait unread, the
+    /// socket is not read until the caller takes a message (the transport then holds the peer back).</summary>
+    internal const int QueueLimit = 64 * 1024;
+
     private readonly WebSocket _socket;
     private readonly int _maxMessageBytes;
     private readonly Channel<SocketMessage> _messages = Channel.CreateUnbounded<SocketMessage>(new UnboundedChannelOptions { SingleWriter = true });
     private readonly SemaphoreSlim _send = new(1, 1);
+    private readonly SemaphoreSlim _space = new(0, 1);
+    private readonly CancellationTokenSource _closing = new();
+    private long _queuedBytes;
     private readonly Task _reader;
     private int _closed;
 
@@ -70,6 +77,18 @@ internal sealed class MessageSocket : IAsyncDisposable
         try
         {
             var message = await _messages.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            if (Interlocked.Add(ref _queuedBytes, -Size(message)) <= QueueLimit)
+            {
+                try
+                {
+                    _space.Release();
+                }
+                catch (SemaphoreFullException)
+                {
+                    // The reader has already been told there is room.
+                }
+            }
+
             return Closed ? SocketMessage.Closed : message;
         }
         catch (ChannelClosedException)
@@ -116,6 +135,8 @@ internal sealed class MessageSocket : IAsyncDisposable
         await CloseAsync().ConfigureAwait(false);
         _socket.Dispose();
         _send.Dispose();
+        _space.Dispose();
+        _closing.Dispose();
     }
 
     /// <summary>Mark the socket closed and send a close frame if none was sent; the reader receives the reply.</summary>
@@ -125,6 +146,8 @@ internal sealed class MessageSocket : IAsyncDisposable
         {
             return;
         }
+
+        await _closing.CancelAsync().ConfigureAwait(false); // the reader stops waiting for room and drops what follows
 
         await _send.WaitAsync().ConfigureAwait(false);
         try
@@ -208,7 +231,19 @@ internal sealed class MessageSocket : IAsyncDisposable
                     message = new SocketMessage(SocketMessageKind.Binary, Data: buffer.AsSpan(0, count).ToArray());
                 }
 
+                Interlocked.Add(ref _queuedBytes, Size(message));
                 _messages.Writer.TryWrite(message);
+                while (Volatile.Read(ref _queuedBytes) > QueueLimit && !Closed)
+                {
+                    try
+                    {
+                        await _space.WaitAsync(_closing.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break; // closing: keep reading, to the peer's close frame
+                    }
+                }
             }
         }
         catch (Exception exc) when (exc is WebSocketException or OperationCanceledException or InvalidOperationException or IOException
@@ -221,6 +256,9 @@ internal sealed class MessageSocket : IAsyncDisposable
             _messages.Writer.TryComplete();
         }
     }
+
+    private static long Size(SocketMessage message) =>
+        message.Kind == SocketMessageKind.Text ? Encoding.UTF8.GetByteCount(message.Text!) : message.Data?.Length ?? 0;
 
     /// <summary>aiohttp's reader error: close with <paramref name="status"/>, then drain until the peer's close frame.</summary>
     private async Task FailAsync(WebSocketCloseStatus status)

@@ -93,13 +93,20 @@ in the solution, and the wire protocol is small. `VoiceLiveConnector` speaks it 
 - URL: `_prepare_url()`: scheme `https` to `wss` (other `http*` to `ws`), the endpoint's path without trailing `/` plus
   `/voice-live/realtime`, query `api-version=2026-07-15&model=<model>` then the endpoint's own non-blank query
   parameters not already present (`parse_qs` first values, `urlencode` with `quote_plus`), params and fragment kept.
-  Six endpoints are compared with the strings the SDK itself printed.
+  Six endpoints are compared with the strings the SDK itself printed. As Python 3.13 `urlsplit`, a netloc with an
+  unmatched bracket, text before `[` or after `]` other than a port, an IPv4 address in brackets, an invalid IPvFuture
+  literal or a bracketed host that is not an IPv6 address (`ipaddress` rules: scope ID, at most 4 hex digits per group,
+  one `::`, embedded IPv4) raises `PyValueError` ("Invalid IPv6 URL" and Python's other texts), so the call ends before
+  connecting; .NET's `Uri` would otherwise accept some of these and connect elsewhere (`wss://[::1];x/...` becomes
+  `wss://[::1]/;x/...`).
 - `Authorization: Bearer <token>` for `https://ai.azure.com/.default`, from `ManagedIdentityCredential(AZURE_CLIENT_ID)`
   when set, else `DefaultAzureCredential`, a new credential per session as in Python.
 - Client events: one text message each, `json.dumps(event)` (`PyJson.Dumps`: `", "`/`": "`, `ensure_ascii`). Server
   events: text or binary, UTF-8 JSON; `event.as_dict()` of the SDK's models is the received object unchanged (checked in
   the venv), so the bridge gets the object as received. An empty message, a close or a socket error ends the session;
-  a non-object raises (Python: `AttributeError` in `ServerEvent._deserialize`).
+  a non-object raises (Python: `AttributeError` in `ServerEvent._deserialize`), and so does an object whose `type` is a
+  list or object (Python: `TypeError: unhashable type` in the same lookup, wrapped as `ConnectionError` by `recv`);
+  any other `type` value (number, null, missing) passes through unchanged.
 - 4 MiB messages and a 30 s heartbeat (the SDK's defaults for `max_msg_size` and `heartbeat`); close waits 10 s.
 
 `Azure.AI.VoiceLive` (.NET) was not adopted: verifying that it produces the identical protocol (URL, query order, event
@@ -111,7 +118,11 @@ JSON) would need its source and a capture, and the hand-written client is checke
 messages, so waiting with a timeout (the hello) or stopping (the end of the call) never aborts the socket (cancelling a
 .NET receive does); a message whose size reaches the limit closes with 1009 and a non-UTF-8 text message with 1007; a
 peer close is answered with 1000; once closing has started receives return "closed" and sends fail; one sender at a
-time (Python's single-threaded loop made concurrent sends safe; here both pumps may send). The page socket is accepted
+time (Python's single-threaded loop made concurrent sends safe; here both pumps may send). As aiohttp's
+`WebSocketDataQueue` (limit `2**16`), once more than 64 KiB of messages wait unread the reader stops reading the socket
+until the caller takes one, so a peer that sends faster than the session handles its messages is held back by the
+transport rather than queued without limit in memory; once closing has started the reader no longer waits and drops
+what follows until the peer's close frame. The page socket is accepted
 with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20`).
 
 ## Deliberate deviations
@@ -125,7 +136,12 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
 3. **Unmatched paths and methods**: `404: Not Found` and `405: Method Not Allowed` (with `Allow: GET,HEAD`) as plain
    text, close to aiohttp's; aiohttp's HTML/text error bodies and `Allow` ordering were not reproduced byte for byte.
 4. **Limits beyond 64 bits**: `MARGO_VOICE_MAX_SECONDS`/`MAX_TOOL_CALLS` are read with Python `int()` but stored as
-   `long` (saturating); the call timer is capped at about 49 days (the .NET timer limit).
+   `long` (saturating); the call timer is capped at about 49 days (the .NET timer limit). A `MARGO_VOICE_MAX_SECONDS`
+   too large for a float (over about 1.8e308) makes Python's `asyncio.wait` raise `OverflowError`, so every Python call
+   ended with the generic failure; here such a call simply has no practical time limit.
+7. **The NFKC netloc check** of Python's `urlsplit` (`_checknetloc`: a non-ASCII host whose NFKC form contains `/?#@:`
+   is a `ValueError`) is not reproduced: the solution builds with invariant globalization, where .NET has no NFKC
+   normalisation. `VOICE_LIVE_ENDPOINT` is operator configuration; such a host fails at DNS resolution instead.
 5. **EC/OKP keys in the key set** are accepted by key type only; PyJWT also validates their coordinates and skips an
    invalid one. Either way such a key never verifies an RS256 token (Entra publishes RSA keys only); the difference is
    the generic failure versus a refused sign-in.
@@ -155,7 +171,7 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
 
 ## Tests and evidence
 
-`cloud/tests/Margo.Cloud.Voice.Tests` (52 test cases):
+`cloud/tests/Margo.Cloud.Voice.Tests` (78 test cases):
 
 - `SessionConfigurationTests`, `BridgeTests`, `ClaimsTests`: every test of `tests/test_autopilot_voice.py`, plus the
   settings' environment rules, the exact `session.update` JSON, the texts compared with `session.py`, strict base64,
@@ -171,10 +187,24 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
   wrong caller, expired token, other tenant, no manager; the generic failures (bad JSON, no agent token, directory
   failure, Voice Live failure, hello timeout); binary hello; the 1009 frame limit; the time limit; the tool budget.
 - `VoiceLiveTests`: the URL against the SDK's output, and the wire protocol against a local Kestrel WebSocket server
-  (bearer token and scope, path and query, `ensure_ascii` JSON, text and binary events, a non-object, close).
+  (bearer token and scope, path and query, `ensure_ascii` JSON, text and binary events, a non-object, close), the
+  bracketed-host rules against the SDK's outcomes, and an unhashable event `type`.
+- `MessageSocketTests`: unread messages hold the peer back (64 KiB) and arrive in order; closing still completes while
+  the peer has sent more than the queue holds.
 - `RuntimeVoiceTests`: the voice test of `tests/test_autopilot_runtime.py` (the `/voice` command).
 
 Not covered by tests: a real Voice Live service and a real Entra key set (no network or Azure account here).
+
+### Review (differential checks, not committed)
+
+An independent review drove the Python originals and this port with generated inputs from a scratch console app
+(outside the repository): `check_claims` (Python value semantics), `VoiceSettings.from_env`, `b64decode(validate=True)`
+and whole `VoiceBridge` event sequences with a fake dispatcher (18,000 cases, no differences); the server's `_verify`
+with real PyJWT 2.15.1 and `PyJWKClient` against `EntraTokenVerifier` over mutated RSA tokens and key sets (9,000
+cases, no differences); and the SDK's `_prepare_url` against `RealtimeUrl` (6,000 endpoints; after the bracket fix the
+only difference is the exception type). It fixed: the bracketed-host rules, the unhashable event `type`, the reader's
+unbounded queue, and `SessionFlowTests` sending pre-ready audio in a way that raced the fake service and failed on
+every run here.
 
 ## Open questions
 

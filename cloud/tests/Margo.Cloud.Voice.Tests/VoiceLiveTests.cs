@@ -91,6 +91,77 @@ public sealed class VoiceLiveTests
         await app.StopAsync(Cancel);
     }
 
+    /// <summary>The SDK's <c>urlparse</c> (Python 3.13 <c>urlsplit</c>) refuses a bracketed host it cannot read, so
+    /// <c>connect</c> fails before any connection; .NET's <see cref="Uri"/> accepts some of these and would connect
+    /// elsewhere (<c>wss://[::1];x/...</c> becomes <c>wss://[::1]/;x/...</c>). Outcomes printed by the SDK.</summary>
+    [Theory]
+    [InlineData("https://[::1];x/")]
+    [InlineData("https://[::1]x:443/")]
+    [InlineData("https://a[::1]/")]
+    [InlineData("https://[::1/")]
+    [InlineData("https://::1]/")]
+    [InlineData("https://[[::1]]/")]
+    [InlineData("https://[]/")]
+    [InlineData("https://[1.2.3.4]/")]
+    [InlineData("https://[not-an-address]/")]
+    [InlineData("https://[1::2::3]/")]
+    [InlineData("https://[00001::]/")]
+    [InlineData("https://[::1%]/")]
+    [InlineData("https://[v1]/")]
+    [InlineData("https://[v1.]/")]
+    [InlineData("https://[vg.x]/")]
+    public void A_bracketed_host_python_cannot_parse_is_refused(string endpoint) =>
+        Assert.Throws<PyValueError>(() => VoiceLiveConnector.RealtimeUrl(endpoint, "m"));
+
+    /// <summary>Bracketed hosts Python 3.13 accepts, with the URL the SDK printed.</summary>
+    [Theory]
+    [InlineData("https://[::1]:8443/", "wss://[::1]:8443/voice-live/realtime?api-version=2026-07-15&model=m")]
+    [InlineData("https://user@[fe80::1%25eth0]/", "wss://user@[fe80::1%25eth0]/voice-live/realtime?api-version=2026-07-15&model=m")]
+    [InlineData("https://[fe80::1%eth0]/", "wss://[fe80::1%eth0]/voice-live/realtime?api-version=2026-07-15&model=m")]
+    [InlineData("https://[::1]:x/", "wss://[::1]:x/voice-live/realtime?api-version=2026-07-15&model=m")]
+    [InlineData("https://u@[::1]@[::2]/", "wss://u@[::1]@[::2]/voice-live/realtime?api-version=2026-07-15&model=m")]
+    [InlineData("https://[0:0:0:0:0:0:0:1]/", "wss://[0:0:0:0:0:0:0:1]/voice-live/realtime?api-version=2026-07-15&model=m")]
+    [InlineData("https://[::ffff:1.2.3.4]/", "wss://[::ffff:1.2.3.4]/voice-live/realtime?api-version=2026-07-15&model=m")]
+    [InlineData("https://[v1.fe]/", "wss://[v1.fe]/voice-live/realtime?api-version=2026-07-15&model=m")]
+    [InlineData("https://[V1.x]/", "wss://[V1.x]/voice-live/realtime?api-version=2026-07-15&model=m")]
+    public void A_bracketed_host_python_accepts_is_kept(string endpoint, string expected) =>
+        Assert.Equal(expected, VoiceLiveConnector.RealtimeUrl(endpoint, "m"));
+
+    /// <summary>The SDK deserialises each event by its <c>type</c> (<c>ServerEvent._deserialize</c>, checked in the
+    /// venv): an unhashable <c>type</c> (a list or an object) raises <c>TypeError</c> there, so the iteration raises and
+    /// the call ends; any other value passes through unchanged.</summary>
+    [Fact]
+    public async Task An_unhashable_event_type_raises_as_in_the_sdk()
+    {
+        var builder = WebApplication.CreateSlimBuilder();
+        builder.WebHost.UseKestrel().UseUrls("http://127.0.0.1:0");
+        await using var app = builder.Build();
+        app.UseWebSockets();
+        app.Run(async context =>
+        {
+            using var socket = await context.WebSockets.AcceptWebSocketAsync();
+            foreach (var text in new[] { """{"type": 5}""", """{"type": ["x"]}""", """{"type": {"a": 1}}""", """{"type": null, "x": [[]]}""" })
+            {
+                await socket.SendAsync(Encoding.UTF8.GetBytes(text), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+
+            await socket.ReceiveAsync(new byte[1024], CancellationToken.None);
+            await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+        });
+        await app.StartAsync(Cancel);
+        var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+        var connection = await new VoiceLiveConnector(() => new FixedCredential()).ConnectAsync(address, "m", Cancel);
+        await using (connection)
+        {
+            Assert.Equal("""{"type": 5}""", PyJson.Dumps(await connection.ReceiveAsync(Cancel)));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => connection.ReceiveAsync(Cancel));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => connection.ReceiveAsync(Cancel));
+            Assert.Equal("""{"type": null, "x": [[]]}""", PyJson.Dumps(await connection.ReceiveAsync(Cancel)));
+        }
+
+        await app.StopAsync(Cancel);
+    }
+
     [Fact]
     public async Task The_session_ends_when_the_service_closes()
     {

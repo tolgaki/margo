@@ -31,6 +31,11 @@ public sealed class SessionFlowTests
         using var page = await host.OpenAsync();
         await page.HelloAsync(host.SignIn());
 
+        // Audio is not passed on before the session is configured. Sent now, while the session is still being set up,
+        // so it is certainly queued before Voice Live reports the session ready (sent after session.update, it raced
+        // the in-memory session.updated below and was usually read after it).
+        await page.SendAsync("""{"type": "audio", "audio": "AAAA"}""");
+
         var connection = await host.VoiceLive.NextConnectionAsync();
         Assert.Equal([("https://voice.example.com/", "fictional-realtime")], host.VoiceLive.Connects);
         var update = await connection.NextSentAsync();
@@ -46,8 +51,6 @@ public sealed class SessionFlowTests
              $"obo api://workiq.svc.cloud.microsoft/.default {host.SignIn().Length}"],
             host.Tokens.Requests);
 
-        // Audio is not passed on before the session is configured.
-        await page.SendAsync("""{"type": "audio", "audio": "AAAA"}""");
         connection.Push(Fixtures.Obj("""{"type": "session.updated"}"""));
         var ready = await page.ReceiveJsonAsync();
         Assert.Equal($$"""{"type": "ready", "disclosure": "{{VoiceSession.Disclosure}}", "voice": "en-US-Ava:DragonHDLatestNeural"}""", PyJson.Dumps(ready));

@@ -47,7 +47,7 @@ public interface IVoiceLiveConnection : IAsyncDisposable
 /// defaults); a close waits up to 10 seconds for the service's reply.</item>
 /// </list>
 /// </remarks>
-public sealed class VoiceLiveConnector : IVoiceLiveConnector
+public sealed partial class VoiceLiveConnector : IVoiceLiveConnector
 {
     /// <summary>The SDK's default <c>api_version</c>.</summary>
     public const string ApiVersion = "2026-07-15";
@@ -154,6 +154,15 @@ public sealed class VoiceLiveConnector : IVoiceLiveConnector
             end = end < 0 ? url.Length : end;
             netloc = url[2..end];
             url = url[end..];
+            if (netloc.Contains('[', StringComparison.Ordinal) != netloc.Contains(']', StringComparison.Ordinal))
+            {
+                throw new PyValueError("Invalid IPv6 URL");
+            }
+
+            if (netloc.Contains('[', StringComparison.Ordinal))
+            {
+                CheckBracketedNetloc(netloc);
+            }
         }
 
         var fragment = "";
@@ -186,6 +195,196 @@ public sealed class VoiceLiveConnector : IVoiceLiveConnector
         }
 
         return (scheme, netloc, url, parameters, query, fragment);
+    }
+
+    /// <summary>Python 3.13 <c>_check_bracketed_netloc</c>: nothing before the bracket, nothing after it but a port, and
+    /// the bracketed host an IPvFuture literal or an IPv6 address (<c>ipaddress.ip_address</c>; an IPv4 address is
+    /// refused). Python raises <c>ValueError</c>, which the SDK's <c>connect</c> turns into a connection error.</summary>
+    private static void CheckBracketedNetloc(string netloc)
+    {
+        var at = netloc.LastIndexOf('@');
+        var hostAndPort = at < 0 ? netloc : netloc[(at + 1)..];
+        var open = hostAndPort.IndexOf('[', StringComparison.Ordinal);
+        string hostname;
+        if (open >= 0)
+        {
+            if (open > 0)
+            {
+                throw new PyValueError("Invalid IPv6 URL");
+            }
+
+            var bracketed = hostAndPort[(open + 1)..];
+            var close = bracketed.IndexOf(']', StringComparison.Ordinal);
+            hostname = close < 0 ? bracketed : bracketed[..close];
+            var port = close < 0 ? "" : bracketed[(close + 1)..];
+            if (port.Length > 0 && port[0] != ':')
+            {
+                throw new PyValueError("Invalid IPv6 URL");
+            }
+        }
+        else
+        {
+            var colon = hostAndPort.IndexOf(':', StringComparison.Ordinal);
+            hostname = colon < 0 ? hostAndPort : hostAndPort[..colon];
+        }
+
+        if (hostname.StartsWith('v') || hostname.StartsWith('V'))
+        {
+            if (!IpvFuture().IsMatch(hostname))
+            {
+                throw new PyValueError("IPvFuture address is invalid");
+            }
+
+            return;
+        }
+
+        if (IsIPv4Address(hostname))
+        {
+            throw new PyValueError("An IPv4 address cannot be in brackets");
+        }
+
+        if (!IsIPv6Address(hostname))
+        {
+            throw new PyValueError("'" + hostname + "' does not appear to be an IPv4 or IPv6 address");
+        }
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"\A[vV][a-fA-F0-9]+\..+\z", System.Text.RegularExpressions.RegexOptions.CultureInvariant)]
+    private static partial System.Text.RegularExpressions.Regex IpvFuture();
+
+    /// <summary>Python <c>ipaddress.IPv4Address(text)</c> succeeds: four dot-separated ASCII decimal octets of at most
+    /// three digits, no leading zeros, at most 255, and no <c>/</c>.</summary>
+    private static bool IsIPv4Address(string text)
+    {
+        if (text.Length == 0 || text.Contains('/', StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var octets = text.Split('.');
+        return octets.Length == 4 && octets.All(octet =>
+            octet.Length is > 0 and <= 3 && octet.All(char.IsAsciiDigit) && (octet == "0" || octet[0] != '0')
+            && int.Parse(octet, System.Globalization.CultureInfo.InvariantCulture) <= 255);
+    }
+
+    /// <summary>Python <c>ipaddress.IPv6Address(text)</c> succeeds (3.13 <c>_split_scope_id</c> and
+    /// <c>_ip_int_from_string</c>).</summary>
+    private static bool IsIPv6Address(string text)
+    {
+        if (text.Contains('/', StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var percent = text.IndexOf('%', StringComparison.Ordinal);
+        if (percent >= 0)
+        {
+            var scope = text[(percent + 1)..];
+            if (scope.Length == 0 || scope.Contains('%', StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            text = text[..percent];
+        }
+
+        if (text.Length is 0 or > 45)
+        {
+            return false;
+        }
+
+        const int hextets = 8;
+        var parts = SplitMax(text, ':', hextets + 1);
+        if (parts.Count < 3)
+        {
+            return false;
+        }
+
+        if (parts[^1].Contains('.', StringComparison.Ordinal))
+        {
+            var last = parts[^1];
+            parts.RemoveAt(parts.Count - 1);
+            if (!IsIPv4Address(last))
+            {
+                return false;
+            }
+
+            parts.Add("0");
+            parts.Add("0");
+        }
+
+        if (parts.Count > hextets + 1)
+        {
+            return false;
+        }
+
+        int? skip = null;
+        for (var index = 1; index < parts.Count - 1; index++)
+        {
+            if (parts[index].Length == 0)
+            {
+                if (skip is not null)
+                {
+                    return false;
+                }
+
+                skip = index;
+            }
+        }
+
+        int high, low;
+        if (skip is { } skipIndex)
+        {
+            high = skipIndex;
+            low = parts.Count - skipIndex - 1;
+            if (parts[0].Length == 0 && --high != 0)
+            {
+                return false;
+            }
+
+            if (parts[^1].Length == 0 && --low != 0)
+            {
+                return false;
+            }
+
+            if (hextets - (high + low) < 1)
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (parts.Count != hextets || parts[0].Length == 0 || parts[^1].Length == 0)
+            {
+                return false;
+            }
+
+            high = parts.Count;
+            low = 0;
+        }
+
+        return parts.Take(high).Concat(parts.Skip(parts.Count - low)).All(part => part.Length <= 4 && part.All(char.IsAsciiHexDigit));
+    }
+
+    /// <summary>Python <c>str.split(separator, maxsplit)</c>.</summary>
+    private static List<string> SplitMax(string text, char separator, int maxSplit)
+    {
+        var parts = new List<string>();
+        var start = 0;
+        while (parts.Count < maxSplit)
+        {
+            var next = text.IndexOf(separator, start);
+            if (next < 0)
+            {
+                break;
+            }
+
+            parts.Add(text[start..next]);
+            start = next + 1;
+        }
+
+        parts.Add(text[start..]);
+        return parts;
     }
 
     /// <summary>The C0 controls and space that <c>urlsplit</c> strips from the start.</summary>
@@ -342,8 +541,16 @@ public sealed class VoiceLiveConnector : IVoiceLiveConnector
                 return null; // ConnectionClosed(1006, "Empty WebSocket frame"): the iteration stops
             }
 
-            return PyJson.Loads(text) as JsonObject
+            var serverEvent = PyJson.Loads(text) as JsonObject
                 ?? throw new InvalidOperationException("a Voice Live message was not a JSON object");
+
+            // ServerEvent._deserialize looks the class up by type: a list or object there is unhashable (TypeError).
+            if (serverEvent.TryGetPropertyValue("type", out var type) && type is JsonArray or JsonObject)
+            {
+                throw new InvalidOperationException("a Voice Live event's type was not hashable");
+            }
+
+            return serverEvent;
         }
 
         public ValueTask DisposeAsync() => socket.DisposeAsync();
