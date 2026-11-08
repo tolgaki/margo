@@ -70,7 +70,8 @@ public sealed class StartupTests
             Assert.Contains("{ name: '" + name + "'", bicep, StringComparison.Ordinal);
         }
 
-        Assert.Contains("targetPort: 8088", bicep, StringComparison.Ordinal);
+        // On the Margo image the router listens on 8088 (the public placeholder image uses 80 until an image is pinned).
+        Assert.Matches(@"targetPort: (routerOnMargo \? )?8088\b", bicep);
         var environment = new ConfigurationBuilder().AddInMemoryCollection([new KeyValuePair<string, string?>("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", "x")]).Build();
         Assert.Null(environment[ClientIdKey]); // only the environment variable provider maps "__"
     }
