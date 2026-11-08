@@ -155,22 +155,8 @@ failure of a write as `unknown`, and receipts are all as in Python.
 
 ## Requests to other components
 
-1. **`memory_state.py` in `margo-state`.** `task_state.py` (`Margo.Cloud.State.Tasks`) has landed and is checked in
-   full. `memory_state.py` (`Margo.Cloud.State.MemoryCommands`) has not: until it does, `InitialiseAsync` fails with
-   "could not initialise memory_state.py: unknown script 'memory_state.py' ..." and memory commands answer `error`.
-   The engine needs no change when it lands; the skipped tests below then run in full (they compare all 47 of its
-   subcommand parsers with Python's, so a partial port fails rather than passes).
-2. **Margo.Cloud.Host** must ship `margo-state.dll` (with its `.deps.json`/`.runtimeconfig.json` and the
-   `Margo.Cloud.State.*` assemblies) next to the host, a Release build so no contract probes are included, or set
-   `MARGO_STATE_CLI`; and its image must copy `agents/` and `skills/` to the engine's `repoRoot`
-   (`The_image_carries_the_persona_and_every_skill` checks any Dockerfile under `cloud/`).
-3. **Margo.Cloud.WorkIQ tests: a timing-sensitive test.** `TransportTests.Errors_map_to_guard_transport_errors`
-   gives its first call (session handshake plus a 503) a 200 ms deadline. In a full `dotnet test --solution` run on
-   a 4-core machine it now fails with `TransportTimeoutException` instead of `TransportException` (503). It passed
-   5 of 5 runs on its own and 3 of 3 alongside `Margo.Cloud.Guard.Tests`, and failed in 4 of 6 runs started together
-   with this whole test project (1 of 10 with a single test class) and in 4 of 4 full solution runs. Nothing here touches the WorkIQ transport or its
-   fake server; the extra load of another test host appears to be enough. A longer deadline for the calls that are
-   not meant to time out would fix it; this port does not edit another component's tests.
+1. **`memory_state.py` in `margo-state`.** Both `task_state.py` and `memory_state.py` have landed and are checked in
+   full; `ParityTests.PendingCliScripts` is empty.
 
 ## Review (engine-review)
 

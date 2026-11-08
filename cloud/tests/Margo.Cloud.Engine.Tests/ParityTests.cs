@@ -17,7 +17,7 @@ public sealed partial class ParityTests
     /// Hosted scripts whose C# port has not landed in <c>margo-state</c> yet. The checks that need the CLI skip (never
     /// pass) while one of these is missing, and run in full as soon as it is there. Any other missing script fails.
     /// </summary>
-    private static readonly HashSet<string> PendingCliScripts = new(StringComparer.Ordinal) { "memory_state.py" };
+    private static readonly HashSet<string> PendingCliScripts = new(StringComparer.Ordinal) { };
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Lazy<(int, string, string)>> PythonRuns = new(StringComparer.Ordinal);
 
