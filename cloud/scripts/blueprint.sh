@@ -15,7 +15,6 @@ fic_name="margo-instance-containers"
 # action, so the permission alone sends nothing.
 workiq_scopes="WorkIQAgent.Ask WorkIQ.Read WorkIQ.Act"
 workiq_scope=$workiq_scopes
-scopes_json=$(printf '%s' "$workiq_scopes" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().split()))')
 # has_scopes "GRANTED SPACE-SEPARATED" -> 0 when every wanted scope is present
 has_scopes() { for wanted in $workiq_scopes; do case " $1 " in *" $wanted "*) ;; *) return 1 ;; esac; done; return 0; }
 
@@ -53,21 +52,25 @@ if [ -z "$workiq_app" ] || [ -z "$workiq_sp" ]; then
   exit 0
 fi
 
-# Inheritable: agent identities created from the blueprint may request this scope, and only it.
-inherited=$(az rest --method get --url "$BLUEPRINTS/$blueprint_id/inheritablePermissions" \
-  --query "value[?resourceAppId=='$workiq_app'] | [0].inheritableScopes.scopes" -o tsv 2>/dev/null | tr '\t\n' '  ' || true)
-if [ -n "$inherited" ] && has_scopes "$inherited"; then
+# Inheritable: agent identities created from the blueprint inherit the blueprint's consented Work IQ scopes.
+# Agent 365 expects kind=allAllowed (the consent grant below is what limits it to these scopes); an enumerated
+# entry is reported as broken inheritance by 'a365 query-entra inheritance'.
+inherited_kind=$(az rest --method get --url "$BLUEPRINTS/$blueprint_id/inheritablePermissions" \
+  --query "value[?resourceAppId=='$workiq_app'] | [0].inheritableScopes.kind" -o tsv 2>/dev/null || true)
+if [ "$inherited_kind" = "allAllowed" ]; then
   progress "Work IQ scopes already inheritable"
-elif [ -n "$inherited" ]; then
-  printf '%s\n' "    - Work IQ is inheritable on blueprint $BLUEPRINT_CLIENT_ID with only: $inherited. An Entra administrator
-      adds the missing ones of: $workiq_scopes (resource app $workiq_app)."
-elif az rest --method post --url "$BLUEPRINTS/$blueprint_id/inheritablePermissions" \
-    --headers "Content-Type=application/json" \
-    --body "{\"resourceAppId\": \"$workiq_app\", \"inheritableScopes\": {\"@odata.type\": \"microsoft.graph.enumeratedScopes\", \"scopes\": $scopes_json}}" >/dev/null 2>&1; then
-  progress "Work IQ scope made inheritable"
 else
-  printf '%s\n' "    - An Entra administrator makes Work IQ's $workiq_scope scope (resource app $workiq_app)
-      inheritable on blueprint $BLUEPRINT_CLIENT_ID, for example with the Agent 365 CLI's permission setup."
+  if [ -n "$inherited_kind" ]; then
+    az rest --method delete --url "$BLUEPRINTS/$blueprint_id/inheritablePermissions/$workiq_app" >/dev/null 2>&1 || true
+  fi
+  if az rest --method post --url "$BLUEPRINTS/$blueprint_id/inheritablePermissions" \
+      --headers "Content-Type=application/json" \
+      --body "{\"resourceAppId\": \"$workiq_app\", \"inheritableScopes\": {\"@odata.type\": \"microsoft.graph.allAllowedScopes\", \"kind\": \"allAllowed\"}, \"inheritableRoles\": {\"@odata.type\": \"microsoft.graph.allAllowedRoles\", \"kind\": \"allAllowed\"}}" >/dev/null 2>&1; then
+    progress "Work IQ scopes made inheritable"
+  else
+    printf '%s\n' "    - An Entra administrator makes Work IQ (resource app $workiq_app) inheritable on blueprint
+      $BLUEPRINT_CLIENT_ID: a365 setup permissions custom --resource-app-id $workiq_app --scopes $(printf '%s' "$workiq_scopes" | tr ' ' ',')"
+  fi
 fi
 
 # Tenant-wide consent for the blueprint's principal; an administrator's sign-in is needed here.
