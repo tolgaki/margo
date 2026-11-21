@@ -52,6 +52,9 @@ param voiceName string = ''
 @description('Deployment ID of a trained custom voice; empty uses voiceName as a standard voice.')
 param voiceEndpointId string = ''
 
+@description('App ID of the single-page app the voice page signs in with (agent blueprints cannot hold its redirect URI); empty signs in as the blueprint.')
+param voiceClientId string = ''
+
 @description('The Margo Cloud image pinned by digest, recorded by scripts/postprovision.sh (MARGO_PINNED_IMAGE). Empty on the first provision.')
 param margoImage string = ''
 
@@ -246,7 +249,7 @@ var provisionerConfig = {
   extraEnv: concat([
     { name: 'MARGO_PRINCIPAL_ACCESS', value: principalAccess }
     { name: 'MARGO_TIMEZONE', value: timezone }
-  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ])
+  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ], empty(voiceClientId) ? [] : [ { name: 'MARGO_VOICE_CLIENT_ID', value: voiceClientId } ])
 }
 
 resource provisioner 'Microsoft.App/jobs@2024-03-01' = {

@@ -164,7 +164,9 @@ open-ended generated content, which is all Margo does.
 - **Direct WebRTC (V3)** and **phone (V4).**
 - **The verification list above,** run against a live Voice Live resource.
 - **Entra setup by an operator:** expose a delegated scope (default `Voice.Talk`) on the
-  blueprint app, and add each instance's voice page as a single-page-app redirect URI.
+  blueprint, and register a separate single-page app (`MARGO_VOICE_CLIENT_ID`) with each
+  instance's voice page as a redirect URI: agent blueprints refuse redirect URIs. See the
+  [deployment guide](autopilot-deployment.md).
 
 ## Sources
 

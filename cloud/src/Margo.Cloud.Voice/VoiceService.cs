@@ -34,6 +34,14 @@ public sealed record VoiceServiceOptions
     /// <c>MARGO_VOICE_SCOPE</c>).</summary>
     public string Scope { get; init; } = "Voice.Talk";
 
+    /// <summary>
+    /// The app the voice page signs the person in with (<c>MARGO_VOICE_CLIENT_ID</c>). Agent blueprints cannot hold the
+    /// page's redirect URI, so a separate single-page-app registration signs in and asks for the blueprint's voice
+    /// scope. Null or empty signs in as the blueprint itself. The token check is the same either way: its audience is
+    /// the blueprint and its scope the voice scope.
+    /// </summary>
+    public string? PageClientId { get; init; }
+
     /// <summary>The voice settings; null reads them from the environment (<see cref="VoiceSettings.FromEnv"/>).</summary>
     public VoiceSettings? Settings { get; init; }
 
@@ -138,6 +146,7 @@ public sealed class VoiceService : IDisposable
         Instance = instance;
         TenantId = tenantId;
         ClientId = clientId;
+        PageClientId = string.IsNullOrEmpty(options.PageClientId) ? clientId : options.PageClientId;
         Scope = options.Scope ?? throw new ArgumentException("the voice scope is required", nameof(options));
         Settings = options.Settings ?? VoiceSettings.FromEnv();
         _voiceLive = options.VoiceLive ?? new VoiceLiveConnector();
@@ -172,6 +181,9 @@ public sealed class VoiceService : IDisposable
     /// <summary>The blueprint's application ID.</summary>
     public string ClientId { get; }
 
+    /// <summary>The app the page signs in with: <see cref="VoiceServiceOptions.PageClientId"/>, or the blueprint.</summary>
+    public string PageClientId { get; }
+
     /// <summary>The delegated voice scope.</summary>
     public string Scope { get; }
 
@@ -182,7 +194,7 @@ public sealed class VoiceService : IDisposable
     public JsonObject Config() => new()
     {
         ["tenantId"] = TenantId,
-        ["clientId"] = ClientId,
+        ["clientId"] = PageClientId,
         ["scope"] = "api://" + ClientId + "/" + Scope,
     };
 

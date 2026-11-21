@@ -149,6 +149,14 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
    tool call may finish in the background, as Python's thread did); the hello wait and the pumps never cancel a socket
    receive.
 
+## Separate voice sign-in app (21 Nov 2026)
+
+Agent blueprints refuse redirect URIs (`PropertyNotCompatibleWithAgenticApplication`), so the page cannot sign in as
+the blueprint, as `voice/server.py` assumed. `VoiceServiceOptions.PageClientId` (Host: `MARGO_VOICE_CLIENT_ID`) names a
+single-page-app registration the page signs in with; `/voice/config` returns it as `clientId` and still asks for
+`api://<blueprint>/Voice.Talk`. The token check is unchanged: audience the blueprint, the voice scope, the tenant and the
+manager. Unset, the page signs in as the blueprint as before.
+
 ## Not ported, and why
 
 - **Host wiring** (`host/app.py`: constructing `VoiceService` from `MARGO_VOICE_SCOPE`, the tenant and blueprint IDs,

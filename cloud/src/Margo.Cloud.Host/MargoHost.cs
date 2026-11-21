@@ -195,6 +195,7 @@ public static class MargoHost
             services.TryAddSingleton(provider => new VoiceServiceOptions
             {
                 Scope = settings.VoiceScope,
+                PageClientId = settings.VoiceClientId,
                 Settings = VoiceSettings.FromEnv(VoiceEnvironment(provider.GetRequiredService<IConfiguration>())),
                 Endpoint = provider.GetRequiredService<IConfiguration>()["VOICE_LIVE_ENDPOINT"],
                 Logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger(VoiceLogCategory),

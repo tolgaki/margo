@@ -13,6 +13,7 @@
     "timezone": { "value": "${MARGO_TIMEZONE=America/Los_Angeles}" },
     "voiceLiveModel": { "value": "${MARGO_VOICE_LIVE_MODEL=}" },
     "voiceName": { "value": "${MARGO_VOICE_NAME=}" },
-    "voiceEndpointId": { "value": "${MARGO_VOICE_ENDPOINT_ID=}" }
+    "voiceEndpointId": { "value": "${MARGO_VOICE_ENDPOINT_ID=}" },
+    "voiceClientId": { "value": "${MARGO_VOICE_CLIENT_ID=}" }
   }
 }

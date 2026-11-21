@@ -132,6 +132,30 @@ public sealed class EndpointTests
             Assert.Equal("https://voice.example.com/", service.Endpoint);
             Assert.Equal(new VoiceSettings("fictional-realtime", MaxToolCalls: 5), service.Settings);
             Assert.Equal("api://fictional-blueprint-app/Voice.Custom", PyNode.AsString(service.Config()["scope"]));
+            Assert.Equal(Fixtures.Client, PyNode.AsString(service.Config()["clientId"])); // no page app: the blueprint signs in
+        }
+    }
+
+    [Fact]
+    public void A_separate_page_app_signs_in_for_the_blueprint_s_voice_scope()
+    {
+        // Agent blueprints cannot hold the page's redirect URI, so a single-page app signs the person in; the token it
+        // obtains is still for the blueprint (audience) and its voice scope, which the verifier checks as before.
+        using var state = new TempState();
+        var engine = new Margo.Cloud.Engine.Engine(new UnusedModel(), "fictional-model", Fixtures.Root);
+        var orchestrator = new Margo.Cloud.Orchestrator.Orchestrator(engine, new DirectoryTransport(), state.Path, _ => new InMemoryLeaseStore());
+        using (PyRuntime.Override(new Dictionary<string, string>
+        {
+            ["VOICE_LIVE_ENDPOINT"] = "https://voice.example.com/",
+            ["VOICE_LIVE_MODEL"] = "fictional-realtime",
+        }))
+        {
+            using var service = new VoiceService(orchestrator, new FakeTokens(), Fixtures.Instance, Fixtures.Tenant, Fixtures.Client,
+                                                 new VoiceServiceOptions { PageClientId = "fictional-voice-page-app" });
+            var config = service.Config();
+            Assert.Equal("fictional-voice-page-app", PyNode.AsString(config["clientId"]));
+            Assert.Equal("api://" + Fixtures.Client + "/Voice.Talk", PyNode.AsString(config["scope"]));
+            Assert.Equal(Fixtures.Client, service.ClientId);
         }
     }
 

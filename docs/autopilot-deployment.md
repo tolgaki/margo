@@ -266,9 +266,31 @@ azd env set MARGO_VOICE_LIVE_MODEL gpt-realtime-2.1
 azd provision
 ```
 
-Then, on the blueprint, expose a delegated `Voice.Talk` scope and add each instance's
-`https://<router>/i/<instance>/voice/` as a single-page-app redirect URI. Redeploy existing
-instances (below). Details, the custom voice and limits: [Voice](autopilot-voice.md).
+The voice page signs the manager in for the blueprint's delegated `Voice.Talk` scope. Agent blueprints
+accept the scope but refuse redirect URIs (`PropertyNotCompatibleWithAgenticApplication`), so a separate
+single-page-app registration does the sign-in:
+
+1. Add the `Voice.Talk` scope to the blueprint (Graph `PATCH` of `api.oauth2PermissionScopes` on
+   `/beta/applications/graph.agentIdentityBlueprint/{id}`, keeping the existing scopes). Its identifier URI is
+   `api://<blueprint client ID>`.
+2. Create the sign-in app, allow it to request that scope, and consent once:
+   ```sh
+   BP=<blueprint client ID>
+   SCOPE_ID=$(az rest --url "https://graph.microsoft.com/beta/applications/graph.agentIdentityBlueprint?\$filter=appId eq '$BP'&\$select=api" \
+     --query "value[0].api.oauth2PermissionScopes[?value=='Voice.Talk'].id | [0]" -o tsv)
+   VOICE_APP=$(az ad app create --display-name "Margo voice page" --sign-in-audience AzureADMyOrg --query appId -o tsv)
+   az ad sp create --id $VOICE_APP >/dev/null
+   az ad app update --id $VOICE_APP --set spa="{\"redirectUris\":[\"https://<router>/i/<instance>/voice/\"]}" \
+     --required-resource-accesses "[{\"resourceAppId\":\"$BP\",\"resourceAccess\":[{\"id\":\"$SCOPE_ID\",\"type\":\"Scope\"}]}]"
+   az ad app permission admin-consent --id $VOICE_APP
+   azd env set MARGO_VOICE_CLIENT_ID $VOICE_APP
+   ```
+   Add every instance's `https://<router>/i/<instance>/voice/` to the app's SPA redirect URIs.
+3. `azd provision`, then redeploy existing instances (below), or set `MARGO_VOICE_CLIENT_ID` on a running
+   instance with `az containerapp update --set-env-vars`.
+
+The token the page obtains is still for the blueprint (audience) and `Voice.Talk`, which is what the voice
+server checks; only the app that signs in changes. Details, the custom voice and limits: [Voice](autopilot-voice.md).
 
 ## Operate
 
@@ -316,7 +338,7 @@ Foundry and cannot be pointed at your own container, so this route starts with a
 | Mail and calendar are `error` in delegation mode | Mailbox permissions missing or not yet propagated | Recheck the two Exchange commands; allow time to propagate |
 | "I couldn't load my records safely" | The state lease was busy for two minutes, or a bundle failed its checks | Retry. If it persists, check the storage account and the instance's role on its container |
 | Approval spins on the security-policy step | An admin center issue, not the deployment | Open a support request with the page's correlation ID |
-| Voice: "Your sign-in can't be used to talk to this Margo" | Wrong tenant, missing `Voice.Talk` scope, or not this Margo's manager | Sign in as the manager; check the scope and redirect URI on the blueprint |
+| Voice: "Your sign-in can't be used to talk to this Margo" | Wrong tenant, missing `Voice.Talk` scope, or not this Margo's manager | Sign in as the manager; check the `Voice.Talk` scope on the blueprint, the voice sign-in app's redirect URI and consent, and `MARGO_VOICE_CLIENT_ID` |
 
 ## Known limits
 

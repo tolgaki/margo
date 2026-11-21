@@ -105,7 +105,8 @@ line, and Teams/files reads report unavailable.
 1. As the manager, send `/voice`. Expect `turn status=voice_link` and a link
    `https://<public base>/i/<instance key>/voice/`.
 2. Open it. The page loads without a platform token (`/voice/` is outside the check); `/voice/config` answers the
-   tenant, the blueprint client ID and `api://<client id>/Voice.Talk`.
+   the tenant, the sign-in app's client ID (`MARGO_VOICE_CLIENT_ID`, or the blueprint's if unset) and
+   `api://<blueprint client id>/Voice.Talk`.
 3. Sign in as the manager and start a call. Expect `margo.voice` lines for the session (no audio, transcript or token
    content), Margo's Work IQ token obtained through the SDK connection (`GetAgenticUserTokenAsync`), and, under `obo`,
    the on-behalf-of exchange with the person's voice token. Ask `What is my next meeting?`: an answer by voice.

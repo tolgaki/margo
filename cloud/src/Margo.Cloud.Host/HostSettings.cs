@@ -104,6 +104,9 @@ public sealed record HostSettings
     /// <summary><c>MARGO_VOICE_SCOPE</c> (default <c>Voice.Talk</c>).</summary>
     public string VoiceScope { get; init; } = "Voice.Talk";
 
+    /// <summary><c>MARGO_VOICE_CLIENT_ID</c>: the voice page's sign-in app; empty signs in as the blueprint.</summary>
+    public string? VoiceClientId { get; init; }
+
     /// <summary><c>APPLICATIONINSIGHTS_CONNECTION_STRING</c>.</summary>
     public string? ApplicationInsights { get; init; }
 
@@ -208,6 +211,7 @@ public sealed record HostSettings
             VoiceEnabled = voice,
             VoiceTenantId = voiceTenant,
             VoiceScope = Get("MARGO_VOICE_SCOPE") ?? "Voice.Talk",
+            VoiceClientId = Get("MARGO_VOICE_CLIENT_ID"),
             ApplicationInsights = Get("APPLICATIONINSIGHTS_CONNECTION_STRING") is { Length: > 0 } insights ? insights : null,
             ListenHost = Get("HOST") ?? "0.0.0.0",
             Port = port,
