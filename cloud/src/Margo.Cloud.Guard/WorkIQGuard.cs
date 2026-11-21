@@ -424,12 +424,24 @@ public sealed class WorkIQGuard
         return new Authorisation(sendArgs, claim, paths);
     }
 
+    /// <summary>Why principal Copilot search is unavailable under delegation, and what to use instead.</summary>
+    public const string DelegationSearchHint =
+        "Copilot search of the principal's data needs on-behalf-of access. Under delegation, read their mail and calendar "
+        + "with fetch or call_function and on_data_of \"principal\" (/me/messages, /me/mailFolders, /me/events, /me/calendarView), "
+        + "and search what is shared with you (mail you received, chats and channels you are in, files shared with you) "
+        + "with retrieve or ask and on_data_of \"self\".";
+
+    /// <summary>Why a principal path outside mail and calendar is unavailable under delegation, and what to use instead.</summary>
+    public const string DelegationPathHint =
+        "only the principal's mail and calendar are reachable through delegation (/me/messages, /me/mailFolders, /me/events, "
+        + "/me/calendar, /me/calendars, /me/calendarView); for chats, channels and files they shared with you, use on_data_of \"self\".";
+
     /// <summary>Rewrite principal <c>/me/...</c> mail and calendar paths to the delegated mailbox (<c>_delegated</c>).</summary>
     private JsonObject Delegated(string tool, JsonObject args)
     {
         if (tool is "retrieve" or "ask")
         {
-            throw new UnavailableException("Copilot search of the principal's data needs on-behalf-of access");
+            throw new UnavailableException(DelegationSearchHint);
         }
 
         if (tool is "list_agents" or "get_schema" or "search_paths")
@@ -458,7 +470,7 @@ public sealed class WorkIQGuard
         var segments = path.Split('?', 2)[0].Trim('/').Split('/');
         if (segments.Length < 2 || LowerAscii(segments[0]) != "me" || !Delegable.Contains(LowerAscii(segments[1])))
         {
-            throw new UnavailableException("only the principal's mail and calendar are reachable through delegation");
+            throw new UnavailableException(DelegationPathHint);
         }
 
         return "/users/" + Binding.PrincipalId + "/" + path["/me/".Length..];

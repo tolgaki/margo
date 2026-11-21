@@ -64,7 +64,9 @@ public static class GuardPolicy
     public static IReadOnlyDictionary<string, IReadOnlySet<string>> Roots { get; } = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal)
     {
         [Subjects.Principal] = Set("me", "users", "sites", "drives", "chats", "teams", "planner"),
-        [Subjects.Self] = Set("me", "users", "chats"),
+        // Margo's own token reaches only what is hers or shared with her: her mail, her chats (including group chats she
+        // is in), channels of teams she belongs to, and files and sites shared with her. Writes still need a live claim.
+        [Subjects.Self] = Set("me", "users", "chats", "teams", "sites", "drives"),
     }.ToFrozenDictionary(StringComparer.Ordinal);
 
     /// <summary><c>USER_DIRECTORY_READS</c>: what <c>/users/{id}/...</c> may read.</summary>

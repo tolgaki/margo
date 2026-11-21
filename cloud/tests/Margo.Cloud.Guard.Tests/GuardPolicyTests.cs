@@ -85,9 +85,12 @@ public sealed class GuardPolicyTests
     }
 
     [Fact]
-    public async Task Self_intent_cannot_reach_principal_only_roots()
+    public async Task Self_intent_reaches_what_is_shared_with_margo_but_not_planner()
     {
-        Assert.Equal("refused", await Status(Guard(), "fetch", """{"on_data_of": "self", "entityUrls": ["/sites/site-1/drive"]}""", RunModes.Attended));
+        // Files and sites shared with her, and channels of teams she is in, are hers to read with her own token.
+        var shared = """["/sites/site-1/drive/root/children", "/drives/drive-1/items/item-1", "/teams/team-1/channels/channel-1/messages"]""";
+        Assert.Equal("ok", await Status(Guard(), "fetch", """{"on_data_of": "self", "entityUrls": """ + shared + "}", RunModes.Attended));
+        Assert.Equal("refused", await Status(Guard(), "fetch", """{"on_data_of": "self", "entityUrls": ["/planner/plans"]}""", RunModes.Attended));
     }
 
     [Fact]

@@ -143,6 +143,15 @@ failure of a write as `unknown`, and receipts are all as in Python.
 11. **`@preferences`** passes the configured path as given; Python passed `str(Path(...))`, which normalises
     repeated and trailing slashes.
 
+## Delegation-mode instructions (21 Nov 2026)
+
+`EngineTools.LoadInstructions(..., principalAccess)` appends `DelegationAddendum` when the instance runs with
+`MARGO_PRINCIPAL_ACCESS=delegation`: read the manager's mail and calendar with `fetch`/`call_function` as `principal`;
+use any tool as `self` (including `retrieve` and `ask`) for mail, chats, channels and files shared with Margo; never call
+`retrieve`/`ask` as `principal`. `Engine.RunAsync` passes the guard's mode; voice passes the orchestrator's. The `obo`
+instructions are unchanged (byte-identical to the recorded Python ones). Added after the first live run showed the model
+choosing principal Copilot search, which delegation cannot serve.
+
 ## Not ported here
 
 - **The orchestrator, office queue, voice server and host wiring** (`orchestrator.py`, `office.py`,

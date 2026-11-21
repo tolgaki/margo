@@ -66,6 +66,25 @@ public static class EngineTools
 
         """;
 
+    /// <summary>Appended to the hosted context when the manager gave Margo delegated access, not on-behalf-of access.</summary>
+    public const string DelegationAddendum = """
+        # How you reach your manager's work (delegation)
+
+        Your manager gave you delegated access, not on-behalf-of access. You work with your own account:
+        - Their mail and calendar: `workiq-fetch` or `workiq-call_function` with `on_data_of: "principal"`
+          on `/me/messages`, `/me/mailFolders`, `/me/events`, `/me/calendar`, `/me/calendars` and
+          `/me/calendarView` paths. Use these first for anything about their inbox, calendar or meetings.
+        - Everything shared with you: any tool with `on_data_of: "self"`, including `workiq-retrieve` and
+          `workiq-ask`. That covers mail you received or were copied on, chats and group chats you are
+          in, channels of teams you belong to, and files and sites shared with you. Use it for context
+          around their mail and meetings.
+        - Do not call `workiq-retrieve` or `workiq-ask` with `on_data_of: "principal"`: Copilot search of
+          their data needs on-behalf-of access and is unavailable here.
+        If something is neither in their mail and calendar nor shared with you, say so and suggest they
+        share it with you (add you to the chat, channel or email, or share the file).
+
+        """;
+
     /// <summary><c>DESCRIPTIONS</c>: what the model is told each Work IQ read tool does.</summary>
     public static IReadOnlyDictionary<string, string> Descriptions { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
     {
@@ -103,7 +122,9 @@ public static class EngineTools
     /// <param name="now">The time to show (converted to <paramref name="timeZone"/>); null for the current time.</param>
     /// <param name="library">The skill library to describe; null for one without preferences.</param>
     /// <exception cref="TimeZoneNotFoundException">The time zone is unknown (Python: <c>ZoneInfoNotFoundError</c>).</exception>
-    public static string LoadInstructions(string repoRoot, string timeZone = DefaultTimeZone, DateTimeOffset? now = null, SkillLibrary? library = null)
+    /// <param name="principalAccess"><c>delegation</c> adds <see cref="DelegationAddendum"/>; anything else adds nothing.</param>
+    public static string LoadInstructions(string repoRoot, string timeZone = DefaultTimeZone, DateTimeOffset? now = null, SkillLibrary? library = null,
+                                          string? principalAccess = null)
     {
         library ??= new SkillLibrary(repoRoot);
         var zone = TimeZoneInfo.FindSystemTimeZoneById(timeZone);
@@ -115,6 +136,11 @@ public static class EngineTools
             ["not_hosted"] = NotHosted.Summary(),
             ["skills"] = library.Index(),
         });
+        if (principalAccess == PrincipalAccessModes.Delegation)
+        {
+            addendum += DelegationAddendum;
+        }
+
         return string.Join("\n\n", library.Persona(), addendum);
     }
 

@@ -107,7 +107,7 @@ in Azure Container Registry. To build and test Margo Cloud yourself, see [cloud/
 
 | Mode | Set | Reaches | Requires |
 | --- | --- | --- | --- |
-| `delegation` | `azd env set MARGO_PRINCIPAL_ACCESS delegation` | Mail and calendar only. Teams, files and Copilot search report "unavailable" | An Exchange admin grants Margo's account access to the manager's mailbox and calendar after hiring |
+| `delegation` | `azd env set MARGO_PRINCIPAL_ACCESS delegation` | The manager's mail and calendar (direct reads through the delegation), plus everything shared with Margo herself: mail she receives, chats and channels she is in, files and sites shared with her (her own Copilot search included). Copilot search of the manager's whole data reports "unavailable" | The manager makes Margo a calendar delegate (or an Exchange admin grants mailbox access) and shares chats, channels and files with her |
 | `obo` (default) | `azd env set MARGO_PRINCIPAL_ACCESS obo` and `azd env set PRINCIPAL_AUTH_HANDLER {handler-name}` | Everything the manager can see through Work IQ | An on-behalf-of user-authorisation handler in the Agents SDK configuration |
 
 **Recommendation for the first deployment: `delegation`.** Its moving parts are all documented.
@@ -247,7 +247,7 @@ As the manager, open a chat with **the instance you hired** (by the name you gav
 "Margo" app itself) and try:
 
 - "Brief me": she should read your inbox and calendar and cite what she found.
-- "What's in my Teams?": in delegation mode she should say Teams is unavailable, not quiet.
+- "What's in my Teams?": in delegation mode she reads only chats and channels she is in; for the rest she should say so and suggest you add her, not report it as quiet.
 - "What's waiting on me?": she reads her work ledger with the same commands as on the desktop.
 - "/replies acknowledge": she confirms the setting. `/replies none` turns it off again.
 - "/voice": if voice is on, she replies with her voice page's link.

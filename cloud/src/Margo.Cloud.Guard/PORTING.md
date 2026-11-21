@@ -158,6 +158,20 @@ specification; everything not listed under "Deliberate deviations" is meant to b
    a token that is not a three-segment JWS (opaque or encrypted) cannot be read and is sent as before. Margo's own
    token and delegated principal reads (Margo's token) are not checked. Tests: `TokenSubjectTests`.
 
+## Delegation-mode changes after the cutover (21 Nov 2026)
+
+Deliberate behaviour changes, decided by the owner after the first live delegation run; Margo Cloud now differs from the
+frozen Python `guard.py` here, and the affected answers in `Parity/guard_cases.json` were regenerated:
+
+1. **`self` reaches what is shared with Margo.** `Roots[self]` adds `teams`, `sites` and `drives`, so Margo's own token
+   can read channels of teams she belongs to and files and sites shared with her. Reads only in effect: every write still
+   needs a live claim approved by the manager, and a run someone else triggered may still only open its triggering
+   message. Python allowed `me`, `users`, `chats` only. Twelve recorded cases changed: the reads now succeed and are sent;
+   the writes and third-party runs among them stay refused, for their next reason.
+2. **Delegation refusals point to what works.** `DelegationSearchHint` (principal `ask`/`retrieve`) and `DelegationPathHint`
+   (a principal path outside mail and calendar) name the `fetch` paths for the manager's mail and calendar and the `self`
+   alternative, so the model retries correctly. Statuses are unchanged (`unavailable`); 62 recorded reasons changed text.
+
 ## Not ported here
 
 - **`replies.py`** (`ReplyGate`, `load_reply_policy`) belongs to `Margo.Cloud.Orchestrator` (see `cloud/README.md`).

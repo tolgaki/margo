@@ -296,7 +296,8 @@ public sealed class VoiceService : IDisposable
         var engine = _orchestrator.Engine;
         var library = new SkillLibrary(engine.RepoRoot, preferences);
         var office = new OfficeReader(() => binding.OpenLedger(root));
-        var instructions = EngineTools.LoadInstructions(engine.RepoRoot, engine.TimeZone, library: library) + "\n\n" + VoiceSession.Addendum;
+        var instructions = EngineTools.LoadInstructions(engine.RepoRoot, engine.TimeZone, library: library,
+                                                        principalAccess: options.PrincipalAccess) + "\n\n" + VoiceSession.Addendum;
 
         Task<JsonNode?> Dispatch(JsonNode? name, JsonNode? rawArguments, CancellationToken token) =>
             Margo.Cloud.Engine.Engine.DispatchAsync(name, rawArguments, RunModes.Attended, guard, office, library, state, token);

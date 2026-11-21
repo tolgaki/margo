@@ -107,7 +107,7 @@ public sealed class Engine
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(guard);
         var library = new SkillLibrary(RepoRoot, preferencesPath ?? PreferencesPath);
-        var instructions = EngineTools.LoadInstructions(RepoRoot, TimeZone, now, library);
+        var instructions = EngineTools.LoadInstructions(RepoRoot, TimeZone, now, library, guard.PrincipalAccess);
         var tools = EngineTools.FunctionTools(mode);
         var request = new JsonObject
         {
