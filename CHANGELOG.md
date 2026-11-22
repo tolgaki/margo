@@ -2,6 +2,14 @@
 
 ## 1.3.0 (unreleased)
 
+- **Margo Cloud**: hosted Margo rewritten in C# on .NET 10 (`cloud/`), self-hosted for Agent 365 with one
+  container per hired Margo. Its state commands stay byte-compatible with the desktop helpers, judged by
+  `tools/state_parity.py`; the Python hosted runtime was removed. The core path ran once in a test tenant; see the
+  deployment guide's known limits for what is unverified and the hardening still open.
+- Margo Cloud delegation mode reads the manager's mail and calendar directly through the delegation and searches only
+  what is shared with Margo; Copilot search of the manager's whole data reports "unavailable".
+- Margo Cloud voice signs in through a separate single-page app (`MARGO_VOICE_CLIENT_ID`), because agent blueprints
+  refuse redirect URIs.
 - Separated Margo agent selection from chief-of-staff skill routing: names and greetings no
   longer trigger the playbook, which preserves the caller's identity. Installer and setup help
   now explicitly select the agent; updated instructions require a fresh session, not migration.

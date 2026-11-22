@@ -4,9 +4,11 @@ Hosted Margo, in C# on .NET 10: self-hosted for Agent 365 in Azure Container App
 Plan and phases: [docs/margo-cloud-plan.md](../docs/margo-cloud-plan.md). Design and decisions:
 [Margo as an autopilot](../docs/autopilot.md). Deployment: [Deploy Margo as an Agent 365 agent](../docs/autopilot-deployment.md).
 
-**Status: built and tested offline, never run in a live tenant.** The first live run is the Phase 0 checklist in
-[Margo.Cloud.Host/VERIFY.md](src/Margo.Cloud.Host/VERIFY.md), which an operator runs in a test tenant. Margo Cloud is not
-installed by the local installers.
+**Status: built and tested offline; the core path ran once in a test tenant** (router, provisioning, agentic sign-in, a
+Teams chat turn, delegated calendar reads). The rest of the Phase 0 checklist in
+[Margo.Cloud.Host/VERIFY.md](src/Margo.Cloud.Host/VERIFY.md) is still to run, and the deployment guide's
+[known limits](../docs/autopilot-deployment.md#known-limits) list the hardening still open. Not for production use yet.
+Margo Cloud is not installed by the local installers.
 
 Margo has two implementations that share the persona (`agents/`) and the skills (`skills/`):
 

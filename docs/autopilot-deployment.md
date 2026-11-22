@@ -3,14 +3,15 @@
 [Design](autopilot.md) · [One container per instance](autopilot-instance-containers.md) ·
 [Voice](autopilot-voice.md) · [Margo Cloud code](../cloud/README.md) · [Trust and safety](safety.md)
 
-**Status: first deployable version, not yet proven in a live tenant.** Hosted Margo is **Margo Cloud**, a C#
-(.NET 10) service in [`cloud/`](../cloud/README.md); it replaced the earlier Python runtime. Everything here is built
-and tested offline against fakes and Microsoft's published contracts. Nobody has yet run this
-route end to end in a real tenant. Deploy it first to a **test tenant with fictional users**, and
-treat the first run as the phase-0 verification: the step-by-step checklist is
-[Margo.Cloud.Host/VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md), and the [design](autopilot.md#10-verification-list-phase-0)
-says what each check proves.
-Agent 365 and its CLI are in preview; where a step names a CLI flag, check it against
+**Status: first deployable version, partly proven in one test tenant (November 2026).** Hosted Margo is **Margo
+Cloud**, a C# (.NET 10) service in [`cloud/`](../cloud/README.md); it replaced the earlier Python runtime. One end-to-end
+run in a test tenant showed: the router receiving Agent 365 activities, the provisioner creating an instance container,
+the instance signing in as its agent user, Work IQ answering `/me/manager`, a Teams chat answered by the hired Margo,
+and a delegated calendar read. Everything else is built and tested offline against fakes and Microsoft's published
+contracts; [Known limits](#known-limits) lists what is still unverified. Deploy it first to a **test tenant with
+fictional users**, and run the phase-0 checklist in [Margo.Cloud.Host/VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md);
+the [design](autopilot.md#10-verification-list-phase-0) says what each check proves.
+Agent 365 and its CLI are in preview. The commands below were checked against Agent 365 CLI 2.0.1; check them against
 `a365 --help` for the version you install.
 
 ## How it fits together
@@ -150,23 +151,36 @@ credential.
 
 ```sh
 mkdir -p ~/margo-a365 && cd ~/margo-a365
-a365 config init
+a365 setup blueprint -n Margo --tenant-id {tenant-id} --no-endpoint
 ```
 
-Answer for a **self-hosted** agent: no Azure deployment by the CLI (`needDeployment` false), and
-the messaging endpoint from step 1. Name the blueprint "Margo". Then create the blueprint and
-register the endpoint:
+Then register the messaging endpoint. `--endpoint-only` reads `a365.config.json` in the current folder; with CLI 2.0.1
+that file must name the tenant, the messaging endpoint, `needDeployment: false` (Margo is self-hosted) and
+`agentIdentityDisplayName`, or the command refuses to run (`a365 config init` writes it interactively):
 
 ```sh
-a365 setup blueprint --messaging-endpoint https://<router>/api/messages
+a365 setup blueprint --endpoint-only
 ```
 
-If you created the blueprint without an endpoint, or the router's address changed, register it
-with `a365 setup blueprint --endpoint-only` (or `--update-endpoint <url>`). In the Teams Developer
+Use `--update-endpoint https://<router>/api/messages` if the router's address changes. In the Teams Developer
 Portal (**Tools › Agent blueprints › Margo › Configuration**), the agent type should be **API
 based** and the notification URL should be the same messaging endpoint.
 
-The CLI writes the blueprint's ID to `a365.generated.config.json` as `agentBlueprintId`.
+The CLI writes the blueprint's ID to `a365.generated.config.json` as `agentBlueprintId`. If the CLI shows the
+blueprint's client secret, delete it in the Entra admin center (**App registrations › Margo › Certificates &
+secrets**) unless you use it for something else: Margo never needs it.
+
+Work IQ's scopes can also be added with the CLI instead of `blueprint.sh`:
+
+```sh
+a365 setup permissions custom --resource-app-id {work-iq-app-id} --scopes WorkIQAgent.Ask,WorkIQ.Read,WorkIQ.Act
+a365 query-entra inheritance        # the Work IQ entry must show kind allAllowed
+```
+
+The CLI's own permission steps also consent Microsoft Graph scopes, including send scopes such as `Mail.Send`, and
+make them inheritable. This version of Margo does not use Graph directly (all its reads go through Work IQ, and the
+guard refuses writes), so remove the Graph grant and its inheritable entry once the instance works, or review them with
+your Entra admin before production.
 
 ## 3. Connect the blueprint and finish
 
@@ -185,8 +199,9 @@ and cannot read anything without the consent. Every step is idempotent; check ag
 
 ## 4. Publish and approve
 
-1. Publish Margo with the Agent 365 CLI (`a365 publish`; see `a365 publish --help`). Use these
-   details:
+1. Publish Margo with the Agent 365 CLI: `a365 publish --aiteammate true` builds the app package (a zip with
+   `manifest.json` and icons). **Edit the manifest before uploading it**: CLI 2.0.1 fills in placeholder descriptions
+   and "Microsoft Corporation" as the developer. Raise the version on every upload. Use these details:
 
    | Field | Value |
    | --- | --- |
@@ -221,6 +236,13 @@ and cannot read anything without the consent. Every step is idempotent; check ag
 4. Wait a few minutes. The hire event reaches the router, which asks the provisioner to create her
    container (about two minutes). Margo does not message first.
 
+**If Create instance refuses for a missing licence.** In the test tenant the admin center's instance policy showed an
+empty list of recognised Agent 365 licences, even though the tenant's Agent 365 subscription and all its service plans
+were active, so **Create instance** could not finish. The instance can be created without that page, through the
+Microsoft Graph (beta) Entra Agent ID APIs: create an agent identity from the blueprint, create its agent user, set the
+agent user's manager and usage location, and assign its licences. Agent 365 then delivered the instance's Teams
+messages to the router as usual. Treat this as a workaround for a preview issue, not the supported path.
+
 You can also create a container ahead of time, with the provisioner's settings (for example as a one-off execution
 of the provisioner job with this command):
 
@@ -230,7 +252,11 @@ dotnet /app/provisioner/Margo.Cloud.Provisioner.dll enqueue ensure <agenticAppId
 
 ### Delegation mode: grant mailbox access
 
-An Exchange admin runs, with the real addresses:
+The manager can do it in Outlook: add Margo's agent user as a delegate of their calendar (this is what the test tenant
+used; Margo's direct calendar reads then succeeded). Share chats, channels and files with her the usual way: add her
+to the chat or team, or share the file. Margo still never acts on what she reads; the guard refuses every write.
+
+For mail, or to grant both centrally, an Exchange admin runs, with the real addresses:
 
 ```powershell
 Add-MailboxPermission -Identity dana@example.com -User margo-dana@example.com -AccessRights FullAccess -AutoMapping $false
@@ -300,7 +326,7 @@ server checks; only the app that signs in changes. Details, the custom voice and
 | See her state | Storage account › containers named `margo-i-…`, one per hired Margo, with each manager's state under its own prefix. `state.zip` is current; `daily/` holds one copy per day |
 | Ship a change | Commit, then `azd provision` (it builds and pins a new image for the router and the provisioner), then redeploy all |
 | Redeploy all | `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll redeploy-all` with the provisioner's settings, for example as a one-off execution of the provisioner job with that command; or `… enqueue ensure <agent-identity-id> <agent-user-id> --redeploy` for one |
-| Keep instances warm | Add `"instanceMinReplicas": { "value": 1 }` to `infra/main.parameters.json`, provision, then redeploy all |
+| Keep instances warm | Add `"instanceMinReplicas": { "value": 1 }` to `infra/main.parameters.json`, provision, then redeploy all. For one instance: `az containerapp update -n margo-<key> -g <group> --min-replicas 1`. Recommended: see the cold-start limit below |
 | Retire one instance | Delete it in the admin center: the lifecycle event retires it (app and identity go; state stays). Or `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll enqueue retire <agent-identity-id> <agent-user-id>`. Remove any mailbox permissions |
 | Delete a retired instance's state | Delete its `margo-i-…` container after the retention period |
 | Stop everyone's Margo | Block Margo in the admin center |
@@ -342,10 +368,17 @@ Foundry and cannot be pointed at your own container, so this route starts with a
 
 ## Known limits
 
-- Unverified in a live tenant: the Agent 365 CLI steps for a self-hosted blueprint, the
-  on-behalf-of token flow, activity identity fields (`recipient.agenticAppId`,
-  `recipient.agenticUserId`, `from.aadObjectId`), notification payloads, the inheritable-permission
-  call in `blueprint.sh`, and the Work IQ billing subject.
+- Verified once, in one test tenant: the self-hosted blueprint with the Agent 365 CLI 2.0.1, the router's token
+  check and routing on the activity's agent identity fields, instance provisioning, agentic sign-in, Work IQ reads as
+  Margo, a Teams chat turn, and delegated calendar reads. Still unverified: the on-behalf-of token flow, delegated
+  mail reads, mail and document notification payloads, **Create instance** from the admin center (see step 5), voice,
+  the state lease under concurrent turns, and the Work IQ billing subject.
+- A scaled-to-zero instance can lose the first message: the instance takes longer to start than Agent 365 waits, and
+  the router's forward is cancelled when Agent 365 gives up. Keep instances warm (see Operate) until the router
+  forwards independently of the caller.
+- Hardening before production: the router and the host check the token's signature, audience and tenant binding but do
+  not restrict the issuer to an allowlist; the provisioner's role-assignment condition limits which roles it may grant,
+  not to which principal or scope; and the Agent 365 CLI's Graph consent (step 2) is wider than Margo needs.
 - Agent identities and agent users can carry an expiration date (Entra Agent ID lifecycle, reported
   to default to 180 days; **verify** in your tenant). Check `lifecycle.expirationDateTime` on each
   agent identity and agent user, and extend it before it passes, or the instance stops working.
@@ -370,4 +403,4 @@ Foundry and cannot be pointed at your own container, so this route starts with a
   built with Docker outside Azure, with one substitution: the Alpine package mirror was unreachable there, so the
   zone files were copied in instead of `apk add tzdata`, which therefore remains unverified. In that image the host,
   the router and the provisioner started as the non-root user, the host and router answered their health and probe
-  paths, and `margo-state` created its SQLite databases. It has not been built with `az acr build` or run in a tenant.
+  paths, and `margo-state` created its SQLite databases. It has since been built with `az acr build` and run in a test tenant.

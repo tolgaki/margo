@@ -1,14 +1,16 @@
 # Plan: Margo Cloud in C#
 
-**Status: phases 1 to 6 done offline (November 2026); phase 0 prepared, not yet run.** Margo Cloud, the hosted
+**Status: phases 1 to 6 done offline (November 2026); phase 0 partly run in one test tenant.** Margo Cloud, the hosted
 Margo, is written in **C# on .NET 10 (LTS)** in [`cloud/`](../cloud/README.md). It replaced the Python hosted
 runtime, which was deleted in the phase 6 cutover, and keeps its design: Agent 365 self-hosted, one container per
 hired Margo, the same persona and skills, the Work IQ guard ([design](autopilot.md),
 [instances](autopilot-instance-containers.md), [voice](autopilot-voice.md), [deployment](autopilot-deployment.md)).
 
-**Nothing has run in a live tenant.** Everything below was built and tested offline against fakes, recorded Python
-behaviour and Microsoft's published contracts. The first live run is phase 0, which an operator runs in a test
-tenant with [Margo.Cloud.Host/VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md).
+Everything below was built and tested offline against fakes, recorded Python behaviour and Microsoft's published
+contracts. A first phase-0 run in one test tenant proved the core path (blueprint, router, provisioning, agentic
+sign-in, a Teams chat turn, delegated calendar reads); what it did not cover is listed under the deployment guide's
+[known limits](autopilot-deployment.md#known-limits). The full checklist is
+[Margo.Cloud.Host/VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md).
 
 Items marked **verify** are platform or package facts not yet confirmed against the source.
 
@@ -86,7 +88,7 @@ Voice Live client are small hand-written HTTP/WebSocket clients that port the Py
 
 | Phase | Outcome | Status |
 | --- | --- | --- |
-| **0. Prove the platform** | The deployment runs end to end in a test tenant: blueprint from the Agent 365 CLI, approval, hire, chat, mail queueing, the Work IQ token, agentic sign-in, voice | **Prepared, not run.** It is now run against the C# image (the Python deployment was never run live). The checklist is [VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md); the open platform questions are the [verification list](autopilot.md#10-verification-list-phase-0). An operator runs it in a test tenant with fictional users |
+| **0. Prove the platform** | The deployment runs end to end in a test tenant: blueprint from the Agent 365 CLI, approval, hire, chat, mail queueing, the Work IQ token, agentic sign-in, voice | **Partly run** against the C# image in one test tenant: blueprint (Agent 365 CLI 2.0.1), router, provisioning, agentic sign-in, Work IQ, a Teams chat turn and delegated calendar reads passed; approval-to-hire went through a Graph workaround; mail queueing, on-behalf-of and voice are not yet run. The checklist is [VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md); the open platform questions are the [verification list](autopilot.md#10-verification-list-phase-0). An operator runs it in a test tenant with fictional users |
 | **1. Foundation** | `cloud/` solution (.NET 10, warnings as errors, analyzers, central package versions), xUnit v3, porting conventions | **Done.** CI job (build, test, parity judge, Release publish check) added at the cutover. No `dotnet format` gate; the image is Alpine-based, not chiseled (chiseled images lack `tzdata`) |
 | **2. Security core** | Guard, Work IQ MCP client, engine, skills library, `margo-state` tool | **Done**, with every scenario of the Python guard and runtime tests ported and the guard replayed against 1,709 recorded Python decisions |
 | **3. Services** | Host (Agents SDK), orchestrator, office queue, reply gate, router, provisioner, state sync | **Done offline.** Not deployed: the "phase-0 scenarios pass on C#" exit evidence waits for phase 0 |
@@ -149,5 +151,9 @@ unattended) unless the manager approves the exact action.
 
 ## Next steps
 
-1. Run phase 0 in a test tenant with [VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md) and record each result.
-2. Fix what phase 0 finds; then start phase 7 with schedules.
+1. Finish phase 0 with [VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md): mail queueing, voice, restarts and
+   state safety, and **Create instance** from the admin center.
+2. Fix what it found: the router's forward must survive the caller giving up (cold starts lose the first message);
+   restrict token issuers to an allowlist; narrow the provisioner's role-assignment condition to instance principals
+   and state containers; document or script removing the Agent 365 CLI's Graph consent.
+3. Then start phase 7 with schedules.

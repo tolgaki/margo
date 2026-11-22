@@ -2,7 +2,7 @@
 
 **Status: design with a first deployable version, not a supported mode.** The
 [deployment guide](autopilot-deployment.md) creates Azure resources and connects an Agent 365
-blueprint; it has not been proven in a live tenant, and nothing here changes the current
+blueprint; one test-tenant run proved the core path (see the guide's status), the rest is unverified, and nothing here changes the current
 [trust and safety](safety.md) policy for the local assistant. Hosted Margo is **Margo Cloud**, a C# (.NET 10)
 service in [`cloud/`](../cloud/README.md) (decision 14); its pieces are tested offline against synthetic data only.
 Items marked **VERIFY** are platform behaviours the public documentation does not settle; each

@@ -1,8 +1,10 @@
 # Security policy
 
 Margo combines agent and skill definitions with a private Python state core and optional local
-review panels. It has no Margo-hosted service; the optional canvas uses a loopback HTTP server,
-and the host, Work IQ, and other integrations use their configured services. It is designed to
+review panels. Desktop Margo has no Margo-hosted service; the optional canvas uses a loopback HTTP server,
+and the host, Work IQ, and other integrations use their configured services. **Margo Cloud**
+([`cloud/`](cloud/README.md)) is a self-hosted service an organisation deploys into its own Azure
+subscription as an Agent 365 agent; nobody runs a shared Margo service for you. It is designed to
 access a real mailbox, calendar, and file store, so the security surface is real.
 
 ## Reporting a vulnerability
@@ -34,6 +36,10 @@ disclosing publicly.
 - **Data leakage** — a routine that would put sensitive content somewhere it shouldn't go, or
   ignore a sensitivity label.
 - **Credential handling** — anything in the scripts that would log, persist or expose a token.
+- **Margo Cloud** — token validation on the router, host and voice endpoints, the Work IQ guard
+  (subjects, paths, write refusal), instance isolation (identity, state container, route table),
+  and the provisioner's role assignments. Its open hardening items are listed under the deployment
+  guide's [known limits](docs/autopilot-deployment.md#known-limits); a report that goes beyond them is welcome.
 - **Real workplace data committed to this repo** — names, addresses, tenant IDs, mailbox content.
   Report it rather than pushing a fix commit, so history can be rewritten.
 
