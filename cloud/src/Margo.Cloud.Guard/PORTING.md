@@ -67,7 +67,7 @@ specification; everything not listed under "Deliberate deviations" is meant to b
   re-validation, the principal-chat post (JSON object body), unattended writes, the journal, then the claim checks
   (already used in this guard, account, approver, `on_data_of`, exact canonical call). Then budget, token, durable
   dispatch, transport. Any other exception during authorisation is "malformed tool call", with a receipt.
-- **Path policy** follows `_check_path` exactly: relative paths only, control characters, backslashes, encoded
+- **Path policy** follows `_check_path` (plus the percent-encoding rule under "Privacy and hardening"): relative paths only, control characters, backslashes, encoded
   separators (`%2e`, `%2f`, `%5c`, `%00`, case-insensitive), Python `str.isspace` whitespace, empty/`.`/`..`
   segments, roots per subject, blocked segments at any depth, `/users/{id}` directory reads only, and under
   delegation only the bound principal's mailbox (case-sensitive object ID). Lower-casing follows `str.lower()` for
@@ -93,7 +93,7 @@ specification; everything not listed under "Deliberate deviations" is meant to b
   `unsettled`; a failure to record dispatch sends nothing (`error`).
 - **Receipts** hold `at`, `mode`, `tool`, `on_data_of`, `read_as`, `paths` (no query text), `status_codes`, then
   `action_id`/`attempt_id`, `via`, `journal`, `status`, `reason` when present, in Python's insertion order. Never
-  tokens, bodies, queries or results. The recorder is called after the receipt is stored; an exception it throws
+  tokens, bodies, queries or results; since the review below, never identifiers or model-chosen text either. The recorder is called after the receipt is stored; an exception it throws
   propagates to the caller after the claim was settled, as in Python.
 - **`jsonBody`** is parsed with State.Core's `PyJson.Loads` (Python's `json.loads`: `NaN`/`Infinity` accepted, the
   4300-digit integer limit is a `ValueError`, nesting deeper than 9998 is a `RecursionError`, which escapes the
@@ -172,6 +172,72 @@ frozen Python `guard.py` here, and the affected answers in `Parity/guard_cases.j
    (a principal path outside mail and calendar) name the `fetch` paths for the manager's mail and calendar and the `self`
    alternative, so the model retries correctly. Statuses are unchanged (`unavailable`); 62 recorded reasons changed text.
 
+## Privacy and hardening (review, 23 Nov 2026)
+
+Deliberate behaviour changes after a security and privacy review; Margo Cloud differs from the frozen Python `guard.py`
+in each. Tests: `HardeningTests` (every case fails without its fix, except the concurrency test, which confirms).
+
+1. **Percent-encoding cannot disguise a path segment.** Python refused only `%2e`, `%2f`, `%5c` and `%00`, so
+   `/me/%61uthentication/methods` passed the blocked-segment check. Now every escape in the path part must be two hex
+   digits and must not stand for an unreserved character (a letter, a digit, `-`, `.`, `_`, `~`), `/`, `\`, `?`, a
+   control character or `%` itself (double encoding); a run of escapes must be valid UTF-8; and the roots, blocked
+   segments, delegable names and directory reads are matched against the segment decoded once. Refusal:
+   `GuardPolicy.DisguisedSegment` (the four old escapes keep "encoded path separators are not allowed"). Still accepted,
+   and sent as given: `%3D`, `%2B`, `%40`, `%3A`, `%20`, `%26`, `%23` and UTF-8 bytes, as message IDs, addresses, chat
+   IDs and file names carry them. Limitation: a file whose name contains `%` or `?` cannot be addressed by path (use its
+   item ID). No recorded case changed (the fixture holds only the four old escapes).
+2. **`ask` document links stay inside Microsoft 365.** Python accepted any `https://` string in `fileUrls`, so a
+   prompt-injected model could put data into a link to its own host. Now the host must be one tenant label under
+   `GuardPolicy.FileHostSuffixes` (`.sharepoint.com`, `.sharepoint.us`: `contoso` or `contoso-my`), with no user-info,
+   port, escape or non-ASCII in the host and no control characters, whitespace or backslashes anywhere; at most
+   `MaxFileUrls` (20) links of at most `MaxPath` characters. Path, query and fragment stay free (`?web=1`, `?d=`,
+   `?csf=1`). Refusal: `GuardPolicy.ForeignFileUrl`. `WorkIQGuard.FileHosts` (init-only, default null) replaces the
+   suffix rule with an exact host list: the way to pin links to the organisation's own hosts, and to serve a cloud with
+   other suffixes. The eleven recorded cases with `https://contoso.example.com/d` are unchanged: `GuardParityTests`
+   pins `FileHosts` to that fictional host; the default rule is covered by `HardeningTests`.
+   Residual risk: without `FileHosts`, another tenant's SharePoint host is accepted.
+3. **Receipts and reasons hold no identifiers or model-chosen text** (`ReceiptText`). The host logs every receipt.
+   - `paths` are templates: a segment is kept only when it is a known Graph resource word (`ReceiptText.Words`, an
+     allow-list, case as given); anything else is `{id}` (`{user}` after `users`); a path addressed by name
+     (`root:/Folder/File.docx:`) is `{path}`; function or key arguments are `name(...)` (`{function}(...)` for an
+     unknown name). `/users/dana@example.com/messages/AAMk=` is recorded as `/users/{user}/messages/{id}`. What is
+     sent to Work IQ is unchanged. A word missing from the list only makes a receipt less specific.
+   - `tool` and `mode` are kept when they are identifiers (ASCII letters, digits, `_`, `-`, at most 64), else
+     `{other}`; `on_data_of` is kept when it is `principal`, `self`, `margo` or empty, else `{other}`.
+   - Reasons (also what the model is told): the refused root is named only when it is a known resource word, else
+     `'/{id}'`; unexpected argument names are listed only when they are identifiers (at most 32 characters, at most
+     eight), the rest counted (`z, 1 other name`); a claim's `on_data_of` is named only when it is a subject word; a
+     journal failure that is not a `ClaimException` is "the approval journal could not be read" (its message is not
+     quoted; deviation 7 no longer applies to the reason); a token provider's message is clipped to 160 printable
+     ASCII characters.
+   - `Parity/guard_cases.json`: 256 recorded cases changed, strings only (199 receipt `paths`, 56 `reason`s in receipt
+     and response, one receipt `on_data_of`); no status, sent call, token request or journal interaction changed. The
+     new values were produced by the C# guard and substituted in place, object by object, by a script that asserted
+     only those three fields differ; the file was not re-serialised (256 lines differ).
+4. **An oversized answer.** `Margo.Cloud.WorkIQ` now bounds the response body (`TransportResponseTooLargeException`).
+   A read gets `error` with `WorkIQGuard.ResponseTooLarge` (ask for less); a write stays `unknown`, as any transport
+   error without a status code does.
+5. **Concurrent reads are safe (verified, no change needed).** `CallBudget.Charge` is a compare-and-swap loop and
+   receipts are appended under a lock; the per-call draft is never shared.
+   `Concurrent_reads_leave_one_intact_receipt_each_and_never_exceed_the_budget` runs 400 overlapping calls. What a
+   caller running reads in parallel must know: receipts are stored, and the recorder is called, in completion order;
+   the recorder and the token provider are called from several threads at once and must be thread-safe themselves.
+6. **Another mailbox, or a write (re-audit, no gap found).** New adversarial cases: mixed-case `/Me/`, `/me//messages`,
+   `/users/{other}/...` and `/users/{principal}/...` as `self` (Margo's token holds the delegation, so `self` must never
+   name a mailbox), `$batch`, `$value`, `/me/sendMail`, `reply`, encoded and double-encoded separators, a query string
+   that looks like a path, every write tool in every mode, subject and access mode without a claim.
+
+### Requests to other components (from this review)
+
+- **Host / Orchestrator / Voice:** set `WorkIQGuard.FileHosts` to the tenant's own SharePoint and OneDrive hosts
+  (for example from configuration: `contoso.sharepoint.com`, `contoso-my.sharepoint.com`) where the guards are built
+  (`Orchestrator.cs`, `VoiceService.cs`); until then the suffix rule applies.
+- **Host:** the receipt line it logs needs no change; `VERIFY.md`'s example (`"paths": ["/me/manager"]`) still holds,
+  but paths with identifiers now show `{id}`/`{user}`.
+- **Engine:** read calls may run in parallel through one guard, provided the recorder it passes is thread-safe.
+  The model-facing reason for unexpected argument names is unchanged for identifier-like names, so
+  `engine_answers.jsonl` is not affected.
+
 ## Not ported here
 
 - **`replies.py`** (`ReplyGate`, `load_reply_policy`) belongs to `Margo.Cloud.Orchestrator` (see `cloud/README.md`).
@@ -183,9 +249,10 @@ frozen Python `guard.py` here, and the affected answers in `Parity/guard_cases.j
 
 ## Tests and evidence
 
-`cloud/tests/Margo.Cloud.Guard.Tests` (1770 test cases), fakes for the transport and tokens, a real temporary
+`cloud/tests/Margo.Cloud.Guard.Tests` (1907 test cases), fakes for the transport and tokens, a real temporary
 `Ledger` for claims:
 
+- `HardeningTests`: the review fixes above.
 - `GuardPolicyTests`: every test of `GuardPolicyTests` in the former Python guard tests (19).
 - `GuardedWriteTests`: the 13 guard tests of `GuardedWriteTests` there, against the real approval journal (receipts:
   action and attempt IDs, journal state, paths, status codes; ledger receipts: `status_code`, `reference`,
@@ -247,4 +314,5 @@ port; the C# code is now the implementation of record, and the desktop state hel
 
 - `Parity/guard_cases.json` is frozen: `guard_cases.py --check` passed just before the cutover, and the script and
   `Fixture_is_current_with_guard_py` were removed with `guard.py`. The 1709 replayed scenarios remain the guard's
-  regression baseline; a deliberate change to the guard's behaviour now edits the fixture by hand, with review.
+  regression baseline; a deliberate change to the guard's behaviour now edits the fixture by hand, with review
+  (never by re-serialising the file: one case per line, edit only the lines that change).

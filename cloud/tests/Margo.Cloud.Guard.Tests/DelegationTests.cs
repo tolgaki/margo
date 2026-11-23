@@ -25,7 +25,7 @@ public sealed class DelegationTests
         Assert.Equal("margo-token", bearer);
         Assert.Equal(["margo"], _tokens.Requested);
         Assert.Equal("delegation", guard.Receipts[0].Via);
-        Assert.Equal(["/users/principal-1/messages", "/users/principal-1/calendarView"], guard.Receipts[0].Paths);
+        Assert.Equal(["/users/{user}/messages", "/users/{user}/calendarView"], guard.Receipts[0].Paths); // a template: no identifiers
     }
 
     [Fact]

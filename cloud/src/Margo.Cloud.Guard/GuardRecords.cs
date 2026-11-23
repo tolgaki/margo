@@ -36,7 +36,9 @@ public sealed record GuardResult(string Status, string? ReadAs, string? Tool, st
 
 /// <summary>
 /// The record every guarded call leaves (<c>guard.py</c> receipts): subject, tool, paths without query text, status
-/// codes and outcome. Tokens, bodies, queries and results are never recorded.
+/// codes and outcome. Tokens, bodies, queries and results are never recorded, and neither is text the model chose:
+/// paths are templates of resource types and labels are fixed words (<see cref="ReceiptText"/>), so a receipt can be
+/// logged without identifiers, addresses, file names or search terms.
 /// </summary>
 /// <remarks>Optional fields are null when Python leaves the key out of the receipt.</remarks>
 public sealed record GuardReceipt
@@ -44,19 +46,22 @@ public sealed record GuardReceipt
     /// <summary>When the call started: <c>datetime.now(timezone.utc).isoformat(timespec="microseconds")</c>.</summary>
     public required string At { get; init; }
 
-    /// <summary>The run mode as given (any string), or null when none was given.</summary>
+    /// <summary>The run mode as given when it is a plain identifier, <see cref="ReceiptText.Other"/> for any other string, or null when none was given.</summary>
     public string? Mode { get; init; }
 
-    /// <summary>The tool name as given (any string), or null.</summary>
+    /// <summary>The tool name as given when it is a plain identifier, <see cref="ReceiptText.Other"/> for any other string, or null.</summary>
     public string? Tool { get; init; }
 
-    /// <summary>The model's <c>on_data_of</c> when it was a string (even an invalid one), else null.</summary>
+    /// <summary>The model's <c>on_data_of</c> when it was a subject word, <see cref="ReceiptText.Other"/> for any other string, else null.</summary>
     public string? OnDataOf { get; init; }
 
     /// <summary><see cref="Subjects.Principal"/> for principal intent, <see cref="Subjects.Margo"/> for self, else null.</summary>
     public string? ReadAs { get; init; }
 
-    /// <summary>The resource paths the call touched, without query strings (after the delegation rewrite).</summary>
+    /// <summary>
+    /// The resource paths the call touched (after the delegation rewrite) as <see cref="ReceiptText.PathTemplate"/>
+    /// gives them: resource types with <c>{id}</c>, <c>{user}</c> and <c>{path}</c> for identifiers, no query strings.
+    /// </summary>
     public IReadOnlyList<string> Paths { get; init; } = [];
 
     /// <summary>Integer status codes from the payload, or the transport error's status (Python <c>int</c> values; booleans included).</summary>
@@ -77,7 +82,7 @@ public sealed record GuardReceipt
     /// <summary>The result status (one of <see cref="GuardStatuses"/>).</summary>
     public required string Status { get; init; }
 
-    /// <summary>The result reason, when there was one.</summary>
+    /// <summary>The result reason, when there was one: fixed text, never quoting what the model wrote.</summary>
     public string? Reason { get; init; }
 
     /// <summary>The receipt as Python's dict, keys in Python's insertion order.</summary>

@@ -33,9 +33,14 @@ namespace Margo.Cloud.Guard;
 /// <item>A missing token is <c>blocked</c>, and so is a readable principal token whose subject is not the bound
 /// principal (<see cref="TokenSubject"/>). The guard never falls back to the other subject.</item>
 /// <item>Every attempt leaves a receipt: subject, tool, path (no query text), status and outcome. Tokens, bodies and
-/// results are never recorded.</item>
+/// results are never recorded, and neither is text the model chose: a recorded path is a template of resource types
+/// (<see cref="ReceiptText.PathTemplate"/>), without identifiers, addresses, file names or function arguments, and a
+/// reason is fixed text.</item>
 /// </list>
-/// <para>Thread safety: calls may run concurrently; receipts and consumed claims are guarded by a lock. The claim
+/// <para>Thread safety: calls may run concurrently (the engine may run read calls in parallel); receipts and consumed
+/// claims are guarded by a lock and the budget is charged atomically, so every call leaves exactly one receipt and the
+/// budget is never exceeded. Receipts are stored, and the recorder is called, in the order calls finish; the recorder
+/// is called outside the lock, possibly from several threads at once, and so is the token provider. The claim
 /// journal (one SQLite connection, whose transactions nest by connection state) is only ever used by one call at a
 /// time: every <c>Load</c>, <c>MarkDispatched</c> and <c>Settle</c> runs under the guard's journal lock, so an
 /// overlapping dispatch can never become part of another call's transaction (and be rolled back with it). The lock
@@ -49,6 +54,7 @@ public sealed class WorkIQGuard
     private readonly object _journalGate = new();
     private readonly HashSet<string> _consumed = new(StringComparer.Ordinal);
     private readonly List<GuardReceipt> _receipts = [];
+    private readonly IReadOnlySet<string>? _fileHosts;
 
     /// <param name="binding">The instance binding recorded at hire.</param>
     /// <param name="tokens">The turn's tokens; the guard picks the subject.</param>
@@ -104,6 +110,40 @@ public sealed class WorkIQGuard
 
     /// <summary>The message a third-party run may open.</summary>
     public string? TriggerMessageId { get; }
+
+    /// <summary>
+    /// The exact hosts an <c>ask</c> document link (<c>fileUrls</c>) may name, for example the tenant's
+    /// <c>contoso.sharepoint.com</c> and <c>contoso-my.sharepoint.com</c>. Null (the default) accepts any single
+    /// tenant label under <see cref="GuardPolicy.FileHostSuffixes"/>; set it to pin the links to this organisation's
+    /// own hosts (recommended: another tenant's SharePoint is also a <c>sharepoint.com</c> host), or for a cloud whose
+    /// file hosts have another suffix. An empty set accepts no links. No Python equivalent.
+    /// </summary>
+    /// <exception cref="GuardConfigException">An entry is not a plain DNS host name.</exception>
+    public IReadOnlySet<string>? FileHosts
+    {
+        get => _fileHosts;
+        init
+        {
+            if (value is null)
+            {
+                _fileHosts = null;
+                return;
+            }
+
+            var hosts = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var host in value)
+            {
+                if (host is null || !IsHostName(host))
+                {
+                    throw new GuardConfigException("file hosts must be plain DNS host names");
+                }
+
+                hosts.Add(host.ToLowerInvariant());
+            }
+
+            _fileHosts = hosts;
+        }
+    }
 
     /// <summary>A snapshot of every receipt so far, in order.</summary>
     public IReadOnlyList<GuardReceipt> Receipts
@@ -194,7 +234,7 @@ public sealed class WorkIQGuard
         catch (Exception exc) // nothing was sent, so a claim settles as a no-effect failure
         {
             Settle(receipt, claim, "failed", null);
-            var detail = exc is TokenUnavailableException ? exc.Message : "token provider error";
+            var detail = exc is TokenUnavailableException ? ReceiptText.Detail(exc.Message) : "token provider error";
             return Finish(receipt, GuardStatuses.Blocked, "token unavailable for " + receipt.ReadAs + ": " + detail);
         }
 
@@ -229,6 +269,11 @@ public sealed class WorkIQGuard
         {
             Settle(receipt, claim, "outcome_unknown", null);
             return Finish(receipt, GuardStatuses.Unknown, "no response; effect unknown, not retried");
+        }
+        catch (TransportResponseTooLargeException) when (!write)
+        {
+            // No Python equivalent (Python buffered any answer). The read was answered; asking for less can succeed.
+            return Finish(receipt, GuardStatuses.Error, ResponseTooLarge);
         }
         catch (TransportException exc)
         {
@@ -313,7 +358,7 @@ public sealed class WorkIQGuard
         var unknown = args.Select(pair => pair.Key).Where(key => !allowed.Contains(key)).Order(PyRepr.StringComparer).ToList();
         if (unknown.Count > 0)
         {
-            throw new RefusedException("unexpected arguments: " + string.Join(", ", unknown));
+            throw new RefusedException("unexpected arguments: " + ReceiptText.ArgumentNames(unknown));
         }
 
         if (mode == RunModes.ThirdParty && intent == Subjects.Principal)
@@ -328,7 +373,7 @@ public sealed class WorkIQGuard
             throw new RefusedException("execution claims apply only to write tools");
         }
 
-        var paths = Validate(tool, args, intent, write);
+        var paths = Validate(tool, args, intent, write, fileHosts: _fileHosts);
         if (mode == RunModes.ThirdParty && write)
         {
             throw new RefusedException("a run triggered by someone other than the principal cannot write");
@@ -343,7 +388,7 @@ public sealed class WorkIQGuard
         if (intent == Subjects.Principal && PrincipalAccess == PrincipalAccessModes.Delegation)
         {
             sendArgs = Delegated(tool, args);
-            paths = Validate(tool, sendArgs, Subjects.Principal, write, Binding.PrincipalId);
+            paths = Validate(tool, sendArgs, Subjects.Principal, write, Binding.PrincipalId, _fileHosts);
         }
 
         if (!write)
@@ -379,9 +424,13 @@ public sealed class WorkIQGuard
                 claim = Journal.Load(PyNode.Get(given, "action_id"), PyNode.Get(given, "attempt_id"));
             }
         }
-        catch (Exception exc) // ClaimException or ledger failure
+        catch (ClaimException exc) // its messages are fixed texts
         {
-            throw new RefusedException("no live execution claim: " + exc.Message);
+            throw new RefusedException("no live execution claim: " + ReceiptText.Detail(exc.Message));
+        }
+        catch (Exception) // a ledger failure: its message may quote what it was asked for
+        {
+            throw new RefusedException("no live execution claim: the approval journal could not be read");
         }
 
         lock (_gate)
@@ -404,7 +453,7 @@ public sealed class WorkIQGuard
 
         if (!PyNode.Is(claim.OnDataOf, intent))
         {
-            throw new RefusedException("approved action was for on_data_of=" + PyNode.Str(claim.OnDataOf));
+            throw new RefusedException("approved action was for on_data_of=" + ReceiptText.Subject(PyNode.AsString(claim.OnDataOf) ?? "?"));
         }
 
         var requested = new JsonObject { ["tool"] = tool, ["arguments"] = PyNode.Copy(args) };
@@ -423,6 +472,9 @@ public sealed class WorkIQGuard
 
         return new Authorisation(sendArgs, claim, paths);
     }
+
+    /// <summary>The reason when a read was answered with more than the transport will buffer.</summary>
+    public const string ResponseTooLarge = "Work IQ's answer was too large to read; ask for less (fewer paths, $top, $select)";
 
     /// <summary>Why principal Copilot search is unavailable under delegation, and what to use instead.</summary>
     public const string DelegationSearchHint =
@@ -543,11 +595,11 @@ public sealed class WorkIQGuard
         var receipt = new GuardReceipt
         {
             At = draft.At,
-            Mode = draft.Mode,
-            Tool = draft.Tool,
-            OnDataOf = draft.OnDataOf,
+            Mode = ReceiptText.Label(draft.Mode),
+            Tool = ReceiptText.Label(draft.Tool),
+            OnDataOf = ReceiptText.Subject(draft.OnDataOf),
             ReadAs = draft.ReadAs,
-            Paths = draft.Paths,
+            Paths = draft.Paths.Select(ReceiptText.PathTemplate).ToArray(),
             StatusCodes = draft.StatusCodes,
             ActionId = draft.ActionId,
             AttemptId = draft.AttemptId,

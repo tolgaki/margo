@@ -55,7 +55,7 @@ public sealed class GuardedWriteTests
 
         var first = guard.Receipts[0];
         Assert.Equal((actionId, attemptId, "succeeded", "ok"), (first.ActionId, first.AttemptId, first.Journal, first.Status));
-        Assert.Equal(["/me/messages/draft-1/send"], first.Paths);
+        Assert.Equal(["/me/messages/{id}/send"], first.Paths); // a template: no identifiers
         Assert.Equal("[202]", new JsonArray(first.StatusCodes.Select(Copy).ToArray()).ToJsonString());
         Assert.Contains(LedgerClaimJournal.DispatchedEvent, desk.Events(actionId));
     }

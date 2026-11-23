@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Text;
 using System.Text.Json.Nodes;
 using Margo.Cloud.State.Core;
 using Margo.Cloud.State.Work;
@@ -20,6 +21,15 @@ public static class GuardPolicy
 
     /// <summary><c>MAX_PATH</c>, in code points.</summary>
     public const int MaxPath = 2048;
+
+    /// <summary>The most document links one <c>ask</c> may name (no Python equivalent; Python had no limit).</summary>
+    public const int MaxFileUrls = 20;
+
+    /// <summary>The refusal for percent-encoding that could make a path segment read as another one.</summary>
+    public const string DisguisedSegment = "percent-encoding that could disguise a path segment is not allowed";
+
+    /// <summary>The refusal for an <c>ask</c> document link outside the organisation's Microsoft 365 file hosts.</summary>
+    public const string ForeignFileUrl = "fileUrls must be https links to SharePoint or OneDrive files";
 
     /// <summary><c>UNKNOWN_WRITE</c>: the reason given when a write may have taken effect.</summary>
     public const string UnknownWrite = "the write may have taken effect; outcome unknown, not retried";
@@ -96,7 +106,15 @@ public static class GuardPolicy
     /// <summary><c>PATH_KEYS</c>: the arguments that carry resource paths, in the order delegation rewrites them.</summary>
     public static IReadOnlyList<string> PathKeys { get; } = ["entityUrls", "path", "functionUrl", "parentUrl", "entityUrl", "actionUrl"];
 
+    /// <summary>
+    /// The host name suffixes of Microsoft 365 file hosts (SharePoint Online and OneDrive for work, worldwide and US
+    /// government): the default for <c>ask</c> document links is one tenant label before one of these, such as
+    /// <c>contoso.sharepoint.com</c> or <c>contoso-my.sharepoint.com</c>.
+    /// </summary>
+    public static IReadOnlyList<string> FileHostSuffixes { get; } = [".sharepoint.com", ".sharepoint.us"];
+
     private static readonly string[] EncodedSeparators = ["%2e", "%2f", "%5c", "%00"];
+    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
     private static readonly string[] CallFunctionPaths = ["functionUrl", "parentUrl"];
     private static readonly string[] SearchKeys = ["query", "filter"];
     private static readonly string[] AskStrings = ["conversationId", "timeZone"];
@@ -224,6 +242,7 @@ public static class GuardPolicy
             throw new RefusedException("encoded path separators are not allowed");
         }
 
+        CheckPercentEncoding(path);
         if (path.Any(PyRepr.IsSpace))
         {
             throw new RefusedException("whitespace is not allowed in the path");
@@ -236,10 +255,12 @@ public static class GuardPolicy
             throw new RefusedException("empty or relative path segments are not allowed");
         }
 
-        var names = segments.Select(LowerAscii).ToArray();
+        // Every list below is matched against the segment as the server will read it: decoded once. What is still
+        // encoded after that can no longer spell a listed word (see CheckPercentEncoding).
+        var names = segments.Select(segment => LowerAscii(DecodeSegment(segment))).ToArray();
         if (!Roots[intent].Contains(names[0]))
         {
-            throw new RefusedException("'/" + segments[0] + "' is not an allowed root for on_data_of=" + intent);
+            throw new RefusedException("'/" + ReceiptText.Root(segments[0]) + "' is not an allowed root for on_data_of=" + intent);
         }
 
         if (names.Any(BlockedSegments.Contains))
@@ -265,6 +286,81 @@ public static class GuardPolicy
         }
 
         return path;
+    }
+
+    /// <summary>
+    /// Refuse percent-encoding that could change which resource a segment names (no Python equivalent; Python refused
+    /// only <c>%2e</c>, <c>%2f</c>, <c>%5c</c> and <c>%00</c>, so <c>/me/%61uthentication</c> passed the blocked-segment
+    /// check). An escape must be two hex digits and must not stand for: an unreserved character (a letter, a digit,
+    /// <c>-</c>, <c>.</c>, <c>_</c>, <c>~</c>; nothing legitimate encodes those, and they are what every listed word is
+    /// made of), a separator (<c>/</c>, a backslash, <c>?</c>), a control character, or <c>%</c> itself (double
+    /// encoding). Other escapes stay usable: IDs with <c>%3D</c>, addresses with <c>%40</c>, file names with
+    /// <c>%20</c> or UTF-8 bytes (which must decode).
+    /// </summary>
+    private static void CheckPercentEncoding(string path)
+    {
+        for (var i = path.IndexOf('%', StringComparison.Ordinal); i >= 0; i = path.IndexOf('%', i + 1))
+        {
+            if (i + 2 >= path.Length || !char.IsAsciiHexDigit(path[i + 1]) || !char.IsAsciiHexDigit(path[i + 2]))
+            {
+                throw new RefusedException(DisguisedSegment);
+            }
+
+            var value = (char)Convert.ToInt32(path.Substring(i + 1, 2), 16);
+            if (char.IsAsciiLetterOrDigit(value) || value is '-' or '.' or '_' or '~' or '/' or '\\' or '?' or '%' or < ' ' or '\u007F')
+            {
+                throw new RefusedException(DisguisedSegment);
+            }
+        }
+    }
+
+    /// <summary>
+    /// One segment with its percent-escapes decoded once, as UTF-8, for comparing with the policy lists. The path
+    /// that is sent stays as given.
+    /// </summary>
+    private static string DecodeSegment(string segment)
+    {
+        if (!segment.Contains('%', StringComparison.Ordinal))
+        {
+            return segment;
+        }
+
+        var text = new StringBuilder(segment.Length);
+        var bytes = new List<byte>();
+        for (var i = 0; i < segment.Length; i++)
+        {
+            if (segment[i] == '%')
+            {
+                bytes.Add(Convert.ToByte(segment.Substring(i + 1, 2), 16)); // CheckPercentEncoding saw two hex digits
+                i += 2;
+                continue;
+            }
+
+            Flush();
+            text.Append(segment[i]);
+        }
+
+        Flush();
+        return text.ToString();
+
+        void Flush()
+        {
+            if (bytes.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                text.Append(StrictUtf8.GetString(bytes.ToArray()));
+            }
+            catch (ArgumentException)
+            {
+                throw new RefusedException(DisguisedSegment);
+            }
+
+            bytes.Clear();
+        }
     }
 
     /// <summary><c>_is_message(path, message_id)</c>: <c>/me/messages/{message_id}</c> or its attachments. Graph message IDs are case-sensitive.</summary>
@@ -303,7 +399,10 @@ public static class GuardPolicy
     }
 
     /// <summary><c>_validate(tool, args, intent, write, delegated_to=None)</c>: check one call's arguments and return the resource paths it touches.</summary>
-    internal static List<string> Validate(string tool, JsonObject args, string intent, bool write, string? delegatedTo = null)
+    /// <param name="fileHosts">The exact hosts <c>ask</c> document links may name; null for the default
+    /// (<see cref="FileHostSuffixes"/>).</param>
+    internal static List<string> Validate(string tool, JsonObject args, string intent, bool write, string? delegatedTo = null,
+                                          IReadOnlySet<string>? fileHosts = null)
     {
         foreach (var key in MustBeEmpty)
         {
@@ -335,7 +434,7 @@ public static class GuardPolicy
                 ValidateRetrieve(args);
                 return [];
             case "ask":
-                ValidateAsk(args);
+                ValidateAsk(args, fileHosts);
                 return [];
             default:
                 break;
@@ -405,7 +504,7 @@ public static class GuardPolicy
         }
     }
 
-    private static void ValidateAsk(JsonObject args)
+    private static void ValidateAsk(JsonObject args, IReadOnlySet<string>? fileHosts)
     {
         if (PyNode.AsString(PyNode.Get(args, "question")) is not { } question || PyRepr.Strip(question).Length == 0)
         {
@@ -418,6 +517,13 @@ public static class GuardPolicy
             throw new RefusedException("fileUrls must be https document URLs");
         }
 
+        // The question and these links leave for Copilot, which opens the links: a link to any other host would
+        // carry whatever the model put in it (a prompt-injected "https://attacker.example/?q=<data>") out of the tenant.
+        if (urls.Count > MaxFileUrls || !urls.All(url => IsFileUrl(PyNode.AsString(url)!, fileHosts)))
+        {
+            throw new RefusedException(ForeignFileUrl);
+        }
+
         foreach (var key in AskStrings)
         {
             if (args.TryGetPropertyValue(key, out var value) && PyNode.AsString(value) is null)
@@ -426,6 +532,52 @@ public static class GuardPolicy
             }
         }
     }
+
+    /// <summary>
+    /// Whether an <c>https://</c> link names a Microsoft 365 file host and nothing else: no user-info, no port, no
+    /// escapes or non-ASCII in the host, no control characters, whitespace or backslashes anywhere. The path, query
+    /// and fragment are otherwise free (sharing links carry <c>?web=1</c>, <c>?d=...</c>, <c>?csf=1</c>).
+    /// </summary>
+    internal static bool IsFileUrl(string url, IReadOnlySet<string>? fileHosts = null)
+    {
+        const string scheme = "https://";
+        if (!url.StartsWith(scheme, StringComparison.Ordinal) || PyRepr.Length(url) > MaxPath
+            || url.Any(ch => ch < 32 || ch == 127 || ch == '\\' || PyRepr.IsSpace(ch)))
+        {
+            return false;
+        }
+
+        var end = url.AsSpan(scheme.Length).IndexOfAny('/', '?', '#');
+        var host = end < 0 ? url[scheme.Length..] : url.Substring(scheme.Length, end);
+        if (!IsHostName(host))
+        {
+            return false;
+        }
+
+        host = host.ToLowerInvariant();
+        if (fileHosts is not null)
+        {
+            return fileHosts.Contains(host);
+        }
+
+        foreach (var suffix in FileHostSuffixes)
+        {
+            // Exactly one label before the suffix: the tenant, or the tenant's "-my" OneDrive host.
+            if (host.EndsWith(suffix, StringComparison.Ordinal) && host.Length > suffix.Length
+                && !host.AsSpan(0, host.Length - suffix.Length).Contains('.'))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>A DNS host name: ASCII letters, digits and hyphens in dot-separated labels that neither start nor end with a hyphen.</summary>
+    internal static bool IsHostName(string host) =>
+        host.Length is > 0 and <= 253
+        && host.Split('.').All(label => label.Length is > 0 and <= 63 && label[0] != '-' && label[^1] != '-'
+                                        && label.All(ch => char.IsAsciiLetterOrDigit(ch) || ch == '-'));
 
     /// <summary><c>json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)</c> (<c>_canonical</c>).</summary>
     internal static string Canonical(JsonNode? value) =>

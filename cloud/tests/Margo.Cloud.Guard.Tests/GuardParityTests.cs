@@ -78,7 +78,11 @@ public sealed partial class GuardParityTests
         var budget = c["budget"] is { } limit ? new CallBudget((int)PyJson.AsInt(limit)) : null;
         var guard = new WorkIQGuard(binding, tokens, transport, journal, budget: budget,
                                     principalAccess: PyNode.AsString(c["principal_access"]) ?? PrincipalAccessModes.Obo,
-                                    triggerMessageId: PyNode.AsString(c["trigger_message_id"]));
+                                    triggerMessageId: PyNode.AsString(c["trigger_message_id"]))
+        {
+            // The recorded document links name the fictional tenant host; the default host rule has its own tests.
+            FileHosts = new HashSet<string>(StringComparer.Ordinal) { "contoso.example.com" },
+        };
         var calls = c["calls"]!.AsArray();
         var expected = c["expect"]!["calls"]!.AsArray();
         Assert.Equal(expected.Count, calls.Count);
