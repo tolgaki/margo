@@ -101,7 +101,7 @@ public static partial class RouterCore
 
         return new RouterDecision(RouterDecisionKinds.Provision, 503, key, RetryAfter: RetryAfterSeconds,
             Message: new ProvisioningMessage(ProvisioningActions.Ensure, identity.AgentIdentityId, identity.AgentUserId,
-                entry is null ? "first-activity" : "retry-after-failure"));
+                entry is null ? ProvisioningEvents.FirstActivity : ProvisioningEvents.RetryAfterFailure));
     }
 
     /// <summary><c>/i/{key}/voice/...</c> to the instance's <c>/voice/...</c> address, or a status to return.</summary>
