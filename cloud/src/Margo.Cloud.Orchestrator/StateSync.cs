@@ -25,6 +25,13 @@ public sealed class SyncException : Exception
         : base(message, innerException)
     {
     }
+
+    /// <summary>
+    /// The lease was not taken, so nothing was read, run or changed: another writer holds the state (a turn in
+    /// another container), or storage did not answer. Set by <see cref="StateSync.RunAsync{T}"/>; the state itself is
+    /// not known to be unsafe.
+    /// </summary>
+    public bool LeaseNotAcquired { get; init; }
 }
 
 /// <summary>What <see cref="StateSync.RunAsync{T}"/> returns: <c>{"result", "restored"}</c>.</summary>
@@ -60,6 +67,13 @@ public sealed class StateSync
     /// <summary><c>MARKER</c>: the file beside the database holding the ETag the local copy came from.</summary>
     public const string Marker = ".synced-etag";
 
+    /// <summary>The file beside the database holding the content hash of the shared bundle the local copy matches
+    /// (<see cref="ContentHash"/>): a turn that leaves the same content uploads nothing.</summary>
+    public const string ContentMarker = ".synced-content";
+
+    /// <summary>The file beside the database holding the date (<c>yyyy-MM-dd</c>) of the last daily copy written from here.</summary>
+    public const string DailyMarker = ".daily-copy";
+
     private static readonly string[] Sidecars = ["-journal", "-wal", "-shm"];
 
     private static readonly uint[] CrcTable = BuildCrcTable();
@@ -84,7 +98,10 @@ public sealed class StateSync
         DailyPrefix = prefix + "daily/";
         Preferences = string.IsNullOrEmpty(preferences) ? null : preferences;
         RenewInterval = renewInterval ?? TimeSpan.FromSeconds(20);
-        MarkerPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(database))!, Marker);
+        var directory = Path.GetDirectoryName(Path.GetFullPath(database))!;
+        MarkerPath = Path.Combine(directory, Marker);
+        ContentMarkerPath = Path.Combine(directory, ContentMarker);
+        DailyMarkerPath = Path.Combine(directory, DailyMarker);
     }
 
     /// <summary>The local database.</summary>
@@ -111,6 +128,18 @@ public sealed class StateSync
     /// <summary>The ETag marker file.</summary>
     public string MarkerPath { get; }
 
+    /// <summary>The content hash marker file.</summary>
+    public string ContentMarkerPath { get; }
+
+    /// <summary>The daily copy marker file.</summary>
+    public string DailyMarkerPath { get; }
+
+    /// <summary>
+    /// Called (under the lease, before the work runs) whenever the local copy was replaced by the shared bundle or
+    /// discarded: whatever the caller remembers about the local files (schemas it initialised) no longer holds.
+    /// </summary>
+    public Action? LocalStateReplaced { get; init; }
+
     /// <summary><c>container_name(account)</c>: a per-instance, per-principal Blob container name (lowercase, 3-63 characters).</summary>
     public static string ContainerName(string account)
     {
@@ -132,22 +161,39 @@ public sealed class StateSync
     {
         ArgumentNullException.ThrowIfNull(work);
         var stamp = now ?? PyRuntime.UtcNow();
-        var lease = await Store.AcquireAsync(BundleName, cancellationToken).ConfigureAwait(false);
+        IStateLease lease;
+        try
+        {
+            lease = await Store.AcquireAsync(BundleName, cancellationToken).ConfigureAwait(false);
+        }
+        catch (SyncException exc)
+        {
+            throw new SyncException(exc.Message, exc) { LeaseNotAcquired = true };
+        }
+
         using var renewal = new CancellationTokenSource();
         var renewer = RenewAsync(lease, renewal.Token);
         var saved = false;
         try
         {
-            var (data, etag) = await lease.ReadAsync(cancellationToken).ConfigureAwait(false);
+            var known = LocalETag();
+            var (data, etag, unchanged) = await lease.ReadIfChangedAsync(string.IsNullOrEmpty(known) ? null : known, cancellationToken)
+                .ConfigureAwait(false);
             JsonObject? restored = null;
-            if (data is null || data.Length == 0)
+            if (unchanged)
+            {
+                // The store confirmed the local copy's ETag without sending the bundle again.
+            }
+            else if (data is null || data.Length == 0)
             {
                 await Task.Run(DiscardLocal, cancellationToken).ConfigureAwait(false);
+                LocalStateReplaced?.Invoke();
             }
-            else if (!string.Equals(etag, LocalETag(), StringComparison.Ordinal))
+            else if (!string.Equals(etag, known, StringComparison.Ordinal))
             {
                 restored = await Task.Run(() => Install(data), cancellationToken).ConfigureAwait(false);
                 SetLocalETag(etag);
+                LocalStateReplaced?.Invoke();
             }
 
             var result = await work(cancellationToken).ConfigureAwait(false);
@@ -158,18 +204,34 @@ public sealed class StateSync
 
             if (PyPath.Exists(Database))
             {
-                var bundle = await Task.Run(() => Pack(stamp), cancellationToken).ConfigureAwait(false);
-                var newETag = await lease.WriteAsync(bundle, cancellationToken).ConfigureAwait(false);
-                SetLocalETag(newETag);
-                saved = true;
-                try
+                // A turn that changed nothing uploads nothing: the snapshot is compared with the content the shared
+                // bundle is known to hold (installed from it, or uploaded from here, under this ETag).
+                var (database, preferences) = await Task.Run(Snapshot, cancellationToken).ConfigureAwait(false);
+                var content = ContentHash(database, preferences);
+                byte[]? bundle = null;
+                if (string.IsNullOrEmpty(LocalETag()) || !string.Equals(content, ReadMarker(ContentMarkerPath), StringComparison.Ordinal))
                 {
-                    await Store.PutAsync(DailyPrefix + stamp.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".zip", bundle,
-                                         cancellationToken).ConfigureAwait(false);
+                    bundle = await Task.Run(() => MakeBundle(database, preferences, stamp), cancellationToken).ConfigureAwait(false);
+                    var newETag = await lease.WriteAsync(bundle, cancellationToken).ConfigureAwait(false);
+                    SetLocalETag(newETag);
+                    WriteMarker(ContentMarkerPath, content);
                 }
-                catch (Exception) when (!cancellationToken.IsCancellationRequested)
+
+                saved = true;
+                var day = stamp.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                if (!string.Equals(day, ReadMarker(DailyMarkerPath), StringComparison.Ordinal))
                 {
-                    // The leased copy is saved; a missed daily copy is not data loss.
+                    // One daily copy a day from here: the first turn of the day, changed or not.
+                    try
+                    {
+                        bundle ??= await Task.Run(() => MakeBundle(database, preferences, stamp), cancellationToken).ConfigureAwait(false);
+                        await Store.PutAsync(DailyPrefix + day + ".zip", bundle, cancellationToken).ConfigureAwait(false);
+                        WriteMarker(DailyMarkerPath, day);
+                    }
+                    catch (Exception) when (!cancellationToken.IsCancellationRequested)
+                    {
+                        // The leased copy is saved; a missed daily copy is not data loss (the next turn tries again).
+                    }
                 }
             }
             else
@@ -193,9 +255,15 @@ public sealed class StateSync
                     // Cancelled, or the renewal failure already reported above.
                 }
 
-                if (!saved && PyPath.Exists(MarkerPath))
+                if (!saved)
                 {
-                    File.Delete(MarkerPath);
+                    foreach (var path in new[] { MarkerPath, ContentMarkerPath })
+                    {
+                        if (PyPath.Exists(path))
+                        {
+                            File.Delete(path);
+                        }
+                    }
                 }
             }
             finally
@@ -217,6 +285,22 @@ public sealed class StateSync
     /// <summary><c>_pack(now)</c>: a verified online-backup snapshot of the database, the preferences and the manifest, zipped.</summary>
     internal byte[] Pack(DateTimeOffset now)
     {
+        var (database, preferences) = Snapshot();
+        return MakeBundle(database, preferences, now);
+    }
+
+    /// <summary>
+    /// What identifies a bundle's content whatever its time stamp: the SHA-256 of the database snapshot and of the
+    /// preferences file (<c>-</c> for none).
+    /// </summary>
+    internal static string ContentHash(byte[] database, byte[]? preferences) =>
+        PyIds.Sha256Hex(database) + ":" + (preferences is null ? "-" : PyIds.Sha256Hex(preferences));
+
+    /// <summary>An online-backup snapshot of the database (not yet checked) and the preferences file's bytes.</summary>
+    /// <remarks>An online backup of an unchanged database is the same bytes each time (it copies the pages), so its
+    /// hash tells whether the turn changed anything; a turn that only read leaves it equal.</remarks>
+    internal (byte[] Database, byte[]? Preferences) Snapshot()
+    {
         byte[] database;
         var scratch = Directory.CreateTempSubdirectory("margo-sync-").FullName;
         try
@@ -228,8 +312,26 @@ public sealed class StateSync
                 source.BackupDatabase(target);
             }
 
-            CheckDb(snapshot, Account);
             database = File.ReadAllBytes(snapshot);
+        }
+        finally
+        {
+            Directory.Delete(scratch, recursive: true);
+        }
+
+        return (database, Preferences is not null && PyPath.IsFile(Preferences) ? File.ReadAllBytes(Preferences) : null);
+    }
+
+    /// <summary>The rest of <c>_pack(now)</c>: checks the snapshot (an intact store of this account) and zips it with
+    /// the preferences and the manifest.</summary>
+    internal byte[] MakeBundle(byte[] database, byte[]? preferences, DateTimeOffset now)
+    {
+        var scratch = Directory.CreateTempSubdirectory("margo-sync-").FullName;
+        try
+        {
+            var snapshot = Path.Combine(scratch, "snapshot.sqlite3");
+            File.WriteAllBytes(snapshot, database);
+            CheckDb(snapshot, Account);
         }
         finally
         {
@@ -248,9 +350,9 @@ public sealed class StateSync
         {
             Add(bundle, "manifest.json", PyIO.EncodeUtf8(PyJson.Dumps(manifest, sortKeys: true)));
             Add(bundle, "margo.sqlite3", database);
-            if (Preferences is not null && PyPath.IsFile(Preferences))
+            if (preferences is not null)
             {
-                Add(bundle, "preferences.md", File.ReadAllBytes(Preferences));
+                Add(bundle, "preferences.md", preferences);
             }
         }
 
@@ -342,13 +444,16 @@ public sealed class StateSync
             }
         }
 
+        // What the local copy now matches: the next turn uploads only if it leaves something else.
+        WriteMarker(ContentMarkerPath, ContentHash(database, Preferences is null ? null : preferences));
         return manifest;
     }
 
     /// <summary><c>_discard_local()</c>: removes local state the shared store does not hold, so it is never built on or uploaded again.</summary>
     internal void DiscardLocal()
     {
-        foreach (var path in new[] { Database }.Concat(Sidecars.Select(suffix => Database + suffix)).Append(Preferences).Append(MarkerPath))
+        foreach (var path in new[] { Database }.Concat(Sidecars.Select(suffix => Database + suffix)).Append(Preferences).Append(MarkerPath)
+                     .Append(ContentMarkerPath).Append(DailyMarkerPath))
         {
             if (path is not null && PyPath.Exists(path))
             {
@@ -428,6 +533,24 @@ public sealed class StateSync
     {
         File.WriteAllBytes(MarkerPath, PyIO.EncodeUtf8(etag ?? ""));
         File.SetUnixFileMode(MarkerPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+    }
+
+    private static string? ReadMarker(string path)
+    {
+        try
+        {
+            return PyPath.Exists(path) ? PyRepr.Strip(PyIO.ReadTextFile(path)) : null;
+        }
+        catch (Exception exc) when (exc is PyOSError or IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private static void WriteMarker(string path, string text)
+    {
+        File.WriteAllBytes(path, PyIO.EncodeUtf8(text));
+        File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
     }
 
     private async Task RenewAsync(IStateLease lease, CancellationToken cancellationToken)

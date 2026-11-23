@@ -195,7 +195,8 @@ internal sealed class FakeModel(params object?[] script) : IModelClient
 
     /// <summary>The <c>output</c> of the <paramref name="index"/>-th function call output in a follow-up request, parsed.</summary>
     public static JsonObject Output(JsonObject request, int index = 0) =>
-        (JsonObject)PyJson.Loads(PyNode.AsString(request["input"]![index]!["output"])!)!;
+        (JsonObject)PyJson.Loads(PyNode.AsString(((JsonArray)request["input"]!)
+            .Where(item => PyNode.Is(item!["type"], "function_call_output")).ElementAt(index)!["output"])!)!;
 }
 
 /// <summary><c>DirectoryTransport</c>: answers Margo's <c>/me/manager</c> lookup like Work IQ; records every call.</summary>

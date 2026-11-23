@@ -38,6 +38,19 @@ public interface IStateLease : IAsyncDisposable
     /// <exception cref="SyncException">The blob could not be read.</exception>
     Task<(byte[]? Data, string? ETag)> ReadAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// <see cref="ReadAsync"/> for a caller that already holds the content of <paramref name="knownETag"/>: a store
+    /// that can ask conditionally (Azure: <c>If-None-Match</c>) answers <c>(null, knownETag, true)</c> without
+    /// downloading when the blob still has that ETag. The default reads the blob and reports it as changed; the caller
+    /// compares the ETag itself.
+    /// </summary>
+    /// <exception cref="SyncException">The blob could not be read.</exception>
+    async Task<(byte[]? Data, string? ETag, bool Unchanged)> ReadIfChangedAsync(string? knownETag, CancellationToken cancellationToken = default)
+    {
+        var (data, etag) = await ReadAsync(cancellationToken).ConfigureAwait(false);
+        return (data, etag, false);
+    }
+
     /// <summary><c>write(data)</c>: replaces the blob under this lease and returns its new ETag.</summary>
     /// <exception cref="SyncException">The blob could not be written (the lease may have been lost).</exception>
     Task<string?> WriteAsync(byte[] data, CancellationToken cancellationToken = default);
@@ -56,6 +69,8 @@ public sealed class InMemoryLeaseStore : ILeaseStore
     private readonly Dictionary<string, (byte[] Data, string ETag)> _blobs = new(StringComparer.Ordinal);
     private readonly Dictionary<string, SemaphoreSlim> _locks = new(StringComparer.Ordinal);
     private readonly List<string> _puts = [];
+    private int _writes;
+    private int _downloads;
     private readonly Dictionary<string, byte[]> _copies = new(StringComparer.Ordinal);
     private readonly object _gate = new();
     private int _counter;
@@ -83,6 +98,12 @@ public sealed class InMemoryLeaseStore : ILeaseStore
             }
         }
     }
+
+    /// <summary>How many times a leased blob was written (<see cref="IStateLease.WriteAsync"/>).</summary>
+    public int Writes => Volatile.Read(ref _writes);
+
+    /// <summary>How many times a leased blob's content was handed out (a conditional read of an unchanged blob is not one).</summary>
+    public int Downloads => Volatile.Read(ref _downloads);
 
     /// <summary>A leased blob's content and ETag, or null.</summary>
     public (byte[] Data, string ETag)? Get(string name)
@@ -163,7 +184,23 @@ public sealed class InMemoryLeaseStore : ILeaseStore
             cancellationToken.ThrowIfCancellationRequested();
             lock (store._gate)
             {
+                Interlocked.Increment(ref store._downloads);
                 return Task.FromResult<(byte[]?, string?)>(store._blobs.TryGetValue(name, out var blob) ? (blob.Data.ToArray(), blob.ETag) : (null, null));
+            }
+        }
+
+        public Task<(byte[]? Data, string? ETag, bool Unchanged)> ReadIfChangedAsync(string? knownETag, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (store._gate)
+            {
+                if (!string.IsNullOrEmpty(knownETag) && store._blobs.TryGetValue(name, out var known) && known.ETag == knownETag)
+                {
+                    return Task.FromResult<(byte[]?, string?, bool)>((null, knownETag, true));
+                }
+
+                Interlocked.Increment(ref store._downloads);
+                return Task.FromResult<(byte[]?, string?, bool)>(store._blobs.TryGetValue(name, out var blob) ? (blob.Data.ToArray(), blob.ETag, false) : (null, null, false));
             }
         }
 
@@ -174,6 +211,7 @@ public sealed class InMemoryLeaseStore : ILeaseStore
             lock (store._gate)
             {
                 store._counter++;
+                Interlocked.Increment(ref store._writes);
                 var etag = "etag-" + store._counter.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 store._blobs[name] = (data.ToArray(), etag);
                 return Task.FromResult<string?>(etag);

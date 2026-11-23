@@ -30,7 +30,7 @@ public sealed class OrchestratorTests
         _transport = transport ?? new DirectoryTransport();
         _logger = new CapturingLogger();
         var engine = new Margo.Cloud.Engine.Engine(_model, "fictional-model", Fixtures.Root, maxRounds: maxRounds);
-        options ??= new OrchestratorOptions();
+        options ??= new OrchestratorOptions { IntakeRetryDelays = [] };
         options = options with
         {
             StateCliCommand = options.StateCliCommand ?? StateCli.Command,
@@ -409,14 +409,16 @@ public sealed class OrchestratorTests
     }
 
     [Fact]
-    public async Task Unsafe_state_is_reported_to_the_manager_only()
+    public async Task A_lease_that_cannot_be_taken_is_busy_not_unsafe_and_told_to_the_manager_only()
     {
+        // Python reported every SyncError as STATE_UNSAFE; a lease that was never taken read nothing, so the port
+        // says so (PORTING.md, deviation 14). State that is really unsafe is covered in OrchestratorHardeningTests.
         using var state = new TempState();
         var engine = new Margo.Cloud.Engine.Engine(new FakeModel(FakeModel.Final("never")), "fictional-model", Fixtures.Root);
         var orchestrator = new Orchestrator(engine, new DirectoryTransport(), state.Path, _ => new UnavailableStore(),
-                                            new OrchestratorOptions { StateCliCommand = StateCli.Command });
-        Assert.Equal(new TurnReply(Orchestrator.StateUnsafe, "state_unsafe"), await Handle(orchestrator, Event()));
-        Assert.Equal(new TurnReply(null, "state_unsafe"), await Handle(orchestrator, Event(sender: "colleague-1", conversation: "conv-rafa")));
+                                            new OrchestratorOptions { StateCliCommand = StateCli.Command, IntakeRetryDelays = [] });
+        Assert.Equal(new TurnReply(Orchestrator.StateBusy, "busy"), await Handle(orchestrator, Event()));
+        Assert.Equal(new TurnReply(null, "busy"), await Handle(orchestrator, Event(sender: "colleague-1", conversation: "conv-rafa")));
     }
 
     [Fact]
@@ -470,8 +472,12 @@ public sealed class OrchestratorTests
         await Handle(orchestrator, Event(activity: "a-3", conversation: "conv-other"));
         var empty = await Handle(orchestrator, Event(activity: "a-4"));
         await Handle(orchestrator, Event(activity: "a-5"));
-        var previous = _model.Requests.Select(request => PyNode.AsString(request["previous_response_id"])).ToList();
-        Assert.Equal([null, "r-1", null, "r-2", null], previous);
+        // The conversation is carried in each request (PORTING.md, deviation 13), per conversation: the manager's
+        // messages so far, never a response id. (Python dropped the conversation after a response without an id;
+        // here nothing depends on the id.)
+        Assert.All(_model.Requests, request => Assert.False(request.ContainsKey("previous_response_id")));
+        var turns = _model.Requests.Select(request => ((JsonArray)request["input"]!).Count(item => PyNode.Is(item!["role"], "user"))).ToList();
+        Assert.Equal([1, 2, 1, 3, 4], turns);
         Assert.Equal(new TurnReply(null, "answered"), empty); // no text is no reply
     }
 
@@ -496,7 +502,8 @@ public sealed class OrchestratorTests
         Assert.Equal("- **Replies to other people:** acknowledge\n", File.ReadAllText(preferences));
         Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(preferences));
         Assert.Equal("acknowledge", ReplyPolicy.Load(File.ReadAllText(preferences)).Mode);
-        Assert.Equal(new TurnReply(ReplySetting.ChangedNote("none"), "setting_changed"), await Handle(orchestrator, Event(text: "/replies none")));
+        Assert.Equal(new TurnReply(ReplySetting.ChangedNote("none"), "setting_changed"),
+                     await Handle(orchestrator, Event(text: "/replies none", activity: "a-2")));
         Assert.Equal("- **Replies to other people:** none\n", File.ReadAllText(preferences));
         // A colleague's message never changes the setting.
         await Handle(orchestrator, Event(sender: "colleague-1", text: "/replies acknowledge", conversation: "conv-rafa"));

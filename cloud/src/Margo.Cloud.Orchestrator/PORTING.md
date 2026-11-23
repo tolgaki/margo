@@ -27,12 +27,12 @@ the same.
 | `state_sync(binding)` | `Orchestrator.StateSyncFor(binding)` | Per-instance container with a `sha256(account)[:40]/` prefix, else `StateSync.ContainerName(account)` |
 | `_manager(event, margo_token)` | private `LookUpManagerAsync` | Bootstrap binding with manager `unbound-manager`, guard budget 1, `fetch` `/me/manager?$select=id,displayName`, `on_data_of: self`, unattended, on every turn |
 | `_run`, `_state_commands`, `_manager_turn`, `_third_party_turn` | private `RunAsync`, `NewStateCommands`, `ManagerTurnAsync`, `ThirdPartyTurn` | |
-| `_conversations` (continuity map), `_initialised` | `ConcurrentDictionary`s | Key `sha256(account + "|" + conversation_id)`; a turn without a response ID forgets the conversation |
+| `_conversations` (continuity map), `_initialised` | `ConversationStore` (internal), a `ConcurrentDictionary` | Key `sha256(account + "|" + conversation_id)`; the value is the conversation's items, not a response ID (deviation 12); `_initialised` is cleared when the local copy is replaced (deviation 15) |
 | `logger = logging.getLogger("margo.autopilot")` | `OrchestratorOptions.Logger` (`ILogger`) | Same messages: `manager lookup failed: <status or exception type>` (warning), `turn failed` (error, with the exception) |
 
 Every status of `handle` is reached by the port and by a test: `no_agent_token`, `wrong_instance`, `invalid_binding`,
 `manager_lookup_failed`, `no_manager`, `group_refused`, `state_unsafe`, `error`, `answered`, `stopped`, `voice_link`,
-`setting_changed`, `queued`.
+`setting_changed`, `queued`; and the three the port adds (deviations 13, 14 and 17): `duplicate`, `busy`, `rate_limited`.
 
 Order and rules, as in Python: Margo's token first (an exception from the getter counts as none); the instance check
 (per-instance hosting); the manager lookup through the guard with Margo's own token on every turn (a changed manager is a
@@ -41,9 +41,9 @@ mail is never a conversation turn, even from the manager; the manager outside a 
 token, state or model call; the principal token is requested only for the manager and only under `obo`; the turn runs
 under `StateSync`; for the manager the ledger is created and closed, memory and task state are initialised once per
 account (`StateCommands.InitialiseAsync`), then `/voice`, `/replies MODE` or the engine (attended, guard budget 40, state
-budget 40, office reader, the manager's preferences, the conversation's previous response ID); for anyone else the
+budget 40, office reader, the manager's preferences, the conversation carried in memory; deviation 12); for anyone else the
 message is queued as a candidate and the reply gate decides (`approve` is treated as `none`; mail always `none`). A
-`SyncException` is `state_unsafe` (notice to the manager only); any other failure is `error` (notice to the manager
+`SyncException` is `state_unsafe`, or `busy` when the lease was not taken (deviation 14; notice to the manager only); any other failure is `error` (notice to the manager
 only, logged).
 
 ### office.py
@@ -152,6 +152,59 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
 11. **Test seam.** `Orchestrator.TurnGuardObserver` (internal) sees each manager turn's guard, where the Python test
     replaced `engine.run` with a spy.
 
+12. **The conversation is carried here, in memory, and bounded (23 Nov 2026).** Python kept a response ID per
+    conversation and the service kept the conversation (see Engine's PORTING.md, deviation 13). `ConversationStore`
+    keeps each conversation's items (`EngineResult.History`, already trimmed to the engine's budget) for the next
+    turn: dropped after `OrchestratorOptions.ConversationIdle` (30 minutes) without use, at most `MaxConversations`
+    (200, least recently used first), gone when the process stops. A turn's history is committed only after
+    `StateSync` saved the turn (Python advanced the chain before the upload, so after a failed upload the model
+    "remembered" writes that had been rolled back). A failed turn keeps the previous history, so the next message
+    works; when the service refused the request itself (4xx other than 408/429) the carried conversation is dropped,
+    since it may be what was refused. The engine's `prompt_cache_key` is `sha256(account)[:32]`. One information line
+    per model turn: `turn usage input=N cached=N output=N reasoning=N rounds=N tool_calls=N requests=N
+    history_turns=N` (counts only).
+13. **Redelivered manager activities (23 Nov 2026).** A manager activity whose `ActivityId` was already taken up for
+    the account is dropped before the lease and the engine: status `duplicate`, no reply, an information line. The
+    record (`RecentActivities`) is in memory, the newest `RecentActivityLimit` (256) IDs per account; a turn that
+    fails or is cancelled releases its ID so a redelivery may run. It does not span containers or restarts. Other
+    people's messages are not checked here: the ledger already records them idempotently by ID.
+14. **One turn of an account at a time, and busy is not unsafe (23 Nov 2026).** Turns of one account wait for one
+    another on an in-process gate in front of the lease (the Azure store gives up after 120 s, which a long turn
+    exceeds). A lease that could not be taken (`SyncException.LeaseNotAcquired`, set by `StateSync` around
+    `AcquireAsync`) is status `busy` with the notice `Orchestrator.StateBusy` to the manager; Python's
+    `STATE_UNSAFE` ("I couldn't load my records safely") stays for state that was read and refused, or not saved.
+    Queuing someone else's message is tried again after a `SyncException` (`IntakeRetryDelays`, default 2 s then
+    10 s; the record is idempotent); when it is still not queued the status is `busy`/`state_unsafe` and an error line
+    says so without the message. A manager turn is never repeated here.
+15. **State is initialised again when the local copy changed (23 Nov 2026).** `StateSync.LocalStateReplaced` is
+    called when the local copy was installed from the shared bundle or discarded; `StateSyncFor` uses it to clear
+    `_initialised` for the account, so the two idempotent `init` commands run again (Python, and the port until now,
+    skipped them for the life of the process, after which memory and task commands failed until a restart).
+16. **A turn that changes nothing uploads nothing (23 Nov 2026).** After the work, the online-backup snapshot and the
+    preferences are hashed (`StateSync.ContentHash`); when the hash equals `.synced-content` (written when the bundle
+    was installed or uploaded) and the ETag marker stands, the integrity check, the zip and the upload are skipped.
+    An online backup of an unchanged database is byte-identical (tests cover both an uploader and an installer).
+    A daily copy is written from a sandbox once per UTC day (`.daily-copy`), on the day's first turn whether it
+    changed anything or not, so it holds the state at that turn, not at the day's last. `IStateLease.
+    ReadIfChangedAsync(knownETag)` lets a store skip the download when the ETag still stands (default: read, and the
+    ETag is compared here); `InMemoryLeaseStore` implements it. Markers are removed with the ETag marker on a failed
+    turn. The bundle and manifest formats are unchanged.
+17. **The office queue against floods and odd names (23 Nov 2026).** The sender's display name is cleaned before it
+    is stored or shown (`OfficeQueue.CleanSenderName`: control, format, private-use and unassigned characters and
+    line breaks become spaces, double quotes single, white space collapsed, at most 80 code points); the item title
+    is `Request to the office from "<name>" (unverified sender name)` (Python: the raw name, unquoted). With
+    `OrchestratorOptions.SenderDailyLimit` (20; the manager's own mail is exempt) a sender's messages beyond the
+    limit in one UTC day are counted on a per-sender-and-day counter source (`office-intake`/`sender-day`, one
+    indexed lookup, the revision is the count, which stops 100 past the limit) and not queued: status `rate_limited`,
+    never acknowledged. The engine's read is `OfficeQueue.PendingPage`: `requests` (no sender takes more than 3
+    places while others wait, places dealt one per sender in turn, then listed oldest first, each still carrying
+    the trust label, `more_from_sender` where collapsed), `total`, `shown`, `senders`, and `not_queued_today`.
+    `OfficeQueue.Pending(limit)` is Python's (oldest first, no counts) and `OfficeQueue(ledger)` has no limit.
+18. **Replies load nothing by themselves (23 Nov 2026).** The model's reply to the manager passes
+    `ReplyText.Neutralise` before it leaves: Markdown images become their alternative text, `<img>` its `alt`, and
+    the opening `<` of other self-loading HTML tags (`iframe`, `video`, `script`, ...) is written `&lt;`. Links are
+    kept. Fixed notices are not model text and are not touched.
+
 ## Not ported here
 
 - **The Azure Blob lease store** (`host/azure_store.py`) and the host wiring (`host/app.py`) belong to
@@ -182,6 +235,21 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
 3. **`Margo.Cloud.Voice`** can reuse `OfficeReader` and `InstanceLedger.OpenLedger` as `voice/server.py` does.
 4. **`Margo.Cloud.State.Tests`:** done on the base branch (96fb6a0, merged into the review branch): the in-suite
    parity wrapper now runs only with `MARGO_RUN_PARITY_IN_TESTS=1`, and `state_parity.py --check` is its own gate.
+
+5. **`Margo.Cloud.Host` (23 Nov 2026):** (a) wire `OrchestratorOptions` from settings where an operator may want
+   them (suggested: `MARGO_CONVERSATION_IDLE_MINUTES` = `30`, `MARGO_MAX_CONVERSATIONS` = `200`,
+   `MARGO_OFFICE_SENDER_DAILY_LIMIT` = `20`); the defaults apply until then. (b) `AzureBlobLeaseStore`'s lease can
+   implement `IStateLease.ReadIfChangedAsync` with `If-None-Match` and answer `(null, knownETag, true)` on 304, which
+   saves the bundle download on every turn; the default implementation keeps today's behaviour. (c) Statuses
+   `duplicate`, `busy` and `rate_limited` are new; `busy` or `state_unsafe` for someone else's message means it was
+   not queued, and answering the platform with a retryable status would let it be redelivered (the record is
+   idempotent). (d) `InboundEvent.ActivityId` must stay the platform's stable activity ID for Teams messages
+   (`ActivityClassifier.StableIds` does this today): the duplicate check depends on it. (e) The Host sends replies as
+   Markdown; `ReplyText.Neutralise` covers the model's reply only.
+6. **`Margo.Cloud.Voice` (23 Nov 2026):** its turns take the state lease through `StateSyncFor` but not the
+   orchestrator's per-account gate, so a voice tool call can still meet a held lease while a long chat turn runs
+   (the store's 120 s wait applies). `OfficeReader.PendingAsync` now returns the page object (the engine's
+   `DispatchAsync` passes it on).
 
 ## Tests and evidence
 
@@ -218,8 +286,21 @@ Verification after the review (base branch merged): `dotnet build cloud/Margo.Cl
 `dotnet test --solution Margo.Cloud.slnx` 5266 total, 5261 passed, 0 failed, 5 skipped (Engine's four, and the
 parity wrapper, which now runs only on request); `python3 tools/state_parity.py --check` 182 of 182 scenarios passed (15 min 54 s); `python3 -m unittest discover -s tests -p 'test_*.py'` 520 OK (4 skipped); `./tools/check-clean.sh` clean.
 
+Hardening of 23 Nov 2026 (deviations 12 to 18): `OrchestratorHardeningTests` (the conversation in memory and
+`store: false`, a failed turn, a refused request, history committed after the save, the idle time and bounds, the
+usage line, redelivered activities, the per-account gate against a store that refuses a held lease, intake retries,
+`busy` against `state_unsafe`, initialisation after the local copy was discarded or reinstalled, an unchanged turn
+uploading nothing, reply sanitising with 16 texts, a flood counted not queued), six more `StateSyncTests` (no upload
+or download without a change, the daily copy once a day, the lease-not-taken flag, the replaced callback) and four more
+`OfficeTests` (names, the fair page, the daily limit). Three older tests changed on purpose:
+`Conversations_continue_until_a_turn_has_no_response_id` now checks the messages carried instead of
+`previous_response_id`; `Unsafe_state_is_reported_to_the_manager_only` became
+`A_lease_that_cannot_be_taken_is_busy_not_unsafe_and_told_to_the_manager_only`; and
+`Replies_setting_is_written_to_the_private_preferences` gives its second command its own activity ID. No recorded
+answer file changed. This project: 171 passed.
+
 Not verified: anything against real Azure Blob Storage, Work IQ, Entra or a model (contract tests with fakes, not model
-evaluations).
+evaluations). In particular the `store: false` request shape has not been sent to a live Azure OpenAI deployment.
 
 ## Review (independent reviewer, on top of the port)
 

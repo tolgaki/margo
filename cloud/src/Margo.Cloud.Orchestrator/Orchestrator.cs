@@ -77,6 +77,16 @@ public static class TurnStatuses
     /// <summary>The state could not be loaded or saved safely.</summary>
     public const string StateUnsafe = "state_unsafe";
 
+    /// <summary>The state lease could not be taken (another writer holds it, or storage did not answer); nothing was
+    /// read, run or changed.</summary>
+    public const string Busy = "busy";
+
+    /// <summary>The same activity was already taken up by a manager turn; nothing ran again.</summary>
+    public const string Duplicate = "duplicate";
+
+    /// <summary>A message from someone over the daily intake limit was counted, not queued.</summary>
+    public const string RateLimited = "rate_limited";
+
     /// <summary>The turn failed.</summary>
     public const string Error = "error";
 
@@ -124,9 +134,28 @@ public sealed record OrchestratorOptions
     /// <summary>How often the state lease is renewed during a turn; null for <see cref="StateSync"/>'s 20 seconds.</summary>
     public TimeSpan? StateRenewInterval { get; init; }
 
-    /// <summary>Warnings (manager lookup failures, by status or exception type only) and turn failures (Python's
-    /// <c>margo.autopilot</c> logger). Nothing logged holds message text or tokens.</summary>
+    /// <summary>Warnings (manager lookup failures, by status or exception type only), turn failures and one line of
+    /// token counts per model turn (Python's <c>margo.autopilot</c> logger). Nothing logged holds message text or tokens.</summary>
     public ILogger? Logger { get; init; }
+
+    /// <summary>How long a manager conversation that is not used is kept in memory.</summary>
+    public TimeSpan ConversationIdle { get; init; } = TimeSpan.FromMinutes(30);
+
+    /// <summary>The most manager conversations kept in memory (the least recently used go first).</summary>
+    public int MaxConversations { get; init; } = 200;
+
+    /// <summary>The most recently handled activity IDs remembered per account, to drop redelivered manager activities.</summary>
+    public int RecentActivityLimit { get; init; } = 256;
+
+    /// <summary>The most messages queued from one other person in one UTC day; later ones are only counted. Null for no limit.</summary>
+    public int? SenderDailyLimit { get; init; } = OfficeQueue.DefaultSenderDailyLimit;
+
+    /// <summary>The waits before another attempt to queue someone else's message after the state could not be
+    /// loaded or saved (one more attempt per entry); empty for a single attempt.</summary>
+    public IReadOnlyList<TimeSpan> IntakeRetryDelays { get; init; } = [TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10)];
+
+    /// <summary>The clock for the conversation idle time and retry waits; tests replace it.</summary>
+    public TimeProvider Clock { get; init; } = TimeProvider.System;
 }
 
 /// <summary>The one <c>(agent_identity_id, agent_user_id)</c> pair a per-instance container serves.</summary>
@@ -152,6 +181,10 @@ public sealed record AgentInstance(string AgentIdentityId, string AgentUserId);
 /// <item>Messages from anyone else, and all mail, are queued as untrusted candidate requests; any reply is decided by the
 /// manager's <c>Replies to other people</c> setting, enforced by <see cref="ReplyGate"/>.</item>
 /// </list>
+/// <para>Turns of one account run one after another in this process (a gate in front of the lease), so a second
+/// activity waits for the first instead of failing on the lease. A manager activity whose ID was already taken up is
+/// dropped (<see cref="TurnStatuses.Duplicate"/>). A manager conversation is carried in memory only
+/// (<see cref="ConversationStore"/>) and advances only after the turn's state was saved.</para>
 /// <para>The only other text that leaves is a fixed notice (no manager, lookup failed, group refused, state unsafe, turn
 /// failed). Notices name no one and carry no data, and they go only to a one-to-one Teams chat (the failure notices only
 /// to the manager).</para>
@@ -187,6 +220,11 @@ public sealed class Orchestrator
                                       + "memory. Nothing was sent. Try again shortly; if it persists, an operator should check "
                                       + "my state storage.";
 
+    /// <summary>What the manager is told when the state lease could not be taken: nothing was read, so this is not
+    /// <see cref="StateUnsafe"/>.</summary>
+    public const string StateBusy = "I'm still finishing something else, or my records were briefly out of reach, so I haven't "
+                                    + "started on this message. Nothing was read or changed. Send it again in a minute.";
+
     /// <summary><c>TURN_FAILED</c>.</summary>
     public const string TurnFailed = "Something failed on my side before I could finish, so I stopped. Nothing was sent. "
                                      + "Try again; if it keeps happening, an operator should check my logs.";
@@ -194,7 +232,9 @@ public sealed class Orchestrator
     /// <summary>The placeholder manager of the bootstrap binding used for the directory lookup.</summary>
     public const string UnboundManager = "unbound-manager";
 
-    private readonly ConcurrentDictionary<string, string> _conversations = new(StringComparer.Ordinal);
+    private readonly ConversationStore _conversations;
+    private readonly RecentActivities _recent;
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _gates = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, bool> _initialised = new(StringComparer.Ordinal);
     private readonly ILogger _logger;
 
@@ -217,6 +257,8 @@ public sealed class Orchestrator
         StoreFor = storeFor;
         Options = options ?? new OrchestratorOptions();
         _logger = Options.Logger ?? NullLogger.Instance;
+        _conversations = new ConversationStore(Options.ConversationIdle, Options.MaxConversations, Options.Clock);
+        _recent = new RecentActivities(Options.RecentActivityLimit);
     }
 
     /// <summary>The model turn loop.</summary>
@@ -239,6 +281,9 @@ public sealed class Orchestrator
 
     /// <summary>Tests only: sees each manager turn's guard before the engine runs (the Python tests spy on <c>engine.run</c>).</summary>
     internal Action<WorkIQGuard>? TurnGuardObserver { get; set; }
+
+    /// <summary>Tests only: the manager conversations kept in memory.</summary>
+    internal ConversationStore Conversations => _conversations;
 
     /// <summary>
     /// <c>handle(event, get_token)</c>: one activity. Never throws for a failed turn: the failure is the status
@@ -310,9 +355,16 @@ public sealed class Orchestrator
         {
             return await RunAsync(inbound, getToken, binding, isManager, manager.DisplayName, margoToken, cancellationToken).ConfigureAwait(false);
         }
-        catch (SyncException)
+        catch (SyncException exc)
         {
-            return new TurnReply(isManager ? StateUnsafe : null, TurnStatuses.StateUnsafe);
+            // Not taking the lease is not unsafe state: nothing was read. Either way nothing ran to completion.
+            var status = exc.LeaseNotAcquired ? TurnStatuses.Busy : TurnStatuses.StateUnsafe;
+            if (!isManager)
+            {
+                _logger.LogError("a message from someone else was not queued: {Status}", status);
+            }
+
+            return new TurnReply(isManager ? (exc.LeaseNotAcquired ? StateBusy : StateUnsafe) : null, status);
         }
         catch (Exception exc) when (!IsCancellation(exc, cancellationToken))
         {
@@ -333,12 +385,19 @@ public sealed class Orchestrator
         if (!string.IsNullOrEmpty(Options.StateContainer))
         {
             var prefix = PyIds.Sha256Hex(binding.Account)[..40] + "/";
-            return (new StateSync(database, StoreFor(Options.StateContainer), binding.Account, preferences, Options.StateRenewInterval, prefix),
-                    preferences);
+            return (new StateSync(database, StoreFor(Options.StateContainer), binding.Account, preferences, Options.StateRenewInterval, prefix)
+            {
+                LocalStateReplaced = Replaced,
+            }, preferences);
         }
 
-        return (new StateSync(database, StoreFor(StateSync.ContainerName(binding.Account)), binding.Account, preferences, Options.StateRenewInterval),
-                preferences);
+        return (new StateSync(database, StoreFor(StateSync.ContainerName(binding.Account)), binding.Account, preferences, Options.StateRenewInterval)
+        {
+            LocalStateReplaced = Replaced,
+        }, preferences);
+
+        // The schemas initialised in the local files are gone with them: initialise again before the next command.
+        void Replaced() => _initialised.TryRemove(binding.Account, out _);
     }
 
     /// <summary><c>_paths(account)</c>: the account's database by the store's own path rules (hashed, private, never a
@@ -369,58 +428,104 @@ public sealed class Orchestrator
     private async Task<TurnReply> RunAsync(InboundEvent inbound, Func<string, Task<string?>> getToken, InstanceBinding binding, bool isManager,
                                            string? managerName, string margoToken, CancellationToken cancellationToken)
     {
-        var (sync, preferences) = StateSyncFor(binding);
-        var tokens = new Dictionary<string, string?>(StringComparer.Ordinal) { [Subjects.Margo] = margoToken };
-        if (isManager && Options.PrincipalAccess == PrincipalAccessModes.Obo)
+        // A redelivered manager activity must not run the engine (and its state commands) a second time.
+        var claimed = isManager && !string.IsNullOrEmpty(inbound.ActivityId);
+        if (claimed && !_recent.TryClaim(binding.Account, inbound.ActivityId!))
         {
-            tokens[Subjects.Principal] = await TokenAsync(getToken, Subjects.Principal, cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("duplicate manager activity dropped");
+            return new TurnReply(null, TurnStatuses.Duplicate);
         }
 
-        async Task<TurnReply> Work(CancellationToken token)
+        try
         {
-            if (isManager)
+            var (sync, preferences) = StateSyncFor(binding);
+            var tokens = new Dictionary<string, string?>(StringComparer.Ordinal) { [Subjects.Margo] = margoToken };
+            if (isManager && Options.PrincipalAccess == PrincipalAccessModes.Obo)
             {
-                // Create the store if needed, so this turn saves (a changed setting included).
-                await Task.Run(() => binding.OpenLedger(StateRoot).Dispose(), token).ConfigureAwait(false);
-                if (!_initialised.ContainsKey(binding.Account))
-                {
-                    await NewStateCommands(binding, preferences).InitialiseAsync(token).ConfigureAwait(false);
-                    _initialised.TryAdd(binding.Account, true);
-                }
-
-                return await ManagerTurnAsync(inbound, binding, tokens, preferences, token).ConfigureAwait(false);
+                tokens[Subjects.Principal] = await TokenAsync(getToken, Subjects.Principal, cancellationToken).ConfigureAwait(false);
             }
 
-            return await Task.Run(() => ThirdPartyTurn(inbound, binding, preferences, managerName), token).ConfigureAwait(false);
-        }
+            async Task<TurnOutcome> Work(CancellationToken token)
+            {
+                if (isManager)
+                {
+                    // Create the store if needed, so this turn saves (a changed setting included).
+                    await Task.Run(() => binding.OpenLedger(StateRoot).Dispose(), token).ConfigureAwait(false);
+                    if (!_initialised.ContainsKey(binding.Account))
+                    {
+                        await NewStateCommands(binding, preferences).InitialiseAsync(token).ConfigureAwait(false);
+                        _initialised.TryAdd(binding.Account, true);
+                    }
 
-        var outcome = await sync.RunAsync(Work, cancellationToken: cancellationToken).ConfigureAwait(false);
-        return outcome.Result;
+                    return await ManagerTurnAsync(inbound, binding, tokens, preferences, token).ConfigureAwait(false);
+                }
+
+                return new TurnOutcome(await Task.Run(() => ThirdPartyTurn(inbound, binding, preferences, managerName), token).ConfigureAwait(false));
+            }
+
+            // One turn of an account at a time in this process: a second activity waits here, not on the lease.
+            var gate = _gates.GetOrAdd(binding.Account, _ => new SemaphoreSlim(1, 1));
+            for (var attempt = 0; ; attempt++)
+            {
+                await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    var outcome = await sync.RunAsync(Work, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    // Only now, with the state saved, does the conversation advance: a turn whose writes were
+                    // rolled back is not remembered.
+                    outcome.Result.Saved?.Invoke();
+                    return outcome.Result.Reply;
+                }
+                catch (SyncException) when (!isManager && attempt < Options.IntakeRetryDelays.Count)
+                {
+                    // Someone else's message is queued idempotently (by its ID), so trying again is safe; a
+                    // manager turn is not repeated here. The wait below is outside the gate.
+                }
+                finally
+                {
+                    gate.Release();
+                }
+
+                await Task.Delay(Options.IntakeRetryDelays[attempt], Options.Clock, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception)
+        {
+            if (claimed)
+            {
+                _recent.Release(binding.Account, inbound.ActivityId!); // the turn did not complete: a redelivery may run
+            }
+
+            throw;
+        }
     }
+
+    /// <summary>A turn's reply, and what to do once the turn's state was saved.</summary>
+    private sealed record TurnOutcome(TurnReply Reply, Action? Saved = null);
 
     /// <summary><c>_state_commands(binding, preferences, budget)</c>: the skill scripts, run for this instance's account
     /// only, inside its state lease.</summary>
     private StateCommands NewStateCommands(InstanceBinding binding, string preferences, CallBudget? budget = null) =>
         new(binding.Account, StateRoot, preferences, budget, Options.StateRecorder, cliCommand: Options.StateCliCommand);
 
-    private async Task<TurnReply> ManagerTurnAsync(InboundEvent inbound, InstanceBinding binding, IReadOnlyDictionary<string, string?> tokens,
-                                                   string preferences, CancellationToken cancellationToken)
+    private async Task<TurnOutcome> ManagerTurnAsync(InboundEvent inbound, InstanceBinding binding, IReadOnlyDictionary<string, string?> tokens,
+                                                     string preferences, CancellationToken cancellationToken)
     {
         if (ManagerCommands.IsVoice(inbound.Text))
         {
             if (string.IsNullOrEmpty(Options.VoiceUrl))
             {
-                return new TurnReply(VoiceUnavailable, TurnStatuses.VoiceLink);
+                return new TurnOutcome(new TurnReply(VoiceUnavailable, TurnStatuses.VoiceLink));
             }
 
             var url = Options.VoiceUrl.Replace("{instance}", Instances.InstanceKey(binding.AgentIdentityId, binding.AgentUserId), StringComparison.Ordinal);
-            return new TurnReply("Talk to me here: " + url, TurnStatuses.VoiceLink);
+            return new TurnOutcome(new TurnReply("Talk to me here: " + url, TurnStatuses.VoiceLink));
         }
 
         if (ManagerCommands.ReplyMode(inbound.Text) is { } mode)
         {
             await Task.Run(() => ReplySetting.SetReplyMode(preferences, mode), cancellationToken).ConfigureAwait(false);
-            return new TurnReply(ReplySetting.ChangedNote(mode), TurnStatuses.SettingChanged);
+            return new TurnOutcome(new TurnReply(ReplySetting.ChangedNote(mode), TurnStatuses.SettingChanged));
         }
 
         var guard = new WorkIQGuard(binding, new TurnTokens(tokens), Transport, recorder: Options.GuardRecorder,
@@ -433,21 +538,38 @@ public sealed class Orchestrator
 
         var key = PyIds.Sha256Hex(binding.Account + "|" + inbound.ConversationId);
         TurnGuardObserver?.Invoke(guard);
-        var office = new OfficeReader(() => binding.OpenLedger(StateRoot));
+        var office = new OfficeReader(() => binding.OpenLedger(StateRoot), senderDailyLimit: Options.SenderDailyLimit);
         var state = NewStateCommands(binding, preferences, new CallBudget(StateCallBudget));
-        _conversations.TryGetValue(key, out var previous);
-        var result = await Engine.RunAsync(inbound.Text ?? "", RunModes.Attended, guard, office, state, previous,
-                                           preferencesPath: preferences, cancellationToken: cancellationToken).ConfigureAwait(false);
-        if (!string.IsNullOrEmpty(result.ResponseId))
+        var history = _conversations.Get(key);
+        EngineResult result;
+        try
         {
-            _conversations[key] = result.ResponseId;
+            // The cache key is a hash of the account: opaque, and the same for every turn of this instance and manager.
+            result = await Engine.RunAsync(inbound.Text ?? "", RunModes.Attended, guard, office, state, history,
+                                           preferencesPath: preferences, cacheKey: PyIds.Sha256Hex(binding.Account)[..32],
+                                           cancellationToken: cancellationToken).ConfigureAwait(false);
         }
-        else
+        catch (ModelApiException exc) when (history is not null && (int?)exc.StatusCode is >= 400 and < 500 and not 408 and not 429)
         {
-            _conversations.TryRemove(key, out _);
+            // The service refused the request itself. The conversation carried may be what it refused, so it is
+            // dropped: the next message starts a new one instead of failing the same way. Any other failure keeps it.
+            _conversations.Remove(key);
+            throw;
         }
 
-        return new TurnReply(string.IsNullOrEmpty(result.Text) ? null : result.Text, result.Stopped ? TurnStatuses.Stopped : TurnStatuses.Answered);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            // Counts only: no text, names or IDs.
+            var usage = result.Usage;
+            _logger.LogInformation("turn usage input={Input} cached={Cached} output={Output} reasoning={Reasoning} rounds={Rounds} "
+                                   + "tool_calls={ToolCalls} requests={Requests} history_turns={Turns}",
+                                   usage.InputTokens, usage.CachedInputTokens, usage.OutputTokens, usage.ReasoningTokens, result.Rounds,
+                                   usage.ToolCalls, usage.Requests, ConversationHistory.Turns(result.History));
+        }
+
+        var text = string.IsNullOrEmpty(result.Text) ? null : ReplyText.Neutralise(result.Text);
+        return new TurnOutcome(new TurnReply(text, result.Stopped || result.Incomplete ? TurnStatuses.Stopped : TurnStatuses.Answered),
+                               () => _conversations.Set(key, result.History));
     }
 
     /// <summary><c>_third_party_turn</c>: runs on a worker thread; the ledger is opened, used and disposed there, and
@@ -464,11 +586,16 @@ public sealed class Orchestrator
         bool? first;
         using (var ledger = binding.OpenLedger(StateRoot))
         {
-            var office = new OfficeQueue(ledger);
+            // The manager's own mail is queued too, without the limit that guards against other people's floods.
+            var office = new OfficeQueue(ledger, binding.IsPrincipal(inbound.SenderId) ? null : Options.SenderDailyLimit);
             // Only an acknowledgement depends on earlier messages; otherwise skip the lookup.
             first = mode == ReplyModes.Acknowledge ? !office.SeenBefore(inbound.SenderId, inbound.ConversationId) : null;
-            office.Record(string.IsNullOrEmpty(inbound.Channel) ? "teams" : inbound.Channel, inbound.ActivityId, inbound.SenderId,
-                          inbound.SenderName, inbound.Text, inbound.ConversationId);
+            var queued = office.Record(string.IsNullOrEmpty(inbound.Channel) ? "teams" : inbound.Channel, inbound.ActivityId, inbound.SenderId,
+                                       inbound.SenderName, inbound.Text, inbound.ConversationId);
+            if (queued is null)
+            {
+                return new TurnReply(null, TurnStatuses.RateLimited); // counted, not queued, and never acknowledged
+            }
         }
 
         var decision = new ReplyGate(binding, mode).Decide(inbound.SenderId, inbound.ConversationId, null, managerName,

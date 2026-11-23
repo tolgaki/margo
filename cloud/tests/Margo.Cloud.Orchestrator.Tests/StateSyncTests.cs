@@ -409,6 +409,164 @@ public sealed class StateSyncTests
         Assert.Equal(2, store.Released);
     }
 
+    // -- beyond statesync.py: what a turn costs when nothing changed (PORTING.md, deviation 16) -----------
+
+    [Fact]
+    public async Task A_turn_that_changes_nothing_uploads_nothing()
+    {
+        using var state = new TempState();
+        var (dbA, syncA) = Session(state, "sandbox-a");
+        var preferences = state.Combine("sandbox-a", "preferences.md");
+        await Turn(syncA, () =>
+        {
+            MakeDb(dbA, Fixtures.Binding.Account);
+            AddNote(dbA, "saved");
+        });
+        Assert.Equal(1, _store.Writes);
+        var etag = _store.Get(StateSync.Bundle)!.Value.ETag;
+
+        await Turn(syncA, () => { });
+        await Turn(syncA, () => Assert.Equal(["saved"], Notes(dbA))); // a read is not a change
+        Assert.Equal(1, _store.Writes);
+        Assert.Equal(etag, _store.Get(StateSync.Bundle)!.Value.ETag);
+        Assert.Equal(etag, File.ReadAllText(syncA.MarkerPath));
+
+        await Turn(syncA, () => AddNote(dbA, "changed"));
+        Assert.Equal(2, _store.Writes);
+        await Turn(syncA, () => File.WriteAllText(preferences, "- **Replies to other people:** acknowledge\n")); // preferences are content too
+        Assert.Equal(3, _store.Writes);
+        await Turn(syncA, () => File.Delete(preferences));
+        Assert.Equal(4, _store.Writes);
+        await Turn(syncA, () => { });
+        Assert.Equal(4, _store.Writes);
+
+        // What is shared is the last change, and another sandbox that installs it also uploads nothing until it changes something.
+        var (dbB, syncB) = Session(state, "sandbox-b");
+        Assert.NotNull((await Turn(syncB, () => { })).Restored);
+        await Turn(syncB, () => Assert.Equal(["saved", "changed"], Notes(dbB)));
+        Assert.Equal(4, _store.Writes);
+        await Turn(syncB, () => AddNote(dbB, "from b"));
+        Assert.Equal(5, _store.Writes);
+        // A's copy is stale now: it installs B's, and its own unchanged turn still uploads nothing.
+        Assert.NotNull((await Turn(syncA, () => { })).Restored);
+        Assert.Equal(5, _store.Writes);
+        Assert.Equal(["saved", "changed", "from b"], Notes(dbA));
+    }
+
+    [Fact]
+    public async Task An_unsaved_turn_is_never_mistaken_for_an_unchanged_one()
+    {
+        using var state = new TempState();
+        var (dbA, syncA) = Session(state, "sandbox-a");
+        await Turn(syncA, () => MakeDb(dbA, Fixtures.Binding.Account));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Turn(syncA, () =>
+        {
+            AddNote(dbA, "never saved");
+            throw new InvalidOperationException("model failed");
+        }));
+        Assert.False(File.Exists(syncA.ContentMarkerPath));
+        // The next turn installs the shared copy again; its change is uploaded, the unsaved note is gone.
+        Assert.NotNull((await Turn(syncA, () => AddNote(dbA, "saved"))).Restored);
+        Assert.Equal(2, _store.Writes);
+        Assert.Equal(["saved"], Notes(dbA));
+        // A local copy with no ETag marker (never confirmed as shared) is always uploaded, even if its content marker matches.
+        File.Delete(syncA.MarkerPath);
+        _store.Remove(StateSync.Bundle);
+        await Turn(syncA, () => MakeDb(dbA, Fixtures.Binding.Account));
+        Assert.Equal(3, _store.Writes);
+    }
+
+    [Fact]
+    public async Task The_daily_copy_is_written_once_a_day()
+    {
+        using var state = new TempState();
+        var (dbA, syncA) = Session(state, "sandbox-a");
+        await Turn(syncA, () => MakeDb(dbA, Fixtures.Binding.Account));
+        await Turn(syncA, () => AddNote(dbA, "later the same day"));
+        await Turn(syncA, () => { });
+        Assert.Equal(["daily/2026-10-17.zip"], _store.Puts);
+
+        // The next day's first turn writes that day's copy, changed or not; it holds the state as it then stands.
+        await syncA.RunAsync(_ => Task.FromResult(true), Now.AddDays(1), Cancel);
+        await syncA.RunAsync(_ => Task.FromResult(true), Now.AddDays(1).AddHours(5), Cancel);
+        Assert.Equal(["daily/2026-10-17.zip", "daily/2026-10-18.zip"], _store.Puts);
+        Assert.Equal(2, _store.Writes);
+        using var copy = new ZipArchive(new MemoryStream(_store.GetCopy("daily/2026-10-18.zip")!), ZipArchiveMode.Read);
+        Assert.Equal(PyIds.Sha256Hex(ReadEntry(copy, "margo.sqlite3")),
+                     PyNode.AsString(PyJson.LoadsBytes(ReadEntry(copy, "manifest.json"))!["database_sha256"]));
+
+        // A copy that could not be written is tried again on the next turn.
+        var flaky = new FlakyStore(_store, failRenew: false, failPut: true);
+        var (dbC, syncC) = Session(state, "sandbox-c", store: flaky);
+        await Turn(syncC, () => Assert.True(File.Exists(dbC)));
+        Assert.False(File.Exists(syncC.DailyMarkerPath));
+    }
+
+    [Fact]
+    public async Task The_bundle_is_not_downloaded_again_while_the_local_copy_is_current()
+    {
+        using var state = new TempState();
+        var (dbA, syncA) = Session(state, "sandbox-a");
+        await Turn(syncA, () => MakeDb(dbA, Fixtures.Binding.Account));
+        var downloads = _store.Downloads;
+        await Turn(syncA, () => { });
+        await Turn(syncA, () => AddNote(dbA, "a note"));
+        await Turn(syncA, () => { });
+        Assert.Equal(downloads, _store.Downloads); // the store confirmed the ETag each time, without sending the bundle
+        var (_, syncB) = Session(state, "sandbox-b");
+        await Turn(syncB, () => { });
+        Assert.Equal(downloads + 1, _store.Downloads);
+
+        // A store that cannot ask conditionally (the interface's default) still works: it reads, and the ETag is compared here.
+        var plain = new FlakyStore(_store, failRenew: false);
+        var (dbC, syncC) = Session(state, "sandbox-c", store: plain);
+        Assert.NotNull((await Turn(syncC, () => { })).Restored);
+        Assert.Null((await Turn(syncC, () => Assert.Equal(["a note"], Notes(dbC)))).Restored);
+    }
+
+    [Fact]
+    public async Task A_lease_that_was_not_taken_is_told_apart_from_state_that_failed()
+    {
+        using var state = new TempState();
+        var (dbA, syncA) = Session(state, "sandbox-a", store: new NoLeaseStore());
+        var busy = await Assert.ThrowsAsync<SyncException>(() => Turn(syncA, () => MakeDb(dbA, Fixtures.Binding.Account)));
+        Assert.True(busy.LeaseNotAcquired);
+        Assert.Equal("instance state is busy or unavailable", busy.Message);
+        Assert.False(File.Exists(dbA)); // the work never ran
+
+        var (_, syncB) = Session(state, "sandbox-b");
+        _store.Set(StateSync.Bundle, [1, 2, 3], "etag-tampered");
+        Assert.False((await Assert.ThrowsAsync<SyncException>(() => Turn(syncB, () => { }))).LeaseNotAcquired);
+    }
+
+    [Fact]
+    public async Task The_caller_is_told_when_the_local_copy_was_replaced_or_discarded()
+    {
+        using var state = new TempState();
+        var replaced = 0;
+        var database = state.Combine("sandbox-a", "state", "margo.sqlite3");
+        var sync = new StateSync(database, _store, Fixtures.Binding.Account) { LocalStateReplaced = () => replaced++ };
+        await Turn(sync, () => MakeDb(database, Fixtures.Binding.Account)); // no shared bundle yet: nothing local to keep
+        Assert.Equal(1, replaced);
+        await Turn(sync, () => { });
+        Assert.Equal(1, replaced); // the local copy stands
+        var (dbB, syncB) = Session(state, "sandbox-b");
+        await Turn(syncB, () => AddNote(dbB, "from b"));
+        await Turn(sync, () => { });
+        Assert.Equal(2, replaced); // installed from the shared bundle
+        _store.Remove(StateSync.Bundle);
+        await Turn(sync, () => { });
+        Assert.Equal(3, replaced); // discarded
+    }
+
+    private sealed class NoLeaseStore : ILeaseStore
+    {
+        public Task<IStateLease> AcquireAsync(string name, CancellationToken cancellationToken = default) =>
+            Task.FromException<IStateLease>(new SyncException("instance state is busy or unavailable"));
+
+        public Task PutAsync(string name, byte[] data, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
     private static byte[] ReadEntry(ZipArchive bundle, string name)
     {
         using var stream = bundle.GetEntry(name)!.Open();
