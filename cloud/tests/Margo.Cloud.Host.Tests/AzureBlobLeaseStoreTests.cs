@@ -41,7 +41,8 @@ public sealed class AzureBlobLeaseStoreTests : IDisposable
         }
 
         Assert.Equal(1, _blobs.Calls.Count(call => call == "create"));
-        Assert.Equal(["create", "upload", "acquire", "release", "upload", "acquire", "release"], _blobs.Calls);
+        // Deviation from Python, which created the blob before every acquire: only a missing blob (404) is created.
+        Assert.Equal(["acquire", "create", "upload", "acquire", "release", "acquire", "release"], _blobs.Calls);
     }
 
     [Fact]
@@ -52,14 +53,14 @@ public sealed class AzureBlobLeaseStoreTests : IDisposable
         {
         }
 
-        // While another sandbox holds the lease, the create-if-missing answers 412 rather than 409.
-        _blobs.Fail("upload", HttpStatusCode.PreconditionFailed, "LeaseIdMissing");
+        // The blob exists: it is leased without a create-if-missing first (which answered 409, or 412 while another
+        // sandbox held the lease).
         await using (var lease = await store.AcquireAsync("state.zip", Token))
         {
             Assert.NotNull(_blobs.LeaseOf("margo-a", "state.zip"));
         }
 
-        Assert.Equal(["upload", "acquire", "release"], _blobs.Calls.TakeLast(3));
+        Assert.Equal(["release", "acquire", "release"], _blobs.Calls.TakeLast(3));
         Assert.Null(_blobs.LeaseOf("margo-a", "state.zip"));
     }
 
@@ -97,7 +98,7 @@ public sealed class AzureBlobLeaseStoreTests : IDisposable
         _blobs.Fail("upload", HttpStatusCode.NotFound, "ContainerNotFound");
         var error = await Assert.ThrowsAsync<SyncException>(() => store.AcquireAsync("state.zip", Token));
         Assert.Equal("instance state is busy or unavailable", error.Message);
-        Assert.Equal(["create", "upload", "create", "upload"], _blobs.Calls);
+        Assert.Equal(["acquire", "create", "upload", "create", "upload"], _blobs.Calls);
     }
 
     [Fact]

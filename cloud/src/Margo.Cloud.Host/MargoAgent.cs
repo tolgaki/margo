@@ -60,7 +60,7 @@ public sealed class MargoAgent : AgentApplication
 }
 
 /// <summary>The route handlers' work, shared by every <see cref="MargoAgent"/> (the SDK makes one per request).</summary>
-public sealed class MargoTurns
+public sealed class MargoTurns : IDisposable
 {
     /// <summary>The typing indicator's period (Python: <c>asyncio.sleep(4)</c>).</summary>
     public static readonly TimeSpan TypingInterval = TimeSpan.FromSeconds(4);
@@ -68,9 +68,19 @@ public sealed class MargoTurns
     private readonly Margo.Cloud.Orchestrator.Orchestrator _orchestrator;
     private readonly ILogger _logger;
     private readonly HashSet<string> _configuredHandlers;
+    private readonly CancellationTokenSource _drained = new();
 
-    public MargoTurns(Margo.Cloud.Orchestrator.Orchestrator orchestrator, HostSettings settings, IConfiguration configuration, ILoggerFactory loggers)
+    /// <summary>How long turns in flight may run after the host is told to stop (scale-in, a redeploy): long enough to
+    /// finish, reply and save; inside the instance's termination grace period (<c>infra/instance.bicep</c>).</summary>
+    public static readonly TimeSpan TurnDrain = TimeSpan.FromMinutes(9);
+
+    public MargoTurns(Margo.Cloud.Orchestrator.Orchestrator orchestrator, HostSettings settings, IConfiguration configuration, ILoggerFactory loggers,
+                      Microsoft.Extensions.Hosting.IHostApplicationLifetime? lifetime = null)
     {
+        // The SDK runs turns on its background service and cancels them the moment the host begins to stop. The
+        // activity was answered 202 long before, so the platform sees no request in flight and may stop the container
+        // mid-turn: with the SDK's token the turn would end with no reply and nothing saved. Turns run on this token.
+        lifetime?.ApplicationStopping.Register(() => _drained.CancelAfter(DrainPeriod));
         ArgumentNullException.ThrowIfNull(orchestrator);
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -83,8 +93,13 @@ public sealed class MargoTurns
             StringComparer.OrdinalIgnoreCase);
     }
 
+    public void Dispose() => _drained.Dispose();
+
     /// <summary>The host's settings.</summary>
     public HostSettings Settings { get; }
+
+    /// <summary>Tests only: <see cref="TurnDrain"/>.</summary>
+    internal TimeSpan DrainPeriod { get; set; } = TurnDrain;
 
     /// <summary>Tests only: called when a turn's orchestrator call has finished (or failed), with its status.</summary>
     internal Action<string, string?>? Finished { get; set; }
@@ -92,6 +107,7 @@ public sealed class MargoTurns
     /// <summary><c>on_message</c>.</summary>
     public async Task OnMessageAsync(AgentApplication app, ITurnContext context, CancellationToken cancellationToken)
     {
+        cancellationToken = _drained.Token; // not the SDK's: see the constructor
         var inbound = ActivityEvents.Message(context.Activity, out var email);
         if (inbound is null)
         {
@@ -137,6 +153,7 @@ public sealed class MargoTurns
     /// <summary><c>on_mail_notification</c>: queued as a request; never answered.</summary>
     public async Task OnMailNotificationAsync(AgentApplication app, ITurnContext context, EmailReference? mail, CancellationToken cancellationToken)
     {
+        cancellationToken = _drained.Token; // not the SDK's: see the constructor
         var inbound = ActivityEvents.MailNotification(context.Activity, mail);
         if (inbound is null)
         {

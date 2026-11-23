@@ -148,6 +148,11 @@ public static class MargoHost
             }
 
             builder.Services.AddOpenTelemetry().UseAzureMonitor(options => options.ConnectionString = settings.ApplicationInsights);
+
+            // Health probes arrive every few seconds for as long as a replica is up: tracing them is most of an idle
+            // instance's telemetry and says nothing.
+            builder.Services.Configure<OpenTelemetry.Instrumentation.AspNetCore.AspNetCoreTraceInstrumentationOptions>(options =>
+                options.Filter = context => !HostSettings.HealthPaths.Contains(context.Request.Path.Value ?? string.Empty));
             return (LogLevel.Information, "Application Insights configured (message content capture is off).", null);
         }
         catch (Exception exc) when (exc is ArgumentException or InvalidOperationException or FormatException)
@@ -197,6 +202,9 @@ public static class MargoHost
             Hosts = [.. settings.ExtraServiceHosts],
         })));
         services.TryAddSingleton<MargoTurns>();
+
+        // Stopping waits for turns in flight (MargoTurns.TurnDrain) rather than the default 30 seconds.
+        services.Configure<Microsoft.Extensions.Hosting.HostOptions>(options => options.ShutdownTimeout = MargoTurns.TurnDrain + TimeSpan.FromSeconds(30));
 
         if (settings.VoiceEnabled)
         {

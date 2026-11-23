@@ -183,7 +183,9 @@ public sealed class AzureBlobLeaseStore : ILeaseStore, IDisposable
         {
             try
             {
-                await BootstrapAsync(retry: true, cancellationToken).ConfigureAwait(false);
+                // Python created the (empty) blob before every acquire: a write that fails with 409 on every turn but
+                // the first. Acquire first; only a missing blob or container (404) needs the bootstrap.
+                var bootstrapped = false;
                 var deadline = store._time.GetTimestamp() + (long)(WaitLimit.TotalSeconds * store._time.TimestampFrequency);
                 while (true)
                 {
@@ -193,6 +195,11 @@ public sealed class AzureBlobLeaseStore : ILeaseStore, IDisposable
                         await client.AcquireAsync(LeaseDuration, cancellationToken: cancellationToken).ConfigureAwait(false);
                         _lease = client;
                         return;
+                    }
+                    catch (RequestFailedException exc) when (exc.Status == 404 && !bootstrapped)
+                    {
+                        bootstrapped = true;
+                        await BootstrapAsync(retry: true, cancellationToken).ConfigureAwait(false);
                     }
                     catch (RequestFailedException exc) when (exc.Status == 409 && store._time.GetTimestamp() < deadline)
                     {

@@ -306,6 +306,32 @@ public sealed class HostIntegrationTests
     }
 
     [Fact]
+    public async Task A_turn_in_flight_finishes_when_the_host_is_told_to_stop()
+    {
+        // Scale-in and redeploys stop the container while the turn runs in the background (the activity was answered
+        // 202 long before): the turn gets the shutdown grace period to finish, reply and save.
+        using var state = new TempState();
+        await using var host = new HostFactory(state);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        host.Model.Add((Func<CancellationToken, Task<JsonNode?>>)(async token =>
+        {
+            started.SetResult();
+            await release.Task.WaitAsync(token);
+            return FakeModel.Final("Here is your brief.");
+        }));
+        var client = host.Start();
+        await HostFactory.PostAsync(client, Activities.Message("Brief me"));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        var stopping = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Microsoft.Extensions.Hosting.IHost>(host.Services).StopAsync(TestContext.Current.CancellationToken);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+        release.SetResult();
+        Assert.Equal(("message", TurnStatuses.Answered), await host.NextTurnAsync());
+        Assert.Equal("Here is your brief.", (string?)Assert.Single(host.Connector.Messages)["text"]);
+        await stopping;
+    }
+
+    [Fact]
     public async Task Without_a_principal_handler_an_obo_turn_gets_no_manager_token()
     {
         using var state = new TempState();
