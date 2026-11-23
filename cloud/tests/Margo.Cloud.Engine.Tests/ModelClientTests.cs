@@ -99,28 +99,40 @@ public sealed class ModelClientTests
     }
 
     [Fact]
-    public async Task Errors_after_the_retries_carry_the_status_and_python_message()
+    public async Task Errors_after_the_retries_carry_the_status_and_code_but_never_the_body()
     {
-        var handler = new FakeHandler((_, _) => Json(HttpStatusCode.ServiceUnavailable, """{"error": {"code": "busy", "message": "fictional"}}"""));
+        var handler = new FakeHandler((_, _) => Json(HttpStatusCode.ServiceUnavailable,
+            """{"error": {"code": "busy", "type": "server_error", "message": "fictional: the request said 'Brief me on the Contoso offer'"}}"""));
         var delays = new List<TimeSpan>();
         using var http = new HttpClient(handler);
         using var client = new AzureOpenAIModelClient(http, Endpoint, new FakeCredential(), Options(delays));
         var error = await Assert.ThrowsAsync<ModelApiException>(() => client.CreateResponseAsync([], TestContext.Current.CancellationToken));
         Assert.Equal(HttpStatusCode.ServiceUnavailable, error.StatusCode);
-        Assert.Equal("Error code: 503 - {'error': {'code': 'busy', 'message': 'fictional'}}", error.Message);
+        // The exception is logged with its message: the status and the error's identifiers, never the body's text
+        // (an error body can quote the request).
+        Assert.Equal("Error code: 503 (code=busy, type=server_error)", error.Message);
+        Assert.DoesNotContain("Contoso", error.ToString(), StringComparison.Ordinal);
         Assert.Equal(3, handler.Requests.Count);
 
         var bad = new FakeHandler((_, _) => Json(HttpStatusCode.BadRequest, "not json"));
         using var badHttp = new HttpClient(bad);
         using var badClient = new AzureOpenAIModelClient(badHttp, Endpoint, new FakeCredential(), Options(delays));
         var rejected = await Assert.ThrowsAsync<ModelApiException>(() => badClient.CreateResponseAsync([], TestContext.Current.CancellationToken));
-        Assert.Equal("not json", rejected.Message);
+        Assert.Equal("Error code: 400", rejected.Message);
         Assert.Single(bad.Requests); // 400 is not retried
 
         var empty = new FakeHandler((_, _) => Json(HttpStatusCode.Unauthorized, ""));
         using var emptyHttp = new HttpClient(empty);
         using var emptyClient = new AzureOpenAIModelClient(emptyHttp, Endpoint, new FakeCredential(), Options(delays));
         Assert.Equal("Error code: 401", (await Assert.ThrowsAsync<ModelApiException>(() => emptyClient.CreateResponseAsync([], TestContext.Current.CancellationToken))).Message);
+
+        // A code or type that is not a plain identifier is free text, and is left out too.
+        var wordy = new FakeHandler((_, _) => Json(HttpStatusCode.BadRequest,
+            """{"error": {"code": "the message 'fictional secret' was refused", "type": "invalid_request_error", "param": "input"}, "code": 7}"""));
+        using var wordyHttp = new HttpClient(wordy);
+        using var wordyClient = new AzureOpenAIModelClient(wordyHttp, Endpoint, new FakeCredential(), Options(delays));
+        Assert.Equal("Error code: 400 (type=invalid_request_error)",
+                     (await Assert.ThrowsAsync<ModelApiException>(() => wordyClient.CreateResponseAsync([], TestContext.Current.CancellationToken))).Message);
     }
 
     [Fact]
@@ -169,7 +181,7 @@ public sealed class ModelClientTests
         using var http = new HttpClient(handler);
         using var client = new AzureOpenAIModelClient(http, Endpoint, new FakeCredential(), Options(delays));
         var error = await Assert.ThrowsAsync<ModelApiException>(() => client.CreateResponseAsync([], TestContext.Current.CancellationToken));
-        Assert.Equal("Error code: 429 - {}", error.Message);
+        Assert.Equal("Error code: 429", error.Message);
         Assert.Equal(requests, handler.Requests.Count);
         Assert.Equal(Enumerable.Repeat(TimeSpan.FromSeconds(seconds), requests - 1), delays);
     }
@@ -243,7 +255,8 @@ public sealed class ModelClientTests
         var result = await engine.RunAsync("Hi", Guard.RunModes.Attended, guard, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(("Hello from a fictional model.", "r-final"), (result.Text, result.ResponseId));
         var body = (JsonObject)PyJson.Loads(handler.Requests[0].Body)!;
-        Assert.Equal(["model", "instructions", "input", "tools"], body.Select(pair => pair.Key).ToArray());
+        Assert.Equal(["model", "instructions", "input", "tools", "store", "include", "reasoning", "max_output_tokens"], body.Select(pair => pair.Key).ToArray());
+        Assert.Contains("\"store\":false", handler.Requests[0].Body, StringComparison.Ordinal); // on the wire: nothing is kept by the service
     }
 
     [Theory]

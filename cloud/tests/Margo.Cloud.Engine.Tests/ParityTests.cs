@@ -362,8 +362,8 @@ public sealed partial class ParityTests
                 new JsonObject { ["root"] = root, ["timezone"] = "UTC", ["now"] = "2026-02-28T12:05:00-08:00" }),
             ["clip"] = new JsonArray(
                 new JsonObject { ["status"] = "ok", ["text"] = "caf\u00e9 \U0001F600 \u2028" },
-                new JsonObject { ["data"] = new string('\u00e9', EngineTools.MaxOutputChars) },
-                new JsonObject { ["data"] = new string('x', EngineTools.MaxOutputChars - 20) + string.Concat(Enumerable.Repeat("\U0001F600", 8)) },
+                new JsonObject { ["data"] = new string('\u00e9', EngineTools.PythonMaxOutputChars) },
+                new JsonObject { ["data"] = new string('x', EngineTools.PythonMaxOutputChars - 20) + string.Concat(Enumerable.Repeat("\U0001F600", 8)) },
                 new JsonArray(1.5, 1e16, true, null)),
         };
         var python = Programs.AskPython(request);
@@ -380,7 +380,11 @@ public sealed partial class ParityTests
             ["workiq"] = Dict(NotHosted.WorkIQ),
         };
         Assert.Equal(Fixtures.Dumps(python["not_hosted"]), Fixtures.Dumps(notHosted));
-        var engine = new JsonArray(EngineTools.Prefix, EngineTools.MaxOutputChars, EngineTools.Stopped, EngineTools.HostedAddendum, EngineTools.StateTool,
+        // Two recorded values differ on purpose (PORTING.md, deviations 12 and 15): the addendum no longer holds the
+        // time and names the trust marker (compared after the same edit), and the tool output limit is configurable
+        // (Python's 40000 is kept as PythonMaxOutputChars for the recorded clips below).
+        python["engine"]![3] = Fixtures.MovedTime(PyNode.AsString(python["engine"]![3])!, appendTime: false);
+        var engine = new JsonArray(EngineTools.Prefix, EngineTools.PythonMaxOutputChars, EngineTools.Stopped, EngineTools.HostedAddendum, EngineTools.StateTool,
                                    SkillLibrary.MaxFileChars, new JsonArray(SkillLibrary.PrivatePreferences.Skill, SkillLibrary.PrivatePreferences.Path),
                                    new JsonArray(SkillLibrary.LedgerOnly.Skill, SkillLibrary.LedgerOnly.Path), PyNode.StrList(PyText.Sorted(SkillLibrary.ExcludedDirs)));
         Assert.Equal(Fixtures.Dumps(python["engine"]), Fixtures.Dumps(engine));
@@ -389,11 +393,14 @@ public sealed partial class ParityTests
         {
             var spec = request["instructions"]![i]!;
             var now = DateTimeOffset.Parse(PyNode.AsString(spec["now"])!, System.Globalization.CultureInfo.InvariantCulture);
-            Assert.Equal(PyNode.AsString(instructions[i]), EngineTools.LoadInstructions(root, PyNode.AsString(spec["timezone"])!, now));
+            var moved = Fixtures.MovedTime(PyNode.AsString(instructions[i])!);
+            Assert.Equal(moved, EngineTools.LoadInstructions(root, PyNode.AsString(spec["timezone"])!, now));
+            // Everything but the last line is the same whatever the time is.
+            Assert.StartsWith(EngineTools.StableInstructions(root, PyNode.AsString(spec["timezone"])!), moved, StringComparison.Ordinal);
         }
 
         var clips = (JsonArray)python["clip"]!;
-        var mine = ((JsonArray)request["clip"]!).Select(value => EngineTools.Clip(value)).ToList();
+        var mine = ((JsonArray)request["clip"]!).Select(value => EngineTools.Clip(value, EngineTools.PythonMaxOutputChars)).ToList();
         Assert.Equal(clips.Select(clip => PyNode.AsString(clip)!).ToList(), mine);
     }
 

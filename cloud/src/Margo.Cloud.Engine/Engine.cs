@@ -7,18 +7,43 @@ namespace Margo.Cloud.Engine;
 /// <summary>The office queue as the engine sees it (Python passes an <c>OfficeReader</c> with <c>pending()</c>).</summary>
 public interface IOfficeRequests
 {
-    /// <summary><c>pending()</c>: the unreviewed messages other people sent Margo, as JSON (a list of request objects).</summary>
+    /// <summary><c>pending()</c>: the unreviewed messages other people sent Margo, as JSON: a list of request objects
+    /// (Python's shape), or an object holding that list as <c>requests</c> plus counts (<c>total</c>, <c>shown</c>, ...),
+    /// which the engine passes on beside the list.</summary>
     Task<JsonNode?> PendingAsync(CancellationToken cancellationToken = default);
 }
 
+/// <summary>Token use of one turn, summed over its model requests (the Responses API's <c>usage</c>). No content.</summary>
+/// <param name="InputTokens">Input tokens of every request of the turn.</param>
+/// <param name="CachedInputTokens">The part of them served from the provider's prompt cache.</param>
+/// <param name="OutputTokens">Output tokens, reasoning included.</param>
+/// <param name="ReasoningTokens">The reasoning part of the output tokens.</param>
+/// <param name="Requests">Model requests made.</param>
+/// <param name="ToolCalls">Function calls dispatched.</param>
+/// <param name="LastInputTokens">Input tokens of the turn's last request: the size the conversation has reached.</param>
+public sealed record EngineUsage(long InputTokens = 0, long CachedInputTokens = 0, long OutputTokens = 0, long ReasoningTokens = 0,
+                                 int Requests = 0, int ToolCalls = 0, long LastInputTokens = 0);
+
 /// <summary>What one turn returns (<c>{"text", "response_id", "rounds"}</c>, plus <c>"stopped": true</c>).</summary>
 /// <param name="Text">The model's final text, or the <see cref="EngineTools.Stopped"/> message.</param>
-/// <param name="ResponseId">The final response's ID, to continue the conversation with; null when stopped or when
-/// the response had no string ID.</param>
+/// <param name="ResponseId">The final response's ID (for the record only: responses are not stored by the service, so it
+/// cannot continue a conversation); null when stopped or when the response had no string ID.</param>
 /// <param name="Rounds">Tool rounds used (one more than the limit when stopped).</param>
 /// <param name="Stopped">The round limit was reached before the model finished.</param>
 public sealed record EngineResult(string Text, string? ResponseId, int Rounds, bool Stopped = false)
 {
+    /// <summary>
+    /// The conversation after this turn, within the engine's budget (<see cref="ConversationHistory.Trim"/>): pass it
+    /// as <c>history</c> to continue. The caller keeps it (in memory); nothing is kept by the model service.
+    /// </summary>
+    public JsonArray History { get; init; } = [];
+
+    /// <summary>Token use of the turn.</summary>
+    public EngineUsage Usage { get; init; } = new();
+
+    /// <summary>The model's last response was cut off (<c>status: incomplete</c>, e.g. the output token ceiling).</summary>
+    public bool Incomplete { get; init; }
+
     /// <summary>The result as Python's dict.</summary>
     public JsonObject ToJsonObject()
     {
@@ -30,6 +55,34 @@ public sealed record EngineResult(string Text, string? ResponseId, int Rounds, b
 
         return result;
     }
+}
+
+/// <summary>Request controls and budgets of an <see cref="Engine"/>; the defaults suit a small reasoning model.</summary>
+public sealed record EngineOptions
+{
+    /// <summary>
+    /// <c>reasoning.effort</c>. Null or empty for a deployment that is not a reasoning model: then neither
+    /// <c>reasoning</c> nor <c>include: ["reasoning.encrypted_content"]</c> is sent.
+    /// </summary>
+    public string? ReasoningEffort { get; init; } = "low";
+
+    /// <summary><c>max_output_tokens</c> (reasoning included): a ceiling against runaway output; null or below 1 sends none.</summary>
+    public int? MaxOutputTokens { get; init; } = 16000;
+
+    /// <summary>The most code points of one tool result shown to the model (at least <see cref="EngineTools.MinOutputChars"/>).</summary>
+    public int MaxToolOutputChars { get; init; } = EngineTools.DefaultMaxOutputChars;
+
+    /// <summary>How many consecutive Work IQ reads of one model response run at once; 1 runs every call in turn.</summary>
+    public int MaxParallelReads { get; init; } = 4;
+
+    /// <summary>The most characters (of JSON text) of conversation carried into the next turn; older whole turns are dropped.</summary>
+    public int HistoryMaxChars { get; init; } = 200_000;
+
+    /// <summary>When a turn's last request used more input tokens than this, the older half of the conversation is dropped.</summary>
+    public long HistoryMaxInputTokens { get; init; } = 100_000;
+
+    /// <summary>Mark observed tool results as untrusted data (<see cref="EngineTools.ModelOutput"/>).</summary>
+    public bool MarkObservedData { get; init; } = true;
 }
 
 /// <summary>
@@ -44,6 +97,10 @@ public sealed record EngineResult(string Text, string? ResponseId, int Rounds, b
 /// <para>The model gets function tools only. Every Work IQ call goes through <see cref="WorkIQGuard"/>; the model
 /// never holds a token and never calls an MCP server directly. This version exposes read-only Work IQ tools: outward
 /// actions arrive with approval cards in a later phase.</para>
+/// <para>Nothing is kept by the model service: every request says <c>store: false</c> and carries the conversation
+/// itself (the manager's messages, the model's output items and the function results), which the caller holds in
+/// memory between turns. For a reasoning model the encrypted reasoning items are requested and sent back, so the
+/// model keeps its reasoning between the rounds of a turn.</para>
 /// </remarks>
 public sealed class Engine
 {
@@ -53,8 +110,9 @@ public sealed class Engine
     /// <param name="preferencesPath">The default private <c>preferences.md</c>.</param>
     /// <param name="timeZone">The IANA time zone the model states times in.</param>
     /// <param name="maxRounds">The most tool rounds in one turn.</param>
+    /// <param name="options">Request controls and budgets; null for the defaults.</param>
     public Engine(IModelClient model, string deployment, string repoRoot, string? preferencesPath = null,
-                  string timeZone = EngineTools.DefaultTimeZone, int maxRounds = 12)
+                  string timeZone = EngineTools.DefaultTimeZone, int maxRounds = 12, EngineOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(deployment);
@@ -66,6 +124,7 @@ public sealed class Engine
         PreferencesPath = preferencesPath;
         TimeZone = timeZone;
         MaxRounds = maxRounds;
+        Options = options ?? new EngineOptions();
     }
 
     /// <summary>The Responses API client.</summary>
@@ -86,81 +145,212 @@ public sealed class Engine
     /// <summary>The most tool rounds in one turn.</summary>
     public int MaxRounds { get; }
 
+    /// <summary>Request controls and budgets.</summary>
+    public EngineOptions Options { get; }
+
     /// <summary>
-    /// <c>run(text, *, mode, guard, office, state, previous_response_id, now, preferences_path)</c>.
+    /// <c>run(text, *, mode, guard, office, state, previous_response_id, now, preferences_path)</c>, with the
+    /// conversation carried by the caller (<paramref name="history"/>) instead of <c>previous_response_id</c>.
     /// </summary>
     /// <param name="text">The manager's message.</param>
     /// <param name="mode">One of <see cref="RunModes"/>.</param>
     /// <param name="guard">The only path to Work IQ.</param>
     /// <param name="office">The office queue (attended runs only), or null.</param>
     /// <param name="state">This instance's <c>margo-state</c> tool, or null where Margo's state is not reachable.</param>
-    /// <param name="previousResponseId">Continues an earlier conversation when not empty.</param>
+    /// <param name="history">An earlier turn's <see cref="EngineResult.History"/> to continue from; null or empty starts
+    /// a conversation. Not changed by this call.</param>
     /// <param name="now">The time shown to the model; null for the current time.</param>
     /// <param name="preferencesPath">This turn's preferences file; null for <see cref="PreferencesPath"/>.</param>
+    /// <param name="cacheKey">Sent as <c>prompt_cache_key</c> so one instance's requests share a prompt cache; an opaque
+    /// key (never a name or address); null or empty sends none.</param>
     /// <param name="cancellationToken">Cancels the turn.</param>
     /// <exception cref="MalformedModelResponseException">The model answered with a shape Python fails on.</exception>
     public async Task<EngineResult> RunAsync(string text, string? mode, WorkIQGuard guard, IOfficeRequests? office = null,
-                                             IStateCommands? state = null, string? previousResponseId = null,
-                                             DateTimeOffset? now = null, string? preferencesPath = null,
+                                             IStateCommands? state = null, JsonArray? history = null,
+                                             DateTimeOffset? now = null, string? preferencesPath = null, string? cacheKey = null,
                                              CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(guard);
         var library = new SkillLibrary(RepoRoot, preferencesPath ?? PreferencesPath);
-        var instructions = EngineTools.LoadInstructions(RepoRoot, TimeZone, now, library, guard.PrincipalAccess);
+        var instructions = EngineTools.StableInstructions(RepoRoot, TimeZone, library, guard.PrincipalAccess);
         var tools = EngineTools.FunctionTools(mode);
-        var request = new JsonObject
-        {
-            ["model"] = Deployment,
-            ["instructions"] = instructions,
-            ["input"] = text,
-            ["tools"] = PyNode.Copy(tools),
-        };
-        if (!string.IsNullOrEmpty(previousResponseId))
-        {
-            request["previous_response_id"] = previousResponseId;
-        }
+        var earlier = history is null ? [] : (JsonArray)PyNode.Copy(history)!;
+        var message = new JsonObject { ["role"] = "user", ["content"] = EngineTools.TimeLine(TimeZone, now) + "\n\n" + text };
+        var items = (JsonArray)PyNode.Copy(earlier)!;
+        items.Add(PyNode.Copy(message));
 
-        var response = AsDict(await Model.CreateResponseAsync(request, cancellationToken).ConfigureAwait(false));
+        var usage = new EngineUsage();
+        var response = AsDict(await Model.CreateResponseAsync(Request(instructions, items, tools, cacheKey), cancellationToken).ConfigureAwait(false));
         var rounds = 0;
         while (true)
         {
-            var calls = Items(response, "output").Where(item => PyNode.Is(Get(item, "type"), "function_call")).ToList();
+            usage = Count(usage, response);
+            var output = Items(response, "output");
+            var calls = output.Where(item => PyNode.Is(Get(item, "type"), "function_call")).ToList();
             if (calls.Count == 0)
             {
-                return new EngineResult(OutputText(response), PyNode.AsString(Get(response, "id")), rounds);
+                foreach (var item in output)
+                {
+                    items.Add(PyNode.Copy(item));
+                }
+
+                var answer = OutputText(response);
+                var incomplete = PyNode.Is(Get(response, "status"), "incomplete");
+                if (incomplete && answer.Length == 0)
+                {
+                    answer = EngineTools.Incomplete;
+                }
+
+                return new EngineResult(answer, PyNode.AsString(Get(response, "id")), rounds)
+                {
+                    History = ConversationHistory.Trim(items, Options.HistoryMaxChars, usage.LastInputTokens > Options.HistoryMaxInputTokens),
+                    Usage = usage,
+                    Incomplete = incomplete,
+                };
             }
 
             rounds++;
             if (rounds > MaxRounds)
             {
-                return new EngineResult(EngineTools.Stopped.Replace("{rounds}", MaxRounds.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal),
-                                        null, rounds, Stopped: true);
+                // The unanswered function calls are not kept: the turn is remembered as the question and this notice.
+                var stopped = EngineTools.Stopped.Replace("{rounds}", MaxRounds.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
+                earlier.Add(message);
+                earlier.Add(new JsonObject { ["role"] = "assistant", ["content"] = stopped });
+                return new EngineResult(stopped, null, rounds, Stopped: true)
+                {
+                    History = ConversationHistory.Trim(earlier, Options.HistoryMaxChars, usage.LastInputTokens > Options.HistoryMaxInputTokens),
+                    Usage = usage,
+                };
             }
 
-            var outputs = new JsonArray();
-            foreach (var call in calls)
+            // Every output item goes back as it came (reasoning items before their function calls), then the results.
+            foreach (var item in output)
             {
-                var result = await DispatchAsync(Get(call, "name"), Get(call, "arguments"), mode, guard, office, library, state,
-                                                 cancellationToken).ConfigureAwait(false);
-                outputs.Add(new JsonObject
+                items.Add(PyNode.Copy(item));
+            }
+
+            var results = await DispatchAllAsync(calls, mode, guard, office, library, state, cancellationToken).ConfigureAwait(false);
+            usage = usage with { ToolCalls = usage.ToolCalls + calls.Count };
+            for (var index = 0; index < calls.Count; index++)
+            {
+                var function = PyNode.AsString(Get(calls[index], "name"));
+                items.Add(new JsonObject
                 {
                     ["type"] = "function_call_output",
-                    ["call_id"] = PyNode.Copy(Get(call, "call_id")),
-                    ["output"] = EngineTools.Clip(result),
+                    ["call_id"] = PyNode.Copy(Get(calls[index], "call_id")),
+                    ["output"] = Options.MarkObservedData ? EngineTools.ModelOutput(function, results[index], Options.MaxToolOutputChars)
+                        : EngineTools.Clip(results[index], Options.MaxToolOutputChars),
                 });
             }
 
-            response = AsDict(await Model.CreateResponseAsync(new JsonObject
-            {
-                ["model"] = Deployment,
-                ["instructions"] = instructions,
-                ["tools"] = PyNode.Copy(tools),
-                ["previous_response_id"] = PyNode.Copy(Get(response, "id")),
-                ["input"] = outputs,
-            }, cancellationToken).ConfigureAwait(false));
+            response = AsDict(await Model.CreateResponseAsync(Request(instructions, items, tools, cacheKey), cancellationToken).ConfigureAwait(false));
         }
     }
+
+    /// <summary>
+    /// One request: the stable part first (<c>model</c>, <c>instructions</c>, the conversation so far, <c>tools</c>),
+    /// then the controls. <c>store</c> is always false.
+    /// </summary>
+    private JsonObject Request(string instructions, JsonArray items, JsonArray tools, string? cacheKey)
+    {
+        var request = new JsonObject
+        {
+            ["model"] = Deployment,
+            ["instructions"] = instructions,
+            ["input"] = PyNode.Copy(items),
+            ["tools"] = PyNode.Copy(tools),
+            ["store"] = false,
+        };
+        if (!string.IsNullOrEmpty(Options.ReasoningEffort))
+        {
+            request["include"] = new JsonArray("reasoning.encrypted_content");
+            request["reasoning"] = new JsonObject { ["effort"] = Options.ReasoningEffort };
+        }
+
+        if (Options.MaxOutputTokens is { } ceiling and > 0)
+        {
+            request["max_output_tokens"] = ceiling;
+        }
+
+        if (!string.IsNullOrEmpty(cacheKey))
+        {
+            request["prompt_cache_key"] = cacheKey;
+        }
+
+        return request;
+    }
+
+    /// <summary>
+    /// Runs one response's function calls and returns their results in the calls' order. Consecutive Work IQ reads run
+    /// side by side (at most <see cref="EngineOptions.MaxParallelReads"/>; the guard, its budget and the transport are
+    /// safe to call concurrently); every other call, <c>margo-state</c> above all, runs alone, in order, so a read
+    /// never overlaps a state change the model asked for before or after it.
+    /// </summary>
+    private async Task<JsonNode?[]> DispatchAllAsync(List<JsonNode?> calls, string? mode, WorkIQGuard guard, IOfficeRequests? office,
+                                                     SkillLibrary library, IStateCommands? state, CancellationToken cancellationToken)
+    {
+        var results = new JsonNode?[calls.Count];
+        bool Read(int at) => PyNode.AsString(Get(calls[at], "name"))?.StartsWith(EngineTools.Prefix, StringComparison.Ordinal) == true;
+        Task<JsonNode?> One(int at) =>
+            DispatchAsync(Get(calls[at], "name"), Get(calls[at], "arguments"), mode, guard, office, library, state, cancellationToken);
+
+        var index = 0;
+        while (index < calls.Count)
+        {
+            var end = index;
+            while (Options.MaxParallelReads > 1 && end < calls.Count && Read(end))
+            {
+                end++;
+            }
+
+            if (end - index < 2)
+            {
+                results[index] = await One(index).ConfigureAwait(false);
+                index++;
+                continue;
+            }
+
+            using var slots = new SemaphoreSlim(Options.MaxParallelReads);
+            async Task RunAsync(int at)
+            {
+                await slots.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    results[at] = await One(at).ConfigureAwait(false);
+                }
+                finally
+                {
+                    slots.Release();
+                }
+            }
+
+            await Task.WhenAll(Enumerable.Range(index, end - index).Select(RunAsync)).ConfigureAwait(false);
+            index = end;
+        }
+
+        return results;
+    }
+
+    /// <summary>Adds one response's <c>usage</c> to the turn's. Counts only; a response without usage adds a request.</summary>
+    private static EngineUsage Count(EngineUsage usage, JsonObject response)
+    {
+        var reported = response["usage"] as JsonObject;
+        var input = Number(reported?["input_tokens"]);
+        return usage with
+        {
+            InputTokens = usage.InputTokens + input,
+            CachedInputTokens = usage.CachedInputTokens + Number((reported?["input_tokens_details"] as JsonObject)?["cached_tokens"]),
+            OutputTokens = usage.OutputTokens + Number(reported?["output_tokens"]),
+            ReasoningTokens = usage.ReasoningTokens + Number((reported?["output_tokens_details"] as JsonObject)?["reasoning_tokens"]),
+            Requests = usage.Requests + 1,
+            LastInputTokens = input,
+        };
+    }
+
+    private static long Number(JsonNode? value) =>
+        value is JsonValue && long.TryParse(value.ToJsonString(), System.Globalization.NumberStyles.None,
+                                            System.Globalization.CultureInfo.InvariantCulture, out var number) ? number : 0;
 
     /// <summary>
     /// <c>_dispatch(name, raw_arguments, mode, guard, office, library, state)</c>: one function call. Refusals are
@@ -233,11 +423,29 @@ public sealed class Engine
             return await state.RunAsync(given, mode, cancellationToken).ConfigureAwait(false);
         }
 
-        if (function == "office_requests" && mode == RunModes.Attended && office is not null)
+        if (function == EngineTools.OfficeTool && mode == RunModes.Attended && office is not null)
         {
             try
             {
-                return new JsonObject { ["status"] = "ok", ["requests"] = PyNode.Copy(await office.PendingAsync(cancellationToken).ConfigureAwait(false)) };
+                var pending = await office.PendingAsync(cancellationToken).ConfigureAwait(false);
+                var answer = new JsonObject { ["status"] = "ok" };
+                if (pending is JsonObject page && page["requests"] is JsonArray)
+                {
+                    // A page: the requests shown, then its counts (total, shown, ...).
+                    foreach (var (key, value) in page)
+                    {
+                        if (key != "status")
+                        {
+                            answer[key] = PyNode.Copy(value);
+                        }
+                    }
+                }
+                else
+                {
+                    answer["requests"] = PyNode.Copy(pending);
+                }
+
+                return answer;
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {

@@ -159,7 +159,7 @@ public sealed class SkillLibraryTests
         Assert.Equal(Fixtures.Dumps(expected["files"]), Fixtures.Dumps(new JsonArray(names.Select(n => (JsonNode?)PyNode.StrList(library.Files(n))).ToArray())));
         Assert.Equal(Fixtures.Dumps(expected["load"]), Fixtures.Dumps(new JsonArray(names.Select(n => (JsonNode?)library.Load(n)).ToArray())));
         Assert.Equal(Fixtures.Dumps(expected["read"]), Fixtures.Dumps(new JsonArray(reads.Select(r => (JsonNode?)library.Read(r[0], r[1])).ToArray())));
-        Assert.Equal(PyNode.AsString(python["instructions"]![0]),
+        Assert.Equal(Fixtures.MovedTime(PyNode.AsString(python["instructions"]![0])!),
                      EngineTools.LoadInstructions(root, "Europe/Istanbul", DateTimeOffset.Parse("2026-03-29T00:30:00+00:00", System.Globalization.CultureInfo.InvariantCulture), library));
     }
 

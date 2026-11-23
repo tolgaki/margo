@@ -356,21 +356,41 @@ public sealed class AzureOpenAIModelClient : IModelClient, IDisposable
     }
 
     /// <summary>
-    /// <c>_make_status_error_from_response</c>: <c>Error code: N - {body}</c> with the body's Python repr when it is
-    /// JSON, else the body text, else <c>Error code: N</c>.
+    /// The message of a failed request: <c>Error code: N</c>, and the error's <c>code</c> and <c>type</c> when the body
+    /// names them as plain identifiers. Never the body's text: an error body can quote the request (the manager's
+    /// words, tool results), and this message is logged with the exception. (Python's SDK put the whole body in it.)
     /// </summary>
     private static string ErrorMessage(HttpStatusCode status, byte[] content)
     {
-        var code = ((int)status).ToString(CultureInfo.InvariantCulture);
-        var text = PyRepr.Strip(new System.Text.UTF8Encoding(false, false).GetString(content));
+        var message = "Error code: " + ((int)status).ToString(CultureInfo.InvariantCulture);
+        JsonNode? body;
         try
         {
-            return "Error code: " + code + " - " + PyNode.Repr(PyJson.Loads(text));
+            body = PyJson.Loads(PyRepr.Strip(new System.Text.UTF8Encoding(false, false).GetString(content)));
         }
         catch (PyException)
         {
-            return text.Length > 0 ? text : "Error code: " + code;
+            return message;
         }
+
+        var error = (body as JsonObject)?["error"] as JsonObject ?? body as JsonObject;
+        var details = new List<string>();
+        foreach (var key in new[] { "code", "type" })
+        {
+            if (Identifier(error?[key]) is { } value)
+            {
+                details.Add(key + "=" + value);
+            }
+        }
+
+        return details.Count == 0 ? message : message + " (" + string.Join(", ", details) + ")";
+    }
+
+    /// <summary>A short machine identifier (letters, digits, <c>_ - .</c>, at most 64 characters), or null: free text is never kept.</summary>
+    private static string? Identifier(JsonNode? value)
+    {
+        var text = value is JsonValue ? PyNode.AsString(value) ?? value.ToJsonString() : null;
+        return text is { Length: > 0 and <= 64 } && text.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-' or '.') ? text : null;
     }
 
     private async Task<string> TokenAsync(CancellationToken cancellationToken)

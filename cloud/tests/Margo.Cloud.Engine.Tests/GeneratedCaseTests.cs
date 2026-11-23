@@ -276,12 +276,14 @@ public sealed class GeneratedCaseTests
             var model = new FakeModel([.. ((JsonArray)spec["script"]!).Select(node => (object?)node)]);
             var transport = new RecordingTransport();
             var guard = new WorkIQGuard(Fixtures.Binding, new FakeTokens(), transport);
-            var runner = new Engine(model, "fictional-model", root, maxRounds: (int)spec["max_rounds"]!);
+            // Python's output limit and unmarked results, so each function output is the recorded text.
+            var runner = new Engine(model, "fictional-model", root, maxRounds: (int)spec["max_rounds"]!,
+                                    options: new EngineOptions { MaxToolOutputChars = EngineTools.PythonMaxOutputChars, MarkObservedData = false });
             JsonNode result;
             try
             {
                 result = (await runner.RunAsync(PyNode.AsString(spec["text"])!, PyNode.AsString(spec["mode"]), guard, new PythonOffice(false), null,
-                                                PyNode.AsString(spec["previous"]), new DateTimeOffset(2026, 10, 17, 8, 0, 0, TimeSpan.Zero),
+                                                null, new DateTimeOffset(2026, 10, 17, 8, 0, 0, TimeSpan.Zero),
                                                 cancellationToken: TestContext.Current.CancellationToken)).ToJsonObject();
             }
             catch (MalformedModelResponseException)
@@ -289,12 +291,34 @@ public sealed class GeneratedCaseTests
                 result = new JsonObject { ["raised"] = "malformed" }; // Python: AttributeError or TypeError
             }
 
-            var requests = new JsonArray([.. model.Requests.Select(request =>
+            // The conversation is carried in the request now (PORTING.md, deviation 13): no request names an earlier
+            // response and none is stored. What Python sent as each request's `input` is still what each request adds:
+            // the message (after its time line), then each round's function outputs, in order.
+            Assert.All(model.Requests, request => Assert.False(request.ContainsKey("previous_response_id")));
+            Assert.All(model.Requests, request => Assert.Equal("false", request["store"]!.ToJsonString()));
+            var requests = new JsonArray([.. model.Requests.Select((request, index) =>
             {
-                request.Remove("instructions"); // identical in every request; compared by ParityTests
-                request.Remove("tools");
-                return (JsonNode?)request;
+                var input = (JsonArray)request["input"]!;
+                JsonNode? added;
+                if (index == 0)
+                {
+                    var content = PyNode.AsString(Assert.Single(input)!["content"])!;
+                    Assert.StartsWith("Current time: Saturday 17 October 2026, 01:00 (America/Los_Angeles).\n\n", content, StringComparison.Ordinal);
+                    added = content[(content.IndexOf("\n\n", StringComparison.Ordinal) + 2)..];
+                }
+                else
+                {
+                    var outputs = input.Reverse().TakeWhile(item => PyNode.Is(item!["type"], "function_call_output")).Reverse();
+                    added = new JsonArray([.. outputs.Select(item => PyNode.Copy(item))]);
+                }
+
+                return (JsonNode?)new JsonObject { ["model"] = PyNode.Copy(request["model"]), ["input"] = added };
             })]);
+            foreach (var recorded in (python[i]!["requests"] as JsonArray) ?? [])
+            {
+                ((JsonObject)recorded!).Remove("previous_response_id");
+            }
+
             if (python[i]!["result"] is JsonObject expected && expected.ContainsKey("response_id") && PyNode.AsString(expected["response_id"]) is null)
             {
                 expected["response_id"] = null; // a non-string id is not kept (PORTING.md, deviation 7)

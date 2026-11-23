@@ -12,18 +12,20 @@ public sealed class EngineTests
     private FakeModel _model = new();
     private RecordingTransport _transport = new();
 
-    private Engine NewEngine(object?[] script, int maxRounds = 12, string? preferences = null)
+    private const string TimeLine = "Current time: Saturday 17 October 2026, 01:00 (America/Los_Angeles).";
+
+    private Engine NewEngine(object?[] script, int maxRounds = 12, string? preferences = null, EngineOptions? options = null)
     {
         _model = new FakeModel(script);
-        return new Engine(_model, "fictional-model", Fixtures.Root, preferences, maxRounds: maxRounds);
+        return new Engine(_model, "fictional-model", Fixtures.Root, preferences, maxRounds: maxRounds, options: options);
     }
 
     private Task<EngineResult> Run(Engine engine, string text = "Brief me", string mode = RunModes.Attended, IOfficeRequests? office = null,
-                                   IStateCommands? state = null, string? previousResponseId = null)
+                                   IStateCommands? state = null, JsonArray? history = null)
     {
         _transport = new RecordingTransport();
         var guard = new WorkIQGuard(Fixtures.Binding, new FakeTokens(), _transport);
-        return engine.RunAsync(text, mode, guard, office, state, previousResponseId, Now, cancellationToken: TestContext.Current.CancellationToken);
+        return engine.RunAsync(text, mode, guard, office, state, history, Now, cancellationToken: TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -33,17 +35,24 @@ public sealed class EngineTests
             FakeModel.Response("r1", FakeModel.Call("workiq-fetch", """{"on_data_of": "principal", "entityUrls": ["/me/messages"]}""")),
             FakeModel.Final("Quiet inbox, which I checked."),
         ]);
-        var result = await Run(engine, previousResponseId: "r0");
+        var result = await Run(engine);
         Assert.Equal("""{"text": "Quiet inbox, which I checked.", "response_id": "r-final", "rounds": 1}""", Fixtures.Dumps(result.ToJsonObject()));
         Assert.Equal("principal-token", _transport.Calls[0].Bearer);
         Assert.Equal(2, _model.Requests.Count);
         var (first, second) = (_model.Requests[0], _model.Requests[1]);
-        Assert.Equal("r0", PyNode.AsString(first["previous_response_id"]));
-        Assert.Equal("r1", PyNode.AsString(second["previous_response_id"]));
-        var output = (JsonObject)PyJson.Loads(PyNode.AsString(second["input"]![0]!["output"])!)!;
+        // Nothing is chained through the service: each request carries the conversation itself.
+        Assert.All(_model.Requests, request => Assert.False(request.ContainsKey("previous_response_id")));
+        Assert.All(_model.Requests, request => Assert.Equal("false", request["store"]!.ToJsonString()));
+        Assert.Equal("""[{"role": "user", "content": "Current time: Saturday 17 October 2026, 01:00 (America/Los_Angeles).\n\nBrief me"}]""",
+                     Fixtures.Dumps(first["input"]));
+        var input = (JsonArray)second["input"]!;
+        Assert.Equal(3, input.Count);
+        Assert.Equal(Fixtures.Dumps(first["input"]![0]), Fixtures.Dumps(input[0]));
+        Assert.Equal(("function_call", "c1"), (PyNode.AsString(input[1]!["type"]), PyNode.AsString(input[1]!["call_id"])));
+        var output = (JsonObject)PyJson.Loads(PyNode.AsString(input[2]!["output"])!)!;
         Assert.Equal(("ok", "principal"), (PyNode.AsString(output["status"]), PyNode.AsString(output["read_as"])));
-        Assert.Equal("c1", PyNode.AsString(second["input"]![0]!["call_id"]));
-        Assert.Equal("function_call_output", PyNode.AsString(second["input"]![0]!["type"]));
+        Assert.Equal("c1", PyNode.AsString(input[2]!["call_id"]));
+        Assert.Equal("function_call_output", PyNode.AsString(input[2]!["type"]));
     }
 
     [Fact]
@@ -62,7 +71,10 @@ public sealed class EngineTests
         Assert.Contains("# Margo", instructions, StringComparison.Ordinal);
         Assert.Contains("- **chief-of-staff**:", instructions, StringComparison.Ordinal);
         Assert.Contains("- **decision-log**:", instructions, StringComparison.Ordinal);
-        Assert.Contains("Saturday 17 October 2026, 01:00 (America/Los_Angeles)", instructions, StringComparison.Ordinal);
+        // The time is on the manager's message, not in the instructions (which must not change from turn to turn).
+        Assert.DoesNotContain("17 October 2026", instructions, StringComparison.Ordinal);
+        Assert.Contains("State every time in the America/Los_Angeles time zone.", instructions, StringComparison.Ordinal);
+        Assert.Equal(TimeLine + "\n\nBrief me", PyNode.AsString(_model.Requests[0]["input"]![0]!["content"]));
     }
 
     [Fact]
@@ -89,7 +101,7 @@ public sealed class EngineTests
             FakeModel.Final("I can't send from here."),
         ]);
         await Run(engine);
-        var outputs = ((JsonArray)_model.Requests[1]["input"]!)
+        var outputs = ((JsonArray)_model.Requests[1]["input"]!).Where(item => PyNode.Is(item!["type"], "function_call_output"))
             .Select(item => PyNode.AsString(((JsonObject)PyJson.Loads(PyNode.AsString(item!["output"])!)!)["status"])).ToArray();
         Assert.Equal(["refused", "refused", "refused"], outputs);
         Assert.Empty(_transport.Calls);
@@ -113,10 +125,16 @@ public sealed class EngineTests
     [Fact]
     public void Large_results_are_marked_partial()
     {
-        var big = new JsonObject { ["statusCode"] = 200, ["data"] = new string('x', EngineTools.MaxOutputChars + 10) };
+        Assert.Equal(20000, EngineTools.DefaultMaxOutputChars);
+        var big = new JsonObject { ["statusCode"] = 200, ["data"] = new string('x', EngineTools.DefaultMaxOutputChars + 10) };
         var clipped = (JsonObject)PyJson.Loads(EngineTools.Clip(big))!;
         Assert.Equal(("partial", true), (PyNode.AsString(clipped["status"]), (bool)clipped["truncated"]!));
-        Assert.Equal(EngineTools.MaxOutputChars, PyRepr.Length(PyNode.AsString(clipped["beginning"])!));
+        Assert.Equal(EngineTools.DefaultMaxOutputChars, PyRepr.Length(PyNode.AsString(clipped["beginning"])!));
+        Assert.Contains("Narrow the query", PyNode.AsString(clipped["note"]), StringComparison.Ordinal);
+        // A configured limit, never below the minimum.
+        Assert.Equal(EngineTools.Clip(big), EngineTools.Clip(big, EngineTools.DefaultMaxOutputChars));
+        Assert.Equal(Fixtures.Dumps(big), Fixtures.Dumps(PyJson.Loads(EngineTools.Clip(big, EngineTools.PythonMaxOutputChars))));
+        Assert.Equal(EngineTools.MinOutputChars, PyRepr.Length(PyNode.AsString(PyJson.Loads(EngineTools.Clip(big, 5))!["beginning"])!));
         var small = new JsonObject { ["status"] = "ok", ["text"] = "café \U0001F600" };
         Assert.Equal("{\"status\": \"ok\", \"text\": \"café \U0001F600\"}", EngineTools.Clip(small)); // ensure_ascii=False
     }
@@ -129,14 +147,17 @@ public sealed class EngineTests
             new JsonObject { ["output"] = new JsonArray(FakeModel.Call("load_skill", """{"name": "decision-log"}""")) },
             FakeModel.Final("Done."),
         ]);
-        var result = await Run(engine, previousResponseId: "");
-        Assert.Equal(["model", "instructions", "input", "tools"], _model.Requests[0].Select(pair => pair.Key).ToArray());
+        var result = await Run(engine, history: []);
+        // The stable part first (the provider caches by prefix), then the controls; the same keys in every request.
+        string[] keys = ["model", "instructions", "input", "tools", "store", "include", "reasoning", "max_output_tokens"];
+        Assert.All(_model.Requests, request => Assert.Equal(keys, request.Select(pair => pair.Key).ToArray()));
         Assert.Equal("fictional-model", PyNode.AsString(_model.Requests[0]["model"]));
-        Assert.Equal("Brief me", PyNode.AsString(_model.Requests[0]["input"]));
-        Assert.Equal(["model", "instructions", "tools", "previous_response_id", "input"], _model.Requests[1].Select(pair => pair.Key).ToArray());
-        // A response without an id continues with previous_response_id=None, as Python passes response.get("id").
-        Assert.True(_model.Requests[2].ContainsKey("previous_response_id"));
-        Assert.Null(_model.Requests[2]["previous_response_id"]);
+        Assert.Equal("""["reasoning.encrypted_content"]""", Fixtures.Dumps(_model.Requests[0]["include"]));
+        Assert.Equal("""{"effort": "low"}""", Fixtures.Dumps(_model.Requests[0]["reasoning"]));
+        Assert.Equal("16000", _model.Requests[0]["max_output_tokens"]!.ToJsonString());
+        // A response without an id needs nothing special: the conversation is in the request, not behind an id.
+        Assert.Equal(["message", "function_call", "function_call_output", "function_call", "function_call_output"],
+                     ((JsonArray)_model.Requests[2]["input"]!).Select(item => PyNode.AsString(item!["type"]) ?? "message").ToArray());
         Assert.Equal(Fixtures.Dumps(_model.Requests[0]["tools"]), Fixtures.Dumps(_model.Requests[2]["tools"]));
         Assert.Equal(PyNode.AsString(_model.Requests[0]["instructions"]), PyNode.AsString(_model.Requests[2]["instructions"]));
         Assert.Equal(2, result.Rounds);
@@ -173,6 +194,9 @@ public sealed class EngineTests
                                                       TestContext.Current.CancellationToken));
 
         Assert.Equal("""{"status": "ok", "requests": [{"from": "Rafa"}]}""", await Dispatch("office_requests", RunModes.Attended, office, state));
+        // A page (the requests and the queue's counts) is passed on whole; it cannot replace the status.
+        Assert.Equal("""{"status": "ok", "requests": [{"from": "Rafa"}], "total": 7, "shown": 1}""",
+                     await Dispatch("office_requests", RunModes.Attended, new FakeOffice(page: true), state));
         Assert.Equal("""{"status": "refused", "reason": "unknown tool"}""", await Dispatch("office_requests", RunModes.Unattended, office, state));
         Assert.Equal("""{"status": "refused", "reason": "unknown tool"}""", await Dispatch("office_requests", RunModes.Attended, null, state));
         Assert.Equal("""{"status": "error", "reason": "the request queue could not be read"}""",
@@ -241,11 +265,12 @@ public sealed class EngineTests
 
     private static HashSet<string> Names(JsonArray tools) => tools.Select(tool => PyNode.AsString(tool!["name"])!).ToHashSet(StringComparer.Ordinal);
 
-    private sealed class FakeOffice(bool broken = false, bool python = false) : IOfficeRequests
+    private sealed class FakeOffice(bool broken = false, bool python = false, bool page = false) : IOfficeRequests
     {
         public Task<JsonNode?> PendingAsync(CancellationToken cancellationToken = default) =>
             broken ? Task.FromException<JsonNode?>(new InvalidOperationException("fictional queue failure"))
-                : Task.FromResult(PyJson.Loads(python ? """[{"from": "Rafa", "trust": "untrusted"}]""" : """[{"from": "Rafa"}]"""));
+                : Task.FromResult(PyJson.Loads(page ? """{"status": "spoofed", "requests": [{"from": "Rafa"}], "total": 7, "shown": 1}"""
+                    : python ? """[{"from": "Rafa", "trust": "untrusted"}]""" : """[{"from": "Rafa"}]"""));
     }
 
     private sealed class RecordingState : IStateCommands
