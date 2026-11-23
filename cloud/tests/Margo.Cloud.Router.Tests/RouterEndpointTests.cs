@@ -91,6 +91,30 @@ public sealed class RouterEndpointTests
     }
 
     [Fact]
+    public async Task A_forward_outlives_a_caller_that_stops_waiting()
+    {
+        // Deliberate deviation from Python (PORTING.md): a cold instance can take longer to start than Agent 365 waits.
+        // The forward used to be cancelled with the caller's request, cutting the instance's turn off; now it finishes.
+        await using var instance = await FakeInstance.StartAsync();
+        await using var router = await RouterUnderTest.StartAsync(RouterUnderTest.Table((RouterUnderTest.User, RouteStates.Ready, instance.Url)), kestrel: true);
+        using var giveUp = CancellationTokenSource.CreateLinkedTokenSource(Cancel);
+        giveUp.CancelAfter(TimeSpan.FromMilliseconds(500));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            router.Client.SendAsync(Post("/api/messages", Activity(change: a => a["text"] = "slow"), "Bearer " + router.Token()), giveUp.Token));
+
+        const string Delivered = "activity delivered after the caller stopped waiting key=";
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while ((instance.Finished.IsEmpty || !router.Logs.Lines.Any(line => line.Contains(Delivered, StringComparison.Ordinal))) && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(100, Cancel);
+        }
+
+        Assert.Equal(["slow"], instance.Finished);
+        Assert.Contains(router.Logs.Lines, line => line.Contains(Delivered + RouterUnderTest.Key() + " status=200", StringComparison.Ordinal));
+        Assert.DoesNotContain(router.Logs.Lines, line => line.Contains("Error handling request", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Instance_responses_keep_status_and_body_but_no_other_headers()
     {
         await using var instance = await FakeInstance.StartAsync();

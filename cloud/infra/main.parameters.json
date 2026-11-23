@@ -14,6 +14,7 @@
     "voiceLiveModel": { "value": "${MARGO_VOICE_LIVE_MODEL=}" },
     "voiceName": { "value": "${MARGO_VOICE_NAME=}" },
     "voiceEndpointId": { "value": "${MARGO_VOICE_ENDPOINT_ID=}" },
-    "voiceClientId": { "value": "${MARGO_VOICE_CLIENT_ID=}" }
+    "voiceClientId": { "value": "${MARGO_VOICE_CLIENT_ID=}" },
+    "extraTokenIssuers": { "value": "${MARGO_EXTRA_TOKEN_ISSUERS=}" }
   }
 }

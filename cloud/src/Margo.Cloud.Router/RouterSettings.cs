@@ -47,6 +47,14 @@ public sealed record RouterSettings(
     int Port,
     LogLevel LogLevel)
 {
+    /// <summary><c>MARGO_EXTRA_TOKEN_ISSUERS</c>: token issuers accepted besides Bot Framework and the tenant's own
+    /// Entra issuers, separated by spaces. Empty by default.</summary>
+    public IReadOnlyList<string> ExtraIssuers { get; init; } = [];
+
+    /// <summary>Split <c>MARGO_EXTRA_TOKEN_ISSUERS</c>.</summary>
+    public static IReadOnlyList<string> SplitIssuers(string? value) =>
+        (value ?? string.Empty).Split((char[])[' ', '\t', '\n', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
     /// <summary>Python's message when the blueprint is not configured.</summary>
     public const string NoBlueprintMessage = "the agent blueprint client ID is not set; see docs/autopilot-deployment.md";
 
@@ -75,7 +83,10 @@ public sealed record RouterSettings(
         }
 
         return new RouterSettings(clientId, tenantId, routesUrl, queueUrl, string.IsNullOrEmpty(managedIdentity) ? null : managedIdentity,
-            host, (int)port, ParseLogLevel(configuration["LOG_LEVEL"] ?? "INFO"));
+            host, (int)port, ParseLogLevel(configuration["LOG_LEVEL"] ?? "INFO"))
+        {
+            ExtraIssuers = SplitIssuers(configuration["MARGO_EXTRA_TOKEN_ISSUERS"]),
+        };
     }
 
     /// <summary>Python: <c>getattr(logging, LOG_LEVEL.upper(), logging.INFO)</c>.</summary>

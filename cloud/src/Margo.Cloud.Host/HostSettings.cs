@@ -107,6 +107,10 @@ public sealed record HostSettings
     /// <summary><c>MARGO_VOICE_CLIENT_ID</c>: the voice page's sign-in app; empty signs in as the blueprint.</summary>
     public string? VoiceClientId { get; init; }
 
+    /// <summary><c>MARGO_EXTRA_TOKEN_ISSUERS</c>: token issuers accepted besides Bot Framework and the tenant's own
+    /// Entra issuers, separated by spaces. Empty by default.</summary>
+    public IReadOnlyList<string> ExtraIssuers { get; init; } = [];
+
     /// <summary><c>APPLICATIONINSIGHTS_CONNECTION_STRING</c>.</summary>
     public string? ApplicationInsights { get; init; }
 
@@ -212,6 +216,8 @@ public sealed record HostSettings
             VoiceTenantId = voiceTenant,
             VoiceScope = Get("MARGO_VOICE_SCOPE") ?? "Voice.Talk",
             VoiceClientId = Get("MARGO_VOICE_CLIENT_ID"),
+            ExtraIssuers = (Get("MARGO_EXTRA_TOKEN_ISSUERS") ?? string.Empty)
+                .Split((char[])[' ', '\t', '\n', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             ApplicationInsights = Get("APPLICATIONINSIGHTS_CONNECTION_STRING") is { Length: > 0 } insights ? insights : null,
             ListenHost = Get("HOST") ?? "0.0.0.0",
             Port = port,

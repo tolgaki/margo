@@ -59,8 +59,11 @@ The Agent 365 CLI then creates the **agent blueprint** in Entra and registers th
 messaging endpoint. The post-provision hook (`scripts/postprovision.sh`) does the rest:
 
 1. Grants the router and the provisioner their roles, by role name. The provisioner may grant
-   only the four roles an instance needs (an ABAC condition): its state container, image pull,
-   the chat model (`Cognitive Services OpenAI User`) and Voice Live (`Cognitive Services User`).
+   only the four roles an instance needs, each only on the resource it applies to (ABAC conditions on the storage
+   account, the registry and the AI account): its state container, image pull, the chat model
+   (`Cognitive Services OpenAI User`) and Voice Live (`Cognitive Services User`). It may grant them only to service
+   principals, and never to the router, itself or the blueprint credential. A grant on the whole resource group from an
+   earlier version is removed.
 2. Runs the repository privacy check, builds the image from `cloud/Dockerfile` with `az acr build`, pins it
    by digest and records it in the azd environment (`MARGO_PINNED_IMAGE`), so the next provision keeps the router on
    a Margo image instead of resetting it to the public placeholder. It refuses a checkout with uncommitted changes
@@ -326,7 +329,7 @@ server checks; only the app that signs in changes. Details, the custom voice and
 | See her state | Storage account › containers named `margo-i-…`, one per hired Margo, with each manager's state under its own prefix. `state.zip` is current; `daily/` holds one copy per day |
 | Ship a change | Commit, then `azd provision` (it builds and pins a new image for the router and the provisioner), then redeploy all |
 | Redeploy all | `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll redeploy-all` with the provisioner's settings, for example as a one-off execution of the provisioner job with that command; or `… enqueue ensure <agent-identity-id> <agent-user-id> --redeploy` for one |
-| Keep instances warm | Add `"instanceMinReplicas": { "value": 1 }` to `infra/main.parameters.json`, provision, then redeploy all. For one instance: `az containerapp update -n margo-<key> -g <group> --min-replicas 1`. Recommended: see the cold-start limit below |
+| Keep instances warm | Add `"instanceMinReplicas": { "value": 1 }` to `infra/main.parameters.json`, provision, then redeploy all. For one instance: `az containerapp update -n margo-<key> -g <group> --min-replicas 1`. Optional: a cold instance still answers, but its first answer is slow (see Known limits) |
 | Retire one instance | Delete it in the admin center: the lifecycle event retires it (app and identity go; state stays). Or `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll enqueue retire <agent-identity-id> <agent-user-id>`. Remove any mailbox permissions |
 | Delete a retired instance's state | Delete its `margo-i-…` container after the retention period |
 | Stop everyone's Margo | Block Margo in the admin center |
@@ -353,6 +356,7 @@ Foundry and cannot be pointed at your own container, so this route starts with a
 | `build-image.sh` refuses to build | Uncommitted changes, or the privacy check failed | Commit, or fix what `tools/check-clean.sh` reports |
 | The router keeps restarting with "the agent blueprint client ID is not set" | It was switched to the Margo image without a blueprint | Finish steps 2 and 3 |
 | Nothing reaches Margo; the router logs no activities | The messaging endpoint is not registered on the blueprint, or points elsewhere | `a365 setup blueprint --update-endpoint https://<router>/api/messages`; check the Developer Portal configuration |
+| Nothing reaches Margo; the router logs `JWT issuer not accepted: <issuer>` | Agent 365 signs with an issuer this version does not accept by default | If the issuer is Microsoft's and not another tenant's, `azd env set MARGO_EXTRA_TOKEN_ISSUERS "<issuer>"`, provision, then redeploy all. Never add another tenant's issuer |
 | Router logs `kind=reject` | An activity without an agent recipient (for example the app itself, not a hired instance) | Chat with a hired instance |
 | Activities get 503 and nothing happens | The provisioner has not created the instance, or failed | Check the job's logs and the route's `error` in `margo-routes/routes.json` |
 | Instance logs "token exchange failed for margo" | The federated credential is missing on the blueprint, or the agent user is not licensed yet | Add the credential (step 3); license the agent user |
@@ -373,12 +377,18 @@ Foundry and cannot be pointed at your own container, so this route starts with a
   Margo, a Teams chat turn, and delegated calendar reads. Still unverified: the on-behalf-of token flow, delegated
   mail reads, mail and document notification payloads, **Create instance** from the admin center (see step 5), voice,
   the state lease under concurrent turns, and the Work IQ billing subject.
-- A scaled-to-zero instance can lose the first message: the instance takes longer to start than Agent 365 waits, and
-  the router's forward is cancelled when Agent 365 gives up. Keep instances warm (see Operate) until the router
-  forwards independently of the caller.
-- Hardening before production: the router and the host check the token's signature, audience and tenant binding but do
-  not restrict the issuer to an allowlist; the provisioner's role-assignment condition limits which roles it may grant,
-  not to which principal or scope; and the Agent 365 CLI's Graph consent (step 2) is wider than Margo needs.
+- A scaled-to-zero instance takes longer to start than Agent 365 waits. The router keeps forwarding after Agent 365
+  gives up (it logs `activity delivered after the caller stopped waiting`), so the message is answered, just late. If
+  Agent 365 also retries the delivery, Margo may answer twice: the instance has no duplicate check for chat turns.
+  Keep instances warm (see Operate) to avoid both. Verified by test, not yet in a tenant.
+- Tokens are accepted only from Bot Framework and your tenant's Entra issuers. Which issuer Agent 365 uses for agentic
+  activities is not yet confirmed: if the router logs `JWT issuer not accepted: <issuer>` for genuine traffic, see
+  Troubleshooting.
+- Hardening before production: the provisioner still holds **Contributor** on the resource group (it creates each
+  instance's app and identity), which could, for example, re-enable shared keys on the storage account; its narrowed
+  role administration limits what it can grant, not everything a compromised provisioner could do. The narrowed
+  conditions are unverified in a tenant: if a hire fails with an authorization error on a role assignment, check the
+  provisioner job's logs. The Agent 365 CLI's Graph consent (step 2) is wider than Margo needs; remove it.
 - Agent identities and agent users can carry an expiration date (Entra Agent ID lifecycle, reported
   to default to 180 days; **verify** in your tenant). Check `lifecycle.expirationDateTime` on each
   agent identity and agent user, and extend it before it passes, or the instance stops working.

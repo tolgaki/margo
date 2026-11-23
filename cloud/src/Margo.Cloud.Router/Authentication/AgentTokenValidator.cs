@@ -7,8 +7,12 @@ namespace Margo.Cloud.Router.Authentication;
 /// <summary>The blueprint the router accepts tokens for. Python:
 /// <c>AgentAuthConfiguration(client_id=..., tenant_id=...)</c>.</summary>
 /// <param name="ClientId">The agent blueprint's client ID: the only accepted audience.</param>
-/// <param name="TenantId">The tenant whose Entra signing keys are read for Entra-issued tokens.</param>
-public sealed record AgentAuthSettings(string ClientId, string TenantId);
+/// <param name="TenantId">The tenant whose Entra signing keys are read for Entra-issued tokens, and the only
+/// tenant whose Entra issuers are accepted.</param>
+/// <param name="ExtraIssuers">Issuers accepted besides the defaults (<see cref="AgentTokenValidator.AcceptedIssuers"/>),
+/// from <c>MARGO_EXTRA_TOKEN_ISSUERS</c>: a recovery setting if the platform signs with an issuer this version does not
+/// know, never a way to admit another tenant.</param>
+public sealed record AgentAuthSettings(string ClientId, string TenantId, IReadOnlyList<string>? ExtraIssuers = null);
 
 /// <summary>The outcome of checking a request's <c>Authorization</c> header.</summary>
 /// <param name="StatusCode">200 when accepted; otherwise the status to answer with.</param>
@@ -33,8 +37,11 @@ public sealed record AuthorizationResult(int StatusCode, string? ErrorJson, Json
 /// <item>RS256 only; <c>exp</c>, <c>nbf</c> and <c>iat</c> are checked when present, with 300 seconds
 /// of leeway; <c>sub</c> and <c>jti</c> must be strings when present.</item>
 /// <item><c>aud</c> must be one string equal to the client ID, ignoring case.</item>
-/// <item>The issuer is not checked against a list (the SDK's <c>VALIDATE_ISSUER</c> is off), but a
-/// token from a recognised Entra issuer must carry the same tenant in <c>tid</c>, when it has one.</item>
+/// <item>The issuer must be Bot Framework's (<c>https://api.botframework.com</c>) or Entra's for the configured
+/// tenant (v1 or v2), or one of the configured extra issuers. This is a deliberate deviation from the SDK, whose
+/// <c>VALIDATE_ISSUER</c> was off: Entra signs every tenant's tokens with the same keys, so without it a token from
+/// another tenant was refused only by its audience. A token from a recognised Entra issuer must also carry the same
+/// tenant in <c>tid</c>, when it has one.</item>
 /// </list>
 /// A token without <c>kid</c> (that passes the earlier checks) fails with 500, because the SDK did not
 /// catch the <c>KeyError</c>; this is kept.
@@ -53,7 +60,10 @@ public sealed class AgentTokenValidator
 
     private const string Algorithm = "RS256";
 
+    private const int MaxLoggedIssuerLength = 200;
+
     private readonly AgentAuthSettings _settings;
+    private readonly IReadOnlyList<string> _issuers;
     private readonly JwksClientManager _keys;
     private readonly TimeProvider _time;
     private readonly ILogger _logger;
@@ -64,6 +74,7 @@ public sealed class AgentTokenValidator
         ArgumentNullException.ThrowIfNull(keys);
         ArgumentNullException.ThrowIfNull(logger);
         _settings = settings;
+        _issuers = AcceptedIssuers(settings);
         _keys = keys;
         _logger = logger;
         _time = timeProvider ?? TimeProvider.System;
@@ -189,6 +200,17 @@ public sealed class AgentTokenValidator
             throw new TokenRejectedException("ValueError", "Invalid audience.");
         }
 
+        var issuer = jws.Payload["iss"] is JsonValue issuerValue && issuerValue.TryGetValue<string>(out var text) ? text : null;
+        if (issuer is null || !_issuers.Contains(issuer, StringComparer.OrdinalIgnoreCase))
+        {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning("JWT issuer not accepted: {Issuer}", Printable(issuer));
+            }
+
+            throw new TokenRejectedException("ValueError", "Invalid issuer.");
+        }
+
         // Tenant binding (always on in the SDK): a recognised Entra issuer's tenant must equal tid.
         var tenant = EntraIssuers.EntraTenant(PythonCompat.AsString(jws.Payload["iss"]));
         if (tenant is not null && PythonCompat.AsString(jws.Payload["tid"]) is { } tid && !PythonCompat.LowerEquals(tid, tenant))
@@ -198,6 +220,36 @@ public sealed class AgentTokenValidator
         }
 
         return jws.Payload;
+    }
+
+    /// <summary>The issuers a token may come from: Bot Framework (public cloud), the configured tenant's Entra v1 and v2
+    /// issuers, and any configured extras.</summary>
+    public static IReadOnlyList<string> AcceptedIssuers(AgentAuthSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        var tenant = settings.TenantId.Trim().ToLowerInvariant();
+        List<string> issuers = [EntraIssuers.BotFrameworkPublicIssuer, "https://sts.windows.net/" + tenant + "/", "https://login.microsoftonline.com/" + tenant + "/v2.0"];
+        foreach (var extra in settings.ExtraIssuers ?? [])
+        {
+            if (!string.IsNullOrWhiteSpace(extra))
+            {
+                issuers.Add(extra.Trim());
+            }
+        }
+
+        return issuers;
+    }
+
+    /// <summary>An unverified issuer, safe to log: printable ASCII only, and not too long.</summary>
+    private static string Printable(string? issuer)
+    {
+        if (issuer is null)
+        {
+            return "(none or not a string)";
+        }
+
+        var text = issuer.Length > MaxLoggedIssuerLength ? issuer[..MaxLoggedIssuerLength] : issuer;
+        return text.All(c => c is >= ' ' and <= '~') ? text : "(unprintable)";
     }
 
     /// <summary>Python: <c>PyJWS._verify_signature</c> with <c>algorithms=["RS256"]</c> and a <c>PyJWK</c>.</summary>

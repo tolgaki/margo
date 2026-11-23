@@ -55,8 +55,13 @@ public sealed class RouterService
     private readonly InstanceConnector _instances;
     private readonly VoiceBridge _voice;
     private readonly ILogger _logger;
+    private readonly CancellationToken _stopping;
 
-    public RouterService(RouteTableCache routes, IProvisioningSink queue, AgentTokenValidator validator, InstanceConnector instances, ILogger logger)
+    /// <param name="stopping">Cancels activity forwards when the router shuts down. A forward does not
+    /// follow the caller's request: if Agent 365 stops waiting (a cold instance can take longer to start
+    /// than it waits), the instance still gets the whole activity and finishes the turn.</param>
+    public RouterService(RouteTableCache routes, IProvisioningSink queue, AgentTokenValidator validator, InstanceConnector instances, ILogger logger,
+        CancellationToken stopping = default)
     {
         ArgumentNullException.ThrowIfNull(routes);
         ArgumentNullException.ThrowIfNull(queue);
@@ -68,6 +73,7 @@ public sealed class RouterService
         _validator = validator;
         _instances = instances;
         _logger = logger;
+        _stopping = stopping;
         _voice = new VoiceBridge(instances, logger);
     }
 
@@ -221,7 +227,10 @@ public sealed class RouterService
             return;
         }
 
-        using var slot = await _instances.AcquireAsync(context.RequestAborted);
+        // Deliberate deviation from Python (PORTING.md): the forward runs on the router's clock, not the
+        // caller's. Cancelling it when the caller left cut the instance's turn off mid-start, and the
+        // message was lost; now the instance answers within the connector's own timeouts.
+        using var slot = await _instances.AcquireAsync(_stopping);
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(decision.Url + "/activity/messages"))
         {
             Content = new ByteArrayContent(body),
@@ -233,8 +242,14 @@ public sealed class RouterService
 
         // aiohttp sent bytes as application/octet-stream unless the caller's Content-Type was passed on.
         request.Content.Headers.TryAddWithoutValidation("Content-Type", FirstHeader(context, "Content-Type") ?? "application/octet-stream");
-        using var upstream = await _instances.SendAsync(request, context.RequestAborted);
-        var payload = await upstream.Content.ReadAsByteArrayAsync(context.RequestAborted);
+        using var upstream = await _instances.SendAsync(request, _stopping);
+        var payload = await upstream.Content.ReadAsByteArrayAsync(_stopping);
+        if (context.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogWarning("activity delivered after the caller stopped waiting key={Key} status={Status}", decision.Key, (int)upstream.StatusCode);
+            return;
+        }
+
         context.Response.StatusCode = (int)upstream.StatusCode;
         if (payload.Length > 0)
         {

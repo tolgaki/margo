@@ -55,6 +55,9 @@ param voiceEndpointId string = ''
 @description('App ID of the single-page app the voice page signs in with (agent blueprints cannot hold its redirect URI); empty signs in as the blueprint.')
 param voiceClientId string = ''
 
+@description('Token issuers the router and instances accept besides Bot Framework and this tenant\'s Entra issuers, separated by spaces. Leave empty unless the router logs "JWT issuer not accepted" for genuine Agent 365 traffic.')
+param extraTokenIssuers string = ''
+
 @description('The Margo Cloud image pinned by digest, recorded by scripts/postprovision.sh (MARGO_PINNED_IMAGE). Empty on the first provision.')
 param margoImage string = ''
 
@@ -219,6 +222,7 @@ resource router 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'MARGO_PROVISION_QUEUE_URL', value: '${storage.properties.primaryEndpoints.queue}margo-provision' }
             { name: 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID', value: blueprintClientId }
             { name: 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID', value: tenant().tenantId }
+            { name: 'MARGO_EXTRA_TOKEN_ISSUERS', value: extraTokenIssuers }
           ]
         }, routerOnMargo ? { command: [ 'dotnet', '/app/router/Margo.Cloud.Router.dll' ] } : {})
       ]
@@ -249,7 +253,7 @@ var provisionerConfig = {
   extraEnv: concat([
     { name: 'MARGO_PRINCIPAL_ACCESS', value: principalAccess }
     { name: 'MARGO_TIMEZONE', value: timezone }
-  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ], empty(voiceClientId) ? [] : [ { name: 'MARGO_VOICE_CLIENT_ID', value: voiceClientId } ])
+  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ], empty(voiceClientId) ? [] : [ { name: 'MARGO_VOICE_CLIENT_ID', value: voiceClientId } ], empty(extraTokenIssuers) ? [] : [ { name: 'MARGO_EXTRA_TOKEN_ISSUERS', value: extraTokenIssuers } ])
 }
 
 resource provisioner 'Microsoft.App/jobs@2024-03-01' = {

@@ -166,7 +166,7 @@ public static class MargoHost
         services.TryAddSingleton<IJwksSource, HttpJwksSource>();
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton(provider => new JwksClientManager(provider.GetRequiredService<IJwksSource>(), provider.GetRequiredService<TimeProvider>()));
-        services.TryAddSingleton(provider => new AgentTokenValidator(new AgentAuthSettings(settings.ClientId, settings.TenantId),
+        services.TryAddSingleton(provider => new AgentTokenValidator(new AgentAuthSettings(settings.ClientId, settings.TenantId, settings.ExtraIssuers),
             provider.GetRequiredService<JwksClientManager>(), provider.GetRequiredService<ILoggerFactory>().CreateLogger(AuthLogCategory),
             provider.GetRequiredService<TimeProvider>()));
 

@@ -96,6 +96,10 @@ public sealed class ConfigurationTests
         Assert.Equal("America/Los_Angeles", settings.TimeZone);
         Assert.Equal(LogLevel.Information, settings.LogLevel);
         Assert.Equal("Voice.Talk", settings.VoiceScope);
+        Assert.Empty(settings.ExtraIssuers);
+        environment["MARGO_EXTRA_TOKEN_ISSUERS"] = " https://issuer.example.com/  https://other.example.com/ ";
+        Assert.Equal(["https://issuer.example.com/", "https://other.example.com/"], HostSettings.Load(Configuration(environment)).ExtraIssuers);
+        environment.Remove("MARGO_EXTRA_TOKEN_ISSUERS");
 
         environment["VOICE_LIVE_MODEL"] = "fictional-voice-model";
         environment["MARGO_PUBLIC_BASE_URL"] = "https://margo.example.com///";

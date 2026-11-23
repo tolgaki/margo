@@ -38,6 +38,9 @@ internal sealed class FakeInstance : IAsyncDisposable
 
     public ConcurrentQueue<WebSocketCloseStatus?> SocketCloses { get; } = new();
 
+    /// <summary>Slow activities whose turn ran to the end without the request being aborted.</summary>
+    public ConcurrentQueue<string> Finished { get; } = new();
+
     public static async Task<FakeInstance> StartAsync()
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
@@ -91,11 +94,15 @@ internal sealed class FakeInstance : IAsyncDisposable
         }
     }
 
-    private static async Task MessagesAsync(HttpContext context, string body)
+    private async Task MessagesAsync(HttpContext context, string body)
     {
         if (body.Contains("\"slow\"", StringComparison.Ordinal))
         {
             await Task.Delay(TimeSpan.FromSeconds(5), context.RequestAborted).ContinueWith(_ => { }, TaskScheduler.Default);
+            if (!context.RequestAborted.IsCancellationRequested)
+            {
+                Finished.Enqueue("slow");
+            }
         }
 
         if (body.Contains("\"empty\"", StringComparison.Ordinal))

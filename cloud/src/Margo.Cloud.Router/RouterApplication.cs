@@ -1,6 +1,7 @@
 using Margo.Cloud.Router.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Margo.Cloud.Router;
@@ -39,7 +40,8 @@ public static class RouterApplication
         services.AddSingleton<InstanceConnector>();
         services.AddSingleton(provider => new RouterService(provider.GetRequiredService<RouteTableCache>(),
             provider.GetRequiredService<IProvisioningSink>(), provider.GetRequiredService<AgentTokenValidator>(),
-            provider.GetRequiredService<InstanceConnector>(), provider.GetRequiredService<ILoggerFactory>().CreateLogger(LogCategory)));
+            provider.GetRequiredService<InstanceConnector>(), provider.GetRequiredService<ILoggerFactory>().CreateLogger(LogCategory),
+            provider.GetService<IHostApplicationLifetime>()?.ApplicationStopping ?? CancellationToken.None));
         return services;
     }
 

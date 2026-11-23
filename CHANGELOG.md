@@ -8,6 +8,10 @@
   deployment guide's known limits for what is unverified and the hardening still open.
 - Margo Cloud delegation mode reads the manager's mail and calendar directly through the delegation and searches only
   what is shared with Margo; Copilot search of the manager's whole data reports "unavailable".
+- Margo Cloud hardening: the router and instances accept tokens only from Bot Framework and the tenant's own Entra
+  issuers (`MARGO_EXTRA_TOKEN_ISSUERS` admits another); the router finishes forwarding an activity after Agent 365
+  stops waiting, so a cold instance no longer loses the first message; the provisioner may grant an instance's roles
+  only on the resources they apply to and only to service principals other than Margo's own identities.
 - Margo Cloud voice signs in through a separate single-page app (`MARGO_VOICE_CLIENT_ID`), because agent blueprints
   refuse redirect URIs.
 - Separated Margo agent selection from chief-of-staff skill routing: names and greetings no

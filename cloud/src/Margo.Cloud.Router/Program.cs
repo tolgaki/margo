@@ -50,7 +50,7 @@ TokenCredential credential = settings.ManagedIdentityClientId is { } clientId
     : new DefaultAzureCredential();
 var routes = new BlobRouteSource(new BlobClient(new Uri(settings.RoutesUrl), credential));
 var queue = new StorageQueueProvisioningSink(StorageQueueProvisioningSink.CreateClient(new Uri(settings.ProvisionQueueUrl), credential));
-builder.Services.AddMargoRouter(new AgentAuthSettings(settings.ClientId, settings.TenantId), routes, queue, new HttpJwksSource());
+builder.Services.AddMargoRouter(new AgentAuthSettings(settings.ClientId, settings.TenantId, settings.ExtraIssuers), routes, queue, new HttpJwksSource());
 
 var app = builder.Build();
 app.UseMargoRouter();

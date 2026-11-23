@@ -61,11 +61,14 @@ public sealed class StartupTests
         var custom = RouterSettings.Load(Configuration([.. Complete, ("AZURE_CLIENT_ID", ""), ("HOST", "127.0.0.1"), ("PORT", " 9000 "), ("LOG_LEVEL", "debug")]));
         Assert.Equal((null, "127.0.0.1", 9000, LogLevel.Debug), (custom.ManagedIdentityClientId, custom.Host, custom.Port, custom.LogLevel));
         Assert.Throws<RouterStartupException>(() => RouterSettings.Load(Configuration([.. Complete, ("PORT", "http")])));
+        Assert.Empty(settings.ExtraIssuers);
+        Assert.Equal(["https://issuer.example.com/", "https://other.example.com/"],
+            RouterSettings.Load(Configuration([.. Complete, ("MARGO_EXTRA_TOKEN_ISSUERS", " https://issuer.example.com/  https://other.example.com/ ")])).ExtraIssuers);
 
         // The double-underscore names map to these keys; the bicep file sets exactly these variables.
         var bicep = File.ReadAllText(Path.Combine(RepositoryRoot(), "cloud", "infra", "main.bicep"));
         foreach (var name in (string[])["AZURE_CLIENT_ID", "MARGO_ROUTES_URL", "MARGO_PROVISION_QUEUE_URL",
-                     "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID"])
+                     "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID", "MARGO_EXTRA_TOKEN_ISSUERS"])
         {
             Assert.Contains("{ name: '" + name + "'", bicep, StringComparison.Ordinal);
         }

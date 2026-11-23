@@ -153,7 +153,8 @@ unattended) unless the manager approves the exact action.
 
 1. Finish phase 0 with [VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md): mail queueing, voice, restarts and
    state safety, and **Create instance** from the admin center.
-2. Fix what it found: the router's forward must survive the caller giving up (cold starts lose the first message);
-   restrict token issuers to an allowlist; narrow the provisioner's role-assignment condition to instance principals
-   and state containers; document or script removing the Agent 365 CLI's Graph consent.
+2. Confirm live what was fixed after the first run: the issuer allowlist (which issuer Agent 365 uses), the forward
+   that outlives the caller (cold starts), and the provisioner's narrowed role administration (a hire still succeeds).
+   Still open: replace the provisioner's resource-group Contributor with narrower roles, and remove the Agent 365
+   CLI's Graph consent (documented, not scripted).
 3. Then start phase 7 with schedules.

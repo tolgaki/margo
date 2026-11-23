@@ -38,6 +38,13 @@ answers `401 {"error": "Authorization header not found"}`.
 Send any Teams message to the hired Margo (step 3). Expect no `margo.autopilot.auth` warning for it. A warning such as
 `JWT audience not accepted.` or `JWT tenant binding mismatch.` means the blueprint client ID or tenant in the
 environment does not match the platform's token: fix the variables, do not loosen the check.
+`JWT issuer not accepted: <issuer>` (in the router's or the instance's logs) means the platform signs with an issuer
+other than Bot Framework's or your tenant's Entra issuers. Record the issuer. Admit it with `MARGO_EXTRA_TOKEN_ISSUERS`
+only if it is Microsoft's and not another tenant's, and report it so the default list can include it.
+
+Then, with the instance scaled to zero (`az containerapp update -n margo-<key> -g <group> --min-replicas 0`, and wait
+until it has no replicas), send another message. Expect an answer, even if late, and possibly the router's
+`activity delivered after the caller stopped waiting` warning. Record whether Margo answered once or twice.
 
 ## 3. Agentic sign-in and Margo's Work IQ token (manager, one-to-one chat)
 

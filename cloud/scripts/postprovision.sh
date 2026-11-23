@@ -1,7 +1,8 @@
 #!/bin/sh
 # After 'azd provision' (docs/autopilot-deployment.md). Margo is self-hosted for Agent 365: the router
 # is the agent blueprint's messaging endpoint and each hired Margo runs in her own container.
-#   1. roles for the router and the provisioner (by name; the provisioner may grant only four roles);
+#   1. roles for the router and the provisioner (by name; the provisioner may grant only an instance's four roles,
+#      on the resources they apply to, to service principals other than Margo's own identities);
 #   2. build the Margo image, pin it by digest and record it (MARGO_PINNED_IMAGE): the next provision starts the
 #      router on it (main.bicep margoImage) instead of the public placeholder;
 #   3. once the Agent 365 CLI has created the blueprint (MARGO_BLUEPRINT_CLIENT_ID) and this provision started the
@@ -11,7 +12,8 @@
 . "$(dirname -- "$0")/lib.sh"
 need TENANT_ID SUBSCRIPTION_ID RESOURCE_GROUP AZURE_CONTAINER_REGISTRY_ENDPOINT AZURE_CONTAINER_REGISTRY_ID \
   ROUTER_NAME ROUTER_URL MESSAGING_ENDPOINT ROUTER_PRINCIPAL_ID ROUTER_IDENTITY_ID PROVISIONER_NAME \
-  PROVISIONER_PRINCIPAL_ID PROVISIONER_IDENTITY_ID ROUTES_CONTAINER_ID PROVISION_QUEUE_ID
+  PROVISIONER_PRINCIPAL_ID PROVISIONER_IDENTITY_ID ROUTES_CONTAINER_ID PROVISION_QUEUE_ID \
+  STORAGE_ACCOUNT_ID ACCOUNT_ID BLUEPRINT_CREDENTIAL_PRINCIPAL_ID
 
 group_scope="/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
 # The image this provision gave the router (main.bicep margoImage); empty: the router still runs the placeholder, on
@@ -33,15 +35,31 @@ assign_role "$PROVISIONER_PRINCIPAL_ID" "Contributor" "$group_scope"
 assign_role "$PROVISIONER_PRINCIPAL_ID" "Storage Blob Data Contributor" "$ROUTES_CONTAINER_ID"
 assign_role "$PROVISIONER_PRINCIPAL_ID" "Storage Queue Data Message Processor" "$PROVISION_QUEUE_ID"
 assign_role "$PROVISIONER_PRINCIPAL_ID" "AcrPull" "$AZURE_CONTAINER_REGISTRY_ID"
-# It may grant and remove only the four roles an instance needs, nothing else (an ABAC condition).
-roles="$blob_role, $pull_role, $model_role, $speech_role"
-condition="((!(ActionMatches{'Microsoft.Authorization/roleAssignments/write'})) OR (@Request[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {$roles})) AND ((!(ActionMatches{'Microsoft.Authorization/roleAssignments/delete'})) OR (@Resource[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {$roles}))"
-output=$(az role assignment create --assignee-object-id "$PROVISIONER_PRINCIPAL_ID" --assignee-principal-type ServicePrincipal \
-  --role "Role Based Access Control Administrator" --scope "$group_scope" \
-  --condition "$condition" --condition-version "2.0" 2>&1) && say "granted constrained role administration" || case "$output" in
-    *RoleAssignmentExists*|*"already exists"*) say "constrained role administration already granted" ;;
-    *) printf '%s\n' "$output" >&2; die "could not grant constrained role administration" ;;
-  esac
+# Role administration, constrained by ABAC conditions, on each resource an instance needs a role on: the storage
+# account (Storage Blob Data Contributor, on one instance's state container), the registry (AcrPull) and the AI account
+# (the model and Voice Live roles). It may grant those roles only, only to service principals, and never to the
+# router, the provisioner or the blueprint credential, so it cannot widen its own or the router's access or hand state
+# to a person. Removal is limited to the same roles.
+grant_role_administration() { # scope roles label
+  write_check="@Request[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {$2} AND @Request[Microsoft.Authorization/roleAssignments:PrincipalType] StringEqualsIgnoreCase 'ServicePrincipal' AND @Request[Microsoft.Authorization/roleAssignments:PrincipalId] ForAnyOfAllValues:GuidNotEquals {$PROVISIONER_PRINCIPAL_ID, $ROUTER_PRINCIPAL_ID, $BLUEPRINT_CREDENTIAL_PRINCIPAL_ID}"
+  delete_check="@Resource[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {$2}"
+  condition="((!(ActionMatches{'Microsoft.Authorization/roleAssignments/write'})) OR ($write_check)) AND ((!(ActionMatches{'Microsoft.Authorization/roleAssignments/delete'})) OR ($delete_check))"
+  output=$(az role assignment create --assignee-object-id "$PROVISIONER_PRINCIPAL_ID" --assignee-principal-type ServicePrincipal \
+    --role "Role Based Access Control Administrator" --scope "$1" \
+    --condition "$condition" --condition-version "2.0" 2>&1) && say "granted constrained role administration on $3" || case "$output" in
+      *RoleAssignmentExists*|*"already exists"*) say "constrained role administration on $3 already granted" ;;
+      *) printf '%s\n' "$output" >&2; die "could not grant constrained role administration on $3" ;;
+    esac
+}
+grant_role_administration "$STORAGE_ACCOUNT_ID" "$blob_role" "the storage account"
+grant_role_administration "$AZURE_CONTAINER_REGISTRY_ID" "$pull_role" "the registry"
+grant_role_administration "$ACCOUNT_ID" "$model_role, $speech_role" "the AI account"
+# Earlier versions granted it on the whole resource group, for any principal: remove that grant.
+old=$(az role assignment list --assignee "$PROVISIONER_PRINCIPAL_ID" --role "Role Based Access Control Administrator" \
+  --scope "$group_scope" --query "[?scope=='$group_scope'].id" -o tsv 2>/dev/null || true)
+for id in $old; do
+  az role assignment delete --ids "$id" >/dev/null && say "removed the earlier resource-group-wide role administration"
+done
 
 sh "$HERE/build-image.sh"
 MARGO_IMAGE=$(azd env get-value MARGO_IMAGE 2>/dev/null || true)

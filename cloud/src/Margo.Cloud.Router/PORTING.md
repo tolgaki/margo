@@ -69,9 +69,10 @@ request when all of these hold, in this order:
     form; the prefix compared with Python's Unicode `IGNORECASE`, `$` also before a final newline) and
     `tid` is a string, `tid` must be that tenant, ignoring case.
 
-The issuer is not otherwise checked: the SDK's `VALIDATE_ISSUER` was off, so a token signed with the
-Entra or Bot Framework keys for the blueprint's audience is accepted from any issuer string (subject to
-the tenant binding). That is what Python accepted; it is kept and flagged below.
+11. **Issuer allowlist (deliberate deviation, deviation 13).** After the audience, `iss` must be a string equal,
+    ignoring case, to `https://api.botframework.com`, `https://sts.windows.net/<tenant>/`,
+    `https://login.microsoftonline.com/<tenant>/v2.0` (the configured tenant), or one of `MARGO_EXTRA_TOKEN_ISSUERS`;
+    otherwise the token is refused (401, `JWT issuer not accepted: <issuer>` logged, printable ASCII only).
 
 **Why not Microsoft.IdentityModel or the Agents SDK for .NET.** `JsonWebTokenHandler` (and
 `AddJwtBearer`) accept and refuse different tokens: they require `exp` unless told otherwise, treat
@@ -105,7 +106,8 @@ and `...__TENANTID` (both required, checked first: the router exits with
 `the agent blueprint client ID is not set; see docs/autopilot-deployment.md` and status 1),
 `MARGO_ROUTES_URL`, `MARGO_PROVISION_QUEUE_URL`, `AZURE_CLIENT_ID` (a user-assigned managed identity;
 empty or absent means `DefaultAzureCredential`), `HOST` (default `0.0.0.0`), `PORT` (default 8088, the
-ingress target port) and `LOG_LEVEL` (default `INFO`; Python's level names).
+ingress target port) and `LOG_LEVEL` (default `INFO`; Python's level names). New in C#:
+`MARGO_EXTRA_TOKEN_ISSUERS` (default empty; issuers accepted besides the defaults, separated by spaces or commas).
 
 ## Deliberate deviations
 
@@ -192,11 +194,25 @@ ingress target port) and `LOG_LEVEL` (default `INFO`; Python's level names).
     not another gzip member (500; .NET ignores them), decoded concatenated zlib streams (.NET reads the
     first) and refused a deflate stream cut short with a 400 `deflate` (here the cut JSON is a 400 with
     no body).
+13. **Token issuers are allowlisted.** Python accepted a token from any issuer for the blueprint's audience (the SDK's
+    `VALIDATE_ISSUER` was off), with only the tenant binding, which compares a token's `tid` with its own issuer, not
+    with the configured tenant. Entra signs every tenant's tokens with the same keys, so a token from another tenant
+    was refused by its audience alone. Now only Bot Framework (public cloud) and the configured tenant's Entra v1 and
+    v2 issuers are accepted, plus `MARGO_EXTRA_TOKEN_ISSUERS` as a recovery setting. US Government Bot Framework and
+    Entra issuers, which Python accepted, are refused: Margo deploys to the public cloud. The host's copy changes with
+    it.
+14. **The forward does not follow the caller.** Python forwarded on the caller's request: when Agent 365 stopped
+    waiting, aiohttp cancelled the handler, the connection to the instance closed and the instance's turn was cut off.
+    A cold instance (scaled to zero) can take longer to start than the platform waits, so the first message after a
+    quiet spell was lost. The slot, the request and the response now run on the router's lifetime (cancelled only at
+    shutdown) within the connector's own timeouts (10 s to connect, 300 s in total). If the caller has left by then,
+    the router logs `activity delivered after the caller stopped waiting key=<key> status=<status>` (a warning) and
+    writes nothing. A platform retry of the same activity can then reach the instance twice; the instance has no
+    duplicate check for chat turns, so Margo may answer twice rather than not at all.
 
 ## Kept as Python does it, though it may look odd
 
 - A token without `kid` is a 500, not a 401 (see above), even when its audience is wrong but a string.
-- The issuer is not checked against a list; only the tenant binding applies (see above).
 - A failed route table load is retried on the very next request, with no back-off; until the first
   load succeeds the table is empty, so every activity is answered 503 and queued as `first-activity`.
 - A lifecycle or provisioning message that cannot be queued fails the request with 500.
@@ -263,8 +279,9 @@ router are not in the repository (they import the scratch venv); the outcomes ar
 - **Core's `int()`**: `PythonValues.TryParseInt` strips U+001C to U+001F, which Python's `int()` does
   not (`int("\x1f5")` raises `ValueError`; checked on 3.13). This project's copy is corrected; Core's
   owner may want the same fix.
-- **Issuer validation**: Python accepted tokens from any issuer for the blueprint audience (the SDK's
-  `VALIDATE_ISSUER` off). Turning it on is a behaviour change for both implementations, not a port.
+- **Issuer validation** (resolved: deviation 13): Python accepted tokens from any issuer for the blueprint audience.
+  Which issuer Agent 365 uses for agentic activities is not yet confirmed live; a refusal logs it, and
+  `MARGO_EXTRA_TOKEN_ISSUERS` admits it without a new image.
 - **Deployment** (resolved at the cutover: `cloud/Dockerfile`, `main.bicep` runs the C# router): `main.bicep` ran the router with the Python module; a C# image
   needs a different command (for example `dotnet Margo.Cloud.Router.dll`). The environment variables
   and port are unchanged.

@@ -13,7 +13,8 @@ namespace Margo.Cloud.Router.Tests;
 /// Python SDK (the aiohttp adapter's header parsing and <c>_authorize_request</c> with
 /// <c>AgentAuthConfiguration(client_id, tenant_id)</c>, Microsoft 365 Agents SDK 1.10.0.dev6, PyJWT
 /// 2.15.1, a fixed clock and a local key set), except the token minted by Microsoft.IdentityModel,
-/// which is an interoperability check of this port only.
+/// which is an interoperability check of this port only, and the issuer allowlist, a deliberate deviation
+/// (the SDK accepted any issuer; see PORTING.md).
 /// </summary>
 public sealed class TokenValidationTests : IDisposable
 {
@@ -117,12 +118,14 @@ public sealed class TokenValidationTests : IDisposable
             c["iss"] = "https://api.botframework.com";
             c.Remove("tid");
         }));
-        await AssertAccepted(Valid(c =>
+
+        // The key is still chosen by the unverified issuer; the allowlist then refuses what is not ours.
+        await AssertRejected(Valid(c =>
         {
             c["iss"] = "https://api.botframework.us";
             c.Remove("tid");
         }));
-        await AssertAccepted(Valid(c => c["iss"] = "https://issuer.example.com/"));
+        await AssertRejected(Valid(c => c["iss"] = "https://issuer.example.com/"));
         Assert.Equal(["https://login.botframework.com/v1/.well-known/keys", "https://login.botframework.azure.us/v1/.well-known/keys", Tokens.EntraJwksUri],
             _jwks.Fetched);
     }
@@ -208,23 +211,56 @@ public sealed class TokenValidationTests : IDisposable
         await AssertRejected(Valid(c => c["tid"] = Tokens.OtherTenantId));
         await AssertAccepted(Valid(c => c["tid"] = Tokens.TenantId.ToUpperInvariant()));
         await AssertAccepted(Valid(c => c.Remove("tid")));
-        await AssertRejected(Valid(c => c["iss"] = "https://login.microsoftonline.com/" + Tokens.OtherTenantId + "/v2.0"));
-        await AssertRejected(Valid(c => c["iss"] = "https://login.microsoftonline.us/" + Tokens.OtherTenantId + "/v2.0"));
-        await AssertRejected(Valid(c => c["iss"] = "HTTPS://STS.WINDOWS.NET/" + Tokens.OtherTenantId + "/"));
-        await AssertRejected(Valid(c => c["iss"] = "https://ſts.windows.net/" + Tokens.OtherTenantId + "/")); // Python's IGNORECASE: U+017F is s
-        await AssertRejected(Valid(c => c["iss"] = Tokens.V1Issuer(Tokens.OtherTenantId) + "\n")); // "$" before a final newline
+        await AssertAccepted(Valid(c => c["tid"] = 7)); // not a string: not bound
+    }
 
-        // Not recognised, so not bound: a domain tenant, another suffix, a non-string tid.
-        await AssertAccepted(Valid(c => c["iss"] = "https://sts.windows.net/contoso.example.com/"));
-        await AssertAccepted(Valid(c => c["iss"] = "https://sts.windows.net/" + Tokens.OtherTenantId + "/v2.0"));
-        await AssertAccepted(Valid(c => c["tid"] = 7));
-
-        // Any issuer is accepted otherwise (VALIDATE_ISSUER is off in the SDK): another tenant without tid.
+    [Fact]
+    public async Task Only_bot_framework_and_this_tenant_s_entra_issuers_are_accepted()
+    {
+        // Ours: Bot Framework, and this tenant's Entra v1 and v2 issuers (case aside).
         await AssertAccepted(Valid(c =>
+        {
+            c["iss"] = "https://api.botframework.com";
+            c.Remove("tid");
+        }));
+        await AssertAccepted(Valid(c => c["iss"] = "https://login.microsoftonline.com/" + Tokens.TenantId + "/v2.0"));
+        await AssertAccepted(Valid(c => c["iss"] = "HTTPS://STS.WINDOWS.NET/" + Tokens.TenantId.ToUpperInvariant() + "/"));
+
+        // Entra signs every tenant's tokens with the same keys: a token from another tenant, for this blueprint, with or
+        // without a matching tid, was accepted before the allowlist (the SDK's VALIDATE_ISSUER is off).
+        await AssertRejected(Valid(c =>
         {
             c["iss"] = Tokens.V1Issuer(Tokens.OtherTenantId);
             c.Remove("tid");
         }));
+        await AssertRejected(Valid(c =>
+        {
+            c["iss"] = "https://login.microsoftonline.com/" + Tokens.OtherTenantId + "/v2.0";
+            c["tid"] = Tokens.OtherTenantId;
+        }));
+        await AssertRejected(Valid(c => c["iss"] = "https://login.microsoftonline.us/" + Tokens.OtherTenantId + "/v2.0"));
+        await AssertRejected(Valid(c => c["iss"] = "https://ſts.windows.net/" + Tokens.TenantId + "/"));
+        await AssertRejected(Valid(c => c["iss"] = Tokens.V1Issuer() + "\n"));
+        await AssertRejected(Valid(c => c["iss"] = "https://sts.windows.net/contoso.example.com/"));
+        await AssertRejected(Valid(c => c["iss"] = "https://sts.windows.net/" + Tokens.TenantId + "/v2.0"));
+        await AssertRejected(Valid(c => c["iss"] = "https://login.microsoftonline.com/common/v2.0"));
+        await AssertRejected(Valid(c => c["iss"] = 5));
+        await AssertRejected(Valid(c => c.Remove("iss")));
+        Assert.Contains(_logs.Lines, line => line.Contains("JWT issuer not accepted: https://sts.windows.net/" + Tokens.OtherTenantId + "/", StringComparison.Ordinal));
+        Assert.Contains(_logs.Lines, line => line.Contains("JWT issuer not accepted: (unprintable)", StringComparison.Ordinal));
+        Assert.Contains(_logs.Lines, line => line.Contains("JWT issuer not accepted: (none or not a string)", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Configured_extra_issuers_are_accepted_as_well()
+    {
+        var validator = new AgentTokenValidator(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId, [" https://issuer.example.com/ ", ""]),
+            new JwksClientManager(_jwks, _time), _logs.CreateLogger("auth"), _time);
+        var token = Valid(c => c["iss"] = "https://issuer.example.com/");
+        Assert.Equal(200, (await validator.AuthorizeAsync("Bearer " + token, TestContext.Current.CancellationToken)).StatusCode);
+        await AssertRejected(token); // not without the setting
+        Assert.Equal(["https://api.botframework.com", "https://sts.windows.net/" + Tokens.TenantId + "/", "https://login.microsoftonline.com/" + Tokens.TenantId + "/v2.0"],
+            AgentTokenValidator.AcceptedIssuers(new AgentAuthSettings(Tokens.ClientId, " " + Tokens.TenantId.ToUpperInvariant() + " ")));
     }
 
     [Fact]
@@ -274,13 +310,13 @@ public sealed class TokenValidationTests : IDisposable
     {
         // A repeated claim: the last value counts.
         var header = Tokens.B64("{\"alg\": \"RS256\", \"kid\": \"k1\"}");
-        var payload = Tokens.B64("{\"aud\": \"other\", \"aud\": \"" + Tokens.ClientId + "\"}");
+        var payload = Tokens.B64("{\"aud\": \"other\", \"aud\": \"" + Tokens.ClientId + "\", \"iss\": \"" + Tokens.V1Issuer() + "\"}");
         var signature = Tokens.B64(Tokens.Key1.SignData(Encoding.ASCII.GetBytes(header + "." + payload),
             System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.RSASignaturePadding.Pkcs1));
         await AssertAccepted(header + "." + payload + "." + signature);
 
         // UTF-16 with a BOM is JSON to Python's json.loads(bytes).
-        var utf16Payload = Tokens.B64(Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("{\"aud\": \"" + Tokens.ClientId + "\"}")).ToArray());
+        var utf16Payload = Tokens.B64(Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("{\"aud\": \"" + Tokens.ClientId + "\", \"iss\": \"" + Tokens.V1Issuer() + "\"}")).ToArray());
         var utf16Signature = Tokens.B64(Tokens.Key1.SignData(Encoding.ASCII.GetBytes(header + "." + utf16Payload),
             System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.RSASignaturePadding.Pkcs1));
         await AssertAccepted(header + "." + utf16Payload + "." + utf16Signature);

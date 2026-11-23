@@ -99,7 +99,8 @@ must not live only in one session`; `AZURE_OPENAI_ENDPOINT is required (https://
 `jwt_authorization_middleware` with `AgentAuthConfiguration(client_id=<blueprint>, tenant_id=<tenant>)`. That is the
 check `Margo.Cloud.Router` already ports exactly (see its PORTING.md, "The token check": Bot Framework or tenant Entra
 keys, RS256, 300 s leeway, audience equal to the blueprint ignoring case, the tenant binding, the 401 bodies and log
-messages). Its four files and three helpers are copied into `Authentication/` with only the namespace changed (request
+messages), plus the issuer allowlist that both copies add on purpose (the Router's deviation 13; `MARGO_EXTRA_TOKEN_ISSUERS`,
+passed to every instance by the provisioner when set). Its four files and three helpers are copied into `Authentication/` with only the namespace changed (request
 1). The verified claims become the request's `ClaimsIdentity` (Python: `request["claims_identity"]`), which the SDK
 uses to pick the connection (audience) and validate the activity's `serviceUrl` against the token's `serviceurl` claim.
 
