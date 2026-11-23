@@ -43,6 +43,8 @@ say "provisioner: deploy instances into this resource group, keep the route tabl
 assign_role "$PROVISIONER_PRINCIPAL_ID" "Contributor" "$group_scope"
 assign_role "$PROVISIONER_PRINCIPAL_ID" "Storage Blob Data Contributor" "$ROUTES_CONTAINER_ID"
 assign_role "$PROVISIONER_PRINCIPAL_ID" "Storage Queue Data Message Processor" "$PROVISION_QUEUE_ID"
+# redeploy-all and enqueue (scripts/provisioner.sh) add messages, which the Processor role does not allow.
+assign_role "$PROVISIONER_PRINCIPAL_ID" "Storage Queue Data Message Sender" "$PROVISION_QUEUE_ID"
 # The job's queue trigger reads the queue's length with the job's identity (main.bicep eventTriggerConfig).
 assign_role "$PROVISIONER_PRINCIPAL_ID" "Storage Queue Data Reader" "$PROVISION_QUEUE_ID"
 assign_role "$PROVISIONER_PRINCIPAL_ID" "AcrPull" "$AZURE_CONTAINER_REGISTRY_ID"
