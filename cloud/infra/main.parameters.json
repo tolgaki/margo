@@ -28,6 +28,8 @@
     "voiceClientId": { "value": "${MARGO_VOICE_CLIENT_ID=}" },
     "voiceMaxSeconds": { "value": "${MARGO_VOICE_MAX_SECONDS=}" },
     "voiceMaxToolCalls": { "value": "${MARGO_VOICE_MAX_TOOL_CALLS=}" },
-    "extraTokenIssuers": { "value": "${MARGO_EXTRA_TOKEN_ISSUERS=}" }
+    "extraTokenIssuers": { "value": "${MARGO_EXTRA_TOKEN_ISSUERS=}" },
+    "platformAppIds": { "value": "${MARGO_PLATFORM_APP_IDS=}" },
+    "extraServiceHosts": { "value": "${MARGO_EXTRA_SERVICE_HOSTS=}" }
   }
 }

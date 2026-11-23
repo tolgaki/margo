@@ -92,6 +92,12 @@ param speechRoleDefinitionId string = ''
 @description('Token issuers the router and instances accept besides Bot Framework and this tenant\'s Entra issuers, separated by spaces. Leave empty unless the router logs "JWT issuer not accepted" for genuine Agent 365 traffic.')
 param extraTokenIssuers string = ''
 
+@description('Application (client) IDs the router and instances accept platform tokens from, separated by spaces. Empty accepts any application\'s own token for the blueprint, never a signed-in person\'s. Set it once the router has logged "Platform token accepted from application ...".')
+param platformAppIds string = ''
+
+@description('Hosts instances may send replies to besides Microsoft\'s own, separated by spaces. Leave empty unless an instance logs "ServiceUrl host is not in the configured allowed hosts" for genuine Agent 365 traffic.')
+param extraServiceHosts string = ''
+
 @description('The Margo Cloud image pinned by digest, recorded by scripts/postprovision.sh (MARGO_PINNED_IMAGE). Empty on the first provision.')
 param margoImage string = ''
 
@@ -287,6 +293,7 @@ resource router 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID', value: blueprintClientId }
             { name: 'CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID', value: tenant().tenantId }
             { name: 'MARGO_EXTRA_TOKEN_ISSUERS', value: extraTokenIssuers }
+            { name: 'MARGO_PLATFORM_APP_IDS', value: platformAppIds }
           ]
         }, routerOnMargo ? { command: [ 'dotnet', '/app/router/Margo.Cloud.Router.dll' ] } : {})
       ]
@@ -324,7 +331,7 @@ var provisionerConfig = {
   extraEnv: concat([
     { name: 'MARGO_PRINCIPAL_ACCESS', value: principalAccess }
     { name: 'MARGO_TIMEZONE', value: timezone }
-  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ], empty(voiceClientId) ? [] : [ { name: 'MARGO_VOICE_CLIENT_ID', value: voiceClientId } ], empty(extraTokenIssuers) ? [] : [ { name: 'MARGO_EXTRA_TOKEN_ISSUERS', value: extraTokenIssuers } ], empty(voiceMaxSeconds) ? [] : [ { name: 'MARGO_VOICE_MAX_SECONDS', value: voiceMaxSeconds } ], empty(voiceMaxToolCalls) ? [] : [ { name: 'MARGO_VOICE_MAX_TOOL_CALLS', value: voiceMaxToolCalls } ])
+  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ], empty(voiceClientId) ? [] : [ { name: 'MARGO_VOICE_CLIENT_ID', value: voiceClientId } ], empty(extraTokenIssuers) ? [] : [ { name: 'MARGO_EXTRA_TOKEN_ISSUERS', value: extraTokenIssuers } ], empty(voiceMaxSeconds) ? [] : [ { name: 'MARGO_VOICE_MAX_SECONDS', value: voiceMaxSeconds } ], empty(voiceMaxToolCalls) ? [] : [ { name: 'MARGO_VOICE_MAX_TOOL_CALLS', value: voiceMaxToolCalls } ], empty(platformAppIds) ? [] : [ { name: 'MARGO_PLATFORM_APP_IDS', value: platformAppIds } ], empty(extraServiceHosts) ? [] : [ { name: 'MARGO_EXTRA_SERVICE_HOSTS', value: extraServiceHosts } ])
 }
 
 // Started by messages on the provisioning queue (a KEDA azure-queue rule read with the job's own identity, which
