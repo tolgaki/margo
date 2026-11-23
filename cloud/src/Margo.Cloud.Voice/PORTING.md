@@ -166,6 +166,10 @@ handler. Order of the sign-in (review): verify the token, get Margo's own token,
 then exchange the manager's sign-in; Python exchanged before the manager check, so any tenant user's sign-in was
 exchanged for a Work IQ token before being refused.
 
+**No approval in Teams (23 Nov 2026, first live test).** The addendum's "When something needs approval, say exactly
+what you would do and that the approval happens in Teams" sent the manager looking for an approval card that does not
+exist. It now says nothing is approved or sent, by voice or in chat, and that the manager sends the draft themselves.
+
 **Smaller tool results (23 Nov 2026).** A tool result given to the voice model is cut at `VoiceMaxOutputChars` (8,000
 characters), where a chat turn now allows 20,000 and Python allowed 40,000: spoken answers need less, and realtime input
 costs more. The guard gets the orchestrator's `FileHosts`.

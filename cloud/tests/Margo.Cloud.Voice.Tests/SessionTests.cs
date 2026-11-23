@@ -20,7 +20,8 @@ public sealed class SessionConfigurationTests
         Assert.Equal("session.update", PyNode.AsString(update["type"]));
         Assert.StartsWith(library.Persona(), PyNode.AsString(session["instructions"]), StringComparison.Ordinal);
         Assert.Contains("- **decision-log**:", PyNode.AsString(session["instructions"]), StringComparison.Ordinal);
-        Assert.Contains("Nothing is approved or sent by voice", PyNode.AsString(session["instructions"]), StringComparison.Ordinal);
+        Assert.Contains("Nothing is approved or sent, by voice or in chat", PyNode.AsString(session["instructions"]), StringComparison.Ordinal);
+        Assert.DoesNotContain("approval happens in Teams", PyNode.AsString(session["instructions"]), StringComparison.Ordinal);
         var names = ((JsonArray)session["tools"]!).Select(tool => PyNode.AsString(tool!["name"])!).ToHashSet();
         Assert.Superset(new HashSet<string> { "workiq-fetch", "margo-state", "load_skill", "office_requests" }, names);
         Assert.Empty(names.Intersect(["workiq-do_action", "workiq-create_entity", "workiq-delete_entity"]));
@@ -88,7 +89,9 @@ public sealed class SessionConfigurationTests
     [Fact]
     public void Addendum_and_disclosure_are_python_s_text()
     {
-        // voice/session.py's VOICE_ADDENDUM, DISCLOSURE and DEFAULT_VOICE, as they were when the cutover removed it.
+        // voice/session.py's VOICE_ADDENDUM, DISCLOSURE and DEFAULT_VOICE, as they were when the cutover removed it, except
+        // the approval line, reworded on purpose (PORTING.md): "the approval happens in Teams" sent the manager looking
+        // for an approval card that does not exist.
         var python = """
                      # Speaking
 
@@ -98,8 +101,8 @@ public sealed class SessionConfigurationTests
                      - Speak in short sentences. No tables, Markdown, links read aloud or emoji. Say times and dates the
                        way people say them, in your manager's time zone.
                      - Before a lookup that takes time, say in a few words what you are checking.
-                     - Nothing is approved or sent by voice. When something needs approval, say exactly what you would
-                       do and that the approval happens in Teams.
+                     - Nothing is approved or sent, by voice or in chat: this version cannot send anything, and there is no
+                       approval card. Say what the draft is and that your manager sends it themselves.
                      - If you are unsure what you heard, or who is speaking, ask before acting on it.
 
                      """.ReplaceLineEndings("\n");

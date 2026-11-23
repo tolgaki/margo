@@ -28,8 +28,8 @@ public static partial class VoiceSession
         - Speak in short sentences. No tables, Markdown, links read aloud or emoji. Say times and dates the
           way people say them, in your manager's time zone.
         - Before a lookup that takes time, say in a few words what you are checking.
-        - Nothing is approved or sent by voice. When something needs approval, say exactly what you would
-          do and that the approval happens in Teams.
+        - Nothing is approved or sent, by voice or in chat: this version cannot send anything, and there is no
+          approval card. Say what the draft is and that your manager sends it themselves.
         - If you are unsure what you heard, or who is speaking, ask before acting on it.
 
         """;

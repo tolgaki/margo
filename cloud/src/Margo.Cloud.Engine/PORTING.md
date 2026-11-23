@@ -199,6 +199,14 @@ failure of a write as `unknown`, and receipts are all as in Python.
     documented and written as safe for concurrent calls (read on 23 Nov 2026); when the budget runs out inside such
     a group, which of its calls are refused depends on timing (the count never exceeds the budget). Receipts of a
     group may be recorded in any order. `MaxParallelReads = 1` is Python's order.
+17. **No approval card that does not exist, and no guessed addresses (23 Nov 2026, first live test).** The write
+    reason in `NotHosted` was Python's "outward actions arrive with approval cards; until then Margo drafts and the
+    manager sends". Live, the model read it as an approval card the manager could find in Teams: it told the manager
+    to approve the send there, and searched its queue for the card. It now says plainly that this version cannot send
+    and that there is no approval card or other way to approve, in Teams, in chat or by voice. The hosted addendum also
+    says never to invent, complete or correct an email address, name or identifier (live, the model added an underscore
+    to an address and wrote a different domain). Tests compare the recorded Python text after the same edits
+    (`Fixtures.Reworded`, `Fixtures.MovedTime`).
 
 ## Delegation-mode instructions (21 Nov 2026)
 

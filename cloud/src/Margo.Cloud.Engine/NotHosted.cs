@@ -10,7 +10,15 @@ namespace Margo.Cloud.Engine;
 /// </summary>
 public static class NotHosted
 {
-    private const string WriteReason = "outward actions arrive with approval cards; until then Margo drafts and the manager sends";
+    /// <summary>Why every Work IQ write is unavailable. Python said "outward actions arrive with approval cards; until then
+    /// Margo drafts and the manager sends": live, the model read that as an approval card the manager could find in
+    /// Teams, and sent them looking for it (deliberate deviation, PORTING.md).</summary>
+    public const string WriteReason = "this version cannot send, reply, forward, post, accept, decline, delete or change anything, "
+                                      + "and there is no approval card or any other way to approve such an action, in Teams, in chat "
+                                      + "or by voice; give your manager the draft to send themselves";
+
+    /// <summary>The Python reason, for comparing recorded answers.</summary>
+    public const string PythonWriteReason = "outward actions arrive with approval cards; until then Margo drafts and the manager sends";
 
     /// <summary>
     /// <c>NOT_HOSTED_PROGRAMS</c>: programs the procedures run in a desktop shell. Hosted Margo has no shell; each

@@ -372,14 +372,15 @@ public sealed partial class ParityTests
             Assert.Equal(Fixtures.Dumps(python["function_tools"]![mode]), Fixtures.Dumps(EngineTools.FunctionTools(mode)));
         }
 
-        Assert.Equal(PyNode.AsString(python["summary"]), NotHosted.Summary());
+        // The write reason is reworded on purpose (PORTING.md): compared after the same edit.
+        Assert.Equal(Fixtures.Reworded(PyNode.AsString(python["summary"])!), NotHosted.Summary());
         var notHosted = new JsonObject
         {
             ["programs"] = Dict(NotHosted.Programs),
             ["scripts"] = Dict(NotHosted.Scripts),
             ["workiq"] = Dict(NotHosted.WorkIQ),
         };
-        Assert.Equal(Fixtures.Dumps(python["not_hosted"]), Fixtures.Dumps(notHosted));
+        Assert.Equal(Fixtures.Reworded(Fixtures.Dumps(python["not_hosted"])), Fixtures.Dumps(notHosted));
         // Two recorded values differ on purpose (PORTING.md, deviations 12 and 15): the addendum no longer holds the
         // time and names the trust marker (compared after the same edit), and the tool output limit is configurable
         // (Python's 40000 is kept as PythonMaxOutputChars for the recorded clips below).
