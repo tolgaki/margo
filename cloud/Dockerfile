@@ -6,22 +6,38 @@
 #   az acr build --registry REGISTRY --image margo-cloud:TAG --file cloud/Dockerfile .
 #   docker build --file cloud/Dockerfile --tag margo-cloud:dev .
 
+# The project files alone, with their folders, so the restore layer below is rebuilt only when a dependency changes.
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS projects
+WORKDIR /src/cloud
+COPY cloud/src/ src/
+RUN find src -type f ! -name '*.csproj' -delete
+
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src/cloud
 # Only what the four applications need: shared build settings, the sources and the instance template the provisioner
 # carries. No tests, contracts or state.
+# Published for the runtime image below and nothing else: Alpine (musl) on x64, framework-dependent, compiled ahead
+# of time (ReadyToRun) so a container scaled from zero starts faster, and without other platforms' native libraries
+# (the checks below refuse a runtimes/ folder). The restore is a layer of its own.
 COPY cloud/global.json cloud/nuget.config cloud/Directory.Build.props cloud/Directory.Packages.props ./
+COPY --from=projects /src/cloud/src/ src/
+RUN for app in Host StateCli Router Provisioner; do \
+      dotnet restore src/Margo.Cloud.$app/Margo.Cloud.$app.csproj -r linux-musl-x64 -p:Configuration=Release -p:PublishReadyToRun=true || exit 1; \
+    done
 COPY cloud/src/ src/
 COPY cloud/infra/instance.json infra/instance.json
 # Release never includes the contract probes (Margo.Cloud.State.Probes runs arbitrary SQL); the host's build fails if
 # it would, and the check below refuses the image if any probe assembly reached an output.
-RUN dotnet publish src/Margo.Cloud.Host/Margo.Cloud.Host.csproj -c Release -o /out/host \
- && dotnet publish src/Margo.Cloud.StateCli/Margo.Cloud.StateCli.csproj -c Release -o /out/host \
- && dotnet publish src/Margo.Cloud.Router/Margo.Cloud.Router.csproj -c Release -o /out/router \
- && dotnet publish src/Margo.Cloud.Provisioner/Margo.Cloud.Provisioner.csproj -c Release -o /out/provisioner \
+RUN publish="-c Release -r linux-musl-x64 --self-contained false -p:PublishReadyToRun=true --no-restore" \
+ && dotnet publish src/Margo.Cloud.Host/Margo.Cloud.Host.csproj $publish -o /out/host \
+ && dotnet publish src/Margo.Cloud.StateCli/Margo.Cloud.StateCli.csproj $publish -o /out/host \
+ && dotnet publish src/Margo.Cloud.Router/Margo.Cloud.Router.csproj $publish -o /out/router \
+ && dotnet publish src/Margo.Cloud.Provisioner/Margo.Cloud.Provisioner.csproj $publish -o /out/provisioner \
  && test -f /out/host/Margo.Cloud.Host.dll && test -f /out/host/margo-state.dll \
  && test -f /out/host/margo-state.runtimeconfig.json && test -f /out/router/Margo.Cloud.Router.dll \
  && test -f /out/provisioner/Margo.Cloud.Provisioner.dll && test -f /out/provisioner/instance.json \
+ && test -f /out/host/libe_sqlite3.so \
+ && if find /out -type d -name runtimes | grep .; then echo 'native libraries for other platforms must not ship' >&2; exit 1; fi \
  && if find /out -iname '*Probes*' | grep .; then echo 'contract probes must not ship' >&2; exit 1; fi
 
 # The smallest ASP.NET Core runtime image that works: Alpine, plus tzdata for the IANA zones the persona's time,

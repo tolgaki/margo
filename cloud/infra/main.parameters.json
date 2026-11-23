@@ -6,8 +6,19 @@
     "location": { "value": "${AZURE_LOCATION}" },
     "modelName": { "value": "${MARGO_MODEL_NAME=gpt-5-mini}" },
     "modelVersion": { "value": "${MARGO_MODEL_VERSION=2025-08-07}" },
+    "modelSku": { "value": "${MARGO_MODEL_SKU=GlobalStandard}" },
+    "modelCapacity": { "value": "${MARGO_MODEL_CAPACITY=100}" },
     "blueprintClientId": { "value": "${MARGO_BLUEPRINT_CLIENT_ID=}" },
     "margoImage": { "value": "${MARGO_PINNED_IMAGE=}" },
+    "storageRoleDefinitionId": { "value": "${MARGO_STORAGE_ROLE_ID=}" },
+    "pullRoleDefinitionId": { "value": "${MARGO_PULL_ROLE_ID=}" },
+    "modelRoleDefinitionId": { "value": "${MARGO_MODEL_ROLE_ID=}" },
+    "speechRoleDefinitionId": { "value": "${MARGO_SPEECH_ROLE_ID=}" },
+    "instanceMinReplicas": { "value": "${MARGO_INSTANCE_MIN_REPLICAS=0}" },
+    "maxInstances": { "value": "${MARGO_MAX_INSTANCES=50}" },
+    "stateVersionRetentionDays": { "value": "${MARGO_STATE_VERSION_RETENTION_DAYS=30}" },
+    "logRetentionDays": { "value": "${MARGO_LOG_RETENTION_DAYS=30}" },
+    "logDailyQuotaGb": { "value": "${MARGO_LOG_DAILY_QUOTA_GB=1}" },
     "principalAccess": { "value": "${MARGO_PRINCIPAL_ACCESS=obo}" },
     "principalAuthHandler": { "value": "${PRINCIPAL_AUTH_HANDLER=}" },
     "timezone": { "value": "${MARGO_TIMEZONE=America/Los_Angeles}" },
@@ -15,6 +26,8 @@
     "voiceName": { "value": "${MARGO_VOICE_NAME=}" },
     "voiceEndpointId": { "value": "${MARGO_VOICE_ENDPOINT_ID=}" },
     "voiceClientId": { "value": "${MARGO_VOICE_CLIENT_ID=}" },
+    "voiceMaxSeconds": { "value": "${MARGO_VOICE_MAX_SECONDS=}" },
+    "voiceMaxToolCalls": { "value": "${MARGO_VOICE_MAX_TOOL_CALLS=}" },
     "extraTokenIssuers": { "value": "${MARGO_EXTRA_TOKEN_ISSUERS=}" }
   }
 }

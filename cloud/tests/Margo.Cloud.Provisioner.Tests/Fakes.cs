@@ -30,8 +30,9 @@ internal static class Fixtures
     }
 
     /// <summary>Python's <c>json.dumps({"action": ..., "agent_identity_id": ..., "agent_user_id": ...})</c>.</summary>
-    public static string Message(string action, string identity = Identity, string user = User, bool redeploy = false) =>
+    public static string Message(string action, string identity = Identity, string user = User, bool redeploy = false, string? @event = null) =>
         "{\"action\": \"" + action + "\", \"agent_identity_id\": \"" + identity + "\", \"agent_user_id\": \"" + user + "\""
+        + (@event is null ? string.Empty : ", \"event\": \"" + @event + "\"")
         + (redeploy ? ", \"redeploy\": true" : string.Empty) + "}";
 
     public static string Lf(string text) => text.ReplaceLineEndings("\n");
@@ -53,6 +54,12 @@ internal sealed class FakeClock(DateTimeOffset now) : TimeProvider
 /// fail deployments and simulate conflicting writers.</summary>
 internal sealed class FakeCloud(string? fail = null) : ICloud
 {
+    /// <summary>The call that fails ("deploy", "delete_app" or "delete_identity"); tests can clear it.</summary>
+    public string? Fail { get; set; } = fail;
+
+    /// <summary>Runs inside each deployment, as the minutes a real one takes.</summary>
+    public Action? OnDeploy { get; set; }
+
     public string Text { get; set; } = string.Empty;
 
     public string? ETag { get; set; }
@@ -73,7 +80,8 @@ internal sealed class FakeCloud(string? fail = null) : ICloud
     {
         Calls.Add(("deploy", name));
         Deployments.Add((template, parameters));
-        if (fail == "deploy")
+        OnDeploy?.Invoke();
+        if (Fail == "deploy")
         {
             throw new InvalidOperationException("deployment failed");
         }
@@ -84,13 +92,13 @@ internal sealed class FakeCloud(string? fail = null) : ICloud
     public Task DeleteAppAsync(string name, CancellationToken cancellationToken)
     {
         Calls.Add(("delete_app", name));
-        return fail == "delete_app" ? throw new TimeoutException("delete timed out") : Task.CompletedTask;
+        return Fail == "delete_app" ? throw new TimeoutException("delete timed out") : Task.CompletedTask;
     }
 
     public Task DeleteIdentityAsync(string name, CancellationToken cancellationToken)
     {
         Calls.Add(("delete_identity", name));
-        return Task.CompletedTask;
+        return Fail == "delete_identity" ? throw new TimeoutException("delete timed out") : Task.CompletedTask;
     }
 
     public Task<RouteBlob> LoadRoutesAsync(CancellationToken cancellationToken)
@@ -134,6 +142,8 @@ internal sealed class FakeQueue(FakeClock clock) : IProvisioningQueueClient
 
         public DateTimeOffset VisibleAt { get; set; }
 
+        public DateTimeOffset InsertedOn { get; set; }
+
         public string? Receipt { get; set; }
     }
 
@@ -152,7 +162,7 @@ internal sealed class FakeQueue(FakeClock clock) : IProvisioningQueueClient
     public string Add(string text)
     {
         var id = "m" + _next++;
-        _items.Add(new Item(id, text) { VisibleAt = clock.Now });
+        _items.Add(new Item(id, text) { VisibleAt = clock.Now, InsertedOn = clock.Now });
         return id;
     }
 
@@ -169,20 +179,28 @@ internal sealed class FakeQueue(FakeClock clock) : IProvisioningQueueClient
             item.DequeueCount++;
             item.VisibleAt = clock.Now + visibilityTimeout;
             item.Receipt = "receipt-" + item.Id + "-" + item.DequeueCount;
-            page.Add(new QueuedMessage(item.Id, item.Receipt, item.Text, item.DequeueCount));
+            page.Add(new QueuedMessage(item.Id, item.Receipt, item.Text, item.DequeueCount, item.InsertedOn));
         }
 
         return Task.FromResult<IReadOnlyList<QueuedMessage>>(page);
     }
 
-    public Task DeleteAsync(QueuedMessage message, CancellationToken cancellationToken)
+    /// <summary>As Queue Storage: a delete needs the receipt of the latest receive, and the message must still be hidden.</summary>
+    public Task<bool> DeleteAsync(QueuedMessage message, CancellationToken cancellationToken)
     {
-        var item = _items.SingleOrDefault(item => item.Id == message.MessageId && item.Receipt == message.PopReceipt)
-            ?? throw new InvalidOperationException("message not found or pop receipt changed");
+        var item = _items.SingleOrDefault(item => item.Id == message.MessageId && item.Receipt == message.PopReceipt && item.VisibleAt > clock.Now);
+        if (item is null)
+        {
+            StaleDeletes++;
+            return Task.FromResult(false);
+        }
+
         _items.Remove(item);
         Deleted.Add(message.MessageId);
-        return Task.CompletedTask;
+        return Task.FromResult(true);
     }
+
+    public int StaleDeletes { get; private set; }
 
     public Task SendAsync(string text, CancellationToken cancellationToken)
     {

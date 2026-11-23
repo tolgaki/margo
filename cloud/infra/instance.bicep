@@ -172,11 +172,13 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
           env: concat(baseEnv, extraEnv)
           probes: [
             { type: 'Liveness', httpGet: { path: '/liveness', port: 8088 }, periodSeconds: 30 }
-            { type: 'Readiness', httpGet: { path: '/readiness', port: 8088 }, periodSeconds: 10 }
+            { type: 'Readiness', httpGet: { path: '/readiness', port: 8088 }, periodSeconds: 30 }
           ]
         }
       ]
       scale: { minReplicas: minReplicas, maxReplicas: 1 }
+      // A turn in flight when the replica is scaled in or replaced by a new revision gets up to ten minutes to finish.
+      terminationGracePeriodSeconds: 600
     }
   }
   dependsOn: [ stateRole, pullRole ]

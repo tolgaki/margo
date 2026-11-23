@@ -218,16 +218,34 @@ public static class Instances
 
     /// <summary>The ordered, idempotent steps for one provisioning message, given the current route.</summary>
     /// <remarks>Storage is never deleted here: a retired instance's state is kept until an operator
-    /// deletes it after the retention period.</remarks>
-    public static IReadOnlyList<string> Plan(ProvisioningMessage message, RouteEntry? current)
+    /// deletes it after the retention period. Two rules are not in the Python plan (PORTING.md):
+    /// an <c>ensure</c> caused by an ordinary activity never starts a suspended or retired instance
+    /// (<see cref="IsStoppedForActivity"/>), and a retirement whose removal did not finish
+    /// (<see cref="IsRemovalPending"/>, or <paramref name="retried"/>) is planned again.</remarks>
+    /// <param name="message">The validated message.</param>
+    /// <param name="current">The instance's route, or <see langword="null"/>.</param>
+    /// <param name="retried">The message was received before (its dequeue count is above 1), so an
+    /// earlier attempt may have stopped after recording <c>retired</c> and before removing the app.</param>
+    public static IReadOnlyList<string> Plan(ProvisioningMessage message, RouteEntry? current, bool retried = false)
     {
         ArgumentNullException.ThrowIfNull(message);
-        return Plan(message.Action, message.Redeploy, current?.State);
+        if (IsStoppedForActivity(message, current))
+        {
+            return [];
+        }
+
+        return Plan(message.Action, message.Redeploy, current?.State, IsRemovalPending(current) || (retried && current?.State == RouteStates.Retired));
     }
 
     /// <summary>The plan for an action and the current route state (<see langword="null"/> when there
     /// is no route). Any action other than ensure and suspend is planned as a retirement, as in Python.</summary>
-    public static IReadOnlyList<string> Plan(string action, bool redeploy, string? currentState)
+    /// <param name="action">One of <see cref="ProvisioningActions"/>.</param>
+    /// <param name="redeploy">An ensure that redeploys even a ready instance.</param>
+    /// <param name="currentState">The route's state, or <see langword="null"/>.</param>
+    /// <param name="removalPending">The route is <c>retired</c> but its app or identity may still exist:
+    /// a retirement removes them, then records <c>retired</c> again (which clears the error), instead
+    /// of doing nothing.</param>
+    public static IReadOnlyList<string> Plan(string action, bool redeploy, string? currentState, bool removalPending = false)
     {
         if (action == ProvisioningActions.Ensure)
         {
@@ -241,10 +259,34 @@ public static class Instances
             return currentState is null or RouteStates.Suspended or RouteStates.Retired ? [] : [PlanSteps.RouteSuspended];
         }
 
-        return currentState is null or RouteStates.Retired
-            ? []
+        if (currentState is null || (currentState == RouteStates.Retired && !removalPending))
+        {
+            return [];
+        }
+
+        // The route is retired first, so the router stops delivering at once. When it already is, the
+        // record that the removal is pending (the route's error) is cleared only after the removal.
+        return currentState == RouteStates.Retired
+            ? [PlanSteps.DeleteApp, PlanSteps.DeleteIdentity, PlanSteps.RouteRetired]
             : [PlanSteps.RouteRetired, PlanSteps.DeleteApp, PlanSteps.DeleteIdentity];
     }
+
+    /// <summary>Whether <paramref name="message"/> is an <c>ensure</c> the router queued for an ordinary
+    /// activity (<see cref="ProvisioningEvents.IsActivity"/>) while the instance is suspended or
+    /// retired. Only a lifecycle notification or an operator starts such an instance again: a router
+    /// replica that read an empty or stale route table must not resurrect a disabled agent.</summary>
+    public static bool IsStoppedForActivity(ProvisioningMessage message, RouteEntry? current)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        return message.Action == ProvisioningActions.Ensure && ProvisioningEvents.IsActivity(message.Event)
+            && current?.State is RouteStates.Suspended or RouteStates.Retired;
+    }
+
+    /// <summary>Whether the route records a retirement whose removal failed: the state is
+    /// <c>retired</c> (so the router ignores the instance) and <c>error</c> says why its app or
+    /// identity may still exist.</summary>
+    public static bool IsRemovalPending(RouteEntry? current) =>
+        current?.State == RouteStates.Retired && !string.IsNullOrEmpty(current.Error);
 
     /// <summary>ARM parameters for <c>cloud/infra/instance.json</c>: one instance, from provisioner config.</summary>
     public static JsonObject DeploymentParameters(string key, ProvisioningMessage message, JsonObject config)

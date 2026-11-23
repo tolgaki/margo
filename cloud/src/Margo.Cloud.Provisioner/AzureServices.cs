@@ -1,3 +1,4 @@
+using Azure;
 using Azure.Core;
 using Azure.Core.Pipeline;
 using Azure.Identity;
@@ -34,15 +35,26 @@ public sealed class AzureProvisioningQueueClient : IProvisioningQueueClient
     {
         var page = await _queue.ReceiveMessagesAsync(maxMessages, visibilityTimeout, cancellationToken).ConfigureAwait(false);
         return page.Value
-            .Select(message => new QueuedMessage(message.MessageId, message.PopReceipt, message.Body?.ToString() ?? string.Empty, message.DequeueCount))
+            .Select(message => new QueuedMessage(message.MessageId, message.PopReceipt, message.Body?.ToString() ?? string.Empty, message.DequeueCount, message.InsertedOn))
             .ToList();
     }
 
     /// <inheritdoc/>
-    public async Task DeleteAsync(QueuedMessage message, CancellationToken cancellationToken)
+    /// <remarks>Queue Storage answers 404 <c>MessageNotFound</c> for a message that is gone and for a
+    /// pop receipt that no longer matches (the message was received again), and 400
+    /// <c>PopReceiptMismatch</c> for a receipt of another message.</remarks>
+    public async Task<bool> DeleteAsync(QueuedMessage message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
-        await _queue.DeleteMessageAsync(message.MessageId, message.PopReceipt, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await _queue.DeleteMessageAsync(message.MessageId, message.PopReceipt, cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (RequestFailedException exc) when (exc.ErrorCode is "MessageNotFound" or "PopReceiptMismatch")
+        {
+            return false;
+        }
     }
 
     /// <inheritdoc/>

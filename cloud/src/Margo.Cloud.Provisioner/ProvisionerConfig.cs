@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
 using Margo.Cloud.Core;
@@ -23,6 +24,10 @@ public static class ProvisionerConfig
 
     /// <summary>The managed identity to sign in with; <c>DefaultAzureCredential</c> when unset or empty.</summary>
     public const string ClientIdVariable = "AZURE_CLIENT_ID";
+
+    /// <summary>The most instances that may hold resources at once (<c>main.bicep</c> <c>maxInstances</c>);
+    /// <see cref="Provisioner.DefaultMaxInstances"/> when unset or empty.</summary>
+    public const string MaxInstancesVariable = "MARGO_MAX_INSTANCES";
 
     /// <summary>The file name of the template copied next to the binary at build time.</summary>
     public const string TemplateFileName = "instance.json";
@@ -73,6 +78,23 @@ public static class ProvisionerConfig
         }
 
         return config;
+    }
+
+    /// <summary>The instance cap from <see cref="MaxInstancesVariable"/>.</summary>
+    /// <exception cref="InvalidOperationException">The value is not a whole number of at least 1: the
+    /// job stops instead of running without a cap.</exception>
+    public static int MaxInstances(Func<string, string?> environment)
+    {
+        ArgumentNullException.ThrowIfNull(environment);
+        var text = environment(MaxInstancesVariable);
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Provisioner.DefaultMaxInstances;
+        }
+
+        return int.TryParse(text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var value) && value >= 1
+            ? value
+            : throw new InvalidOperationException(MaxInstancesVariable + " must be a whole number of at least 1");
     }
 
     /// <summary>The instance template: the file named by <see cref="TemplateVariable"/> when it is set

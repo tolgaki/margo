@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.49.2.45890",
-      "templateHash": "3182030150324500282"
+      "templateHash": "15124072484906126420"
     }
   },
   "parameters": {
@@ -285,7 +285,7 @@
                     "path": "/readiness",
                     "port": 8088
                   },
-                  "periodSeconds": 10
+                  "periodSeconds": 30
                 }
               ]
             }
@@ -293,7 +293,8 @@
           "scale": {
             "minReplicas": "[parameters('minReplicas')]",
             "maxReplicas": 1
-          }
+          },
+          "terminationGracePeriodSeconds": 600
         }
       },
       "dependsOn": [

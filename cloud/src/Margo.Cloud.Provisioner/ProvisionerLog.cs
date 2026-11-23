@@ -25,10 +25,15 @@ public sealed class ProvisionerLog
 
     /// <summary>One INFO line. Python's default <c>asctime</c> is <c>%Y-%m-%d %H:%M:%S</c> in local
     /// time plus <c>,</c> and the truncated milliseconds.</summary>
-    public void Info(string message)
+    public void Info(string message) => Write("INFO", message);
+
+    /// <summary>One ERROR line, for what an operator must act on (Python's <c>log.error</c> format).</summary>
+    public void Error(string message) => Write("ERROR", message);
+
+    private void Write(string level, string message)
     {
         var now = _time.GetLocalNow();
-        _writer.Write(now.ToString("yyyy-MM-dd HH:mm:ss,fff", CultureInfo.InvariantCulture) + " INFO " + LoggerName + " | " + message + "\n");
+        _writer.Write(now.ToString("yyyy-MM-dd HH:mm:ss,fff", CultureInfo.InvariantCulture) + " " + level + " " + LoggerName + " | " + message + "\n");
         _writer.Flush();
     }
 }

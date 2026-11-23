@@ -133,6 +133,15 @@ shapes). The C# output is compared to them exactly.
     path; the entity loop covers what the product-info getter would find, so `ProductInfoId` is
     left empty there); `Instances.Plan(action, redeploy, state)`; `CheckMessage(ProvisioningMessage)`
     for operator enqueues.
+12. **Plans that Python did not have (reviewed safety changes, see the provisioner's PORTING.md 11 and 12).**
+    `Instances.Plan(message, current, retried)` returns no steps for an `ensure` whose `event` is
+    `first-activity` or `retry-after-failure` (`ProvisioningEvents`) when the route is `suspended` or `retired`
+    (`IsStoppedForActivity`): an ordinary activity never starts a stopped instance. A route that is `retired` with
+    an `error` records a retirement whose removal failed (`IsRemovalPending`); a retirement of such a route, or of
+    a `retired` route when the message was received before (`retried`), is planned as `delete_app`,
+    `delete_identity`, `route_retired` instead of nothing. `Plan(action, redeploy, state, removalPending)` with the
+    default `removalPending: false` is Python's plan, unchanged. The route table format is unchanged: `retired`
+    with `error` uses fields both existed already, and the router treats it as any retired route.
 
 Kept as Python does it, though it may look odd: Python 3.13 limits int/text conversion to 4300
 digits (`sys.get_int_max_str_digits()`), so `PythonJson.Loads` refuses a longer int literal (a
@@ -209,4 +218,6 @@ The Python hosted runtime was removed in the Phase 6 cutover. It was the specifi
 port; the C# code is now the implementation of record, and the desktop state helpers in
 `skills/chief-of-staff/scripts/` stay the specification of the state commands (`tools/state_parity.py`).
 
-- The infrastructure moved to `cloud/infra/`; `PlanTests` reads it there.
+- The infrastructure moved to `cloud/infra/`; `PlanTests` reads it there, and compares the compiled
+  `instance.json` with `instance.bicep` beyond parameter names: resources and API versions, each role's scope
+  and definition, environment names, probes, the container, ingress, scale and identities.

@@ -67,7 +67,7 @@ class Deployment(unittest.TestCase):
         self.assertIn(["dotnet", "/app/host/Margo.Cloud.Host.dll"], [c.get("command") for c in containers])
         for app in ("host/Margo.Cloud.Host", "router/Margo.Cloud.Router", "provisioner/Margo.Cloud.Provisioner"):
             name = app.split("/")[1]
-            self.assertRegex(dockerfile, r"dotnet publish src/%s/%s\.csproj -c Release -o /out/%s\b"
+            self.assertRegex(dockerfile, r"dotnet publish src/%s/%s\.csproj \$publish -o /out/%s\b"
                              % (re.escape(name), re.escape(name), app.split("/")[0]))
         self.assertIn('CMD ["dotnet", "/app/host/Margo.Cloud.Host.dll"]', dockerfile)
         self.assertIn("EXPOSE 8088", dockerfile)
@@ -102,6 +102,172 @@ class Deployment(unittest.TestCase):
         guard = script.index('if [ -z "$deployed_image" ]')
         self.assertLess(script.index('deployed_image=${MARGO_PINNED_IMAGE:-}'), guard)
         self.assertLess(guard, switch)
+
+    def test_the_image_is_published_for_its_runtime_only(self):
+        # The runtime image is Alpine on x64. Publishing for that runtime, framework-dependent and ReadyToRun, starts a
+        # container scaled from zero faster and leaves out the SQLite natives of every other platform (runtimes/).
+        dockerfile = read("Dockerfile")
+        self.assertIn("FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine", dockerfile)
+        publish = re.search(r'publish="([^"]+)"', dockerfile).group(1)
+        self.assertEqual(publish, "-c Release -r linux-musl-x64 --self-contained false -p:PublishReadyToRun=true --no-restore")
+        self.assertEqual(len(re.findall(r"dotnet publish \S+ \$publish -o /out/", dockerfile)), 4)
+        self.assertNotRegex(dockerfile, r"dotnet publish (?!\S+ \$publish )")
+        # The restore is a layer of its own, from the project files alone, for the same runtime and configuration
+        # (Release: the Debug configuration would restore the contract probes).
+        restore = dockerfile.index("dotnet restore")
+        self.assertLess(dockerfile.index("COPY --from=projects /src/cloud/src/ src/"), restore)
+        self.assertLess(restore, dockerfile.index("\nCOPY cloud/src/ src/\nCOPY cloud/infra/instance.json"))
+        self.assertIn("for app in Host StateCli Router Provisioner; do", dockerfile)
+        self.assertIn("-r linux-musl-x64 -p:Configuration=Release -p:PublishReadyToRun=true", dockerfile)
+        self.assertIn("RUN find src -type f ! -name '*.csproj' -delete", dockerfile)
+        # The image is refused if another platform's natives, or the contract probes, reached an output.
+        self.assertIn("find /out -type d -name runtimes | grep .", dockerfile)
+        self.assertIn("find /out -iname '*Probes*' | grep .", dockerfile)
+        self.assertIn("test -f /out/host/libe_sqlite3.so", dockerfile)
+
+    def test_the_provisioner_job_keeps_its_image_and_settings_across_provisions(self):
+        # The job used to be reset to the public placeholder by every `azd provision`, without its registry, image or
+        # role IDs; only the end of postprovision.sh restored them, so a hook that stopped early (an uncommitted change,
+        # a failed build) silently stopped hires, suspensions and retirements. It now follows the router.
+        main = read("infra", "main.bicep")
+        job = main[main.index("resource provisioner "):main.index("output ")]
+        config = main[main.index("var provisionerConfig = {"):main.index("resource provisioner ")]
+        self.assertIn("image: routerOnMargo ? margoImage : placeholderImage", job)
+        self.assertIn("registries: routerOnMargo ? [ { server: registry.properties.loginServer, identity: provisionerIdentity.id } ] : []",
+                      job)
+        self.assertIn("routerOnMargo ? { command: [ 'dotnet', '/app/provisioner/Margo.Cloud.Provisioner.dll', 'run' ] } : {}", job)
+        self.assertNotRegex(job, r"(?m)^\s*command:", "the placeholder image has no dotnet: the command must depend on routerOnMargo")
+        self.assertNotRegex(job, r"(?m)^\s*image: placeholderImage")
+        # What it deploys: the pinned image and the four role IDs, as deployment values.
+        self.assertIn("  image: margoImage\n", config)
+        parameters = json.loads(read("infra", "main.parameters.json"))["parameters"]
+        script = read("scripts", "postprovision.sh")
+        for name, variable in (("storageRoleDefinitionId", "MARGO_STORAGE_ROLE_ID"), ("pullRoleDefinitionId", "MARGO_PULL_ROLE_ID"),
+                               ("modelRoleDefinitionId", "MARGO_MODEL_ROLE_ID"), ("speechRoleDefinitionId", "MARGO_SPEECH_ROLE_ID")):
+            self.assertIn("  %s: %s\n" % (name, name), config)
+            self.assertRegex(main, r"(?m)^param %s string = ''$" % name)
+            self.assertEqual(parameters[name], {"value": "${%s=}" % variable})
+            # Recorded before the image build, the step that stops on an uncommitted change.
+            self.assertLess(script.index("azd env set %s " % variable), script.index('sh "$HERE/build-image.sh"'))
+        # No role-definition GUID lives in the repository (tools/check-clean.sh refuses GUIDs): they are looked up by name.
+        self.assertNotRegex(main, r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+        # Started by the queue, one execution at a time, never on a timer: on the placeholder nothing queues work.
+        self.assertIn("triggerType: 'Event'", job)
+        self.assertNotIn("cronExpression", main)
+        self.assertRegex(job, r"minExecutions: 0\s+maxExecutions: 1\s+pollingInterval: 30")
+        self.assertIn("type: 'azure-queue'", job)
+        self.assertIn("queueName: provisionQueue.name", job)
+        self.assertIn("accountName: storage.name", job)
+        self.assertIn("identity: provisionerIdentity.id", job[job.index("rules: ["):job.index("replicaTimeout")])
+        self.assertNotIn("connection", job.lower())  # no storage key or connection string
+        self.assertIn('assign_role "$PROVISIONER_PRINCIPAL_ID" "Storage Queue Data Reader" "$PROVISION_QUEUE_ID"', script)
+        # A job created with a schedule by an earlier version is removed before the provision recreates it.
+        pre = read("scripts", "preprovision.sh")
+        self.assertIn('--query "properties.configuration.triggerType"', pre)
+        self.assertRegex(pre, r"Schedule\|Manual\)[^;]*?az containerapp job delete -n \"\$PROVISIONER_NAME\" -g \"\$RESOURCE_GROUP\" --yes")
+        self.assertIn('if [ -n "${PROVISIONER_NAME:-}" ] && [ -n "${RESOURCE_GROUP:-}" ]; then', pre)
+        # The cap on instances reaches the job, and the sizes are the small ones.
+        self.assertIn("{ name: 'MARGO_MAX_INSTANCES', value: string(maxInstances) }", job)
+        self.assertEqual(parameters["maxInstances"], {"value": "${MARGO_MAX_INSTANCES=50}"})
+        self.assertIn('MaxInstancesVariable = "MARGO_MAX_INSTANCES"', read("src", "Margo.Cloud.Provisioner", "ProvisionerConfig.cs"))
+        self.assertIn("DefaultMaxInstances = 50", read("src", "Margo.Cloud.Provisioner", "Provisioner.cs"))
+        self.assertEqual(re.findall(r"resources: \{ cpu: json\('([\d.]+)'\), memory: '(\w+(?:\.\w+)?)' \}", main),
+                         [("0.25", "0.5Gi"), ("0.25", "0.5Gi")])
+
+    def test_every_azd_variable_maps_to_a_declared_parameter(self):
+        main = read("infra", "main.bicep")
+        declared = dict(re.findall(r"(?m)^param (\w+) (\w+)", main))
+        parameters = json.loads(read("infra", "main.parameters.json"))["parameters"]
+        self.assertEqual(sorted(set(parameters) - set(declared)), [])
+        values = {name: entry["value"] for name, entry in parameters.items()}
+        for name, value in {
+            "modelSku": "${MARGO_MODEL_SKU=GlobalStandard}",
+            "modelCapacity": "${MARGO_MODEL_CAPACITY=100}",
+            "instanceMinReplicas": "${MARGO_INSTANCE_MIN_REPLICAS=0}",
+            "stateVersionRetentionDays": "${MARGO_STATE_VERSION_RETENTION_DAYS=30}",
+            "logRetentionDays": "${MARGO_LOG_RETENTION_DAYS=30}",
+            "logDailyQuotaGb": "${MARGO_LOG_DAILY_QUOTA_GB=1}",
+            "voiceMaxSeconds": "${MARGO_VOICE_MAX_SECONDS=}",
+            "voiceMaxToolCalls": "${MARGO_VOICE_MAX_TOOL_CALLS=}",
+        }.items():
+            self.assertEqual(values[name], value)
+        # A default in the parameters file is the default in main.bicep (azd turns the text into the parameter's type).
+        for name, value in values.items():
+            default = re.fullmatch(r"\$\{\w+=(.*)\}", value)
+            if default is None:
+                continue
+            in_bicep = re.search(r"(?m)^param %s \w+ = (.+)$" % name, main).group(1)
+            self.assertEqual(in_bicep.strip("'"), default.group(1), name)
+        # The model deployment type and capacity are settings, not literals.
+        self.assertIn("@allowed(['GlobalStandard', 'DataZoneStandard', 'Standard'])\n@description(", main)
+        self.assertIn("sku: { name: modelSku, capacity: modelCapacity }", main)
+        # Optional voice limits reach the instances only when set.
+        config = main[main.index("var provisionerConfig = {"):main.index("resource provisioner ")]
+        for name, parameter in (("MARGO_VOICE_MAX_SECONDS", "voiceMaxSeconds"), ("MARGO_VOICE_MAX_TOOL_CALLS", "voiceMaxToolCalls")):
+            self.assertIn("empty(%s) ? [] : [ { name: '%s', value: %s } ]" % (parameter, name, parameter), config)
+            self.assertIn('"%s"' % name, read("src", "Margo.Cloud.Voice", "VoiceSession.cs"))
+        self.assertIn("  minReplicas: instanceMinReplicas\n", config)
+
+    def test_replaced_state_versions_expire_and_logs_are_capped(self):
+        # Blob versioning keeps every replaced state.zip (one per turn) for ever unless a lifecycle rule deletes them.
+        main = read("infra", "main.bicep")
+        self.assertIn("isVersioningEnabled: true", main)
+        policy = main[main.index("resource stateLifecycle "):main.index("// -- one container per instance")]
+        self.assertIn("'Microsoft.Storage/storageAccounts/managementPolicies@", policy)
+        self.assertIn("name: 'default'", policy)
+        self.assertIn("actions: { version: { delete: { daysAfterCreationGreaterThan: stateVersionRetentionDays } } }", policy)
+        # Only replaced versions: no rule may delete a current blob (an idle manager's state.zip, the route table).
+        self.assertNotIn("baseBlob", policy)
+        self.assertNotIn("snapshot", policy)
+        self.assertEqual(policy.count("name: 'delete-"), 1)
+        self.assertRegex(main, r"(?m)^@minValue\(1\)\n@description\([^\n]+\)\nparam stateVersionRetentionDays int = 30$")
+        self.assertIn("retentionInDays: logRetentionDays", main)
+        self.assertIn("workspaceCapping: { dailyQuotaGb: logDailyQuotaGb }", main)
+
+    def test_instances_are_probed_calmly_and_given_time_to_finish_a_turn(self):
+        source = read("infra", "instance.bicep")
+        template = json.loads(read("infra", "instance.json"))
+        app = [resource for resource in template["resources"] if resource["type"] == "Microsoft.App/containerApps"][0]
+        self.assertIn("{ type: 'Readiness', httpGet: { path: '/readiness', port: 8088 }, periodSeconds: 30 }", source)
+        self.assertIn("terminationGracePeriodSeconds: 600", source)
+        container = app["properties"]["template"]["containers"][0]
+        self.assertEqual([(probe["type"], probe["periodSeconds"]) for probe in container["probes"]],
+                         [("Liveness", 30), ("Readiness", 30)])
+        self.assertEqual(app["properties"]["template"]["terminationGracePeriodSeconds"], 600)
+
+    def test_the_scripts_fail_loudly_instead_of_reporting_done(self):
+        post = read("scripts", "postprovision.sh")
+        roles = post[post.index('rbac_admin='):post.index('sh "$HERE/build-image.sh"')]
+        # Nothing in the role-administration section swallows a failure, and the old group-wide grant must be gone.
+        self.assertNotIn("2>/dev/null", roles)
+        self.assertNotIn("|| true", roles)
+        self.assertNotRegex(roles, r"az role assignment delete[^\n]*&& say")
+        self.assertIn('[ -z "$left" ] || die "the provisioner still has resource-group-wide role administration: $left"', roles)
+        self.assertEqual(roles.count("az role assignment delete"), 2)
+        self.assertEqual(roles.count("|| die \"could not remove"), 2)
+        # A stored condition that is not the wanted one is replaced, not taken for "already granted".
+        self.assertIn('assignments_at "$1" "$condition"', roles)
+        self.assertIn("sed -n 's/^other //p'", roles)
+        self.assertNotIn("RoleAssignmentExists", roles)
+        self.assertIn("PrincipalType] ForAnyOfAnyValues:StringEqualsIgnoreCase {'ServicePrincipal'}", roles)
+        self.assertNotIn("PrincipalType] StringEqualsIgnoreCase", roles)
+        # blueprint.sh: a Graph read that fails is never "not found"; the old inheritance entry survives a failed update.
+        blueprint = read("scripts", "blueprint.sh")
+        self.assertNotIn("|| true", blueprint)
+        for line in blueprint.splitlines():
+            if "--method get" in line or "graph_get " in line and "graph_get()" not in line:
+                self.assertNotIn("2>/dev/null", line)
+        self.assertEqual(blueprint.count("=$(graph_get "), 5)
+        self.assertEqual(len(re.findall(r"=\$\(graph_get [^\n]*\\\n\s+\|\| die ", blueprint)), 5)
+        self.assertIn('[ "$fic_subject" = "$BLUEPRINT_CREDENTIAL_PRINCIPAL_ID" ]', blueprint)
+        self.assertIn('--method patch --url "$BLUEPRINTS/$blueprint_id/federatedIdentityCredentials/$fic_id"', blueprint)
+        delete = blueprint.index('--method delete --url "$inheritable_url/$workiq_app"')
+        self.assertLess(blueprint.index('--method patch --url "$inheritable_url/$workiq_app"'), delete)
+        self.assertLess(delete, blueprint.index('--body "$previous"'))
+        self.assertIn("could not be put back", blueprint)
+        # The azd environment (subscription, tenant, blueprint identifiers) never reaches git or the registry build.
+        self.assertIn("cloud/.azure/", (ROOT / ".gitignore").read_text(encoding="utf-8").split())
+        self.assertIn("**/.azure/", (ROOT / ".dockerignore").read_text(encoding="utf-8").split())
 
     def test_the_infrastructure_sets_what_each_role_requires(self):
         # The provisioner refuses to deploy unless every RequiredConfig key is in MARGO_PROVISIONER_CONFIG (main.bicep

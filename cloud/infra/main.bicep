@@ -3,7 +3,8 @@
 // (docs/autopilot-instance-containers.md): a Container Apps environment, the public router that is the
 // blueprint's messaging endpoint, the provisioner job, its queue and route table.
 // The agent blueprint is created with the Agent 365 CLI, not here (docs/autopilot-deployment.md).
-// Role assignments are made by name in scripts/postprovision.sh, so no role-definition IDs live here.
+// Role assignments are made by name in scripts/postprovision.sh, so no role-definition IDs live here: the script
+// looks the four instance roles up by name and records them in the azd environment for the provisioner job.
 targetScope = 'resourceGroup'
 
 @minLength(1)
@@ -21,8 +22,13 @@ param modelName string = 'gpt-5-mini'
 @description('Model version.')
 param modelVersion string = '2025-08-07'
 
-@description('Model deployment capacity (thousands of tokens per minute).')
-param modelCapacity int = 30
+@minValue(1)
+@description('Model deployment capacity (thousands of tokens per minute). A quota, not a cost: usage is billed per token.')
+param modelCapacity int = 100
+
+@allowed(['GlobalStandard', 'DataZoneStandard', 'Standard'])
+@description('Model deployment type: GlobalStandard (any region), DataZoneStandard (stays in the data zone) or Standard (stays in the region).')
+param modelSku string = 'GlobalStandard'
 
 param tags object = {}
 
@@ -55,6 +61,34 @@ param voiceEndpointId string = ''
 @description('App ID of the single-page app the voice page signs in with (agent blueprints cannot hold its redirect URI); empty signs in as the blueprint.')
 param voiceClientId string = ''
 
+@description('Longest spoken conversation in seconds (MARGO_VOICE_MAX_SECONDS); empty keeps the default.')
+param voiceMaxSeconds string = ''
+
+@description('Tool calls allowed in one spoken conversation (MARGO_VOICE_MAX_TOOL_CALLS); empty keeps the default.')
+param voiceMaxToolCalls string = ''
+
+@minValue(1)
+@description('The most instances (hired Margos) that may exist at once; the provisioner refuses to deploy more.')
+param maxInstances int = 50
+
+@minValue(1)
+@description('Days a replaced version of a state blob is kept (every turn writes a new version of state.zip).')
+param stateVersionRetentionDays int = 30
+
+@minValue(30)
+@maxValue(730)
+@description('Days the Log Analytics workspace keeps logs.')
+param logRetentionDays int = 30
+
+@description('Daily ingestion cap of the Log Analytics workspace in GB (-1: no cap). Logs stop for the day when it is reached.')
+param logDailyQuotaGb int = 1
+
+@description('Role definition GUIDs an instance is granted, looked up by name and recorded by scripts/postprovision.sh. Empty on the first provision.')
+param storageRoleDefinitionId string = ''
+param pullRoleDefinitionId string = ''
+param modelRoleDefinitionId string = ''
+param speechRoleDefinitionId string = ''
+
 @description('Token issuers the router and instances accept besides Bot Framework and this tenant\'s Entra issuers, separated by spaces. Leave empty unless the router logs "JWT issuer not accepted" for genuine Agent 365 traffic.')
 param extraTokenIssuers string = ''
 
@@ -63,6 +97,7 @@ param margoImage string = ''
 
 // The public placeholder has no dotnet and listens on port 80, so it never gets the router's command or port: the
 // router runs on it until an image is pinned and the blueprint exists, then provisioning keeps the router on Margo.
+// The provisioner job follows the router: on the placeholder nothing queues work for it, so it never starts.
 var placeholderImage = 'mcr.microsoft.com/k8se/quickstart:latest'
 var routerOnMargo = !empty(margoImage) && !empty(blueprintClientId)
 
@@ -90,7 +125,7 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-09-01' = {
 resource model 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: account
   name: modelName
-  sku: { name: 'GlobalStandard', capacity: modelCapacity }
+  sku: { name: modelSku, capacity: modelCapacity }
   properties: { model: { format: 'OpenAI', name: modelName, version: modelVersion } }
 }
 
@@ -106,7 +141,11 @@ resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${environmentName}-logs'
   location: location
   tags: tags
-  properties: { retentionInDays: 30, sku: { name: 'PerGB2018' } }
+  properties: {
+    retentionInDays: logRetentionDays
+    sku: { name: 'PerGB2018' }
+    workspaceCapping: { dailyQuotaGb: logDailyQuotaGb }
+  }
 }
 
 resource insights 'Microsoft.Insights/components@2020-02-02' = {
@@ -140,6 +179,31 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01'
     isVersioningEnabled: true
     deleteRetentionPolicy: { enabled: true, days: 14 }
     containerDeleteRetentionPolicy: { enabled: true, days: 14 }
+  }
+}
+
+// Every turn writes a new version of an instance's state.zip, and every route change one of routes.json. Replaced
+// versions are deleted after stateVersionRetentionDays; the current version of a blob is never touched. The daily
+// copies ({manager}/daily/YYYY-MM-DD.zip) are current blobs under a per-manager folder, which a prefix filter cannot
+// select without also selecting state.zip, so they are not expired here.
+resource stateLifecycle 'Microsoft.Storage/storageAccounts/managementPolicies@2023-05-01' = {
+  parent: storage
+  name: 'default'
+  dependsOn: [ blobService ]
+  properties: {
+    policy: {
+      rules: [
+        {
+          name: 'delete-replaced-versions'
+          enabled: true
+          type: 'Lifecycle'
+          definition: {
+            filters: { blobTypes: [ 'blockBlob' ] }
+            actions: { version: { delete: { daysAfterCreationGreaterThan: stateVersionRetentionDays } } }
+          }
+        }
+      ]
+    }
   }
 }
 
@@ -215,7 +279,7 @@ resource router 'Microsoft.App/containerApps@2024-03-01' = {
         union({
           name: 'router'
           image: routerOnMargo ? margoImage : placeholderImage
-          resources: { cpu: json('0.5'), memory: '1Gi' }
+          resources: { cpu: json('0.25'), memory: '0.5Gi' }
           env: [
             { name: 'AZURE_CLIENT_ID', value: routerIdentity.properties.clientId }
             { name: 'MARGO_ROUTES_URL', value: '${storage.properties.primaryEndpoints.blob}margo-routes/routes.json' }
@@ -245,6 +309,13 @@ var provisionerConfig = {
   blueprintClientId: blueprintClientId
   blueprintCredentialIdentityId: blueprintCredential.id
   blueprintCredentialClientId: blueprintCredential.properties.clientId
+  // The image instances run and the roles each one is granted; scripts/postprovision.sh moves the job to a newly
+  // built image at once (MARGO_INSTANCE_IMAGE), and the next provision keeps it here.
+  image: margoImage
+  storageRoleDefinitionId: storageRoleDefinitionId
+  pullRoleDefinitionId: pullRoleDefinitionId
+  modelRoleDefinitionId: modelRoleDefinitionId
+  speechRoleDefinitionId: speechRoleDefinitionId
   minReplicas: instanceMinReplicas
   voiceLiveModel: voiceLiveModel
   voiceName: voiceName
@@ -253,10 +324,15 @@ var provisionerConfig = {
   extraEnv: concat([
     { name: 'MARGO_PRINCIPAL_ACCESS', value: principalAccess }
     { name: 'MARGO_TIMEZONE', value: timezone }
-  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ], empty(voiceClientId) ? [] : [ { name: 'MARGO_VOICE_CLIENT_ID', value: voiceClientId } ], empty(extraTokenIssuers) ? [] : [ { name: 'MARGO_EXTRA_TOKEN_ISSUERS', value: extraTokenIssuers } ])
+  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ], empty(voiceClientId) ? [] : [ { name: 'MARGO_VOICE_CLIENT_ID', value: voiceClientId } ], empty(extraTokenIssuers) ? [] : [ { name: 'MARGO_EXTRA_TOKEN_ISSUERS', value: extraTokenIssuers } ], empty(voiceMaxSeconds) ? [] : [ { name: 'MARGO_VOICE_MAX_SECONDS', value: voiceMaxSeconds } ], empty(voiceMaxToolCalls) ? [] : [ { name: 'MARGO_VOICE_MAX_TOOL_CALLS', value: voiceMaxToolCalls } ])
 }
 
-resource provisioner 'Microsoft.App/jobs@2024-03-01' = {
+// Started by messages on the provisioning queue (a KEDA azure-queue rule read with the job's own identity, which
+// scripts/postprovision.sh lets read the queue), one execution at a time; nothing runs while the queue is empty.
+// A job's trigger type cannot be relied on to change in place: scripts/preprovision.sh removes a job that an earlier
+// version created with a schedule, and this recreates it. Like the router, the job runs the Margo image, with its
+// command and registry, once an image is pinned and the blueprint exists; until then nothing queues work for it.
+resource provisioner 'Microsoft.App/jobs@2025-01-01' = {
   name: take('${compact}-provisioner', 32)
   location: location
   tags: tags
@@ -264,18 +340,40 @@ resource provisioner 'Microsoft.App/jobs@2024-03-01' = {
   properties: {
     environmentId: containerEnvironment.id
     configuration: {
-      triggerType: 'Schedule'
-      scheduleTriggerConfig: { cronExpression: '*/2 * * * *', parallelism: 1, replicaCompletionCount: 1 }
+      triggerType: 'Event'
+      eventTriggerConfig: {
+        parallelism: 1
+        replicaCompletionCount: 1
+        scale: {
+          minExecutions: 0
+          maxExecutions: 1
+          pollingInterval: 30
+          rules: [
+            {
+              name: 'provision-queue'
+              type: 'azure-queue'
+              metadata: {
+                accountName: storage.name
+                queueName: provisionQueue.name
+                queueLength: '1'
+                // A message being retried is hidden for 15 minutes; it must not start an execution every poll.
+                queueLengthStrategy: 'visibleonly'
+              }
+              identity: provisionerIdentity.id
+            }
+          ]
+        }
+      }
       replicaTimeout: 1800
       replicaRetryLimit: 0
+      registries: routerOnMargo ? [ { server: registry.properties.loginServer, identity: provisionerIdentity.id } ] : []
     }
     template: {
       containers: [
-        {
+        union({
           name: 'provisioner'
-          image: placeholderImage
-          command: [ 'dotnet', '/app/provisioner/Margo.Cloud.Provisioner.dll', 'run' ]
-          resources: { cpu: json('0.5'), memory: '1Gi' }
+          image: routerOnMargo ? margoImage : placeholderImage
+          resources: { cpu: json('0.25'), memory: '0.5Gi' }
           env: [
             { name: 'AZURE_CLIENT_ID', value: provisionerIdentity.properties.clientId }
             { name: 'AZURE_SUBSCRIPTION_ID', value: subscription().subscriptionId }
@@ -283,8 +381,9 @@ resource provisioner 'Microsoft.App/jobs@2024-03-01' = {
             { name: 'MARGO_ROUTES_URL', value: '${storage.properties.primaryEndpoints.blob}margo-routes/routes.json' }
             { name: 'MARGO_PROVISION_QUEUE_URL', value: '${storage.properties.primaryEndpoints.queue}margo-provision' }
             { name: 'MARGO_PROVISIONER_CONFIG', value: string(provisionerConfig) }
+            { name: 'MARGO_MAX_INSTANCES', value: string(maxInstances) }
           ]
-        }
+        }, routerOnMargo ? { command: [ 'dotnet', '/app/provisioner/Margo.Cloud.Provisioner.dll', 'run' ] } : {})
       ]
     }
   }

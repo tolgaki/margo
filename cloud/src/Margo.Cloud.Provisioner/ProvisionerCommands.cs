@@ -9,7 +9,7 @@ namespace Margo.Cloud.Provisioner;
 /// <c>main</c>) and <c>__main__.py</c>.
 /// </summary>
 /// <remarks>
-/// Runs as a scheduled Container Apps job with its own identity, which may deploy into one resource
+/// Runs as a Container Apps job started by messages on the provisioning queue, with its own identity, which may deploy into one resource
 /// group and assign the four roles an instance needs. It never reads any instance's state.
 /// <code>
 /// Margo.Cloud.Provisioner run
@@ -22,8 +22,15 @@ public sealed class ProvisionerCommands
     /// <summary>How long a received message stays hidden while it is handled. Python: <c>VISIBILITY_SECONDS</c>.</summary>
     public const int VisibilitySeconds = 900;
 
-    /// <summary>Messages received per queue request. Python: <c>messages_per_page=16</c>.</summary>
-    public const int MessagesPerPage = 16;
+    /// <summary>Messages received per queue request: one, so a message's visibility timeout starts
+    /// when its handling starts. Python received pages of 16 and handled them one after another, so
+    /// the later ones reappeared and were deployed twice.</summary>
+    public const int MessagesPerPage = 1;
+
+    /// <summary>The job stops taking new messages this long after it started and leaves the rest to
+    /// the next run: a replica is stopped after <c>replicaTimeout</c> (1800 seconds in
+    /// <c>main.bicep</c>), and a deployment takes minutes.</summary>
+    public const int RunBudgetSeconds = 1200;
 
     /// <summary>The <c>event</c> of every message an operator command puts on the queue.</summary>
     public const string OperatorEvent = "operator";
@@ -109,10 +116,11 @@ public sealed class ProvisionerCommands
     }
 
     /// <summary>
-    /// Drain the provisioning queue: receive pages of up to <see cref="MessagesPerPage"/> messages,
-    /// each hidden for <see cref="VisibilitySeconds"/>, until a page comes back empty. A message that
-    /// is done or dropped is deleted; one to retry is left to reappear after its visibility timeout,
-    /// and is dropped once its dequeue count reaches <see cref="Provisioner.MaxAttempts"/>.
+    /// Drain the provisioning queue: receive one message at a time, hidden for
+    /// <see cref="VisibilitySeconds"/>, until none is visible or <see cref="RunBudgetSeconds"/> have
+    /// passed. A message that is done or dropped is deleted; one to retry is left to reappear after
+    /// its visibility timeout. Then retirements whose removal is still pending are tried again
+    /// (<see cref="Provisioner.ResumePendingRemovalsAsync"/>).
     /// </summary>
     /// <returns>0. Anything that is not a step failure (a missing setting, an unreadable template or
     /// route table, a queue error) throws, as in Python.</returns>
@@ -124,11 +132,22 @@ public sealed class ProvisionerCommands
             Require(ProvisionerConfig.SubscriptionVariable),
             Require(ProvisionerConfig.ResourceGroupVariable),
             Require(ProvisionerConfig.RoutesUrlVariable));
-        var provisioner = new Provisioner(cloud, ProvisionerConfig.Load(_environment), template, _log.Info, _time);
+        var config = ProvisionerConfig.Load(_environment);
         var queue = services.CreateQueue(Require(ProvisionerConfig.QueueUrlVariable));
+        var provisioner = new Provisioner(cloud, config, template, _log.Info, _time, ProvisionerConfig.MaxInstances(_environment), _log.Error);
+        var clock = _time ?? TimeProvider.System;
+        var started = clock.GetUtcNow();
         var handled = 0;
+        var outOfTime = false;
         while (true)
         {
+            if (clock.GetUtcNow() - started >= TimeSpan.FromSeconds(RunBudgetSeconds))
+            {
+                outOfTime = true;
+                _log.Info("out of time after " + handled + " message(s); the next run takes the rest");
+                break;
+            }
+
             var page = await queue.ReceiveAsync(MessagesPerPage, TimeSpan.FromSeconds(VisibilitySeconds), cancellationToken).ConfigureAwait(false);
             if (page.Count == 0)
             {
@@ -138,13 +157,25 @@ public sealed class ProvisionerCommands
             foreach (var message in page)
             {
                 var dequeueCount = message.DequeueCount != 0 ? message.DequeueCount : 1; // Python: dequeue_count or 1
-                var outcome = await provisioner.HandleAsync(message.Text, dequeueCount, cancellationToken).ConfigureAwait(false);
-                if (outcome is HandleOutcome.Done or HandleOutcome.Dropped)
+                var outcome = await provisioner.HandleAsync(message.Text, dequeueCount, message.InsertedOn, cancellationToken).ConfigureAwait(false);
+                if (outcome is HandleOutcome.Done or HandleOutcome.Dropped
+                    && !await queue.DeleteAsync(message, cancellationToken).ConfigureAwait(false))
                 {
-                    await queue.DeleteAsync(message, cancellationToken).ConfigureAwait(false);
+                    // Handling outlasted the visibility timeout: the message is on the queue again and the next
+                    // receive finds its work done (or, for a redeploy, skips it).
+                    _log.Info("a handled message was received again before it could be deleted; it is checked once more");
                 }
 
                 handled++;
+            }
+        }
+
+        if (!outOfTime)
+        {
+            var resumed = await provisioner.ResumePendingRemovalsAsync(cancellationToken).ConfigureAwait(false);
+            if (resumed > 0)
+            {
+                _log.Info("tried " + resumed + " pending removal(s) again");
             }
         }
 

@@ -390,7 +390,7 @@ public sealed class AzureCloudTests : IDisposable
         };
         var log = new List<string>();
         var provisioner = new Provisioner(Cloud(), Config(), new JsonObject(), log.Add, new FakeClock(Now));
-        Assert.Equal(HandleOutcome.Done, await provisioner.HandleAsync(Message("ensure"), 1, Token));
+        Assert.Equal(HandleOutcome.Done, await provisioner.HandleAsync(Message("ensure"), 1, null, Token));
         Assert.Equal(2, version); // provisioning, then ready
         Assert.Equal("ready", Margo.Cloud.Core.RouteTable.Loads(stored).Get(Key)!.State);
         Assert.Equal(["instance 8f6b44ff6f8dd73b5b3a: ensure -> ['route_provisioning', 'deploy', 'route_ready']"], log);
@@ -422,8 +422,8 @@ public sealed class AzureCloudTests : IDisposable
         };
         var queue = Queue();
         var message = Assert.Single(await queue.ReceiveAsync(16, TimeSpan.FromSeconds(900), Token));
-        Assert.Equal(new QueuedMessage("id-1", "receipt-1", text, 3), message);
-        await queue.DeleteAsync(message, Token);
+        Assert.Equal(new QueuedMessage("id-1", "receipt-1", text, 3, new DateTimeOffset(2026, 11, 7, 9, 30, 0, TimeSpan.Zero)), message);
+        Assert.True(await queue.DeleteAsync(message, Token));
         await queue.SendAsync(text, Token);
 
         var receive = _http.Requests[0];
@@ -435,6 +435,30 @@ public sealed class AzureCloudTests : IDisposable
         var send = _http.Requests[2];
         Assert.Equal(("POST", QueueUrl + "/messages"), (send.Method, send.Url));
         Assert.Equal(text, XElement.Parse(send.Body!).Element("MessageText")!.Value); // no Base64, as in Python
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound, "MessageNotFound", false)] // gone, or received again (the receipt changed)
+    [InlineData(HttpStatusCode.BadRequest, "PopReceiptMismatch", false)]
+    [InlineData(HttpStatusCode.Forbidden, "AuthorizationPermissionMismatch", true)]
+    [InlineData(HttpStatusCode.NotFound, "QueueNotFound", true)]
+    public async Task A_delete_that_came_too_late_is_reported_and_any_other_failure_throws(HttpStatusCode status, string code, bool throws)
+    {
+        _http.Respond = _ =>
+        {
+            var response = Xml(status, new XElement("Error", new XElement("Code", code), new XElement("Message", "fictional")));
+            response.Headers.Add("x-ms-error-code", code);
+            return response;
+        };
+        var message = new QueuedMessage("id-1", "receipt-1", "{}", 1);
+        if (throws)
+        {
+            await Assert.ThrowsAsync<RequestFailedException>(() => Queue().DeleteAsync(message, Token));
+        }
+        else
+        {
+            Assert.False(await Queue().DeleteAsync(message, Token));
+        }
     }
 
     [Fact]

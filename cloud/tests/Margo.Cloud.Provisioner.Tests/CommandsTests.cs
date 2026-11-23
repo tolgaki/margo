@@ -56,7 +56,7 @@ public sealed partial class CommandsTests : IDisposable
                 : throw new InvalidOperationException("not a log line: " + line))
             .ToArray();
 
-    [GeneratedRegex(@"^2026-11-07 \d\d:\d\d:\d\d,000 INFO margo\.provision \| (.*)$")]
+    [GeneratedRegex(@"^2026-11-07 \d\d:\d\d:\d\d,000 (?:INFO|ERROR) margo\.provision \| (.*)$")]
     private static partial Regex LogLine();
 
     [Theory]
@@ -103,8 +103,8 @@ public sealed partial class CommandsTests : IDisposable
         Assert.Equal("processed 18 message(s)", log[^1]);
         Assert.Equal("dropped malformed provisioning message", log[1]);
         Assert.Equal("instance 8f6b44ff6f8dd73b5b3a: suspend -> ['route_suspended']", log[2]);
-        // Pages of 16, each hidden for 900 seconds, until a page comes back empty.
-        Assert.Equal([(16, TimeSpan.FromSeconds(900)), (16, TimeSpan.FromSeconds(900)), (16, TimeSpan.FromSeconds(900))], _queue.Receives);
+        // One message at a time (Python: pages of 16), each hidden for 900 seconds, until none is visible.
+        Assert.Equal(Enumerable.Repeat((1, TimeSpan.FromSeconds(900)), 19), _queue.Receives);
         Assert.Equal(16, _cloud.Calls.Count);
         Assert.Equal(1, _servicesCreated);
         Assert.Equal(
@@ -154,10 +154,84 @@ public sealed partial class CommandsTests : IDisposable
         Assert.False(_queue.Contains(id)); // the fifth failure drops it (no poison queue)
         Assert.Equal([id], _queue.Deleted);
         Assert.Equal("failed", failing.Route()!.State); // the route stays failed
+        Assert.EndsWith(
+            " ERROR margo.provision | instance 8f6b44ff6f8dd73b5b3a: ensure failed 5 time(s) and was dropped; the route stays failed (InvalidOperationException)",
+            Lf(_stderr.ToString()).Split('\n').Single(line => line.Contains(" ERROR ", StringComparison.Ordinal)), StringComparison.Ordinal);
         Assert.Equal(Provisioner.MaxAttempts, failing.Calls.Count);
         var processed = LogMessages().Where(line => line.StartsWith("processed", StringComparison.Ordinal)).ToArray();
         Assert.Equal(["processed 1 message(s)", "processed 0 message(s)", "processed 1 message(s)"], processed.Take(3));
         Assert.Equal("processed 1 message(s)", processed[^1]);
+    }
+
+    [Fact]
+    public async Task A_message_whose_deployment_outlasts_its_visibility_is_not_deployed_twice()
+    {
+        // Python received 16 messages hidden for 900 seconds and deployed them one after another: the later ones
+        // reappeared, were deployed again, and the delete of the first copy failed the job (exit 1).
+        SetJobEnvironment();
+        _cloud.OnDeploy = () => _clock.Advance(TimeSpan.FromSeconds(ProvisionerCommands.VisibilitySeconds + 60));
+        var first = _queue.Add(Message("ensure", redeploy: true));
+        var second = _queue.Add(Message("ensure", identity: "agent-identity-2", redeploy: true));
+        Assert.Equal(0, await Invoke("run"));
+        // Each was deployed once. Its delete came too late, so it was received again and skipped; the run stopped
+        // taking messages when its time was up, and the next run finds the rest already done.
+        Assert.Equal(2, _cloud.Calls.Count);
+        Assert.Equal(2, _queue.StaleDeletes);
+        Assert.Contains("a handled message was received again before it could be deleted; it is checked once more", LogMessages());
+        Assert.Contains("out of time after 3 message(s); the next run takes the rest", LogMessages());
+        _cloud.OnDeploy = null;
+        Assert.Equal(0, await Invoke("run"));
+        Assert.Equal(2, _cloud.Calls.Count);
+        Assert.Equal([first, second], _queue.Deleted);
+        Assert.Equal(0, _queue.Count);
+        Assert.Equal(2, LogMessages().Count(line => line.EndsWith("redeploy skipped: deployed after it was requested", StringComparison.Ordinal)));
+        Assert.All(_queue.Receives, receive => Assert.Equal(1, receive.MaxMessages));
+    }
+
+    [Fact]
+    public async Task Run_resumes_pending_removals_and_reads_the_instance_cap()
+    {
+        SetJobEnvironment();
+        var cloud = new FakeCloud(fail: "delete_app");
+        var services = new FakeServices(cloud, _queue);
+        var commands = new ProvisionerCommands(name => _environment.GetValueOrDefault(name), () => services, _stderr, _clock);
+        _queue.Add(Message("ensure"));
+        var retire = _queue.Add(Message("retire"));
+        Assert.Equal(0, await commands.InvokeAsync(["run"], TestContext.Current.CancellationToken));
+        Assert.True(_queue.Contains(retire)); // retried later; this run does not try the removal twice
+        Assert.Equal(1, cloud.Calls.Count(call => call.Call == "delete_app"));
+        Assert.Equal(("retired", "TimeoutException"), (cloud.Route()!.State, cloud.Route()!.Error));
+
+        // A later run, started by any message, tries the removal again even though the retire message is still hidden.
+        cloud.Fail = null;
+        _environment["MARGO_MAX_INSTANCES"] = "1";
+        _queue.Add(Message("ensure", identity: "agent-identity-2"));
+        _stderr.GetStringBuilder().Clear();
+        Assert.Equal(0, await commands.InvokeAsync(["run"], TestContext.Current.CancellationToken));
+        Assert.Equal(("retired", null), (cloud.Route()!.State, cloud.Route()!.Error));
+        var other = Instances.InstanceKey("agent-identity-2", User);
+        // The cap of one was reached while the removal was pending, so the second instance was refused.
+        Assert.Equal(("failed", Provisioner.MaxInstancesError), (cloud.Route(other)!.State, cloud.Route(other)!.Error));
+        Assert.Equal(
+            [
+                "instance " + other + ": ensure -> ['route_provisioning', 'deploy', 'route_ready']",
+                "instance " + other + ": ensure refused: 1 instance(s) already exist (MARGO_MAX_INSTANCES); nothing was deployed",
+                "instance 8f6b44ff6f8dd73b5b3a: retire -> ['delete_app', 'delete_identity', 'route_retired']",
+                "tried 1 pending removal(s) again",
+                "processed 1 message(s)",
+            ],
+            LogMessages());
+
+        foreach (var bad in new[] { "0", "-1", "many", "1.5" })
+        {
+            _environment["MARGO_MAX_INSTANCES"] = bad;
+            Assert.Equal(1, await commands.InvokeAsync(["run"], TestContext.Current.CancellationToken));
+        }
+
+        Assert.Contains("MARGO_MAX_INSTANCES must be a whole number of at least 1", _stderr.ToString(), StringComparison.Ordinal);
+        Assert.Equal(Provisioner.DefaultMaxInstances, ProvisionerConfig.MaxInstances(_ => null));
+        Assert.Equal(50, ProvisionerConfig.MaxInstances(_ => " "));
+        Assert.Equal(7, ProvisionerConfig.MaxInstances(_ => " 7 "));
     }
 
     [Fact]
@@ -365,10 +439,10 @@ public sealed partial class CommandsTests : IDisposable
             return Task.FromResult(page);
         }
 
-        public Task DeleteAsync(QueuedMessage message, CancellationToken cancellationToken)
+        public Task<bool> DeleteAsync(QueuedMessage message, CancellationToken cancellationToken)
         {
             Deletes++;
-            return Task.CompletedTask;
+            return Task.FromResult(true);
         }
 
         public Task SendAsync(string text, CancellationToken cancellationToken) => throw new NotSupportedException();

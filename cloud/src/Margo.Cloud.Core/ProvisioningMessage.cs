@@ -15,6 +15,20 @@ public static class ProvisioningActions
     internal static bool IsKnown(string? action) => action is Ensure or Suspend or Retire;
 }
 
+/// <summary>The <c>event</c> values the router gives an <c>ensure</c> it queues for an ordinary activity
+/// (not a lifecycle notification). Such a message never starts a suspended or retired instance.</summary>
+public static class ProvisioningEvents
+{
+    /// <summary>An activity for an instance that has no route yet.</summary>
+    public const string FirstActivity = "first-activity";
+
+    /// <summary>An activity for an instance whose route is <c>failed</c>.</summary>
+    public const string RetryAfterFailure = "retry-after-failure";
+
+    /// <summary>Whether <paramref name="provisioningEvent"/> says the message was caused by an ordinary activity.</summary>
+    public static bool IsActivity(string? provisioningEvent) => provisioningEvent is FirstActivity or RetryAfterFailure;
+}
+
 /// <summary>
 /// One message on the provisioning queue: from the router (a lifecycle notification or a first
 /// activity), or from an operator. Python passes these as dicts; see <see cref="ToJson"/> for the

@@ -48,7 +48,8 @@ public interface ICloud
 /// <param name="PopReceipt">The receipt that allows this reader to delete it.</param>
 /// <param name="Text">The message text, as it was sent (no Base64).</param>
 /// <param name="DequeueCount">How many times the message has been received, this time included.</param>
-public sealed record QueuedMessage(string MessageId, string PopReceipt, string Text, long DequeueCount);
+/// <param name="InsertedOn">When the message was put on the queue; <see langword="null"/> if the service did not say.</param>
+public sealed record QueuedMessage(string MessageId, string PopReceipt, string Text, long DequeueCount, DateTimeOffset? InsertedOn = null);
 
 /// <summary>The provisioning queue. Python: <c>azure.storage.queue.QueueClient</c> as
 /// <c>provision/azure.py</c> uses it.</summary>
@@ -58,8 +59,10 @@ public interface IProvisioningQueueClient
     /// <paramref name="visibilityTimeout"/>. An empty list means the queue has nothing visible.</summary>
     Task<IReadOnlyList<QueuedMessage>> ReceiveAsync(int maxMessages, TimeSpan visibilityTimeout, CancellationToken cancellationToken);
 
-    /// <summary>Delete a received message for good.</summary>
-    Task DeleteAsync(QueuedMessage message, CancellationToken cancellationToken);
+    /// <summary>Delete a received message for good. Returns <see langword="false"/> when the message
+    /// is no longer this reader's to delete: its visibility timeout passed while it was handled and
+    /// it was received again (or it is already gone). Any other failure throws.</summary>
+    Task<bool> DeleteAsync(QueuedMessage message, CancellationToken cancellationToken);
 
     /// <summary>Put a message on the queue, as text.</summary>
     Task SendAsync(string text, CancellationToken cancellationToken);

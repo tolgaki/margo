@@ -1,7 +1,7 @@
 # Margo.Cloud.Provisioner: porting notes
 
 Ports `provision/` (Python hosted runtime, removed at the cutover) (`core.py`, `azure.py`, `__main__.py`): the
-scheduled Container Apps job that drains the provisioning queue, deploys or retires one container
+Container Apps job (scheduled in Python's time, now started by the queue) that drains the provisioning queue, deploys or retires one container
 per hired Margo and keeps the route table. Naming, plans, ARM parameters, provisioning messages and
 the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
 
@@ -31,7 +31,8 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
   cannot form a key: logged as `dropped malformed provisioning message` and dropped, before the
   route table is read. Otherwise the route table is read, `Instances.Plan` decides the steps, and
   `instance KEY: ACTION -> ['step', ...]` (or `-> nothing to do`) is logged with Python's list
-  text. A failing step logs `instance KEY: step failed: TYPE`, records the route as `failed` with
+  text (deviations 11 to 15 below change what follows for retirements, suspensions, stopped instances,
+  the cap and redeploys). A failing step logs `instance KEY: step failed: TYPE`, records the route as `failed` with
   `error` = the exception's type name (`could not record the failure` when that write fails too),
   and returns retry, or dropped once `dequeue_count >= 5`. Log lines carry instance keys, never
   identifiers, tokens or message text.
@@ -43,11 +44,11 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
 - **Reading the route table is not guarded** (Python reads it outside `handle`'s `try`, despite the
   docstring's "never raises"): an unreadable blob or invalid table propagates, the job exits 1 and
   the message reappears after its visibility timeout.
-- **Draining.** Pages of up to 16 messages, each hidden for 900 seconds, are received until a page
-  comes back empty (Python's `MessagesPaged` stop rule), handled one at a time; done and dropped
-  messages are deleted, retry messages are left to reappear. `dequeue_count or 1`. There is no
-  poison queue: after the fifth failure the message is deleted and the route stays `failed`.
-  `processed N message(s)` is logged at the end.
+- **Draining.** Messages, each hidden for 900 seconds, are received until none is visible, handled
+  one at a time; done and dropped messages are deleted, retry messages are left to reappear.
+  `dequeue_count or 1`. There is no poison queue: after the fifth failure of an `ensure` the message
+  is deleted and the route stays `failed`. `processed N message(s)` is logged at the end. (Python
+  received pages of up to 16; deviation 14. Retirements and suspensions: deviation 11.)
 - **Retiring.** `route_retired`, then delete the Container App (404 ignored), then the identity:
   read its `principalId` (404: nothing to do), list the resource group's role assignments with
   `$filter=principalId eq '...'`, delete each by id as its page is read (200 deleted and 204
@@ -140,6 +141,44 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
     surrogates are dropped by both, as they cannot form a key). Owned by Margo.Cloud.Core; not
     changed here.
 
+### Safety changes after the cutover (not Python's behaviour, on purpose)
+
+The Python job was the specification of the port; these are reviewed changes to it. The lines Python logged are
+unchanged; what an operator must act on is logged at `ERROR` in the same format (`ProvisionerLog.Error`).
+
+11. **A failed retirement stays `retired`.** Python recorded every failed step as `failed`, which the router answers
+    by queueing an `ensure`: after five failed attempts the retire message was dropped and the retired agent was
+    provisioned again on its next activity. Now a failed retirement records `retired` with `error` (the exception's
+    type name), which the router ignores like any retired route. `Instances.Plan` plans such a route again as
+    `delete_app`, `delete_identity`, `route_retired` (the last clears the error), also when the message was received
+    before and the route already says `retired` without an error (the job stopped between the route write and the
+    removal). The message is dropped after five attempts only if the route holds that record; each job run then
+    tries every pending removal once more after draining the queue (`ResumePendingRemovalsAsync`, event
+    `pending-removal`), so the removal does not depend on the message. A failed suspension (its only step is the
+    route write) records nothing, never `failed`, and is never dropped. A failed `ensure` is unchanged (`failed`,
+    dropped after five attempts), now with an `ERROR` line when dropped.
+12. **An activity never starts a stopped instance.** An `ensure` whose `event` is `first-activity` or
+    `retry-after-failure` (what the router queues for an ordinary activity) is ignored when the route is `suspended`
+    or `retired`: logged as `ensure for an activity ignored: instance is STATE`, no route write. A router replica
+    with an empty or stale route table could otherwise resurrect a disabled agent. A lifecycle notification
+    (`agenticuserenabled`, `agenticuserundeleted`, ...) or an operator's `enqueue ensure` still starts it.
+13. **Instance cap.** `MARGO_MAX_INSTANCES` (default 50; `main.bicep` `maxInstances`): an `ensure` that would deploy
+    while that many other routes may hold resources (every state except a completed retirement and a refused
+    ensure) deploys nothing, logs an `ERROR`, records the route once as `failed` with error `MaxInstancesExceeded`
+    and drops the message. An instance that already holds a place is still redeployed, suspended and started. A value
+    that is not a whole number of at least 1 stops the job (it never runs without a cap).
+14. **One message at a time.** Python received pages of 16 messages hidden for 900 seconds and handled them one
+    after another; with deployments taking minutes the later ones reappeared and were deployed twice, and the late
+    delete of the first copy failed the job. `MessagesPerPage` is 1, so the 900 seconds start when the handling
+    starts. A delete that still comes too late (`MessageNotFound`, `PopReceiptMismatch`) is logged and the message
+    handled again; any other queue error stops the job as before. The job takes no new message 1200 seconds after
+    it started (`replicaTimeout` is 1800) and leaves the rest to the next run.
+15. **A duplicate redeploy is skipped.** An `ensure` with `redeploy` for a route that is `ready` and was updated
+    after the message was put on the queue (`InsertedOn`) does nothing: the message came back after its visibility
+    timeout, or a later deployment already used the current settings. Known limit: a deployment that finished after
+    the message was queued but was started by a job run holding older settings also counts as done; run
+    `redeploy-all` again after changing settings while the job is busy.
+
 ## Not ported
 
 - `logging.basicConfig` for every logger (Azure SDK loggers included): only `margo.provision`
@@ -211,12 +250,18 @@ Evidence gathered outside the repository (scratch harnesses, not committed):
 
 - Should the job pass a cancellation token from SIGTERM (Container Apps stops a job replica with
   SIGTERM)? Python did not handle it; neither does `Program.cs`.
-- `main.bicep` and the image build must switch the provisioner job to this binary and include
-  `instance.json` next to it (or set `MARGO_INSTANCE_TEMPLATE`).
-- Inherited from Python, unchanged: a page of 16 messages is hidden for 900 seconds, but 16
-  deployments can take longer. A message handled after its visibility timeout may already have
-  been received again (new pop receipt), so its delete fails and the job exits 1 (`replicaTimeout`
-  is 1800 seconds). Should the job receive fewer messages per page, or renew visibility?
+- Answered by deviation 14: the job receives one message at a time and tolerates a late delete. It does not renew
+  a message's visibility; one deployment longer than 900 seconds is handled a second time (and skipped or redone
+  idempotently).
+- Not implemented: checking in Microsoft Graph that the agent identity of an `ensure` or `retire` is a child of
+  this deployment's blueprint. The job's managed identity has no Graph permission, the agent identity API is beta,
+  and it cannot be exercised without a tenant. Design: an optional `IAgentDirectory` (one GET of the agent
+  identity's service principal, comparing its blueprint with `blueprintClientId`), called before the first step of
+  a plan that deploys or deletes; an administrator grants the identity the Graph application permission once
+  (`scripts/postprovision.sh` would print the `appRoleAssignments` request); without the permission the check is
+  skipped with one warning per run. Until then the cap (deviation 13) bounds what a forged recipient can create.
+- A route for an unknown recipient that was refused by the cap stays in the table as `failed`; nothing removes such
+  entries.
 
 ## Cutover
 
@@ -226,3 +271,6 @@ port; the C# code is now the implementation of record, and the desktop state hel
 
 - `main.bicep` runs `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll run`; the template moved to
   `cloud/infra/instance.json` and the csproj copies it from there (the image also copies it to the same place).
+- The job is started by the provisioning queue (a Container Apps event trigger), no longer every two minutes, and
+  `main.bicep` gives it its image, registry, role IDs and `MARGO_MAX_INSTANCES` on every provision; the override
+  variables (`MARGO_INSTANCE_IMAGE`, ...) remain for `postprovision.sh`, which moves it to a newly built image.
