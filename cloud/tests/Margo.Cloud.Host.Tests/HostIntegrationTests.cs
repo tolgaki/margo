@@ -118,7 +118,12 @@ public sealed class HostIntegrationTests
                         host.Connection.Requests);
         Assert.NotEmpty(host.WorkIQ.Calls);
         Assert.All(host.WorkIQ.Calls, call => Assert.Equal("margo-workiq-token", call.Bearer));
-        Assert.Equal("What is on today?", ModelInput(host.Model.Requests[0]));
+        // The engine puts the current time in front of the message (so the instructions stay cacheable) and asks the
+        // service to store nothing.
+        Assert.StartsWith("Current time: ", ModelInput(host.Model.Requests[0]), StringComparison.Ordinal);
+        Assert.EndsWith("What is on today?", ModelInput(host.Model.Requests[0]), StringComparison.Ordinal);
+        Assert.False((bool?)host.Model.Requests[0]["store"]);
+        Assert.Null(host.Model.Requests[0]["previous_response_id"]);
 
         // State went through the lease, into this instance's container.
         Assert.All(host.Containers, container => Assert.Equal("margo-state-instance-1", container));
