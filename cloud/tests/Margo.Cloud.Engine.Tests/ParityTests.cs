@@ -94,8 +94,9 @@ public sealed partial class ParityTests
         Assert.Matches(@"COPY\s+agents/\s+/app/agents/", text);
         Assert.Matches(@"COPY\s+skills/\s+/app/skills/", text);
         Assert.Matches(@"MARGO_REPO_ROOT=/app\b", text);
-        Assert.Matches(@"dotnet publish src/Margo\.Cloud\.Host/Margo\.Cloud\.Host\.csproj -c Release -o /out/host", text);
-        Assert.Matches(@"dotnet publish src/Margo\.Cloud\.StateCli/Margo\.Cloud\.StateCli\.csproj -c Release -o /out/host", text);
+        Assert.Matches(@"publish=""-c Release ", text); // the shared publish options
+        Assert.Matches(@"dotnet publish src/Margo\.Cloud\.Host/Margo\.Cloud\.Host\.csproj \$publish -o /out/host", text);
+        Assert.Matches(@"dotnet publish src/Margo\.Cloud\.StateCli/Margo\.Cloud\.StateCli\.csproj \$publish -o /out/host", text);
         Assert.DoesNotContain("MargoStateProbes", text, StringComparison.Ordinal);
     }
 
