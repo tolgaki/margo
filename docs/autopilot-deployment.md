@@ -264,12 +264,15 @@ Microsoft Graph (beta) Entra Agent ID APIs: create an agent identity from the bl
 agent user's manager and usage location, and assign its licences. Agent 365 then delivered the instance's Teams
 messages to the router as usual. Treat this as a workaround for a preview issue, not the supported path.
 
-You can also create a container ahead of time, with the provisioner's settings (for example as a one-off execution
-of the provisioner job with this command):
+You can also create a container ahead of time, from `cloud/`:
 
 ```sh
-dotnet /app/provisioner/Margo.Cloud.Provisioner.dll enqueue ensure <agenticAppId> <agenticUserId>
+sh scripts/provisioner.sh enqueue ensure <agent-identity-id> <agent-user-id>
 ```
+
+`scripts/provisioner.sh` runs the provisioner job once with the given command and everything else the job has. Do not
+use `az containerapp job start --image/--command/--args` for this: it replaces the job's container, environment
+included, and the run fails.
 
 ### Delegation mode: grant mailbox access
 
@@ -354,7 +357,7 @@ Details, the custom voice and limits: [Voice](autopilot-voice.md).
 | Limit file links to your tenant | `azd env set MARGO_SHAREPOINT_HOSTS "contoso.sharepoint.com contoso-my.sharepoint.com"` (your own hosts), provision, redeploy all |
 | See her state | Storage account › containers named `margo-i-…`, one per hired Margo, with each manager's state under its own prefix. `state.zip` is current; `daily/` holds one copy per day |
 | Ship a change | Commit, then `azd provision` (it builds and pins a new image for the router and the provisioner), then redeploy all |
-| Redeploy all | Run the provisioner once with `redeploy-all`: `az containerapp job start -n $(azd env get-value PROVISIONER_NAME) -g $(azd env get-value RESOURCE_GROUP) --image $(azd env get-value MARGO_PINNED_IMAGE) --command dotnet --args /app/provisioner/Margo.Cloud.Provisioner.dll redeploy-all` (this form of `job start` is unverified; the job's identity and settings must apply to the execution). For one instance the subcommand is `enqueue ensure <agent-identity-id> <agent-user-id> --redeploy`; `az` reads a trailing `--redeploy` as its own option, so pass the arguments in a way your `az` version accepts or use `redeploy-all` |
+| Redeploy all | From `cloud/`: `sh scripts/provisioner.sh redeploy-all`. It queues one redeploy per ready instance; the queue then starts the job again, which redeploys them (`az containerapp job execution list -n $(azd env get-value PROVISIONER_NAME) -g $(azd env get-value RESOURCE_GROUP) -o table` shows both runs). For one instance: `sh scripts/provisioner.sh enqueue ensure <agent-identity-id> <agent-user-id> --redeploy` |
 | Keep instances warm | `azd env set MARGO_INSTANCE_MIN_REPLICAS 1`, provision, then redeploy all. For one instance: `az containerapp update -n margo-<key> -g <group> --min-replicas 1`. Optional: a cold instance still answers, but its first answer is slow (see Known limits) |
 | Retire one instance | Delete it in the admin center: the lifecycle event retires it (app and identity go; state stays). Or `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll enqueue retire <agent-identity-id> <agent-user-id>`. Remove any mailbox permissions |
 | Delete a retired instance's or a former manager's state | Nothing deletes it automatically. Delete the instance's `margo-i-…` container (or, for a former manager, their prefix inside it). A deleted container is recoverable for 14 days |
@@ -389,7 +392,7 @@ Foundry and cannot be pointed at your own container, so this route starts with a
 | Nothing reaches Margo; the router logs `JWT is a person's token (scp)` or `JWT caller application not accepted` | Agent 365 delivers with a kind of token this version refuses by default | Take the application ID from the log line and, if it is Microsoft's platform application, set `MARGO_PLATFORM_APP_IDS` to it |
 | The instance answers 400 and logs `ServiceUrl host is not in the configured allowed hosts` | Agent 365's reply address is not one of the hosts the SDK knows as Microsoft's | If the host is Microsoft's, `azd env set MARGO_EXTRA_SERVICE_HOSTS "<host>"`, provision, redeploy all. Never add a host you do not recognise |
 | Margo says she is busy with an earlier request | A long turn for the same manager is still running elsewhere | Wait; messages in the same container queue behind it |
-| A hire never gets a container; the provisioner logs `MaxInstancesExceeded` | The instance cap is reached | Raise `MARGO_MAX_INSTANCES`, provision, then `enqueue ensure` for that instance |
+| A hire never gets a container; the provisioner logs `MaxInstancesExceeded` | The instance cap is reached | Raise `MARGO_MAX_INSTANCES`, provision, then `sh scripts/provisioner.sh enqueue ensure <agent-identity-id> <agent-user-id>` |
 | Router logs `kind=reject` | An activity without an agent recipient (for example the app itself, not a hired instance) | Chat with a hired instance |
 | Activities get 503 and nothing happens | The provisioner has not created the instance, or failed | Check the job's logs and the route's `error` in `margo-routes/routes.json` |
 | Instance logs "token exchange failed for margo" | The federated credential is missing on the blueprint, or the agent user is not licensed yet | Add the credential (step 3); license the agent user |
