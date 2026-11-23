@@ -163,7 +163,9 @@ public sealed class VoiceService : IDisposable
             keys = _ownedKeys;
         }
 
-        _verifier = new EntraTokenVerifier(tenantId, clientId, Scope, keys, _time);
+        // The sign-in is checked against the page's own app when there is one, never the blueprint: a token for the
+        // blueprint is what the platform presents at /api/messages, and a person must not be able to hold one.
+        _verifier = new EntraTokenVerifier(tenantId, PageClientId, Scope, keys, _time);
     }
 
     /// <summary>The Voice Live endpoint.</summary>
@@ -195,7 +197,7 @@ public sealed class VoiceService : IDisposable
     {
         ["tenantId"] = TenantId,
         ["clientId"] = PageClientId,
-        ["scope"] = "api://" + ClientId + "/" + Scope,
+        ["scope"] = "api://" + PageClientId + "/" + Scope,
     };
 
     public void Dispose()
@@ -264,7 +266,7 @@ public sealed class VoiceService : IDisposable
         }
 
         var caller = await _verifier.VerifyAsync(userToken, cancellationToken).ConfigureAwait(false);
-        var (margoToken, principalToken) = await TokensAsync(userToken, cancellationToken).ConfigureAwait(false);
+        var margoToken = await MargoTokenAsync(cancellationToken).ConfigureAwait(false);
         if (string.IsNullOrEmpty(margoToken))
         {
             throw new InvalidOperationException("no agent token");
@@ -275,6 +277,9 @@ public sealed class VoiceService : IDisposable
         {
             throw new TokenRejectedException("caller is not this instance's manager");
         }
+
+        // Only now, for the manager: nobody else's sign-in is exchanged for anything.
+        var principalToken = await PrincipalTokenAsync(userToken, cancellationToken).ConfigureAwait(false);
 
         var binding = new InstanceBinding(Instance.AgentIdentityId, Instance.AgentUserId, manager.Id);
         var (sync, preferences) = _orchestrator.StateSyncFor(binding);
@@ -318,19 +323,23 @@ public sealed class VoiceService : IDisposable
             .ConfigureAwait(false);
     }
 
-    /// <summary><c>_tokens(user_token)</c>: Margo's own token, and the manager's on behalf of the sign-in under <c>obo</c>.</summary>
-    private async Task<(string? Margo, string? Principal)> TokensAsync(string userToken, CancellationToken cancellationToken)
+    /// <summary>Margo's own Work IQ token (her agentic user token).</summary>
+    private Task<string?> MargoTokenAsync(CancellationToken cancellationToken) =>
+        _tokens.GetAgenticUserTokenAsync(TenantId, Instance.AgentIdentityId, Instance.AgentUserId, [WorkIQScope], cancellationToken);
+
+    /// <summary>
+    /// The manager's Work IQ token, on behalf of their sign-in, in <c>obo</c> mode. Only a sign-in for the blueprint can
+    /// be exchanged; with a separate page app (<see cref="PageClientId"/>) there is none, and the manager's sources
+    /// report blocked, as in a chat turn without an on-behalf-of handler.
+    /// </summary>
+    private async Task<string?> PrincipalTokenAsync(string userToken, CancellationToken cancellationToken)
     {
-        IReadOnlyList<string> scopes = [WorkIQScope];
-        var margo = await _tokens.GetAgenticUserTokenAsync(TenantId, Instance.AgentIdentityId, Instance.AgentUserId, scopes, cancellationToken)
-            .ConfigureAwait(false);
-        string? principal = null;
-        if (_orchestrator.Options.PrincipalAccess == PrincipalAccessModes.Obo)
+        if (_orchestrator.Options.PrincipalAccess != PrincipalAccessModes.Obo || !string.Equals(PageClientId, ClientId, StringComparison.OrdinalIgnoreCase))
         {
-            principal = await _tokens.AcquireTokenOnBehalfOfAsync(scopes, userToken, cancellationToken).ConfigureAwait(false);
+            return null;
         }
 
-        return (margo, principal);
+        return await _tokens.AcquireTokenOnBehalfOfAsync([WorkIQScope], userToken, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>The orchestrator's <c>_manager(event, margo_token)</c>: Margo's own token through the guard (budget 1,

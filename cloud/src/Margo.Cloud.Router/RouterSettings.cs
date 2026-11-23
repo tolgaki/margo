@@ -51,7 +51,11 @@ public sealed record RouterSettings(
     /// Entra issuers, separated by spaces. Empty by default.</summary>
     public IReadOnlyList<string> ExtraIssuers { get; init; } = [];
 
-    /// <summary>Split <c>MARGO_EXTRA_TOKEN_ISSUERS</c>.</summary>
+    /// <summary><c>MARGO_PLATFORM_APP_IDS</c>: the applications a platform token may come from, separated by spaces.
+    /// Empty by default: any application's own token, never a person's.</summary>
+    public IReadOnlyList<string> PlatformAppIds { get; init; } = [];
+
+    /// <summary>Split a list setting (spaces or commas).</summary>
     public static IReadOnlyList<string> SplitIssuers(string? value) =>
         (value ?? string.Empty).Split((char[])[' ', '\t', '\n', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -86,6 +90,7 @@ public sealed record RouterSettings(
             host, (int)port, ParseLogLevel(configuration["LOG_LEVEL"] ?? "INFO"))
         {
             ExtraIssuers = SplitIssuers(configuration["MARGO_EXTRA_TOKEN_ISSUERS"]),
+            PlatformAppIds = SplitIssuers(configuration["MARGO_PLATFORM_APP_IDS"]),
         };
     }
 

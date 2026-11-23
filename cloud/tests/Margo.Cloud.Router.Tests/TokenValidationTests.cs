@@ -144,16 +144,75 @@ public sealed class TokenValidationTests : IDisposable
     }
 
     [Fact]
-    public async Task A_token_without_kid_fails_with_an_uncaught_error_as_in_python()
+    public async Task A_token_without_kid_is_refused()
     {
-        // The SDK read header["kid"] and did not catch the KeyError: aiohttp answered 500. The audience
-        // is checked for its value only after the signature, so a wrong one does not prevent this.
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => Authorize("Bearer " + Valid(kid: null)));
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => Authorize("Bearer " + Valid(c => c["aud"] = "other", kid: null)));
-
-        // An audience that is not a non-empty string is refused before the key lookup.
+        // The SDK read header["kid"] and did not catch the KeyError, so aiohttp answered 500 and logged a stack trace
+        // for anyone's request. Deliberate deviation (PORTING.md): 401.
+        await AssertRejected(Valid(kid: null));
+        await AssertRejected(Valid(c => c["aud"] = "other", kid: null));
         await AssertRejected(Valid(c => c["aud"] = 5, kid: null));
-        await AssertRejected(Valid(c => c["aud"] = "", kid: null));
+        Assert.Contains(_logs.Lines, line => line.EndsWith("JWT has no kid.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_person_s_token_for_the_blueprint_is_not_a_platform_token()
+    {
+        // The blueprint can be the audience of a person's sign-in (a delegated scope on it). The sender of an activity is
+        // read from its body, so accepting such a token would let any signed-in colleague post "as the manager".
+        await AssertRejected(Valid(c => c["scp"] = "Voice.Talk"));
+        await AssertRejected(Valid(c =>
+        {
+            c["scp"] = "Voice.Talk";
+            c["azp"] = "fictional-voice-page-app";
+            c["iss"] = "https://login.microsoftonline.com/" + Tokens.TenantId + "/v2.0";
+        }));
+        await AssertRejected(Valid(c => c["scp"] = ""));
+        Assert.Contains(_logs.Lines, line => line.Contains("JWT is a person's token (scp), not the platform's; application fictional-voice-page-app", StringComparison.Ordinal));
+
+        // An application's own token is accepted, and the application is named once so it can be pinned.
+        await AssertAccepted(Valid(c => c["appid"] = "fictional-platform-app"));
+        await AssertAccepted(Valid(c => c["appid"] = "fictional-platform-app"));
+        Assert.Single(_logs.Lines, line => line.Contains("Platform token accepted from application fictional-platform-app", StringComparison.Ordinal));
+        Assert.Contains(_logs.Lines, line => line.Contains("Platform tokens are not pinned to an application", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Pinned_platform_applications_are_the_only_entra_callers()
+    {
+        var validator = new AgentTokenValidator(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId, PlatformAppIds: [" Fictional-Platform-App ", ""]),
+            new JwksClientManager(_jwks, _time), _logs.CreateLogger("auth"), _time);
+        async Task<int> Status(string token) => (await validator.AuthorizeAsync("Bearer " + token, TestContext.Current.CancellationToken)).StatusCode;
+
+        Assert.Equal(200, await Status(Valid(c => c["appid"] = "fictional-platform-app")));
+        Assert.Equal(200, await Status(Valid(c => c["azp"] = "fictional-platform-app")));
+        Assert.Equal(200, await Status(Valid(c =>
+        {
+            c["azp"] = "fictional-platform-app";
+            c["scp"] = "user_impersonation"; // pinned: the application decides, whatever kind of token the platform uses
+        })));
+        Assert.Equal(401, await Status(Valid(c => c["appid"] = "another-tenant-app")));
+        Assert.Equal(401, await Status(Valid()));
+        Assert.Equal(401, await Status(Valid(c => c["appid"] = 5)));
+        Assert.Contains(_logs.Lines, line => line.Contains("JWT caller application not accepted: another-tenant-app", StringComparison.Ordinal));
+
+        // Bot Framework's issuer signs only its own service's deliveries.
+        Assert.Equal(200, await Status(Valid(c =>
+        {
+            c["iss"] = "https://api.botframework.com";
+            c.Remove("tid");
+        })));
+    }
+
+    [Fact]
+    public void An_extra_issuer_cannot_admit_another_tenant()
+    {
+        foreach (var issuer in (string[])["https://login.microsoftonline.com/" + Tokens.OtherTenantId + "/v2.0", "https://sts.windows.net/" + Tokens.OtherTenantId + "/"])
+        {
+            Assert.Throws<ArgumentException>(() => AgentTokenValidator.AcceptedIssuers(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId, [issuer])));
+        }
+
+        Assert.Equal(4, AgentTokenValidator.AcceptedIssuers(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId,
+            ["https://login.microsoftonline.com/" + Tokens.TenantId.ToUpperInvariant() + "/v2.0"])).Count);
     }
 
     [Fact]

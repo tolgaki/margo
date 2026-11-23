@@ -97,6 +97,21 @@ public sealed class ConfigurationTests
         Assert.Equal(LogLevel.Information, settings.LogLevel);
         Assert.Equal("Voice.Talk", settings.VoiceScope);
         Assert.Empty(settings.ExtraIssuers);
+        Assert.Empty(settings.PlatformAppIds);
+        Assert.Equal(["smba.example.com"], settings.ExtraServiceHosts); // the test defaults' fictional platform host
+        environment["MARGO_PLATFORM_APP_IDS"] = "fictional-platform-app, another-app";
+        environment["MARGO_EXTRA_SERVICE_HOSTS"] = "platform.example.com";
+        var listed = HostSettings.Load(Configuration(environment));
+        Assert.Equal(["fictional-platform-app", "another-app"], listed.PlatformAppIds);
+        Assert.Equal(["platform.example.com"], listed.ExtraServiceHosts);
+        environment.Remove("MARGO_PLATFORM_APP_IDS");
+        environment["MARGO_EXTRA_SERVICE_HOSTS"] = "smba.example.com";
+
+        // An unknown zone would pass the probes and fail every turn: refuse to start instead.
+        environment["MARGO_TIMEZONE"] = "Mars/Olympus_Mons";
+        Assert.Equal("MARGO_TIMEZONE is not a known IANA time zone: Mars/Olympus_Mons",
+            Assert.Throws<HostStartupException>(() => HostSettings.Load(Configuration(environment))).Message);
+        environment.Remove("MARGO_TIMEZONE");
         environment["MARGO_EXTRA_TOKEN_ISSUERS"] = " https://issuer.example.com/  https://other.example.com/ ";
         Assert.Equal(["https://issuer.example.com/", "https://other.example.com/"], HostSettings.Load(Configuration(environment)).ExtraIssuers);
         environment.Remove("MARGO_EXTRA_TOKEN_ISSUERS");

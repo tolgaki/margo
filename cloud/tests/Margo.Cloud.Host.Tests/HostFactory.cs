@@ -75,6 +75,8 @@ internal sealed class HostFactory : WebApplicationFactory<Program>
         // cloud/Dockerfile
         ["CONNECTIONS__SERVICE_CONNECTION__SETTINGS__SCOPES__0"] = "api://fictional-agents-service/.default",
         ["CONNECTIONSMAP__0__SERVICEURL"] = "*",
+        // The fictional platform host the activities name (Activities.ServiceUrl): not one of Microsoft's own.
+        ["MARGO_EXTRA_SERVICE_HOSTS"] = "smba.example.com",
         ["CONNECTIONSMAP__0__CONNECTION"] = "SERVICE_CONNECTION",
         ["AGENTAPPLICATION__STARTTYPINGTIMER"] = "false",
         ["AGENTAPPLICATION__USERAUTHORIZATION__AUTOSIGNIN"] = "false",

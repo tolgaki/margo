@@ -140,6 +140,14 @@ and `SCOPES__0` changed the Python `AgentAuthConfiguration` but not what it acce
 9. **Cancellation.** The turn's cancellation token (the SDK's background service) reaches the orchestrator; Python had
    none. Cancellation is not logged as `turn failed`.
 10. **Health** answers `HEAD` too (aiohttp's `add_get` did as well).
+13. **Where replies may go.** An activity names the service URL its replies are sent to. The SDK's allowed-hosts control
+    (`OutboundHostValidatorOptions`, off by default) is switched on: the adapter refuses an activity whose service URL
+    is not one of Microsoft's own hosts or `MARGO_EXTRA_SERVICE_HOSTS` with 400, before any turn runs, and never sends
+    a reply (or a token with it) anywhere else. Python sent replies wherever the activity said.
+14. **The token check's caller rule** (the Router's deviation 15) applies here too: `MARGO_PLATFORM_APP_IDS`, no
+    person's token, 401 without `kid`.
+15. **`MARGO_TIMEZONE` is checked at start-up.** An unknown zone stops the host (exit 1) instead of passing the probes
+    and failing every turn.
 11. **Mail notification without a readable reference** (review): Python's `on_email` wrapper raised `ValueError` when an
     activity had neither a readable `emailNotification` entity nor a known notification `name` (the turn then failed);
     the host queues it with the transport's IDs instead. A reference that fails validation is dropped in both.

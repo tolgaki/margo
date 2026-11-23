@@ -168,6 +168,48 @@ public sealed class SessionFlowTests
     }
 
     [Fact]
+    public async Task With_a_page_app_only_its_own_audience_signs_in_and_nothing_is_exchanged()
+    {
+        using var state = new TempState();
+        await using var host = await VoiceHost.StartAsync(state, principalAccess: "obo", pageClientId: "fictional-voice-page-app");
+
+        // A sign-in for the blueprint (what the page obtained before it had its own audience) is refused.
+        using (var page = await host.OpenAsync())
+        {
+            await page.HelloAsync(host.SignIn());
+            Assert.Equal(VoiceService.SignInRefused, PyNode.AsString((await page.ReceiveJsonAsync())["message"]));
+            Assert.Equal("voice sign-in refused: token failed verification: InvalidAudienceError", host.Logger.Entries[^1].Message);
+        }
+
+        Assert.Empty(host.Tokens.Requests); // refused before any token was asked for
+
+        // The manager, signed in for the page app: a session starts, and the sign-in is not exchanged for a Work IQ
+        // token (only a sign-in for the blueprint could be).
+        var claims = TestKeys.Claims(TestKeys.Now());
+        claims["aud"] = "fictional-voice-page-app";
+        using (var page = await host.OpenAsync())
+        {
+            await page.HelloAsync(host.Keys.Mint(claims));
+            var connection = await host.VoiceLive.NextConnectionAsync();
+            connection.Push(null); // the service ends the session
+        }
+
+        Assert.NotEmpty(host.Tokens.Requests);
+        Assert.DoesNotContain(host.Tokens.Requests, request => request.StartsWith("obo ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_colleague_s_sign_in_is_never_exchanged()
+    {
+        using var state = new TempState();
+        await using var host = await VoiceHost.StartAsync(state, principalAccess: "obo");
+        using var page = await host.OpenAsync();
+        await page.HelloAsync(host.SignIn("colleague-1"));
+        Assert.Equal(VoiceService.SignInRefused, PyNode.AsString((await page.ReceiveJsonAsync())["message"]));
+        Assert.DoesNotContain(host.Tokens.Requests, request => request.StartsWith("obo ", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Other_failures_end_the_call_with_the_generic_message()
     {
         using var state = new TempState();

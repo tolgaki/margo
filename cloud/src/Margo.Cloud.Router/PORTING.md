@@ -52,7 +52,8 @@ request when all of these hold, in this order:
 4. Signing keys: the Bot Framework set (`https://login.botframework.com/v1/.well-known/keys`, or the
    US Government one) when the unverified `iss` is exactly `https://api.botframework.com` (or `.us`);
    otherwise `https://login.microsoftonline.com/<tenant>/discovery/v2.0/keys`.
-5. The header has `kid`. Without it the SDK raised an uncaught `KeyError`: aiohttp answered 500. Kept.
+5. The header has `kid`. Without it the SDK raised an uncaught `KeyError`: aiohttp answered 500. Not kept (deviation
+   15): refused with 401.
 6. The key with that `kid` among the set's signing keys (`use` is `sig` or absent, `kid` truthy). The
    set is cached 300 s; an unknown `kid` forces one refresh unless a fetch succeeded in the last 30 s;
    a failed fetch (network, status outside 2xx, redirect, not JSON, no usable keys) refuses the token
@@ -210,11 +211,33 @@ ingress target port) and `LOG_LEVEL` (default `INFO`; Python's level names). New
     writes nothing. A platform retry of the same activity can then reach the instance twice; the instance has no
     duplicate check for chat turns, so Margo may answer twice rather than not at all.
 
+15. **Platform tokens must come from the platform, and a token without `kid` is a 401.** The blueprint can be the
+    audience of a person's sign-in (a delegated scope on it, such as the voice scope when the page signs in for the
+    blueprint), and an activity names its own sender. Python accepted any token for the blueprint, so a signed-in
+    colleague could post an activity "from the manager". Now an Entra-issued token is accepted only from the
+    applications in `MARGO_PLATFORM_APP_IDS` (`appid` or `azp`), or, while that is empty, only without `scp`; the first
+    accepted application is logged so it can be pinned. Bot Framework's own issuer is not subject to this.
+    An extra issuer (`MARGO_EXTRA_TOKEN_ISSUERS`) that is another tenant's Entra issuer stops the router at start-up.
+    A token without `kid` is refused with 401 and one warning; Python answered 500 with a stack trace, for anyone.
+16. **Connection pools.** aiohttp's one pool of 100 covered activities and voice for every instance. An instance that
+    never answered (a crash loop, a slow cold start with a busy mailbox), or voice sockets opened without a token by
+    anyone who knew an instance's address, could hold all 100 and stop every other instance's activities. Now: 100
+    activity forwards with at most 8 to one instance; a separate pool of 24 voice pages and sockets with at most 4 to
+    one instance. The total timeout is 120 s, not 300 (the instance accepts an activity at once; the wait only has to
+    outlast a cold start).
+17. **The route table: no table before the first load, and a pause after a failure.** Python served an empty table
+    until the first load succeeded, so on a replica that could not read the table every activity was a "first
+    activity": 503 and an `ensure` for the provisioner, also for suspended and retired instances. Now there is no
+    table until one has loaded: activities and voice requests are answered 503 with `Retry-After: 5`, and nothing is
+    forwarded or queued. After a failed load the next attempt waits 5 s (Python retried on every request, one after
+    another, so an outage queued every caller behind a load that would fail); the last good table serves meanwhile.
+18. **Shutdown.** Forwards in flight get 25 s to finish after the router is told to stop (deviation 14 had tied them to
+    the stop signal itself, which cut them at once); one still unfinished then is answered 503 with `Retry-After`,
+    not 500.
+19. **The voice page is served with `X-Content-Type-Options: nosniff`.**
+
 ## Kept as Python does it, though it may look odd
 
-- A token without `kid` is a 500, not a 401 (see above), even when its audience is wrong but a string.
-- A failed route table load is retried on the very next request, with no back-off; until the first
-  load succeeds the table is empty, so every activity is answered 503 and queued as `first-activity`.
 - A lifecycle or provisioning message that cannot be queued fails the request with 500.
 - The forwarded response keeps the instance's status and body and only the media type of its
   `Content-Type` (no `charset`); no other header, not even `Retry-After`, is passed on. An empty body

@@ -57,9 +57,10 @@ public sealed class RouterService
     private readonly ILogger _logger;
     private readonly CancellationToken _stopping;
 
-    /// <param name="stopping">Cancels activity forwards when the router shuts down. A forward does not
-    /// follow the caller's request: if Agent 365 stops waiting (a cold instance can take longer to start
-    /// than it waits), the instance still gets the whole activity and finishes the turn.</param>
+    /// <param name="stopping">Cancels activity forwards a grace period after the router starts to shut down
+    /// (<see cref="RouterApplication.ForwardDrain"/>). A forward does not follow the caller's request: if
+    /// Agent 365 stops waiting (a cold instance can take longer to start than it waits), the instance still
+    /// gets the whole activity and finishes the turn.</param>
     public RouterService(RouteTableCache routes, IProvisioningSink queue, AgentTokenValidator validator, InstanceConnector instances, ILogger logger,
         CancellationToken stopping = default)
     {
@@ -84,6 +85,24 @@ public sealed class RouterService
         try
         {
             await DispatchAsync(context);
+        }
+        catch (RouteTableUnavailableException) when (!context.Response.HasStarted)
+        {
+            // Nothing is forwarded or queued on a guess: the caller retries, and the table loads meanwhile.
+            _logger.LogWarning("route table not loaded yet; asked the caller to retry");
+            context.Response.Clear();
+            await WriteEmptyAsync(context, 503, RouteTableCache.FailureBackoff.Seconds);
+        }
+        catch (OperationCanceledException) when (_stopping.IsCancellationRequested && !context.RequestAborted.IsCancellationRequested && !context.Response.HasStarted)
+        {
+            // The router is stopping and the forward's grace period ran out: say so, do not call it an error.
+            _logger.LogWarning("forward abandoned at shutdown; asked the caller to retry");
+            context.Response.Clear();
+            await WriteEmptyAsync(context, 503, RouterCore.RetryAfterSeconds);
+        }
+        catch (OperationCanceledException) when (_stopping.IsCancellationRequested && context.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogWarning("forward abandoned at shutdown after the caller stopped waiting");
         }
         catch (InstanceTimeoutException) when (!context.Response.HasStarted)
         {
@@ -230,7 +249,7 @@ public sealed class RouterService
         // Deliberate deviation from Python (PORTING.md): the forward runs on the router's clock, not the
         // caller's. Cancelling it when the caller left cut the instance's turn off mid-start, and the
         // message was lost; now the instance answers within the connector's own timeouts.
-        using var slot = await _instances.AcquireAsync(_stopping);
+        using var slot = await _instances.AcquireAsync(decision.Key, voice: false, _stopping);
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(decision.Url + "/activity/messages"))
         {
             Content = new ByteArrayContent(body),
@@ -287,11 +306,11 @@ public sealed class RouterService
                 return;
             }
 
-            await _voice.RunAsync(context, target.Url!);
+            await _voice.RunAsync(context, target.Url!, target.Key);
             return;
         }
 
-        using var slot = await _instances.AcquireAsync(context.RequestAborted);
+        using var slot = await _instances.AcquireAsync(target.Key, voice: true, context.RequestAborted);
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(target.Url!));
         using var upstream = await _instances.SendAsync(request, context.RequestAborted);
         var payload = await upstream.Content.ReadAsByteArrayAsync(context.RequestAborted);
@@ -305,6 +324,7 @@ public sealed class RouterService
             context.Response.Headers.ContentType = "application/octet-stream";
         }
 
+        context.Response.Headers.XContentTypeOptions = "nosniff";
         foreach (var name in (string[])["Cache-Control", "Content-Security-Policy"])
         {
             if (FirstValue(upstream.Headers.NonValidated, name) is { } value)

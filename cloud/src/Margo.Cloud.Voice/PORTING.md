@@ -153,9 +153,18 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
 
 Agent blueprints refuse redirect URIs (`PropertyNotCompatibleWithAgenticApplication`), so the page cannot sign in as
 the blueprint, as `voice/server.py` assumed. `VoiceServiceOptions.PageClientId` (Host: `MARGO_VOICE_CLIENT_ID`) names a
-single-page-app registration the page signs in with; `/voice/config` returns it as `clientId` and still asks for
-`api://<blueprint>/Voice.Talk`. The token check is unchanged: audience the blueprint, the voice scope, the tenant and the
-manager. Unset, the page signs in as the blueprint as before.
+single-page-app registration the page signs in with; `/voice/config` returns it as `clientId`. Unset, the page signs in
+as the blueprint as before (which a blueprint cannot actually serve).
+
+**Own audience (23 Nov 2026, security review).** With a page app, the sign-in is for the page app's own scope,
+`api://<page app>/Voice.Talk`, and the token check's audience is the page app, not the blueprint. Until then the page
+asked for `api://<blueprint>/Voice.Talk`, so every person in the tenant could hold a token whose audience was the
+blueprint, which is what the platform presents at `/api/messages` (the Router and Host now refuse a person's token
+there as well). Consequence: with a page app there is no on-behalf-of exchange in voice, because only a sign-in for
+the blueprint can be exchanged; in `obo` mode the manager's sources report blocked, as in a chat turn without a
+handler. Order of the sign-in (review): verify the token, get Margo's own token, look up the manager, compare, and only
+then exchange the manager's sign-in; Python exchanged before the manager check, so any tenant user's sign-in was
+exchanged for a Work IQ token before being refused.
 
 ## Not ported, and why
 

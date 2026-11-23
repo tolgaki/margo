@@ -30,8 +30,12 @@ public sealed class InstanceTimeoutException : TimeoutException
 /// </summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item>At most <see cref="ConnectionLimit"/> requests and voice sockets at once, as aiohttp's
-/// connector allowed; a request that cannot get a slot within <see cref="ConnectTimeout"/> fails.</item>
+/// <item>At most <see cref="ConnectionLimit"/> activity forwards at once, and at most
+/// <see cref="PerInstanceLimit"/> to one instance; voice pages and sockets have their own, smaller pool
+/// (<see cref="VoiceLimit"/>, <see cref="PerInstanceVoiceLimit"/> per instance). A request that cannot get a slot
+/// within <see cref="ConnectTimeout"/> fails. Deliberate deviation from aiohttp's one pool of 100 (PORTING.md): one
+/// instance that does not answer, or voice sockets opened by anyone who knows an instance's address, could hold
+/// every slot and stop the activities of every other instance.</item>
 /// <item>Responses compressed with gzip or deflate are decompressed (aiohttp asked for them).</item>
 /// <item>Redirects are followed, at most 10 (aiohttp's default; the instance does not redirect these).</item>
 /// <item>No cookie jar: aiohttp kept one for the whole session, but the instance sets no cookies.</item>
@@ -42,19 +46,35 @@ public sealed class InstanceTimeoutException : TimeoutException
 /// </remarks>
 public sealed class InstanceConnector : IDisposable
 {
-    /// <summary>aiohttp's <c>TCPConnector(limit=100)</c>.</summary>
+    /// <summary>Activity forwards at once, over all instances (aiohttp's <c>TCPConnector(limit=100)</c> covered
+    /// voice too).</summary>
     public const int ConnectionLimit = 100;
+
+    /// <summary>Activity forwards at once to one instance.</summary>
+    public const int PerInstanceLimit = 8;
+
+    /// <summary>Voice pages and sockets at once, over all instances.</summary>
+    public const int VoiceLimit = 24;
+
+    /// <summary>Voice pages and sockets at once to one instance (one manager, a few tabs).</summary>
+    public const int PerInstanceVoiceLimit = 4;
 
     /// <summary>Python: <c>FORWARD_TIMEOUT.connect</c>.</summary>
     public static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(10);
 
-    /// <summary>Python: <c>FORWARD_TIMEOUT.total</c>.</summary>
-    public static readonly TimeSpan TotalTimeout = TimeSpan.FromSeconds(300);
+    /// <summary>How long an instance has to answer. Python: <c>FORWARD_TIMEOUT.total</c> was 300 s; the instance
+    /// accepts an activity at once and works in the background, so this only has to outlast a cold start, and a
+    /// shorter wait frees the slots of an instance that never starts sooner.</summary>
+    public static readonly TimeSpan TotalTimeout = TimeSpan.FromSeconds(120);
 
     /// <summary>Python: <c>heartbeat=20</c>; a pong is awaited for half of it.</summary>
     public static readonly TimeSpan Heartbeat = TimeSpan.FromSeconds(20);
 
     private readonly SemaphoreSlim _slots;
+    private readonly SemaphoreSlim _voiceSlots;
+    private readonly int _perInstance;
+    private readonly int _perInstanceVoice;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _instanceSlots = new(StringComparer.Ordinal);
     private readonly TimeSpan _connectTimeout;
     private readonly HttpClient _http;
     private readonly HttpMessageInvoker _sockets;
@@ -68,6 +88,10 @@ public sealed class InstanceConnector : IDisposable
     internal InstanceConnector(int connectionLimit, TimeSpan connectTimeout, TimeSpan totalTimeout)
     {
         _slots = new SemaphoreSlim(connectionLimit, connectionLimit);
+        var voiceLimit = Math.Min(VoiceLimit, connectionLimit);
+        _voiceSlots = new SemaphoreSlim(voiceLimit, voiceLimit);
+        _perInstance = Math.Min(PerInstanceLimit, connectionLimit);
+        _perInstanceVoice = Math.Min(PerInstanceVoiceLimit, connectionLimit);
         _connectTimeout = connectTimeout;
         _http = new HttpClient(new SocketsHttpHandler
         {
@@ -91,16 +115,49 @@ public sealed class InstanceConnector : IDisposable
         });
     }
 
-    /// <summary>Wait for a connection slot.</summary>
+    /// <summary>Wait for an activity slot that belongs to no instance (tests, and callers without a key).</summary>
     /// <exception cref="InstanceTimeoutException">None became free within <see cref="ConnectTimeout"/>.</exception>
-    public async Task<IDisposable> AcquireAsync(CancellationToken cancellationToken)
+    public Task<IDisposable> AcquireAsync(CancellationToken cancellationToken) => AcquireAsync(null, voice: false, cancellationToken);
+
+    /// <summary>Wait for a slot to one instance: first the instance's own, then the shared pool for the kind.</summary>
+    /// <param name="instanceKey">The instance's key; <see langword="null"/> takes only a shared slot.</param>
+    /// <param name="voice">A voice page or socket, not an activity.</param>
+    /// <param name="cancellationToken">Stops the wait.</param>
+    /// <exception cref="InstanceTimeoutException">None became free within <see cref="ConnectTimeout"/>.</exception>
+    public async Task<IDisposable> AcquireAsync(string? instanceKey, bool voice, CancellationToken cancellationToken)
     {
-        if (!await _slots.WaitAsync(_connectTimeout, cancellationToken))
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        SemaphoreSlim? own = null;
+        if (instanceKey is not null)
         {
+            var limit = voice ? _perInstanceVoice : _perInstance;
+            own = _instanceSlots.GetOrAdd((voice ? "v:" : "a:") + instanceKey, _ => new SemaphoreSlim(limit, limit));
+            if (!await own.WaitAsync(_connectTimeout, cancellationToken))
+            {
+                throw new InstanceTimeoutException("the instance has too many requests waiting on it");
+            }
+        }
+
+        var pool = voice ? _voiceSlots : _slots;
+        var left = _connectTimeout - System.Diagnostics.Stopwatch.GetElapsedTime(started);
+        bool acquired;
+        try
+        {
+            acquired = await pool.WaitAsync(left > TimeSpan.Zero ? left : TimeSpan.Zero, cancellationToken);
+        }
+        catch
+        {
+            own?.Release();
+            throw;
+        }
+
+        if (!acquired)
+        {
+            own?.Release();
             throw new InstanceTimeoutException("no connection to the instance became free");
         }
 
-        return new Slot(_slots);
+        return new Slot(pool, own);
     }
 
     /// <summary>Send a request and read the whole response, within <see cref="TotalTimeout"/>.</summary>
@@ -145,9 +202,14 @@ public sealed class InstanceConnector : IDisposable
         _http.Dispose();
         _sockets.Dispose();
         _slots.Dispose();
+        _voiceSlots.Dispose();
+        foreach (var own in _instanceSlots.Values)
+        {
+            own.Dispose();
+        }
     }
 
-    private sealed class Slot(SemaphoreSlim slots) : IDisposable
+    private sealed class Slot(SemaphoreSlim pool, SemaphoreSlim? own) : IDisposable
     {
         private int _released;
 
@@ -155,7 +217,8 @@ public sealed class InstanceConnector : IDisposable
         {
             if (Interlocked.Exchange(ref _released, 1) == 0)
             {
-                slots.Release();
+                pool.Release();
+                own?.Release();
             }
         }
     }

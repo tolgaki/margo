@@ -11,8 +11,12 @@ namespace Margo.Cloud.Router.Authentication;
 /// tenant whose Entra issuers are accepted.</param>
 /// <param name="ExtraIssuers">Issuers accepted besides the defaults (<see cref="AgentTokenValidator.AcceptedIssuers"/>),
 /// from <c>MARGO_EXTRA_TOKEN_ISSUERS</c>: a recovery setting if the platform signs with an issuer this version does not
-/// know, never a way to admit another tenant.</param>
-public sealed record AgentAuthSettings(string ClientId, string TenantId, IReadOnlyList<string>? ExtraIssuers = null);
+/// know. Another tenant's Entra issuer is refused at start-up.</param>
+/// <param name="PlatformAppIds">The applications (<c>appid</c> or <c>azp</c>) an Entra-issued platform token may come
+/// from, from <c>MARGO_PLATFORM_APP_IDS</c>. Empty: any application's own token is accepted, but never a token issued
+/// to a signed-in person (one with <c>scp</c>).</param>
+public sealed record AgentAuthSettings(string ClientId, string TenantId, IReadOnlyList<string>? ExtraIssuers = null,
+    IReadOnlyList<string>? PlatformAppIds = null);
 
 /// <summary>The outcome of checking a request's <c>Authorization</c> header.</summary>
 /// <param name="StatusCode">200 when accepted; otherwise the status to answer with.</param>
@@ -42,9 +46,14 @@ public sealed record AuthorizationResult(int StatusCode, string? ErrorJson, Json
 /// <c>VALIDATE_ISSUER</c> was off: Entra signs every tenant's tokens with the same keys, so without it a token from
 /// another tenant was refused only by its audience. A token from a recognised Entra issuer must also carry the same
 /// tenant in <c>tid</c>, when it has one.</item>
+/// <item>An Entra-issued token must come from the platform, not from a person (a deliberate deviation): with
+/// <c>MARGO_PLATFORM_APP_IDS</c> set, its <c>appid</c> or <c>azp</c> must be one of them; without, it must carry no
+/// <c>scp</c>. The blueprint is also the audience of sign-ins that are not platform deliveries (the voice page's
+/// scope, when the page signs in as the blueprint), and the sender of an activity is read from its body, so a person's
+/// token must never be accepted here.</item>
 /// </list>
-/// A token without <c>kid</c> (that passes the earlier checks) fails with 500, because the SDK did not
-/// catch the <c>KeyError</c>; this is kept.
+/// A token without <c>kid</c> is refused (401). The SDK failed with 500 there (an uncaught <c>KeyError</c>); that is
+/// not kept, because it let anyone fill the error log without a valid token.
 /// </remarks>
 public sealed class AgentTokenValidator
 {
@@ -64,6 +73,8 @@ public sealed class AgentTokenValidator
 
     private readonly AgentAuthSettings _settings;
     private readonly IReadOnlyList<string> _issuers;
+    private readonly HashSet<string> _platformApps;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _seenCallers = new(StringComparer.Ordinal);
     private readonly JwksClientManager _keys;
     private readonly TimeProvider _time;
     private readonly ILogger _logger;
@@ -75,8 +86,14 @@ public sealed class AgentTokenValidator
         ArgumentNullException.ThrowIfNull(logger);
         _settings = settings;
         _issuers = AcceptedIssuers(settings);
+        _platformApps = new HashSet<string>(
+            (settings.PlatformAppIds ?? []).Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id.Trim()), StringComparer.OrdinalIgnoreCase);
         _keys = keys;
         _logger = logger;
+        if (_platformApps.Count == 0)
+        {
+            _logger.LogWarning("Platform tokens are not pinned to an application (MARGO_PLATFORM_APP_IDS is empty): any application's own token for the blueprint is accepted.");
+        }
         _time = timeProvider ?? TimeProvider.System;
     }
 
@@ -169,8 +186,6 @@ public sealed class AgentTokenValidator
 
     /// <summary>Python: <c>JwtTokenValidator.validate_token</c>. Returns the verified claims.</summary>
     /// <exception cref="TokenRejectedException">The token is not accepted.</exception>
-    /// <exception cref="KeyNotFoundException">The token has no <c>kid</c> header (Python: an uncaught
-    /// <c>KeyError</c>, so the request failed with 500).</exception>
     internal async Task<JsonObject> ValidateTokenAsync(string token, CancellationToken cancellationToken)
     {
         // get_unverified_header and the unverified decode: structure only.
@@ -186,7 +201,8 @@ public sealed class AgentTokenValidator
         var jwksUri = EntraIssuers.JwksUri(PythonCompat.AsString(jws.Payload["iss"]), _settings.TenantId);
         if (!jws.Header.ContainsKey("kid"))
         {
-            throw new KeyNotFoundException("the token has no kid header");
+            _logger.LogWarning("JWT has no kid.");
+            throw new TokenRejectedException("KeyError", "kid");
         }
 
         var key = await _keys.GetSigningKeyAsync(jwksUri, PythonCompat.AsString(jws.Header["kid"])!, cancellationToken);
@@ -211,6 +227,8 @@ public sealed class AgentTokenValidator
             throw new TokenRejectedException("ValueError", "Invalid issuer.");
         }
 
+        CheckCaller(jws.Payload, issuer);
+
         // Tenant binding (always on in the SDK): a recognised Entra issuer's tenant must equal tid.
         var tenant = EntraIssuers.EntraTenant(PythonCompat.AsString(jws.Payload["iss"]));
         if (tenant is not null && PythonCompat.AsString(jws.Payload["tid"]) is { } tid && !PythonCompat.LowerEquals(tid, tenant))
@@ -222,6 +240,49 @@ public sealed class AgentTokenValidator
         return jws.Payload;
     }
 
+    /// <summary>The platform, not a person: see the class remarks. Bot Framework's own issuer signs only its service's
+    /// deliveries, so the check applies to Entra-issued tokens.</summary>
+    private void CheckCaller(JsonObject payload, string issuer)
+    {
+        if (string.Equals(issuer, EntraIssuers.BotFrameworkPublicIssuer, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var app = PythonCompat.AsString(payload["appid"]) ?? PythonCompat.AsString(payload["azp"]);
+        if (_platformApps.Count > 0)
+        {
+            if (app is null || !_platformApps.Contains(app))
+            {
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning("JWT caller application not accepted: {Application}", Printable(app));
+                }
+
+                throw new TokenRejectedException("ValueError", "Invalid caller.");
+            }
+
+            return;
+        }
+
+        if (payload.ContainsKey("scp"))
+        {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning("JWT is a person's token (scp), not the platform's; application {Application}", Printable(app));
+            }
+
+            throw new TokenRejectedException("ValueError", "Invalid caller.");
+        }
+
+        // Unpinned: say once which application delivers, so an operator can pin it.
+        var caller = Printable(app);
+        if (_seenCallers.Count < 16 && _seenCallers.TryAdd(caller, true) && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Platform token accepted from application {Application}; set MARGO_PLATFORM_APP_IDS to accept only it.", caller);
+        }
+    }
+
     /// <summary>The issuers a token may come from: Bot Framework (public cloud), the configured tenant's Entra v1 and v2
     /// issuers, and any configured extras.</summary>
     public static IReadOnlyList<string> AcceptedIssuers(AgentAuthSettings settings)
@@ -231,10 +292,18 @@ public sealed class AgentTokenValidator
         List<string> issuers = [EntraIssuers.BotFrameworkPublicIssuer, "https://sts.windows.net/" + tenant + "/", "https://login.microsoftonline.com/" + tenant + "/v2.0"];
         foreach (var extra in settings.ExtraIssuers ?? [])
         {
-            if (!string.IsNullOrWhiteSpace(extra))
+            if (string.IsNullOrWhiteSpace(extra))
             {
-                issuers.Add(extra.Trim());
+                continue;
             }
+
+            // Never another tenant: Entra signs every tenant's tokens with the same keys.
+            if (EntraIssuers.EntraTenant(extra.Trim()) is { } other && other != tenant)
+            {
+                throw new ArgumentException("MARGO_EXTRA_TOKEN_ISSUERS names another tenant's issuer: " + extra.Trim(), nameof(settings));
+            }
+
+            issuers.Add(extra.Trim());
         }
 
         return issuers;

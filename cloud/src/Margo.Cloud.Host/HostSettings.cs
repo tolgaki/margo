@@ -111,6 +111,14 @@ public sealed record HostSettings
     /// Entra issuers, separated by spaces. Empty by default.</summary>
     public IReadOnlyList<string> ExtraIssuers { get; init; } = [];
 
+    /// <summary><c>MARGO_PLATFORM_APP_IDS</c>: the applications a platform token may come from, separated by spaces.
+    /// Empty by default: any application's own token, never a person's.</summary>
+    public IReadOnlyList<string> PlatformAppIds { get; init; } = [];
+
+    /// <summary><c>MARGO_EXTRA_SERVICE_HOSTS</c>: hosts Margo may reply to besides Microsoft's own (the SDK's built-in
+    /// list), separated by spaces. Empty by default.</summary>
+    public IReadOnlyList<string> ExtraServiceHosts { get; init; } = [];
+
     /// <summary><c>APPLICATIONINSIGHTS_CONNECTION_STRING</c>.</summary>
     public string? ApplicationInsights { get; init; }
 
@@ -190,6 +198,13 @@ public sealed record HostSettings
             throw new HostStartupException("PORT is not a port number: " + portText); // Python: ValueError from int()
         }
 
+        var timeZone = Get("MARGO_TIMEZONE") ?? "America/Los_Angeles";
+        if (!TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out _))
+        {
+            // Otherwise the host passes its probes and every turn fails.
+            throw new HostStartupException("MARGO_TIMEZONE is not a known IANA time zone: " + timeZone);
+        }
+
         var stateDir = Get("MARGO_STATE_DIR");
         var managedIdentity = Get("AZURE_CLIENT_ID");
         return new HostSettings
@@ -204,7 +219,7 @@ public sealed record HostSettings
             ModelEndpoint = endpoint,
             ManagedIdentityClientId = string.IsNullOrEmpty(managedIdentity) ? null : managedIdentity,
             RepoRoot = Get("MARGO_REPO_ROOT") ?? "/app",
-            TimeZone = Get("MARGO_TIMEZONE") ?? "America/Los_Angeles",
+            TimeZone = timeZone,
             StateRoot = string.IsNullOrEmpty(stateDir)
                 ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "margo", "state")
                 : stateDir,
@@ -216,14 +231,19 @@ public sealed record HostSettings
             VoiceTenantId = voiceTenant,
             VoiceScope = Get("MARGO_VOICE_SCOPE") ?? "Voice.Talk",
             VoiceClientId = Get("MARGO_VOICE_CLIENT_ID"),
-            ExtraIssuers = (Get("MARGO_EXTRA_TOKEN_ISSUERS") ?? string.Empty)
-                .Split((char[])[' ', '\t', '\n', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            ExtraIssuers = SplitList(Get("MARGO_EXTRA_TOKEN_ISSUERS")),
+            PlatformAppIds = SplitList(Get("MARGO_PLATFORM_APP_IDS")),
+            ExtraServiceHosts = SplitList(Get("MARGO_EXTRA_SERVICE_HOSTS")),
             ApplicationInsights = Get("APPLICATIONINSIGHTS_CONNECTION_STRING") is { Length: > 0 } insights ? insights : null,
             ListenHost = Get("HOST") ?? "0.0.0.0",
             Port = port,
             LogLevel = ParseLogLevel(Get("LOG_LEVEL") ?? "INFO"),
         };
     }
+
+    /// <summary>A list setting: values separated by spaces or commas.</summary>
+    public static IReadOnlyList<string> SplitList(string? value) =>
+        (value ?? string.Empty).Split((char[])[' ', '\t', '\n', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     /// <summary>Python: <c>getattr(logging, LOG_LEVEL.upper(), logging.INFO)</c>.</summary>
     public static LogLevel ParseLogLevel(string value)

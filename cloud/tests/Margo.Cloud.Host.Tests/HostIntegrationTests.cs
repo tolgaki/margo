@@ -283,6 +283,29 @@ public sealed class HostIntegrationTests
     }
 
     [Fact]
+    public async Task An_activity_whose_replies_would_leave_the_platform_runs_no_turn()
+    {
+        // The activity names where its replies go. Only Microsoft's own hosts (and MARGO_EXTRA_SERVICE_HOSTS) are
+        // allowed; here the fictional test host is not, as any host an attacker names would not be.
+        using var state = new TempState();
+        await using var host = new HostFactory(state, new Dictionary<string, string?> { ["MARGO_EXTRA_SERVICE_HOSTS"] = "" });
+        var client = host.Start();
+        var refused = await HostFactory.PostAsync(client, Activities.Message("Brief me"));
+        Assert.Equal(400, (int)refused.StatusCode); // the SDK's adapter, with its allowed-hosts control switched on (MargoHost)
+        Assert.Contains("ServiceUrl host is not in the configured allowed hosts", host.Logs.All, StringComparison.Ordinal);
+
+        // An allowed activity afterwards is the next (and only) turn: the refused one ran nothing.
+        using var allowedState = new TempState();
+        await using var allowed = new HostFactory(allowedState);
+        allowed.Model.Add(FakeModel.Final("Here is your brief."));
+        await HostFactory.PostAsync(allowed.Start(), Activities.Message("Brief me"));
+        Assert.Equal("message", (await allowed.NextTurnAsync()).Kind);
+        Assert.Empty(host.Model.Requests);
+        Assert.Empty(host.WorkIQ.Calls);
+        Assert.Empty(host.Connector.Sent);
+    }
+
+    [Fact]
     public async Task Without_a_principal_handler_an_obo_turn_gets_no_manager_token()
     {
         using var state = new TempState();

@@ -166,7 +166,7 @@ public static class MargoHost
         services.TryAddSingleton<IJwksSource, HttpJwksSource>();
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton(provider => new JwksClientManager(provider.GetRequiredService<IJwksSource>(), provider.GetRequiredService<TimeProvider>()));
-        services.TryAddSingleton(provider => new AgentTokenValidator(new AgentAuthSettings(settings.ClientId, settings.TenantId, settings.ExtraIssuers),
+        services.TryAddSingleton(provider => new AgentTokenValidator(new AgentAuthSettings(settings.ClientId, settings.TenantId, settings.ExtraIssuers, settings.PlatformAppIds),
             provider.GetRequiredService<JwksClientManager>(), provider.GetRequiredService<ILoggerFactory>().CreateLogger(AuthLogCategory),
             provider.GetRequiredService<TimeProvider>()));
 
@@ -187,6 +187,15 @@ public static class MargoHost
         services.TryAddSingleton<IStorage, MemoryStorage>();
         services.AddAgentApplicationOptions();
         services.AddAgent<MargoAgent, MargoCloudAdapter>();
+
+        // The SDK's allowed-hosts control is opt-in. On: replies (and any token sent with them) go only to Microsoft's
+        // own hosts, or MARGO_EXTRA_SERVICE_HOSTS, whatever service URL an activity names.
+        services.Replace(ServiceDescriptor.Singleton<IOutboundHostValidator>(new OutboundHostValidator(new OutboundHostValidatorOptions
+        {
+            Enabled = true,
+            IncludeDefaultMicrosoftHosts = true,
+            Hosts = [.. settings.ExtraServiceHosts],
+        })));
         services.TryAddSingleton<MargoTurns>();
 
         if (settings.VoiceEnabled)

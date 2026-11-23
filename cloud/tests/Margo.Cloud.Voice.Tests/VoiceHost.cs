@@ -44,7 +44,7 @@ internal sealed class VoiceHost : IAsyncDisposable
 
     /// <param name="state">Temporary state made by the test method itself (its environment override is per async flow).</param>
     public static async Task<VoiceHost> StartAsync(TempState state, VoiceSettings? settings = null, string principalAccess = "obo",
-                                                   TimeProvider? time = null)
+                                                   TimeProvider? time = null, string? pageClientId = null)
     {
         var transport = new DirectoryTransport();
         var tokens = new FakeTokens();
@@ -74,6 +74,7 @@ internal sealed class VoiceHost : IAsyncDisposable
             Keys = keys,
             Logger = logger,
             Time = time,
+            PageClientId = pageClientId,
         });
 
         var builder = WebApplication.CreateSlimBuilder();

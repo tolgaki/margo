@@ -288,17 +288,43 @@ public sealed class RouterEndpointTests
         router.Routes.Failure = new InvalidOperationException("storage is unreachable");
         router.Time.Advance(TimeSpan.FromMilliseconds(1));
         Assert.Equal(200, await Status()); // the load failed: the last good table is used
-        Assert.Equal(200, await Status()); // and every request tries again
+        Assert.Equal(200, await Status()); // and the next attempt waits (deviation: Python retried on every request)
+        Assert.Equal(2, router.Routes.Loads);
+        router.Time.Advance(RouteTableCache.FailureBackoff + TimeSpan.FromMilliseconds(1));
+        Assert.Equal(200, await Status());
         Assert.Equal(3, router.Routes.Loads);
         Assert.Contains(router.Logs.Lines, line => line.Contains("route table could not be loaded", StringComparison.Ordinal));
 
         router.Routes.Failure = null;
+        router.Time.Advance(RouteTableCache.FailureBackoff + TimeSpan.FromMilliseconds(1));
         Assert.Equal(503, await Status()); // the empty table: provision
         Assert.Equal(4, router.Routes.Loads);
         router.Routes.Text = "not json";
         router.Time.Advance(TimeSpan.FromSeconds(16));
         Assert.Equal(503, await Status()); // a malformed table is a failed load too
         Assert.Equal(5, router.Routes.Loads);
+    }
+
+    [Fact]
+    public async Task Until_the_route_table_has_loaded_once_nothing_is_forwarded_or_queued()
+    {
+        // Deliberate deviation from Python (PORTING.md): a replica that cannot read the table served an empty one, so
+        // every activity looked like a first activity and the provisioner was asked to create instances that exist,
+        // suspended and retired ones included.
+        await using var router = await RouterUnderTest.StartAsync(RouterUnderTest.Table(("margo-user-s", RouteStates.Suspended, null)));
+        router.Routes.Failure = new InvalidOperationException("storage is unreachable");
+        var token = "Bearer " + router.Token();
+        var first = await Send(router, Post("/api/messages", Activity("margo-user-s"), token));
+        Assert.Equal((503, "5"), (first.Status, first.Response.Headers.RetryAfter?.ToString()));
+        var voice = await Send(router, new HttpRequestMessage(HttpMethod.Get, "/i/" + RouterUnderTest.Key("margo-user-s") + "/voice/"));
+        Assert.Equal(503, voice.Status);
+        Assert.Empty(router.Sink.Sent);
+        Assert.Contains(router.Logs.Lines, line => line.Contains("route table not loaded yet", StringComparison.Ordinal));
+
+        router.Routes.Failure = null;
+        router.Time.Advance(RouteTableCache.FailureBackoff + TimeSpan.FromMilliseconds(1));
+        Assert.Equal(200, (await Send(router, Post("/api/messages", Activity("margo-user-s"), token))).Status); // suspended: acknowledged
+        Assert.Empty(router.Sink.Sent);
     }
 
     [Fact]

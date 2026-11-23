@@ -15,6 +15,10 @@ public static class RouterApplication
     /// <summary>The logger category of the token check (Python: the Agents SDK's loggers).</summary>
     public const string AuthLogCategory = "margo.router.auth";
 
+    /// <summary>How long forwards in flight may finish after the router is told to stop (inside the host's 30 s
+    /// shutdown and the platform's termination grace period).</summary>
+    public static readonly TimeSpan ForwardDrain = TimeSpan.FromSeconds(25);
+
     /// <summary>
     /// Register the router. <paramref name="routes"/>, <paramref name="queue"/> and
     /// <paramref name="jwks"/> are registered as services, so a host (or a test) can replace them.
@@ -41,8 +45,22 @@ public static class RouterApplication
         services.AddSingleton(provider => new RouterService(provider.GetRequiredService<RouteTableCache>(),
             provider.GetRequiredService<IProvisioningSink>(), provider.GetRequiredService<AgentTokenValidator>(),
             provider.GetRequiredService<InstanceConnector>(), provider.GetRequiredService<ILoggerFactory>().CreateLogger(LogCategory),
-            provider.GetService<IHostApplicationLifetime>()?.ApplicationStopping ?? CancellationToken.None));
+            DrainToken(provider.GetService<IHostApplicationLifetime>())));
         return services;
+    }
+
+    /// <summary>A token cancelled <see cref="ForwardDrain"/> after shutdown begins: forwards already on their way to an
+    /// instance get that long to finish instead of being cut at the first signal.</summary>
+    private static CancellationToken DrainToken(IHostApplicationLifetime? lifetime)
+    {
+        if (lifetime is null)
+        {
+            return CancellationToken.None;
+        }
+
+        var drained = new CancellationTokenSource(); // lives as long as the process
+        lifetime.ApplicationStopping.Register(() => drained.CancelAfter(ForwardDrain));
+        return drained.Token;
     }
 
     /// <summary>Serve every request with the router.</summary>

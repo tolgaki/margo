@@ -44,7 +44,7 @@ public sealed class VoiceBridge
 
     /// <summary>Accept the browser's socket and bridge it to <paramref name="url"/> (the instance's
     /// <c>http(s)://.../voice/...</c> address).</summary>
-    public async Task RunAsync(HttpContext context, string url)
+    public async Task RunAsync(HttpContext context, string url, string? instanceKey = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(url);
@@ -55,7 +55,7 @@ public sealed class VoiceBridge
         });
         try
         {
-            using var slot = await _instances.AcquireAsync(CancellationToken.None);
+            using var slot = await _instances.AcquireAsync(instanceKey, voice: true, CancellationToken.None);
             using var upstream = await _instances.ConnectWebSocketAsync(new Uri("ws" + url["http".Length..]), CancellationToken.None);
             await BridgeAsync(downstream, upstream);
         }
