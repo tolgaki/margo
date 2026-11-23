@@ -20,9 +20,13 @@ namespace Margo.Cloud.WorkIQ;
 /// outcomes.</para>
 /// <para>The only retry is the one the MCP specification requires: if the server answers 404 for a session it
 /// no longer knows, that request was not processed, so the client starts a new session and sends it once more.</para>
-/// <para>One MCP session per bearer token; thread-safe. Every request is sent on a fresh connection
-/// (<c>Connection: close</c>, as Python's urllib does), so the HTTP stack can never resend a request that a
-/// reused connection may already have delivered. Redirects are never followed: they would carry the bearer
+/// <para>One MCP session per bearer token (a bounded cache; only the token's hash is kept); thread-safe.
+/// Calls of the read tools (<see cref="McpTransportOptions.PooledTools"/>) share pooled connections, HTTP/2 when
+/// the server negotiates it. Every other call (a write) is still sent on a fresh connection of its own
+/// (<c>Connection: close</c>, as Python's urllib did), handshake included, so the HTTP stack can never resend a
+/// write that a reused connection may already have delivered, and a stale pooled connection can never turn a
+/// write into an unknown outcome. Compressed answers are accepted, and a response body is never buffered beyond
+/// <see cref="McpTransportOptions.MaxResponseBytes"/>. Redirects are never followed: they would carry the bearer
 /// token to another URL.</para>
 /// </remarks>
 public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
@@ -41,6 +45,7 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
     internal const string SessionRefused = "Work IQ refused the MCP session";
     internal const string TimedOut = "Work IQ timed out";
     internal const string Unreachable = "Work IQ unreachable";
+    internal const string TooLarge = "Work IQ response too large";
 
     private const string Accept = "application/json, text/event-stream";
     private const string UserAgent = ClientName + "/" + ClientVersion;
@@ -49,8 +54,8 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
     private static readonly TimeSpan MaxTimeout = TimeSpan.FromMilliseconds(int.MaxValue);
 
     private readonly HttpClient _client;
-    private readonly Dictionary<string, McpSession> _sessions = new(StringComparer.Ordinal);
-    private readonly Lock _lock = new();
+    private readonly HttpClient? _single; // one fresh connection per request, when _client pools
+    private readonly McpSessionCache _sessions;
     private long _lastId;
 
     /// <summary>Create a transport for <paramref name="url"/>.</summary>
@@ -63,15 +68,17 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
     /// <param name="handler">The HTTP handler; <c>null</c> builds one that never follows redirects. An injected
     /// handler must not follow redirects either.</param>
     /// <param name="disposeHandler">Whether disposing the transport disposes an injected handler.</param>
+    /// <param name="options">Response, session and connection bounds; null for <see cref="McpTransportOptions.Default"/>.</param>
     /// <exception cref="ArgumentException">The URL is not https (Python <c>ValueError</c>), or the handler
     /// follows redirects.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">The timeout is not positive.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The timeout is not positive, or an option is out of range.</exception>
     public McpHttpTransport(
         string url = WorkIQEndpoints.McpUrl,
         TimeSpan? timeout = null,
         bool allowLoopbackHttp = false,
         HttpMessageHandler? handler = null,
-        bool disposeHandler = false)
+        bool disposeHandler = false,
+        McpTransportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(url);
         var insecureOk = allowLoopbackHttp
@@ -92,11 +99,26 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
             throw new ArgumentException("the HTTP handler must not follow redirects: they would carry the bearer token to another URL", nameof(handler));
         }
 
+        Options = (options ?? McpTransportOptions.Default).Validated();
         Endpoint = url;
         Timeout = wait;
-        _client = handler is null
-            ? new HttpClient(CreateHandler(), disposeHandler: true)
-            : new HttpClient(handler, disposeHandler);
+        _sessions = new McpSessionCache(Options.MaxSessions, Options.SessionIdleTimeout, Options.TimeProvider);
+        if (handler is not null)
+        {
+            _client = new HttpClient(handler, disposeHandler);
+        }
+        else
+        {
+            _client = new HttpClient(CreateHandler(Options, pooled: Options.ReuseConnections), disposeHandler: true);
+            if (Options.ReuseConnections)
+            {
+                _single = new HttpClient(CreateHandler(Options, pooled: false), disposeHandler: true)
+                {
+                    Timeout = System.Threading.Timeout.InfiniteTimeSpan,
+                };
+            }
+        }
+
         _client.Timeout = System.Threading.Timeout.InfiniteTimeSpan; // bounded per wait below, as Python's socket timeout is
     }
 
@@ -106,6 +128,12 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
     /// <summary>The per-wait timeout (Python <c>timeout</c>).</summary>
     public TimeSpan Timeout { get; }
 
+    /// <summary>The response, session and connection bounds in force.</summary>
+    public McpTransportOptions Options { get; }
+
+    /// <summary>The number of MCP sessions currently kept (at most <see cref="McpTransportOptions.MaxSessions"/>).</summary>
+    public int SessionCount => _sessions.Count;
+
     /// <inheritdoc />
     public async Task<JsonObject> CallAsync(string tool, JsonObject arguments, string bearer, CancellationToken cancellationToken = default)
     {
@@ -114,23 +142,21 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
         ArgumentNullException.ThrowIfNull(bearer);
 
         var key = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(bearer)));
-        var session = await SessionAsync(key, bearer, cancellationToken).ConfigureAwait(false);
+        var pooled = Options.ReuseConnections && Options.PooledTools.Contains(tool);
+        var session = await SessionAsync(key, bearer, pooled, cancellationToken).ConfigureAwait(false);
         var id = NextId();
         var request = McpMessages.ToolsCall(id, tool, arguments);
         JsonObject message;
         try
         {
-            message = (await PostAsync(request, id, bearer, session, capture: false, cancellationToken).ConfigureAwait(false)).Message!;
+            message = (await PostAsync(request, id, bearer, session, capture: false, pooled, cancellationToken).ConfigureAwait(false)).Message!;
         }
         catch (McpUnknownSessionException)
         {
-            lock (_lock)
-            {
-                _sessions.Remove(key);
-            }
+            _sessions.Remove(key, session);
 
-            var fresh = await SessionAsync(key, bearer, cancellationToken).ConfigureAwait(false);
-            message = (await PostAsync(request, id, bearer, fresh, capture: false, cancellationToken).ConfigureAwait(false)).Message!;
+            var fresh = await SessionAsync(key, bearer, pooled, cancellationToken).ConfigureAwait(false);
+            message = (await PostAsync(request, id, bearer, fresh, capture: false, pooled, cancellationToken).ConfigureAwait(false)).Message!;
         }
 
         if (message.ContainsKey("error"))
@@ -142,25 +168,27 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose() => _client.Dispose();
+    public void Dispose()
+    {
+        _sessions.Clear();
+        _client.Dispose();
+        _single?.Dispose();
+    }
 
     // -- internals ----------------------------------------------------------------------
 
     private long NextId() => Interlocked.Increment(ref _lastId);
 
-    private async Task<McpSession> SessionAsync(string key, string bearer, CancellationToken cancellationToken)
+    private async Task<McpSession> SessionAsync(string key, string bearer, bool pooled, CancellationToken cancellationToken)
     {
-        lock (_lock)
+        if (_sessions.Get(key) is { } known)
         {
-            if (_sessions.TryGetValue(key, out var known))
-            {
-                return known;
-            }
+            return known;
         }
 
         var id = NextId();
         var init = McpMessages.Initialize(id, ProtocolVersion, ClientName, ClientVersion);
-        var answer = await PostAsync(init, id, bearer, null, capture: true, cancellationToken).ConfigureAwait(false);
+        var answer = await PostAsync(init, id, bearer, null, capture: true, pooled, cancellationToken).ConfigureAwait(false);
         var message = answer.Message!;
         if (message.ContainsKey("error"))
         {
@@ -168,12 +196,8 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
         }
 
         var session = new McpSession(answer.SessionId, NegotiatedVersion(message["result"]));
-        await PostAsync(McpMessages.Initialized(), null, bearer, session, capture: false, cancellationToken).ConfigureAwait(false);
-        lock (_lock)
-        {
-            _sessions[key] = session;
-        }
-
+        await PostAsync(McpMessages.Initialized(), null, bearer, session, capture: false, pooled, cancellationToken).ConfigureAwait(false);
+        _sessions.Set(key, session);
         return session;
     }
 
@@ -220,8 +244,11 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
         throw new TransportFaultException("the negotiated protocol version cannot be sent as a header");
     }
 
-    /// <summary>One POST (<c>transport.py</c> <c>_post</c>). <paramref name="requestId"/> is null for a notification.</summary>
-    private async Task<PostResult> PostAsync(byte[] body, long? requestId, string bearer, McpSession? session, bool capture, CancellationToken cancellationToken)
+    /// <summary>
+    /// One POST (<c>transport.py</c> <c>_post</c>). <paramref name="requestId"/> is null for a notification;
+    /// <paramref name="pooled"/> lets it share a pooled connection, else it opens (and closes) its own.
+    /// </summary>
+    private async Task<PostResult> PostAsync(byte[] body, long? requestId, string bearer, McpSession? session, bool capture, bool pooled, CancellationToken cancellationToken)
     {
         // urllib finds a URL without a host, and http.client a bad host:port, before the header values are checked.
         RefuseUserInfo(Endpoint);
@@ -242,12 +269,21 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
         }
 
         var content = new SentTrackingContent(body);
-        using var request = new HttpRequestMessage(HttpMethod.Post, uri)
+        using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = content };
+        if (pooled)
         {
-            Version = HttpVersion.Version11,
-            VersionPolicy = HttpVersionPolicy.RequestVersionExact,
-            Content = content,
-        };
+            // HTTP/2 when the server negotiates it (ALPN), else HTTP/1.1 keep-alive.
+            request.Version = HttpVersion.Version20;
+            request.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+        }
+        else
+        {
+            // One request per connection, as urllib sent them.
+            request.Version = HttpVersion.Version11;
+            request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+            request.Headers.ConnectionClose = true;
+        }
+
         content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
         request.Headers.TryAddWithoutValidation("Accept", Accept);
         request.Headers.TryAddWithoutValidation("Authorization", authorization);
@@ -260,9 +296,8 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
             }
         }
 
-        // What urllib adds by itself: no compression, one request per connection, a client name.
-        request.Headers.TryAddWithoutValidation("Accept-Encoding", "identity");
-        request.Headers.ConnectionClose = true;
+        // Accept-Encoding is the handler's to add: it names what it will decompress (the default handler: gzip,
+        // deflate, br), so an injected handler that does not decompress is never sent a compressed body.
         request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
 
         using var timer = new CancellationTokenSource();
@@ -271,7 +306,8 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
         HttpResponseMessage response;
         try
         {
-            response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linked.Token).ConfigureAwait(false);
+            var client = pooled ? _client : _single ?? _client;
+            response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linked.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException exc) when (timer.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
@@ -320,9 +356,19 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
         }
     }
 
-    /// <summary>Read the whole body; each read may wait up to the timeout, as each socket read does in Python.</summary>
+    /// <summary>
+    /// Read the whole body, up to <see cref="McpTransportOptions.MaxResponseBytes"/> (counted after decompression);
+    /// each read may wait up to the timeout, as each socket read does in Python.
+    /// </summary>
+    /// <exception cref="TransportResponseTooLargeException">The body is larger than the limit; the rest is not read.</exception>
     private async Task<byte[]> ReadBodyAsync(HttpResponseMessage response, CancellationTokenSource timer, CancellationToken linked, CancellationToken cancellationToken)
     {
+        var limit = Options.MaxResponseBytes;
+        if (response.Content.Headers.ContentLength > limit)
+        {
+            throw new TransportResponseTooLargeException(TooLarge);
+        }
+
         try
         {
             Arm(timer);
@@ -338,6 +384,12 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
                     if (read == 0)
                     {
                         return buffer.ToArray();
+                    }
+
+                    if (buffer.Length + read > limit)
+                    {
+                        // Disposing the response drops the connection (or resets the stream): the rest is never read.
+                        throw new TransportResponseTooLargeException(TooLarge);
                     }
 
                     buffer.Write(chunk, 0, read);
@@ -491,17 +543,16 @@ public sealed class McpHttpTransport : IWorkIQTransport, IDisposable
         };
     }
 
-    private static SocketsHttpHandler CreateHandler() => new()
+    private static SocketsHttpHandler CreateHandler(McpTransportOptions options, bool pooled) => new()
     {
         AllowAutoRedirect = false,
         UseCookies = false,
-        AutomaticDecompression = DecompressionMethods.None,
-        PooledConnectionLifetime = TimeSpan.Zero,
+        AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli,
+        PooledConnectionLifetime = pooled ? options.PooledConnectionLifetime : TimeSpan.Zero,
+        PooledConnectionIdleTimeout = options.PooledConnectionIdleTimeout,
         // http.client sends header values as Latin-1.
         RequestHeaderEncodingSelector = static (_, _) => Encoding.Latin1,
     };
-
-    private sealed record McpSession(string? Id, string Version);
 
     /// <summary>
     /// The JSON body, noting when it has been handed to the connection and flushed: Python's

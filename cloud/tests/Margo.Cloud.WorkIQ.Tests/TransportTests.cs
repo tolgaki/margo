@@ -147,8 +147,8 @@ public sealed class TransportTests : IAsyncLifetime
             Assert.Equal("application/json", request.Header("Content-Type"));
             Assert.Equal("application/json, text/event-stream", request.Header("Accept"));
             Assert.Equal("Bearer token-a", request.Header("Authorization"));
-            Assert.Equal("close", request.Header("Connection"));
-            Assert.Equal("identity", request.Header("Accept-Encoding"));
+            Assert.Null(request.Header("Connection")); // a read: HTTP/1.1 keep-alive on a pooled connection (Python: close)
+            Assert.Equal("gzip, deflate, br", request.Header("Accept-Encoding")); // Python: identity
             Assert.Equal(request.Body.Length.ToString(System.Globalization.CultureInfo.InvariantCulture), request.Header("Content-Length"));
             Assert.All(request.Body, b => Assert.True(b < 0x80)); // ensure_ascii
         }

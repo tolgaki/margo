@@ -59,6 +59,28 @@ public sealed class TransportTimeoutException : TransportException
 }
 
 /// <summary>
+/// Work IQ's answer was larger than <see cref="McpTransportOptions.MaxResponseBytes"/> and was not read to the end
+/// (no Python equivalent; Python buffered any body). The request was processed: a read can be asked again for less,
+/// and a write's outcome is unknown, as for any <see cref="TransportException"/> without a status code.
+/// </summary>
+public sealed class TransportResponseTooLargeException : TransportException
+{
+    public TransportResponseTooLargeException()
+    {
+    }
+
+    public TransportResponseTooLargeException(string message)
+        : base(message)
+    {
+    }
+
+    public TransportResponseTooLargeException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
+}
+
+/// <summary>
 /// The server no longer recognises the MCP session, so the request was not processed
 /// (<c>transport.py</c> <c>_UnknownSession</c>).
 /// </summary>

@@ -13,7 +13,7 @@ listed under "Deliberate deviations" is meant to behave the same.
 | `guard.TransportError(message, status_code=None)` | `TransportException(message, int? statusCode)` | Public; the guard catches it |
 | `guard.TransportTimeout` | `TransportTimeoutException : TransportException` | |
 | the transport object the guard holds (`.endpoint`, `.call(tool, args, bearer=)`) | `IWorkIQTransport` (`Endpoint`, `CallAsync(tool, arguments, bearer, ct)`) | The interface the Guard port should depend on |
-| `transport.McpHttpTransport(url=WORKIQ_MCP_URL, *, timeout=60, allow_loopback_http=False)` | `McpHttpTransport(url = McpUrl, timeout = 60 s, allowLoopbackHttp = false, handler = null, disposeHandler = false)` | `IDisposable`; `handler` is the test seam |
+| `transport.McpHttpTransport(url=WORKIQ_MCP_URL, *, timeout=60, allow_loopback_http=False)` | `McpHttpTransport(url = McpUrl, timeout = 60 s, allowLoopbackHttp = false, handler = null, disposeHandler = false, options = null)` | `IDisposable`; `handler` is the test seam; `McpTransportOptions` holds the bounds of deviations 10 to 12 |
 | `.endpoint`, `.timeout` | `Endpoint`, `Timeout` | |
 | `PROTOCOL_VERSION`, `CLIENT_INFO` | `McpHttpTransport.ProtocolVersion`, `ClientName`, `ClientVersion` | Same values: `2025-06-18`, `margo-autopilot`, `0.1.0` |
 | `McpHttpTransport.call` | `McpHttpTransport.CallAsync` | |
@@ -52,10 +52,10 @@ What each outcome means to the guard (`guard.py` lines around `self.transport.ca
   shared by `initialize` and `tools/call`; the call takes its id after its session exists. Headers:
   `Content-Type: application/json`, `Accept: application/json, text/event-stream`,
   `Authorization: Bearer <token>`, and on a session `MCP-Protocol-Version` and (when the server gave one)
-  `Mcp-Session-Id`. What urllib adds by itself is also sent: `Accept-Encoding: identity`,
-  `Connection: close`, `Content-Length`. HTTP/1.1 only, as http.client. Bodies are ASCII-only, as
-  `json.dumps(ensure_ascii=True)`.
-- **Sessions.** One per SHA-256 of the bearer token. The cache is checked under the lock, the
+  `Mcp-Session-Id`, and `Content-Length`. Python also sent `Accept-Encoding: identity` and
+  `Connection: close` on HTTP/1.1 only; the port now does that only for writes (deviation 10). Bodies are
+  ASCII-only, as `json.dumps(ensure_ascii=True)`.
+- **Sessions.** One per SHA-256 of the bearer token, in a bounded cache (deviation 12). The cache is checked under the lock, the
   handshake runs outside it (two concurrent first calls may both initialise; the last one stored wins, as
   in Python). `initialize` answered with a JSON-RPC `error` is "Work IQ refused the MCP session". The
   session id is the last `Mcp-Session-Id` response header; an empty one counts as none. The protocol
@@ -90,8 +90,7 @@ What each outcome means to the guard (`guard.py` lines around `self.transport.ca
   exchange. The port arms one timer for connect, send and the response headers, then re-arms it before
   every body read, so a body that keeps arriving is never cut off (tested with a trickled body) and a stalled
   one times out.
-- **Size.** Python reads the whole body with no limit; so does the port (bounded only by memory and the
-  2 GB `MemoryStream` ceiling). No limit was added; see open questions.
+- **Size.** Python reads the whole body with no limit; the port stops at `MaxResponseBytes` (deviation 11).
 
 ### Failure classification
 
@@ -110,10 +109,10 @@ and flushed (`SentTrackingContent`), and classifies the same way:
 | non-iterable `content`, truthy non-object init `result`, unsendable version | `TypeError` / `AttributeError` | `TransportFaultException` |
 | JSON nested beyond the parser limit | `RecursionError` (not absorbed by the JSON or SSE paths) | `TransportFaultException` |
 
-Every connection carries `Connection: close` (as urllib's does) and the default handler never pools
-connections. This is load-bearing in .NET: on a reused keep-alive connection `SocketsHttpHandler` may resend
-a request whose connection dropped before the first response byte, which could repeat a write the server
-already processed. With one request per connection that resend cannot happen.
+Every write still travels alone: `Connection: close` (as urllib's does) on a handler that never pools, its
+session handshake included. That keeps two properties for writes: the HTTP stack has no reused connection on
+which it could resend a request, and a connection the server closed while idle can never turn a write into an
+unknown outcome. Reads share pooled connections (deviation 10).
 
 ## Deliberate deviations
 
@@ -156,6 +155,42 @@ already processed. With one request per connection that resend cannot happen.
    takes it as the final response (`Work IQ HTTP 1xx`). A backslash in an `https://` authority is a path
    separator to `Uri` but part of the host name to urllib (which then fails to resolve it).
 
+10. **Reads reuse connections; writes do not (review, 23 Nov 2026).** Python opened a TCP and TLS connection for
+    every request (up to 40 calls a turn, plus handshakes). Calls of `McpTransportOptions.PooledTools` (default
+    `ReadTools`: `fetch`, `fetch_blob`, `call_function`, `ask`, `retrieve`, `list_agents`, `get_schema`,
+    `search_paths`; a Guard test keeps the list equal to the guard's read tools) now go through a pooling handler:
+    `PooledConnectionLifetime` 2 minutes, `PooledConnectionIdleTimeout` 1 minute, HTTP/2 when the server negotiates
+    it (`RequestVersionOrLower`), no `Connection` header. Any other tool (the write tools and any unknown name) is
+    sent as before, on a second handler that never pools. `ReuseConnections = false` restores one connection per
+    request for everything. Consequences:
+    - A read sent on a pooled connection that the server closed at that moment fails after it was sent
+      (`HttpRequestException`, "the response ended prematurely"); the guard records `unknown`, and the read is not
+      resent by the transport or by `SocketsHttpHandler`, which only resends by itself when the request body was
+      not started or HTTP/2 says the stream was not processed
+      (`A_request_that_died_on_a_reused_connection_is_never_resent` pins this on HTTP/1.1). Python could not see
+      this failure. The idle timeout is kept below common server limits to make it rare.
+    - An injected handler is used for both kinds of call and pools as it was built; only the request version and
+      the `Connection: close` header differ.
+    - The loopback test server (HTTP/1.0 style) now says `Connection: close`, because .NET would otherwise reuse
+      a connection that server is about to close.
+    Also: `Accept-Encoding` is no longer `identity`. The default handler decompresses gzip, deflate and Brotli and
+    adds the header itself; an injected handler that does not decompress therefore never asks for compression.
+11. **Response bound.** A body larger than `McpTransportOptions.MaxResponseBytes` (default 8 MiB, counted after
+    decompression, so a small compressed body cannot expand past it) fails the call with
+    `TransportResponseTooLargeException` (a `TransportException` without a status code, message
+    "Work IQ response too large"): by `Content-Length` before reading when the server declares one, otherwise as
+    soon as the limit is passed; the rest is never read and the connection is dropped. The guard reports a read as
+    `error` ("ask for less") and a write as `unknown`. Applies to every response, handshake included. This settles
+    former open question 1.
+12. **Bounded session cache.** Python kept one session per token hash for the life of the process; tokens rotate
+    about hourly, so the map only grew. `McpSessionCache` keeps at most `MaxSessions` (32), dropping the least
+    recently used, and drops a session unused for `SessionIdleTimeout` (one hour). A dropped token simply
+    handshakes again. A 404 for a known session removes that session only if it is still the cached one (a newer
+    session another call stored meanwhile is kept). `Dispose` clears the cache. A dropped session holds nothing to
+    release on the client (an ID and a version string; no stream is ever opened for it). The server-side session
+    is left to expire, as before: the MCP `DELETE` that would end it must be signed with the session's bearer
+    token, and the transport deliberately keeps only the token's hash (see open questions).
+
 ## Not ported
 
 - **`ModelContextProtocol` (official C# MCP SDK).** Not used, although `docs/margo-cloud-plan.md` names it.
@@ -170,8 +205,12 @@ already processed. With one request per connection that resend cannot happen.
 
 ## Tests and evidence
 
-`cloud/tests/Margo.Cloud.WorkIQ.Tests` (207 test cases):
+`cloud/tests/Margo.Cloud.WorkIQ.Tests` (227 test cases):
 
+- `ConnectionAndBoundsTests` (deviations 10 to 12), against `KeepAliveMcpServer`, an HTTP/1.1 keep-alive loopback
+  server: reads share one connection, writes and their handshakes never do, nothing is resent after a hang-up on a
+  reused connection, gzip answers, the response bound (declared, chunked and compressed bodies; exact at the
+  limit), the session cache (capacity, least recently used, idle time with a manual clock, 404 races, `Dispose`).
 - `TransportTests`: the Python `TransportTests` (https rule, JSON and SSE handshake, session per token,
   expired session re-initialised once, 503 / tool error / timeout mapping) and `RedirectTests`, against a
   real loopback HTTP server (`LoopbackHttpServer`, `FakeMcpServer`: the Python `_McpHandler` with extra
@@ -195,12 +234,15 @@ cd cloud && dotnet test --project tests/Margo.Cloud.WorkIQ.Tests/Margo.Cloud.Wor
 ```
 
 Not verified: anything against the real Work IQ endpoint, TLS or a proxy (all tests are loopback or
-in-process), and Python 3.12 (the image's version); the Python checks ran on 3.13.
+in-process), so neither HTTP/2 negotiation nor the endpoint's idle-connection behaviour (deviation 10) has been
+seen live; and Python 3.12 (the image's version); the Python checks ran on 3.13.
 
 ## Open questions
 
-1. **Response size.** Python reads an unbounded body. A bound (for example 16 MB) would protect both
-   implementations, but adding it only here would change behaviour; it should be decided for both.
+1. **Response size.** Settled by deviation 11 (8 MiB by default). Open instead: **ending sessions.** The MCP
+   specification says a client should `DELETE` a session it no longer needs. Doing so on eviction would mean keeping
+   bearer tokens in memory next to the sessions; the transport does not, and leaves dropped sessions to expire on
+   the server, as Python did. If Work IQ limits sessions per user, revisit.
 2. **Cancellation in the guard.** The Guard port must decide what an `OperationCanceledException` after
    dispatch does to a claim. Python's nearest path is "any other exception": settle `outcome_unknown` and
    never resend. Suggested: settle as unknown, then rethrow.

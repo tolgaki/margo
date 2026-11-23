@@ -163,6 +163,7 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
             var head = new StringBuilder();
             head.Append("HTTP/1.0 ").Append(status).Append(' ').Append(Reason(status)).Append("\r\n");
             head.Append("Server: loopback-test\r\n");
+            head.Append("Connection: close\r\n"); // HTTP/1.0 closes after each answer; said aloud, so a pooling client never reuses it
             foreach (var (name, value) in headers ?? [])
             {
                 head.Append(name).Append(": ").Append(value).Append("\r\n");
