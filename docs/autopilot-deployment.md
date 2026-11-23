@@ -36,10 +36,11 @@ There is no Microsoft Foundry project or hosted agent. Azure AI Services serves 
 
 | Margo can | Margo cannot (yet) |
 | --- | --- |
-| Chat with her manager in Teams and answer as Margo | Send, reply, post, RSVP, move meetings or delete anything |
+| Chat with her manager in Teams and answer as Margo | Do anything outward without her manager's tap on that exact action's card |
 | Read her manager's mail and calendar (delegation mode), and what is shared with her own account, through the Work IQ guard | Run on a schedule or brief you unprompted |
-| Brief, triage, prep meetings and draft text for her manager to send | Answer email from anyone, including her manager |
-| Queue messages and mail other people send her, as untrusted requests for her manager | Use approval cards (the `approve` reply setting acts as `none`) |
+| Brief, triage, prep meetings and draft text | Answer email from anyone, including her manager |
+| **After her manager approves each one on a card in Teams:** send email and replies from the manager's mailbox (as Margo on their behalf), set up, move or cancel meetings on the manager's calendar, and post Teams messages as herself in chats and channels she is in | Ask for approval from a voice call, or take a "yes" typed in chat or spoken as approval |
+| Queue messages and mail other people send her, as untrusted requests for her manager | Reply to other people with a drafted answer (the `approve` reply setting acts as `none`) |
 | Send one fixed "passed this on" note per conversation, if her manager turns that on | Join meetings live |
 | Talk by voice with her manager, if voice is turned on | Talk to any MCP server except Work IQ |
 
@@ -278,7 +279,8 @@ included, and the run fails.
 
 The manager can do it in Outlook: add Margo's agent user as a delegate of their calendar (this is what the test tenant
 used; Margo's direct calendar reads then succeeded). Share chats, channels and files with her the usual way: add her
-to the chat or team, or share the file. Margo still never acts on what she reads; the guard refuses every write.
+to the chat or team, or share the file. Margo never acts on what she reads: an outward action runs only after the
+manager approves it on its card (see "Sending on your behalf" below).
 
 For mail, or to grant both centrally, an Exchange admin runs, with the real addresses:
 
@@ -288,8 +290,37 @@ Add-MailboxFolderPermission -Identity "dana@example.com:\Calendar" -User margo-d
 ```
 
 Full Access is what Microsoft Graph needs to read another mailbox. It also permits changes at the
-Exchange level; this version's guard refuses every write, but that is a software control, not
-an Exchange one. Remove the permissions when you retire the instance.
+Exchange level; the guard lets through only a write the manager approved on its card, but that is a software control,
+not an Exchange one. Remove the permissions when you retire the instance.
+
+The UI equivalent: [Microsoft 365 admin center](https://admin.microsoft.com) › **Users › Active users** › the manager ›
+**Mail** › **Read and manage permissions** › add Margo's agent user (or the Exchange admin center › **Recipients ›
+Mailboxes** › the manager › **Delegation**).
+
+### Sending on your behalf: approval cards
+
+Margo can send email, reply, set up, move or cancel meetings and post Teams messages, each only after the manager taps
+**Approve** on a card that shows that exact action:
+
+1. The manager asks in their one-to-one chat ("email Rafa that the review moved to Thursday"). Margo drafts it,
+   records the exact Work IQ call, and posts a card: recipients, subject, text or meeting times, and the exact request.
+2. **Approve** runs exactly that call, once, and Margo replies with the result; the card loses its buttons. **Reject**
+   discards it. A card for an older version, or one already decided, runs nothing.
+3. Only the manager's tap in their one-to-one chat counts. A "yes" typed in chat or said in a voice call is not an
+   approval, and a voice call cannot ask for one.
+
+What each kind needs, beyond the mailbox permission above:
+
+| Action | Comes from | Needs |
+| --- | --- | --- |
+| Email, reply | The manager's mailbox, shown as "Margo on behalf of {manager}" | **Send on Behalf** for Margo's agent user on the manager's mailbox: admin center › the manager › **Mail** › **Send on behalf** (or `Set-Mailbox dana@example.com -GrantSendOnBehalfTo @{Add="margo-dana@example.com"}`) |
+| Meeting set up, move, cancel | The manager's calendar; invitations on the manager's behalf | Margo as a calendar delegate with **Editor** rights (Outlook › calendar sharing › add Margo as delegate, "can edit") |
+| Teams message | Margo herself, in a chat or channel she is a member of | Margo added to that chat or team. She cannot post as the manager, or start a new chat |
+
+**Unverified in a tenant:** that Microsoft Graph sends `/users/{manager}/sendMail` as "on behalf of" with Send on
+Behalf alone (it may require Send As), and that Work IQ passes delegated writes through. If a send fails, Margo
+replies "Not sent: …" with the reason, and the card shows it. A result Margo could not confirm is reported as unknown
+and never sent again: check Sent Items or the calendar.
 
 ## 6. First conversation
 
@@ -443,7 +474,7 @@ Foundry and cannot be pointed at your own container, so this route starts with a
 - Daily-copy deletion lists blobs in Azure; that path is not covered by the offline tests. Voice tool results are not
   marked as untrusted data as chat tool results are.
 - The Agent 365 CLI's Graph consent (step 2) is wider than Margo needs; remove it. `blueprint.sh` consents Work IQ's
-  `WorkIQ.Act` although this version writes nothing: only the guard prevents writes.
+  `WorkIQ.Act`, which approved actions need; the guard, not Entra, limits writes to the ones the manager approved.
 - Agent identities and agent users can carry an expiration date (Entra Agent ID lifecycle, reported
   to default to 180 days; **verify** in your tenant). Check `lifecycle.expirationDateTime` on each
   agent identity and agent user, and extend it before it passes, or the instance stops working.

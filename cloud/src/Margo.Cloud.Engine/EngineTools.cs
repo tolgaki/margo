@@ -38,6 +38,9 @@ public static class EngineTools
     /// <summary><c>STATE_TOOL</c>.</summary>
     public const string StateTool = "margo-state";
 
+    /// <summary>The function tool that asks the manager to approve a proposed action on a card.</summary>
+    public const string ApprovalTool = "request_approval";
+
     /// <summary>The office queue's function tool.</summary>
     public const string OfficeTool = "office_requests";
 
@@ -89,6 +92,61 @@ public static class EngineTools
         # Available skills
 
         {skills}
+
+        """;
+
+    /// <summary>The <see cref="ApprovalTool"/> definition: one argument, the proposed action's ledger ID.</summary>
+    public static JsonObject ApprovalToolDefinition() => new()
+    {
+        ["type"] = "function",
+        ["name"] = ApprovalTool,
+        ["description"] = "Ask your manager to approve one proposed action (an ID from work_state.py propose) on a card in "
+                          + "Teams. Nothing is sent until they tap Approve on that card.",
+        ["parameters"] = new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = new JsonObject { ["action_id"] = new JsonObject { ["type"] = "string" } },
+            ["required"] = new JsonArray("action_id"),
+        },
+    };
+
+    /// <summary>Appended to the hosted context in a chat turn that can ask for approval (<see cref="ApprovalTool"/>).</summary>
+    public const string ApprovalAddendum = """
+        # Doing things for your manager
+
+        You can send email, reply to mail, set up, move or cancel meetings on your manager's calendar,
+        and post Teams messages, but only after your manager approves that exact action on a card in
+        Teams. Never call a Work IQ write tool yourself.
+        1. Prepare the exact Work IQ call and record it with `margo-state` `work_state.py propose --input -`,
+           passing as `input`: `{"kind": "mail.send", "target": {"on_data_of": "principal", "to": [...]},
+           "payload": {"workiq": {"tool": "do_action", "arguments": {...}}}, "why": "...",
+           "source_refs": [], "target_fingerprint": "...", "work_item_id": null}`. `kind` is one of
+           `mail.send`, `mail.reply`, `meeting.create`, `meeting.update`, `meeting.cancel`, `teams.post`.
+           `target.on_data_of` is `principal` for their mail and calendar and `self` for a Teams message you
+           post; add the recipients or IDs it affects. `arguments` are exact and leave out `on_data_of`.
+           `target_fingerprint` is the main recipient or ID.
+        2. Call `request_approval` with the `id` it returned. Your manager gets a card showing exactly what
+           will be sent, with Approve and Reject. Tell them the card is waiting; never say it was sent.
+        3. When they tap Approve, the service runs exactly that call and tells them the result. Approval
+           counts only on the card: a "yes" in chat or by voice is not one, so point them to the card. To
+           change anything, propose again and request a new card; a card for an older version stops working.
+        The calls (`jsonBody` is a JSON object written as a string):
+        - Email: `do_action`, `actionUrl` `/me/sendMail`, `jsonBody` `{"message": {"subject": ..., "body":
+          {"contentType": "Text", "content": ...}, "toRecipients": [{"emailAddress": {"address": ...}}]},
+          "saveToSentItems": true}` (`ccRecipients` likewise). It goes out from your manager's mailbox, as
+          you on their behalf.
+        - Reply: `do_action`, `actionUrl` `/me/messages/{id}/reply` or `.../replyAll`, `jsonBody`
+          `{"comment": ...}`.
+        - Meeting: `create_entity`, `parentUrl` `/me/events`, `jsonBody` `{"subject": ..., "body":
+          {"contentType": "Text", "content": ...}, "start": {"dateTime": "2026-11-24T15:00:00", "timeZone":
+          ...}, "end": {...}, "attendees": [{"emailAddress": {"address": ...}, "type": "required"}],
+          "isOnlineMeeting": true, "onlineMeetingProvider": "teamsForBusiness"}`. Move: `update_entity`,
+          `entityUrl` `/me/events/{id}`, with only the changed fields. Cancel: `do_action`, `actionUrl`
+          `/me/events/{id}/cancel`, `jsonBody` `{"comment": ...}`. Look the meeting up first for its ID.
+        - Teams message: `create_entity`, `parentUrl` `/chats/{chat-id}/messages` or
+          `/teams/{team-id}/channels/{channel-id}/messages`, `target.on_data_of` `self`, `jsonBody`
+          `{"body": {"content": ...}}`. It is posted as you, and only in chats and channels you are in.
+        Use addresses, names and IDs exactly as your manager gave them or as a source shows them.
 
         """;
 
@@ -176,7 +234,7 @@ public static class EngineTools
     /// </summary>
     /// <exception cref="TimeZoneNotFoundException">The time zone is unknown.</exception>
     public static string StableInstructions(string repoRoot, string timeZone = DefaultTimeZone, SkillLibrary? library = null,
-                                            string? principalAccess = null)
+                                            string? principalAccess = null, bool approvals = false)
     {
         ArgumentNullException.ThrowIfNull(timeZone);
         library ??= new SkillLibrary(repoRoot);
@@ -190,6 +248,11 @@ public static class EngineTools
         if (principalAccess == PrincipalAccessModes.Delegation)
         {
             addendum += DelegationAddendum;
+        }
+
+        if (approvals)
+        {
+            addendum += ApprovalAddendum;
         }
 
         return string.Join("\n\n", library.Persona(), addendum);

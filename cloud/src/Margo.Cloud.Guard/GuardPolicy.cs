@@ -103,6 +103,13 @@ public static class GuardPolicy
     /// </summary>
     public static IReadOnlySet<string> Delegable { get; } = Set("messages", "mailfolders", "calendar", "calendars", "calendarview", "events");
 
+    /// <summary>
+    /// Delegated for writes only (deliberate deviation, PORTING.md): an email the manager approved goes out from the
+    /// manager's mailbox, as Margo on their behalf, through <c>/users/{manager}/sendMail</c>. Such a write still needs a
+    /// live claim of the manager's approval of that exact call; nothing reads this path.
+    /// </summary>
+    public static IReadOnlySet<string> DelegableWrites { get; } = Set("sendmail");
+
     /// <summary><c>PATH_KEYS</c>: the arguments that carry resource paths, in the order delegation rewrites them.</summary>
     public static IReadOnlyList<string> PathKeys { get; } = ["entityUrls", "path", "functionUrl", "parentUrl", "entityUrl", "actionUrl"];
 
@@ -268,7 +275,8 @@ public static class GuardPolicy
             throw new RefusedException("path reaches a blocked resource");
         }
 
-        if (names[0] == "users" && delegatedTo is not null && names.Length >= 3 && Delegable.Contains(names[2]))
+        if (names[0] == "users" && delegatedTo is not null && names.Length >= 3
+            && (Delegable.Contains(names[2]) || (write && DelegableWrites.Contains(names[2]))))
         {
             if (!string.Equals(segments[1], delegatedTo, StringComparison.Ordinal))
             {

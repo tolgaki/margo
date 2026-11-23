@@ -74,7 +74,8 @@ Margo has two implementations that share the persona (`agents/`) and the skills 
   installers set up and what most of this documentation describes. It is in maintenance mode: kept working, no new
   features.
 - **Margo Cloud** ([`cloud/`](cloud/README.md)): the same Margo, in C# on .NET 10, self-hosted in your own Azure
-  subscription as a Microsoft Agent 365 agent with her own identity. Read-only in this version. Its core path ran
+  subscription as a Microsoft Agent 365 agent with her own identity. She sends email, sets up meetings and posts in
+  Teams only after you approve each action on a card in Teams. Its core path ran
   once in a test tenant; it is **not ready for production use**. See the
   [deployment guide](docs/autopilot-deployment.md) and its known limits.
 
@@ -156,7 +157,7 @@ the synthetic core without connecting a real mailbox or installing into your nor
 | **[The chief-of-staff playbook](docs/chief-of-staff.md)** | The routines and when each fires |
 | **[Running in a container](docs/container.md)** | Reproducible unattended runs, and the two-sign-in problem |
 | **[Margo as an autopilot](docs/autopilot.md)** | Design: an Agent 365 autopilot with her own identity, reading on your behalf — and the guard that keeps it honest |
-| **[Deploy the autopilot](docs/autopilot-deployment.md)** | First read-only version of Margo Cloud: what it does, prerequisites, `azd provision`, approval and hiring |
+| **[Deploy the autopilot](docs/autopilot-deployment.md)** | Margo Cloud: what it does, prerequisites, `azd provision`, approval cards and hiring |
 | **[Margo Cloud](cloud/README.md)** | Hosted Margo in C# (.NET 10): build, test, image and layout. Built and tested offline; the core path ran once in a test tenant. Not for production use yet. Desktop Margo stays Python and shares the persona and skills |
 | **[The agentic development plan](docs/agentic-development-plan.md)** | The contribution contract, state ownership, and delivery sequencing for coding agents |
 | **[Contributing](CONTRIBUTING.md)** | Ground rules, testing, and the one hard rule about real data |
@@ -169,8 +170,8 @@ the synthetic core without connecting a real mailbox or installing into your nor
 
 Margo will never send an email, post to Teams, react, accept or decline a meeting, delete
 anything, or change a work item without your explicit approval **of that specific action**. A
-summary is not consent. Reading is free; writing is not. (Margo Cloud, which writes nothing in this version, sends
-two fixed notices without per-message approval; see [Trust & safety](docs/safety.md#margo-cloud-fixed-notices).)
+summary is not consent. Reading is free; writing is not. (Margo Cloud asks on a card in Teams for each action, and
+sends two fixed notices without per-message approval; see [Trust & safety](docs/safety.md#margo-cloud-approval-cards).)
 
 There is a bounded exception for actions that are reversible *and* invisible to anyone else —
 mark-read, categorize, flag, archive, move between folders — which you can grant as a standing

@@ -244,6 +244,16 @@ route still uses the extension's wrapper (a lifecycle event carrying an unreadab
 Python's would not); the .NET `RemoveRecipientMention` throws on a recipient mention in a message without text (Python
 skipped such messages; read in the decompiled SDK, not run).
 
+## Approval cards (23 Nov 2026)
+
+`ApprovalCards` draws an Adaptive Card (1.5) for each `TurnReply.Cards` entry, sent after the reply: a title from the
+call, who it comes from, the recipients, subject, text or meeting times parsed from the exact call, why, and the exact
+request in full. Values the model wrote are `RichTextBlock` text runs, which render no Markdown. Approve and Reject are
+`Action.Submit` buttons: the tap arrives as an ordinary message whose `value` is
+`{"margo", "action_id", "revision", "action_hash"}`, authenticated like any activity, and `ActivityEvents.Decision`
+reads it into `InboundEvent.Decision` (the text is then null, so the model never sees it). After a decision the tapped
+card (`replyToId`) is replaced by its last version without buttons, best effort.
+
 ## Tests and evidence
 
 `cloud/tests/Margo.Cloud.Host.Tests` (75 test cases after the review below), no network:

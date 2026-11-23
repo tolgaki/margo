@@ -19,9 +19,11 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
 
 ## What this version does and does not do
 
-- **Reads and prepares; does not act.** This version reads, briefs, triages and drafts. It cannot
-  send mail, reply, post, accept or decline meetings, delete, or change work items: those actions
-  are refused in software, whatever it is asked. Drafts are for the manager to send.
+- **Acts only on the manager's tap.** Margo reads, briefs, triages and drafts. It sends email and
+  replies (from the manager's mailbox, as Margo on their behalf), sets up, moves or cancels meetings
+  on the manager's calendar, and posts Teams messages as itself, only after the manager taps Approve
+  on a card in Teams showing that exact action. Each approval covers that one action, once. A "yes"
+  in chat or by voice is not an approval. Everything else outward is refused in software.
 - **Takes instructions only from its manager**, and only in their one-to-one chat. Messages and
   mail from anyone else are kept as requests for the manager to review, not acted on.
 - **Two fixed notices are sent without per-message approval.** In a group chat or channel Margo
@@ -33,8 +35,8 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
 
 ## Your responsibilities
 
-- Review what Margo drafts before you send it. You remain responsible for what you send and
-  decide.
+- Read each card before you approve it. You remain responsible for what is sent and decided with
+  your approval.
 - AI output can be wrong, incomplete or out of date. Check facts that matter, especially
   dates, figures, commitments and anything sent to other people.
 - Use Margo only in line with your organisation's policies and the terms of the Microsoft
@@ -82,7 +84,7 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
 
 Margo is provided "as is", without warranty of any kind, as set out in the MIT License. To the
 extent permitted by law, the publisher is not liable for loss or damage arising from its use,
-including what you send or decide using its output.
+including actions taken with your approval.
 
 ## Changes
 

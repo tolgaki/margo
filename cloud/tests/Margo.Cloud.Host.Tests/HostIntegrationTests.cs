@@ -311,6 +311,73 @@ public sealed class HostIntegrationTests
     }
 
     [Fact]
+    public async Task An_approval_card_is_sent_and_tapping_approve_sends_exactly_that_email()
+    {
+        using var state = new TempState();
+        await using var host = new HostFactory(state);
+        const string Input = """
+            {"kind": "mail.send", "target": {"on_data_of": "principal", "to": ["rafa@example.com"]},
+             "payload": {"workiq": {"tool": "do_action", "arguments": {"actionUrl": "/me/sendMail",
+               "jsonBody": "{\"message\": {\"subject\": \"It's working\", \"body\": {\"contentType\": \"Text\", \"content\": \"**Drafted** by Margo.\"}, \"toRecipients\": [{\"emailAddress\": {\"address\": \"rafa@example.com\"}}]}}"}}},
+             "why": "Dana asked for it.", "source_refs": [], "target_fingerprint": "rafa@example.com", "work_item_id": null}
+            """;
+        host.Model.Add(new JsonObject
+        {
+            ["id"] = "r1",
+            ["output"] = new JsonArray(new JsonObject
+            {
+                ["type"] = "function_call", ["name"] = "margo-state", ["call_id"] = "c1",
+                ["arguments"] = new JsonObject { ["script"] = "work_state.py", ["args"] = new JsonArray("propose", "--input", "-"), ["input"] = JsonNode.Parse(Input) }.ToJsonString(),
+            }),
+        });
+        host.Model.Add((Func<JsonObject, JsonNode?>)(request =>
+        {
+            var id = System.Text.RegularExpressions.Regex.Matches(request.ToJsonString(), "act_[0-9a-f]{32}").Last().Value;
+            return new JsonObject
+            {
+                ["id"] = "r2",
+                ["output"] = new JsonArray(new JsonObject
+                {
+                    ["type"] = "function_call", ["name"] = "request_approval", ["call_id"] = "c2", ["arguments"] = "{\"action_id\": \"" + id + "\"}",
+                }),
+            };
+        }));
+        host.Model.Add(FakeModel.Final("The email is on a card for you to approve."));
+        var client = host.Start();
+        await HostFactory.PostAsync(client, Activities.Message("Email Rafa that it's working."));
+        Assert.Equal(("message", TurnStatuses.Answered), await host.NextTurnAsync());
+
+        // The reply, then the card: the exact call, the values verbatim (no Markdown), Approve and Reject.
+        var messages = host.Connector.Messages;
+        Assert.Equal("The email is on a card for you to approve.", (string?)messages[0]["text"]);
+        var attachment = Assert.Single(messages[1]["attachments"]!.AsArray())!;
+        Assert.Equal(ApprovalCards.ContentType, (string?)attachment["contentType"]);
+        var card = attachment["content"]!.ToJsonString();
+        Assert.Contains("Send this email?", card, StringComparison.Ordinal);
+        Assert.Contains("rafa@example.com", card, StringComparison.Ordinal);
+        Assert.Contains("**Drafted** by Margo.", card, StringComparison.Ordinal);
+        Assert.Contains("RichTextBlock", card, StringComparison.Ordinal);
+        Assert.DoesNotContain(host.WorkIQ.Calls, call => call.Tool == "do_action");
+        var approve = attachment["content"]!["actions"]![0]!["data"]!.AsObject();
+        Assert.Equal("approve", (string?)approve["margo"]);
+
+        // The tap: a message from the card, with the button's data as its value.
+        var tap = Activities.Message("", id: "activity-2");
+        tap.Remove("text");
+        tap["value"] = approve.DeepClone();
+        tap["replyToId"] = "card-activity-1";
+        await HostFactory.PostAsync(client, tap);
+        Assert.Equal(("message", TurnStatuses.Decided), await host.NextTurnAsync());
+        var (_, sent, bearer) = Assert.Single(host.WorkIQ.Calls, call => call.Tool == "do_action");
+        Assert.Equal(("/users/principal-1/sendMail", "margo-workiq-token"), ((string?)sent["actionUrl"], bearer));
+        Assert.Contains("Done: what the card showed has gone out.", host.Connector.Messages.Select(message => (string?)message["text"]));
+        // The tapped card is replaced by its last version, without buttons.
+        var update = Assert.Single(host.Connector.Sent, item => item.Url.Contains("/activities/card-activity-1", StringComparison.Ordinal));
+        Assert.Empty(update.Activity["attachments"]![0]!["content"]!["actions"]!.AsArray());
+        Assert.Equal(3, host.Model.Requests.Count); // all from the first turn: the tap ran no model turn
+    }
+
+    [Fact]
     public async Task A_turn_in_flight_finishes_when_the_host_is_told_to_stop()
     {
         // Scale-in and redeploys stop the container while the turn runs in the background (the activity was answered

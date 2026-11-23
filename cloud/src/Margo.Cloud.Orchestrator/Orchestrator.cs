@@ -42,6 +42,9 @@ public sealed record InboundEvent
 
     /// <summary>The message text: data, never instructions, unless the sender is the manager in their one-to-one chat.</summary>
     public string? Text { get; init; }
+
+    /// <summary>The manager's tap on an approval card, when the activity is one (it then has no text).</summary>
+    public CardDecision? Decision { get; init; }
 }
 
 /// <summary>What <see cref="Orchestrator.HandleAsync"/> returns (<c>{"reply": str|None, "status": str}</c>).</summary>
@@ -49,6 +52,18 @@ public sealed record InboundEvent
 /// <param name="Status">One of <see cref="TurnStatuses"/>.</param>
 public sealed record TurnReply(string? Reply, string Status)
 {
+    /// <summary>Approval cards to send after <see cref="Reply"/>, in order.</summary>
+    public IReadOnlyList<ApprovalCard> Cards { get; init; } = [];
+
+    /// <summary>After a decision on a card: that card with its outcome, to replace the card the manager tapped.</summary>
+    public ApprovalCard? Decided { get; init; }
+
+    /// <summary>Equal when reply, status, cards (in order) and decided card are equal.</summary>
+    public bool Equals(TurnReply? other) =>
+        other is not null && Reply == other.Reply && Status == other.Status && Cards.SequenceEqual(other.Cards) && Equals(Decided, other.Decided);
+
+    public override int GetHashCode() => HashCode.Combine(Reply, Status, Cards.Count, Decided);
+
     /// <summary>Python's dict: <c>{"reply", "status"}</c>.</summary>
     public JsonObject ToJsonObject() => new() { ["reply"] = Reply, ["status"] = Status };
 }
@@ -104,6 +119,12 @@ public static class TurnStatuses
 
     /// <summary>A message from anyone else (or any mail) was queued for the manager.</summary>
     public const string Queued = "queued";
+
+    /// <summary>The manager decided on an approval card; the reply says what happened.</summary>
+    public const string Decided = "decided";
+
+    /// <summary>A card decision that did not come from the manager in their one-to-one chat: nothing ran.</summary>
+    public const string DecisionRefused = "decision_refused";
 }
 
 /// <summary>Settings of an <see cref="Orchestrator"/> beyond the engine, transport, state root and store.</summary>
@@ -341,6 +362,13 @@ public sealed class Orchestrator
 
         // Mail is never a conversation turn in this version, even from the manager: it is queued.
         var isManager = sender is not null && string.Equals(sender, manager.Id, StringComparison.Ordinal) && inbound.Channel != "mail";
+        if (inbound.Decision is not null && !(isManager && oneToOne))
+        {
+            // Only the manager, in their one-to-one chat, decides on a card; anyone else's is not even recorded.
+            _logger.LogWarning("approval card decision refused: not from the manager in their one-to-one chat");
+            return new TurnReply(null, TurnStatuses.DecisionRefused);
+        }
+
         if (isManager && !oneToOne)
         {
             return new TurnReply(GroupRefused, TurnStatuses.GroupRefused);
@@ -520,6 +548,11 @@ public sealed class Orchestrator
     private async Task<TurnOutcome> ManagerTurnAsync(InboundEvent inbound, InstanceBinding binding, IReadOnlyDictionary<string, string?> tokens,
                                                      string preferences, CancellationToken cancellationToken)
     {
+        if (inbound.Decision is { } decision)
+        {
+            return await DecideAsync(inbound, decision, binding, tokens, cancellationToken).ConfigureAwait(false);
+        }
+
         if (ManagerCommands.IsVoice(inbound.Text))
         {
             if (string.IsNullOrEmpty(Options.VoiceUrl))
@@ -552,6 +585,7 @@ public sealed class Orchestrator
         TurnGuardObserver?.Invoke(guard);
         var office = new OfficeReader(() => binding.OpenLedger(StateRoot), senderDailyLimit: Options.SenderDailyLimit);
         var state = NewStateCommands(binding, preferences, new CallBudget(StateCallBudget));
+        var approvals = new TurnApprovals(binding, StateRoot, guard);
         var history = _conversations.Get(key);
         EngineResult result;
         try
@@ -559,7 +593,7 @@ public sealed class Orchestrator
             // The cache key is a hash of the account: opaque, and the same for every turn of this instance and manager.
             result = await Engine.RunAsync(inbound.Text ?? "", RunModes.Attended, guard, office, state, history,
                                            preferencesPath: preferences, cacheKey: PyIds.Sha256Hex(binding.Account)[..32],
-                                           cancellationToken: cancellationToken).ConfigureAwait(false);
+                                           approvals: approvals, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (ModelApiException exc) when (history is not null && (int?)exc.StatusCode is >= 400 and < 500 and not 408 and not 429)
         {
@@ -580,8 +614,34 @@ public sealed class Orchestrator
         }
 
         var text = string.IsNullOrEmpty(result.Text) ? null : ReplyText.Neutralise(result.Text);
-        return new TurnOutcome(new TurnReply(text, result.Stopped || result.Incomplete ? TurnStatuses.Stopped : TurnStatuses.Answered),
-                               () => _conversations.Set(key, result.History));
+        return new TurnOutcome(new TurnReply(text, result.Stopped || result.Incomplete ? TurnStatuses.Stopped : TurnStatuses.Answered)
+        {
+            Cards = [.. approvals.Cards],
+        }, () => _conversations.Set(key, result.History));
+    }
+
+    /// <summary>
+    /// The manager's tap on an approval card, inside the state lease: rejects, or approves and runs exactly the approved
+    /// call once, through a guard holding the ledger's claim journal. The model is not involved.
+    /// </summary>
+    private async Task<TurnOutcome> DecideAsync(InboundEvent inbound, CardDecision decision, InstanceBinding binding,
+                                                IReadOnlyDictionary<string, string?> tokens, CancellationToken cancellationToken)
+    {
+        WorkIQGuard NewGuard(IClaimJournal journal) =>
+            new(binding, new TurnTokens(tokens), Transport, journal, recorder: Options.GuardRecorder, budget: new CallBudget(1),
+                principalAccess: Options.PrincipalAccess)
+            {
+                FileHosts = Options.FileHosts,
+            };
+
+        var evidence = "host-interaction:teams-card/" + (inbound.ActivityId ?? "unknown");
+        var (reply, card) = await CardDecisions.DecideAsync(decision, binding, StateRoot, NewGuard, evidence, cancellationToken).ConfigureAwait(false);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("approval card decision={Verb} outcome={Outcome}", decision.Verb, card?.OutcomeStatus ?? "out_of_date");
+        }
+
+        return new TurnOutcome(new TurnReply(reply, TurnStatuses.Decided) { Decided = card });
     }
 
     /// <summary><c>_third_party_turn</c>: runs on a worker thread; the ledger is opened, used and disposed there, and

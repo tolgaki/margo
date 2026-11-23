@@ -167,6 +167,7 @@ internal sealed class FakeModel(params object?[] script) : IModelClient
         {
             Exception error => Task.FromException<JsonNode?>(error),
             JsonNode node => Task.FromResult<JsonNode?>(PyNode.Copy(node)),
+            Func<JsonObject, JsonNode?> answer => Task.FromResult(answer(PyNode.CopyObject(request))),
             _ => Task.FromResult<JsonNode?>(null),
         };
     }

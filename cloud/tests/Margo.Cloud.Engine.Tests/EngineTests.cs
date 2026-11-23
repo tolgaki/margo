@@ -28,6 +28,53 @@ public sealed class EngineTests
         return engine.RunAsync(text, mode, guard, office, state, history, Now, cancellationToken: TestContext.Current.CancellationToken);
     }
 
+    private sealed class RecordingApprovals : IApprovalRequests
+    {
+        public List<string> Requested { get; } = [];
+
+        public Task<JsonObject> RequestAsync(string actionId, CancellationToken cancellationToken = default)
+        {
+            Requested.Add(actionId);
+            return Task.FromResult(new JsonObject { ["status"] = "ok", ["card"] = "queued" });
+        }
+    }
+
+    [Fact]
+    public async Task The_approval_tool_is_offered_only_in_a_chat_turn_that_can_ask()
+    {
+        var approvals = new RecordingApprovals();
+        var engine = NewEngine([
+            FakeModel.Response("r1", FakeModel.Call("request_approval", """{"action_id": "act_1"}""")),
+            FakeModel.Final("A card is waiting for you."),
+        ]);
+        var guard = new WorkIQGuard(Fixtures.Binding, new FakeTokens(), new RecordingTransport());
+        var result = await engine.RunAsync("Send it", RunModes.Attended, guard, now: Now, approvals: approvals,
+                                           cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal("A card is waiting for you.", result.Text);
+        Assert.Equal(["act_1"], approvals.Requested);
+        var first = _model!.Requests[0];
+        Assert.Contains("request_approval", Fixtures.Dumps(first["tools"]), StringComparison.Ordinal);
+        Assert.Contains("# Doing things for your manager", (string?)first["instructions"], StringComparison.Ordinal);
+
+        // Without approvals, or outside an attended turn: no tool, no section, and the call is an unknown tool.
+        foreach (var (mode, offered) in new[] { (RunModes.Attended, (IApprovalRequests?)null), (RunModes.Unattended, approvals) })
+        {
+            var plain = NewEngine([FakeModel.Final("Here is the draft.")]);
+            await plain.RunAsync("Send it", mode, guard, now: Now, approvals: offered, cancellationToken: TestContext.Current.CancellationToken);
+            Assert.DoesNotContain("request_approval", Fixtures.Dumps(_model.Requests[0]["tools"]), StringComparison.Ordinal);
+            Assert.DoesNotContain("# Doing things for your manager", (string?)_model.Requests[0]["instructions"], StringComparison.Ordinal);
+        }
+
+        var library = new SkillLibrary(Fixtures.Root);
+        Assert.Equal("""{"status": "refused", "reason": "unknown tool"}""", Fixtures.Dumps(await Engine.DispatchAsync(
+            "request_approval", """{"action_id": "act_1"}""", RunModes.Unattended, guard, null, library, approvals: approvals,
+            cancellationToken: TestContext.Current.CancellationToken)));
+        Assert.Contains("needs the action_id", Fixtures.Dumps(await Engine.DispatchAsync(
+            "request_approval", "{}", RunModes.Attended, guard, null, library, approvals: approvals,
+            cancellationToken: TestContext.Current.CancellationToken)), StringComparison.Ordinal);
+        Assert.Single(approvals.Requested);
+    }
+
     [Fact]
     public async Task Tool_calls_go_through_the_guard_and_results_feed_back()
     {
@@ -191,7 +238,7 @@ public sealed class EngineTests
         var office = new FakeOffice();
         async Task<string> Dispatch(string name, string mode, IOfficeRequests? withOffice, IStateCommands? withState) =>
             Fixtures.Dumps(await Engine.DispatchAsync(name, "{\"script\": \"capacity.py\"}", mode, guard, withOffice, library, withState,
-                                                      TestContext.Current.CancellationToken));
+                                                      cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal("""{"status": "ok", "requests": [{"from": "Rafa"}]}""", await Dispatch("office_requests", RunModes.Attended, office, state));
         // A page (the requests and the queue's counts) is passed on whole; it cannot replace the status.
@@ -257,7 +304,7 @@ public sealed class EngineTests
             var guard = new WorkIQGuard(Fixtures.Binding, new FakeTokens(), transport);
             var office = cases[i][3] is { } kind ? new FakeOffice(kind == "broken", python: true) : null;
             var result = await Engine.DispatchAsync(cases[i][0], cases[i][1], cases[i][2], guard, office, library, null,
-                                                    TestContext.Current.CancellationToken);
+                                                    cancellationToken: TestContext.Current.CancellationToken);
             var sent = new JsonArray(transport.Calls.Select(call => (JsonNode?)new JsonArray(call.Tool, call.Arguments, call.Bearer)).ToArray());
             Assert.Equal(Fixtures.Dumps(python[i]), Fixtures.Dumps(new JsonObject { ["result"] = result, ["sent"] = sent }));
         }

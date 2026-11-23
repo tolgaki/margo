@@ -13,6 +13,17 @@ public interface IOfficeRequests
     Task<JsonNode?> PendingAsync(CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Asking the manager to approve one proposed action on a card in Teams (no Python equivalent). The engine offers the
+/// <c>request_approval</c> tool only when a turn has one; nothing the model does with it sends anything.
+/// </summary>
+public interface IApprovalRequests
+{
+    /// <summary>Checks the proposed action (by its ledger ID) and, when it can be run as proposed, queues a card for the
+    /// manager. Returns the tool's answer for the model; a refusal is an answer, not an exception.</summary>
+    Task<JsonObject> RequestAsync(string actionId, CancellationToken cancellationToken = default);
+}
+
 /// <summary>Token use of one turn, summed over its model requests (the Responses API's <c>usage</c>). No content.</summary>
 /// <param name="InputTokens">Input tokens of every request of the turn.</param>
 /// <param name="CachedInputTokens">The part of them served from the provider's prompt cache.</param>
@@ -168,13 +179,18 @@ public sealed class Engine
     public async Task<EngineResult> RunAsync(string text, string? mode, WorkIQGuard guard, IOfficeRequests? office = null,
                                              IStateCommands? state = null, JsonArray? history = null,
                                              DateTimeOffset? now = null, string? preferencesPath = null, string? cacheKey = null,
-                                             CancellationToken cancellationToken = default)
+                                             IApprovalRequests? approvals = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(guard);
         var library = new SkillLibrary(RepoRoot, preferencesPath ?? PreferencesPath);
-        var instructions = EngineTools.StableInstructions(RepoRoot, TimeZone, library, guard.PrincipalAccess);
+        approvals = mode == RunModes.Attended ? approvals : null;
+        var instructions = EngineTools.StableInstructions(RepoRoot, TimeZone, library, guard.PrincipalAccess, approvals is not null);
         var tools = EngineTools.FunctionTools(mode);
+        if (approvals is not null)
+        {
+            tools.Add(EngineTools.ApprovalToolDefinition());
+        }
         var earlier = history is null ? [] : (JsonArray)PyNode.Copy(history)!;
         var message = new JsonObject { ["role"] = "user", ["content"] = EngineTools.TimeLine(TimeZone, now) + "\n\n" + text };
         var items = (JsonArray)PyNode.Copy(earlier)!;
@@ -230,7 +246,7 @@ public sealed class Engine
                 items.Add(PyNode.Copy(item));
             }
 
-            var results = await DispatchAllAsync(calls, mode, guard, office, library, state, cancellationToken).ConfigureAwait(false);
+            var results = await DispatchAllAsync(calls, mode, guard, office, library, state, approvals, cancellationToken).ConfigureAwait(false);
             usage = usage with { ToolCalls = usage.ToolCalls + calls.Count };
             for (var index = 0; index < calls.Count; index++)
             {
@@ -288,12 +304,13 @@ public sealed class Engine
     /// never overlaps a state change the model asked for before or after it.
     /// </summary>
     private async Task<JsonNode?[]> DispatchAllAsync(List<JsonNode?> calls, string? mode, WorkIQGuard guard, IOfficeRequests? office,
-                                                     SkillLibrary library, IStateCommands? state, CancellationToken cancellationToken)
+                                                     SkillLibrary library, IStateCommands? state, IApprovalRequests? approvals,
+                                                     CancellationToken cancellationToken)
     {
         var results = new JsonNode?[calls.Count];
         bool Read(int at) => PyNode.AsString(Get(calls[at], "name"))?.StartsWith(EngineTools.Prefix, StringComparison.Ordinal) == true;
         Task<JsonNode?> One(int at) =>
-            DispatchAsync(Get(calls[at], "name"), Get(calls[at], "arguments"), mode, guard, office, library, state, cancellationToken);
+            DispatchAsync(Get(calls[at], "name"), Get(calls[at], "arguments"), mode, guard, office, library, state, approvals, cancellationToken);
 
         var index = 0;
         while (index < calls.Count)
@@ -363,10 +380,11 @@ public sealed class Engine
     /// <param name="office">The office queue, or null.</param>
     /// <param name="library">The turn's skill library.</param>
     /// <param name="state">The <c>margo-state</c> tool, or null.</param>
+    /// <param name="approvals">The approval cards of an attended chat turn, or null.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
     public static async Task<JsonNode?> DispatchAsync(JsonNode? name, JsonNode? rawArguments, string? mode, WorkIQGuard guard,
                                                       IOfficeRequests? office, SkillLibrary library, IStateCommands? state = null,
-                                                      CancellationToken cancellationToken = default)
+                                                      IApprovalRequests? approvals = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(guard);
         ArgumentNullException.ThrowIfNull(library);
@@ -421,6 +439,16 @@ public sealed class Engine
         if (function == EngineTools.StateTool && mode is RunModes.Attended or RunModes.Unattended && state is not null)
         {
             return await state.RunAsync(given, mode, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (function == EngineTools.ApprovalTool && mode == RunModes.Attended && approvals is not null)
+        {
+            if (given is not JsonObject request || PyNode.AsString(PyNode.Get(request, "action_id")) is not { Length: > 0 } actionId)
+            {
+                return Refused("request_approval needs the action_id that work_state.py propose returned");
+            }
+
+            return await approvals.RequestAsync(actionId, cancellationToken).ConfigureAwait(false);
         }
 
         if (function == EngineTools.OfficeTool && mode == RunModes.Attended && office is not null)

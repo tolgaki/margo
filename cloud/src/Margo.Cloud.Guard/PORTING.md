@@ -302,9 +302,19 @@ version; the fixture was recorded on 3.13). These are policy and contract tests,
    `binding.Account`; `InstanceLedger.OpenLedger` here does exactly that and can be what they call.
 3. **`PyDynamic`** (used for Python value rules on claims and arguments) still lives in `Margo.Cloud.State.Work`;
    if it moves to State.Core, only the `using` changes here.
-4. **Hosted writes.** As in Python, the orchestrator builds its guard without a journal, so hosted turns have no
-   claimed-write path today (the engine also refuses write tools before the guard). The journal path is complete
-   and tested for when that changes; the `LedgerClaimJournal`'s ledger then needs one owner per call.
+4. **Hosted writes** (resolved 23 Nov 2026, below): model turns still get a guard without a journal; the approved
+   action runs through a guard with the `LedgerClaimJournal`, whose ledger the decision owns for that one call.
+
+## Approval cards (23 Nov 2026)
+
+- `DelegableWrites` (`sendmail`): under delegation an approved `/me/sendMail` is rewritten to
+  `/users/{manager}/sendMail`, for write tools only; reads of that path stay unavailable. Deliberate deviation: the
+  recorded case "claimed principal delegation" expected `unavailable` and is skipped in `GuardParityTests`
+  (`DeliberateDeviations`); `ApprovalWriteTests` covers the new outcome.
+- `PreviewWrite` / `WriteProblem`: the claimed-write checks without a claim, so a proposal is refused before the
+  manager is asked if it would be refused when run.
+- The orchestrator now builds a guard with the ledger's claim journal (`LedgerClaimJournal`) for one call: the
+  manager's approved action, after their tap on its card. Model turns still get a guard without a journal.
 
 ## Cutover
 

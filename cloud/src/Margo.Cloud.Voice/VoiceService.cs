@@ -324,7 +324,7 @@ public sealed class VoiceService : IDisposable
                                                         principalAccess: options.PrincipalAccess) + "\n\n" + VoiceSession.Addendum;
 
         Task<JsonNode?> Dispatch(JsonNode? name, JsonNode? rawArguments, CancellationToken token) =>
-            Margo.Cloud.Engine.Engine.DispatchAsync(name, rawArguments, RunModes.Attended, guard, office, library, state, token);
+            Margo.Cloud.Engine.Engine.DispatchAsync(name, rawArguments, RunModes.Attended, guard, office, library, state, cancellationToken: token);
 
         await ConverseAsync(ws, instructions, EngineTools.FunctionTools(RunModes.Attended), Dispatch, RunLocked, cancellationToken)
             .ConfigureAwait(false);

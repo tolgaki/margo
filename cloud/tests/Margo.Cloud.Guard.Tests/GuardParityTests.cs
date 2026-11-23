@@ -18,6 +18,11 @@ namespace Margo.Cloud.Guard.Tests;
 public sealed partial class GuardParityTests
 {
     private static readonly Lazy<JsonObject> Fixture = new(Load);
+    /// <summary>Recorded cases whose Python outcome is changed on purpose (PORTING.md). "claimed principal delegation": an
+    /// approved <c>/me/sendMail</c> under delegation was unavailable; it is now sent through the manager's mailbox
+    /// (<c>ApprovalWriteTests</c>).</summary>
+    private static readonly HashSet<string> DeliberateDeviations = new(StringComparer.Ordinal) { "claimed principal delegation" };
+
     private static readonly Lazy<Dictionary<string, JsonObject>> Cases = new(() =>
         Fixture.Value["cases"]!.AsArray().ToDictionary(c => (string)c!["name"]!, c => c!.AsObject(), StringComparer.Ordinal));
 
@@ -70,6 +75,11 @@ public sealed partial class GuardParityTests
     [MemberData(nameof(CaseNames))]
     public async Task Guard_matches_python(string name)
     {
+        if (DeliberateDeviations.Contains(name))
+        {
+            return; // see DeliberateDeviations; the new behaviour has its own test
+        }
+
         var c = Cases.Value[name];
         var binding = new InstanceBinding("agent-identity-1", "margo-user-1", "principal-1", PyNode.AsString(c["principal_chat_id"]));
         var tokens = new ParityTokens(c["tokens"] as JsonObject);

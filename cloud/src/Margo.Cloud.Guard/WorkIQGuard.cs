@@ -322,6 +322,94 @@ public sealed class WorkIQGuard
         return Finish(receipt, status, data: result);
     }
 
+    /// <summary>
+    /// Checks an exact write call as it would be proposed for the manager's approval, without running it: the same
+    /// argument, path and subject rules a claimed write meets, and, under delegation, that it can be sent through the
+    /// manager's mailbox. A proposal that would be refused at execution is refused here, before the manager is asked.
+    /// </summary>
+    /// <param name="tool">The Work IQ write tool, without the <c>workiq-</c> prefix.</param>
+    /// <param name="arguments">The exact arguments, with <c>on_data_of</c> and without claim fields.</param>
+    /// <returns>The resource paths the call would reach.</returns>
+    /// <exception cref="RefusedException">The call is not an allowed write.</exception>
+    /// <exception cref="UnavailableException">The call cannot be made with this instance's access.</exception>
+    public IReadOnlyList<string> PreviewWrite(string? tool, JsonNode? arguments)
+    {
+        if (tool is null || !WriteTools.Contains(tool))
+        {
+            throw new RefusedException("not a Work IQ write tool");
+        }
+
+        if (arguments is not JsonObject given)
+        {
+            throw new RefusedException("arguments must be an object");
+        }
+
+        if (given.ContainsKey("action_id") || given.ContainsKey("attempt_id"))
+        {
+            throw new RefusedException("a proposed call carries no execution claim");
+        }
+
+        var intent = PyNode.AsString(PyNode.Get(given, "on_data_of"));
+        if (intent is null || !Subjects.Intents.Contains(intent))
+        {
+            throw new RefusedException("on_data_of must be 'principal' or 'self'");
+        }
+
+        var args = new JsonObject();
+        foreach (var (key, value) in given)
+        {
+            if (!ControlArgs.Contains(key))
+            {
+                args[key] = PyNode.Copy(value);
+            }
+        }
+
+        var unknown = args.Select(pair => pair.Key).Where(key => !ToolArgs[tool].Contains(key)).Order(PyRepr.StringComparer).ToList();
+        if (unknown.Count > 0)
+        {
+            throw new RefusedException("unexpected arguments: " + ReceiptText.ArgumentNames(unknown));
+        }
+
+        if (PyNode.Get(args, "jsonBody") is { } body && !IsJsonObjectText(body))
+        {
+            throw new RefusedException("jsonBody must be a JSON object, written as a string");
+        }
+
+        var paths = Validate(tool, args, intent, write: true, fileHosts: _fileHosts);
+        if (intent == Subjects.Principal && PrincipalAccess == PrincipalAccessModes.Delegation)
+        {
+            paths = Validate(tool, Delegated(tool, args), Subjects.Principal, write: true, Binding.PrincipalId, _fileHosts);
+        }
+
+        return paths;
+    }
+
+    /// <summary><see cref="PreviewWrite"/> without exceptions: null when the call would be allowed, else why not.</summary>
+    public string? WriteProblem(string? tool, JsonNode? arguments)
+    {
+        try
+        {
+            PreviewWrite(tool, arguments);
+            return null;
+        }
+        catch (Exception exc) when (exc is RefusedException or UnavailableException)
+        {
+            return exc.Message;
+        }
+    }
+
+    private static bool IsJsonObjectText(JsonNode body)
+    {
+        try
+        {
+            return PyNode.AsString(body) is { } text && PyJson.Loads(text) is JsonObject;
+        }
+        catch (Exception exc) when (exc is PyJsonDecodeError or System.Text.Json.JsonException)
+        {
+            return false;
+        }
+    }
+
     // -- policy -------------------------------------------------------------------------------
 
     private Authorisation Authorise(string? tool, JsonNode? arguments, string? intent, string? mode)
@@ -501,26 +589,28 @@ public sealed class WorkIQGuard
             return args;
         }
 
+        var write = WriteTools.Contains(tool);
         var rewritten = PyNode.CopyObject(args);
         foreach (var key in PathKeys)
         {
             if (rewritten.TryGetPropertyValue(key, out var value))
             {
                 rewritten[key] = value is JsonArray list
-                    ? new JsonArray(list.Select(item => (JsonNode?)JsonValue.Create(Rewrite(item))).ToArray())
-                    : JsonValue.Create(Rewrite(value));
+                    ? new JsonArray(list.Select(item => (JsonNode?)JsonValue.Create(Rewrite(item, write))).ToArray())
+                    : JsonValue.Create(Rewrite(value, write));
             }
         }
 
         return rewritten;
     }
 
-    private string Rewrite(JsonNode? value)
+    private string Rewrite(JsonNode? value, bool write)
     {
         // Only paths _validate accepted reach here, so the value is a string starting with one "/".
         var path = PyNode.AsString(value) ?? throw new InvalidOperationException("path argument is not a string");
         var segments = path.Split('?', 2)[0].Trim('/').Split('/');
-        if (segments.Length < 2 || LowerAscii(segments[0]) != "me" || !Delegable.Contains(LowerAscii(segments[1])))
+        if (segments.Length < 2 || LowerAscii(segments[0]) != "me"
+            || !(Delegable.Contains(LowerAscii(segments[1])) || (write && DelegableWrites.Contains(LowerAscii(segments[1])))))
         {
             throw new UnavailableException(DelegationPathHint);
         }

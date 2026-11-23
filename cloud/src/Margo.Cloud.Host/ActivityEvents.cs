@@ -86,14 +86,61 @@ public static class ActivityEvents
                                                inbound.SenderId, activity.Text ?? string.Empty);
         // conversation_type decides whether this is the manager's one-to-one chat; a group chat or channel never runs
         // a turn that reads as the manager.
+        var decision = email ? null : Decision(activity.Value);
         return inbound with
         {
             ConversationId = ids.ConversationId,
             ActivityId = ids.ExternalId,
             ConversationType = conversation.ConversationType,
             Channel = email ? "mail" : "teams",
-            Text = activity.Text ?? string.Empty,
+            // A tap on an approval card is a decision, never text for the model.
+            Text = decision is null ? activity.Text ?? string.Empty : null,
+            Decision = decision,
         };
+    }
+
+    /// <summary>
+    /// The decision an approval card's button carries (<see cref="ApprovalCards"/>), or null when the activity's value is
+    /// not one: <c>{"margo": "approve"|"reject", "action_id", "revision", "action_hash"}</c>. Who tapped it, and whether
+    /// it matches the ledger, is checked by the orchestrator.
+    /// </summary>
+    public static CardDecision? Decision(object? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        JsonNode? node;
+        try
+        {
+            node = value as JsonNode ?? JsonNode.Parse(ProtocolJsonSerializer.ToJson(value));
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+
+        if (node is not JsonObject data || data["margo"] is not JsonValue verbValue || !verbValue.TryGetValue<string>(out var verb)
+            || verb is not (CardDecision.Approve or CardDecision.Reject)
+            || data["action_id"] is not JsonValue idValue || !idValue.TryGetValue<string>(out var actionId) || actionId.Length is 0 or > 100
+            || data["action_hash"] is not JsonValue hashValue || !hashValue.TryGetValue<string>(out var actionHash) || actionHash.Length is 0 or > 200
+            || data["revision"] is not JsonValue revisionValue || !TryLong(revisionValue, out var revision))
+        {
+            return null;
+        }
+
+        return new CardDecision(verb, actionId, revision, actionHash);
+    }
+
+    private static bool TryLong(JsonValue value, out long result)
+    {
+        if (value.TryGetValue(out result))
+        {
+            return true;
+        }
+
+        return value.TryGetValue<string>(out var text) && long.TryParse(text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out result);
     }
 
     /// <summary>

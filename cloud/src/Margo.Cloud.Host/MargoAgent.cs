@@ -143,6 +143,11 @@ public sealed class MargoTurns : IDisposable
                 var reply = new Activity { Type = ActivityTypes.Message, Text = result.Reply, TextFormat = TextFormatTypes.Markdown };
                 await context.SendActivityAsync(reply, cancellationToken);
             }
+
+            if (!email)
+            {
+                await SendCardsAsync(context, result, cancellationToken);
+            }
         }
         finally
         {
@@ -231,6 +236,36 @@ public sealed class MargoTurns : IDisposable
     /// <summary>
     /// <c>_typing</c>: a typing indicator every four seconds until the turn ends. Failures end it quietly.
     /// </summary>
+    /// <summary>
+    /// The approval cards a turn asked for, one message each, after its reply; and, after a decision, the tapped card
+    /// replaced by its last version (no buttons). Replacing the card is a convenience: a second tap on an old card is
+    /// refused by the ledger whether or not the replacement arrived.
+    /// </summary>
+    private async Task SendCardsAsync(ITurnContext context, TurnReply result, CancellationToken cancellationToken)
+    {
+        foreach (var card in result.Cards)
+        {
+            await context.SendActivityAsync(new Activity { Type = ActivityTypes.Message, Attachments = [ApprovalCards.Ask(card)] }, cancellationToken);
+        }
+
+        if (result.Decided is { } decided && !string.IsNullOrEmpty(context.Activity.ReplyToId))
+        {
+            try
+            {
+                await context.UpdateActivityAsync(new Activity
+                {
+                    Type = ActivityTypes.Message,
+                    Id = context.Activity.ReplyToId,
+                    Attachments = [ApprovalCards.Decided(decided)],
+                }, cancellationToken);
+            }
+            catch (Exception exc) when (exc is not OperationCanceledException)
+            {
+                _logger.LogWarning("approval card not updated: {Error}", exc.GetType().Name);
+            }
+        }
+    }
+
     private static async Task TypingAsync(ITurnContext context, CancellationToken cancellationToken)
     {
         await Task.Yield(); // asyncio.ensure_future: the turn starts first

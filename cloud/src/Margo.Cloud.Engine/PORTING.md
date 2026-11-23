@@ -207,6 +207,11 @@ failure of a write as `unknown`, and receipts are all as in Python.
     says never to invent, complete or correct an email address, name or identifier (live, the model added an underscore
     to an address and wrote a different domain). Tests compare the recorded Python text after the same edits
     (`Fixtures.Reworded`, `Fixtures.MovedTime`).
+18. **Approval cards (23 Nov 2026).** In an attended turn that has an `IApprovalRequests`, the engine offers
+    `request_approval` (one argument, the ledger action ID) and appends `ApprovalAddendum` ("Doing things for your
+    manager": propose the exact call with `work_state.py propose`, ask for a card, never call a write tool, a typed or
+    spoken "yes" is not an approval, the call shapes for mail, meetings and Teams). Without one (voice, unattended runs,
+    `FunctionTools` as Python recorded it) nothing changes. The write reason in `NotHosted` now points to that section.
 
 ## Delegation-mode instructions (21 Nov 2026)
 

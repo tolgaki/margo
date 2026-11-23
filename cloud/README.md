@@ -93,9 +93,11 @@ against (recorded answers and frozen fixtures).
 
 ## The hosted action convention
 
-**Not reachable in this version.** This convention is implemented in the guard and tested offline, but this version
-offers the model no write tools, refuses approval commands, and builds the guard without an approval journal, so every
-write is refused. It is described here for the version that will execute approved writes.
+**Approval cards.** The model proposes an action in this shape and asks for approval (`request_approval`); the host
+posts an Adaptive Card drawn from the ledger; the manager's tap arrives as a message whose value names the action,
+revision and hash; the orchestrator records the approval, starts the attempt, and runs the stored call through a guard
+holding the ledger's claim journal (`Margo.Cloud.Orchestrator/Approvals.cs`, `Margo.Cloud.Host/ApprovalCards.cs`). The
+model is never offered a write tool and cannot approve.
 
 Approved writes executed by Margo Cloud carry the exact Work IQ call in the action snapshot, so the human approves the
 call itself rather than a description of it:

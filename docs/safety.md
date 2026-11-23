@@ -104,11 +104,26 @@ use it; every other outbound action keeps the rules above. This exception is des
 current version: Margo Cloud answers only within a conversation.
 The local assistant in this repository is unchanged.
 
+### Margo Cloud approval cards
+
+In Margo Cloud, approval of an outward action is a tap on a card in the manager's one-to-one Teams chat, and it is
+enforced in code, not left to the model:
+
+- The model can only *propose*: it records the exact Work IQ call in the work ledger and asks for a card. It is never
+  offered a write tool.
+- The card is drawn from the ledger, not from the model's text, and shows the exact request.
+- A tap counts only if it comes from the instance's manager, in their one-to-one chat, through the platform's
+  authenticated channel, for the revision and hash the ledger currently holds. Anything else runs nothing.
+- The approval is recorded against that exact account, action, revision and hash, and the guard runs the stored call
+  once: it refuses a call that differs in any byte, and marks the attempt dispatched before sending, so a crash or a
+  second tap can never send it twice. An unconfirmed result is recorded as unknown and is never retried.
+- Typed or spoken "yes" is not an approval. Voice calls cannot ask for one.
+- Known gap: the target is not re-read between the tap and the call (the approved snapshot is what runs).
+
 ### Margo Cloud fixed notices
 
-Margo Cloud takes no outbound action in this version: every Work IQ write is refused by the guard. It does send two
-fixed notices over the Teams channel, without per-message approval, and the guard does not see them (the reply gate in
-`Margo.Cloud.Orchestrator` controls them):
+Besides approved actions, Margo Cloud sends two fixed notices over the Teams channel, without per-message approval,
+and the guard does not see them (the reply gate in `Margo.Cloud.Orchestrator` controls them):
 
 - **The group-chat refusal.** Mentioned in a group chat or channel, Margo answers with one fixed sentence saying she
   works only in her manager's one-to-one chat. She reads nothing there.

@@ -13,9 +13,10 @@ public static class NotHosted
     /// <summary>Why every Work IQ write is unavailable. Python said "outward actions arrive with approval cards; until then
     /// Margo drafts and the manager sends": live, the model read that as an approval card the manager could find in
     /// Teams, and sent them looking for it (deliberate deviation, PORTING.md).</summary>
-    public const string WriteReason = "this version cannot send, reply, forward, post, accept, decline, delete or change anything, "
-                                      + "and there is no approval card or any other way to approve such an action, in Teams, in chat "
-                                      + "or by voice; give your manager the draft to send themselves";
+    public const string WriteReason = "you never call these yourself: in a Teams chat turn, propose the exact call and ask for "
+                                      + "your manager's approval on a card, as the section Doing things for your manager says; where that section "
+                                      + "is missing, as in a voice call, you cannot ask for approval: give your manager the draft, or "
+                                      + "tell them to ask you in your Teams chat, where you can put it on a card";
 
     /// <summary>The Python reason, for comparing recorded answers.</summary>
     public const string PythonWriteReason = "outward actions arrive with approval cards; until then Margo drafts and the manager sends";

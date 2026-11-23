@@ -255,6 +255,22 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
    (the store's 120 s wait applies). `OfficeReader.PendingAsync` now returns the page object (the engine's
    `DispatchAsync` passes it on).
 
+## Approval cards (23 Nov 2026)
+
+New, no Python equivalent (Python's hosted runtime never executed approved writes):
+
+- `TurnApprovals` implements the engine's `IApprovalRequests` for a manager turn: `request_approval` checks that the
+  ledger action is `ready`, carries `payload.workiq {tool, arguments}` and `target.on_data_of`, and passes the guard's
+  `PreviewWrite`; then queues an `ApprovalCard` (at most five a turn). `TurnReply.Cards` carries them to the host.
+- `InboundEvent.Decision` (a `CardDecision`) is the manager's tap. Only the manager in their one-to-one chat decides
+  (`decision_refused` otherwise, nothing recorded). Inside the state lease, `CardDecisions.DecideAsync` checks the
+  ledger's current revision and hash, then rejects (`Disposition dismissed`) or approves: `Approve` with evidence
+  `host-interaction:teams-card/{activity}` and the manager as actor (ten minutes), `Begin` with the approved snapshot's
+  fingerprint and sources (no new read of the target), and one guarded call carrying the claim. A refusal before
+  dispatch finishes the attempt as `failed` with `definitive_no_effect`; an unknown outcome is left for reconciliation
+  and never retried. `TurnReply.Decided` carries the card's outcome; the status is `decided`.
+- `TurnReply` compares its cards by value.
+
 ## Tests and evidence
 
 `cloud/tests/Margo.Cloud.Orchestrator.Tests` (119 test cases), a fake model, a fake Work IQ directory transport

@@ -237,7 +237,7 @@ public sealed class GeneratedCaseTests
             var guard = new WorkIQGuard(Fixtures.Binding, new FakeTokens(), transport);
             var office = PyNode.AsString(cases[i]![3]) is { } kind ? new PythonOffice(kind == "broken") : null;
             var result = await Engine.DispatchAsync(PyNode.Copy(cases[i]![0]), PyNode.Copy(cases[i]![1]), PyNode.AsString(cases[i]![2]), guard, office,
-                                                    library, null, TestContext.Current.CancellationToken);
+                                                    library, null, cancellationToken: TestContext.Current.CancellationToken);
             Compare(failures, cases[i], python[i], new JsonObject { ["result"] = result, ["sent"] = Sent(transport) });
         }
 

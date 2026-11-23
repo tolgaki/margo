@@ -20,7 +20,8 @@ public sealed class SessionConfigurationTests
         Assert.Equal("session.update", PyNode.AsString(update["type"]));
         Assert.StartsWith(library.Persona(), PyNode.AsString(session["instructions"]), StringComparison.Ordinal);
         Assert.Contains("- **decision-log**:", PyNode.AsString(session["instructions"]), StringComparison.Ordinal);
-        Assert.Contains("Nothing is approved or sent, by voice or in chat", PyNode.AsString(session["instructions"]), StringComparison.Ordinal);
+        Assert.Contains("Nothing is approved or sent by voice, and from a call you cannot ask for approval", PyNode.AsString(session["instructions"]), StringComparison.Ordinal);
+        Assert.DoesNotContain("# Doing things for your manager", PyNode.AsString(session["instructions"]), StringComparison.Ordinal);
         Assert.DoesNotContain("approval happens in Teams", PyNode.AsString(session["instructions"]), StringComparison.Ordinal);
         var names = ((JsonArray)session["tools"]!).Select(tool => PyNode.AsString(tool!["name"])!).ToHashSet();
         Assert.Superset(new HashSet<string> { "workiq-fetch", "margo-state", "load_skill", "office_requests" }, names);
@@ -101,8 +102,8 @@ public sealed class SessionConfigurationTests
                      - Speak in short sentences. No tables, Markdown, links read aloud or emoji. Say times and dates the
                        way people say them, in your manager's time zone.
                      - Before a lookup that takes time, say in a few words what you are checking.
-                     - Nothing is approved or sent, by voice or in chat: this version cannot send anything, and there is no
-                       approval card. Say what the draft is and that your manager sends it themselves.
+                     - Nothing is approved or sent by voice, and from a call you cannot ask for approval. Say what you
+                       would send, and that your manager can ask you in your Teams chat, where you put it on a card.
                      - If you are unsure what you heard, or who is speaking, ask before acting on it.
 
                      """.ReplaceLineEndings("\n");
