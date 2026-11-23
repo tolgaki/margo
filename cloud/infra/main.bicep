@@ -98,6 +98,17 @@ param platformAppIds string = ''
 @description('Hosts instances may send replies to besides Microsoft\'s own, separated by spaces. Leave empty unless an instance logs "ServiceUrl host is not in the configured allowed hosts" for genuine Agent 365 traffic.')
 param extraServiceHosts string = ''
 
+@description('Reasoning effort asked of the chat model: none, minimal, low, medium or high. Use none for a deployment that is not a reasoning model.')
+@allowed([ 'none', 'minimal', 'low', 'medium', 'high' ])
+param modelReasoningEffort string = 'low'
+
+@description('The tenant\'s own SharePoint and OneDrive hosts (for example contoso.sharepoint.com contoso-my.sharepoint.com), separated by spaces: the only hosts a file link given to Copilot search may name. Empty accepts any one tenant under sharepoint.com.')
+param sharePointHosts string = ''
+
+@description('Days each manager\'s daily state copies are kept; 0 keeps them all.')
+@minValue(0)
+param stateDailyRetentionDays int = 30
+
 @description('The Margo Cloud image pinned by digest, recorded by scripts/postprovision.sh (MARGO_PINNED_IMAGE). Empty on the first provision.')
 param margoImage string = ''
 
@@ -331,7 +342,7 @@ var provisionerConfig = {
   extraEnv: concat([
     { name: 'MARGO_PRINCIPAL_ACCESS', value: principalAccess }
     { name: 'MARGO_TIMEZONE', value: timezone }
-  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ], empty(voiceClientId) ? [] : [ { name: 'MARGO_VOICE_CLIENT_ID', value: voiceClientId } ], empty(extraTokenIssuers) ? [] : [ { name: 'MARGO_EXTRA_TOKEN_ISSUERS', value: extraTokenIssuers } ], empty(voiceMaxSeconds) ? [] : [ { name: 'MARGO_VOICE_MAX_SECONDS', value: voiceMaxSeconds } ], empty(voiceMaxToolCalls) ? [] : [ { name: 'MARGO_VOICE_MAX_TOOL_CALLS', value: voiceMaxToolCalls } ], empty(platformAppIds) ? [] : [ { name: 'MARGO_PLATFORM_APP_IDS', value: platformAppIds } ], empty(extraServiceHosts) ? [] : [ { name: 'MARGO_EXTRA_SERVICE_HOSTS', value: extraServiceHosts } ])
+  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ], empty(voiceClientId) ? [] : [ { name: 'MARGO_VOICE_CLIENT_ID', value: voiceClientId } ], empty(extraTokenIssuers) ? [] : [ { name: 'MARGO_EXTRA_TOKEN_ISSUERS', value: extraTokenIssuers } ], empty(voiceMaxSeconds) ? [] : [ { name: 'MARGO_VOICE_MAX_SECONDS', value: voiceMaxSeconds } ], empty(voiceMaxToolCalls) ? [] : [ { name: 'MARGO_VOICE_MAX_TOOL_CALLS', value: voiceMaxToolCalls } ], empty(platformAppIds) ? [] : [ { name: 'MARGO_PLATFORM_APP_IDS', value: platformAppIds } ], empty(extraServiceHosts) ? [] : [ { name: 'MARGO_EXTRA_SERVICE_HOSTS', value: extraServiceHosts } ], empty(sharePointHosts) ? [] : [ { name: 'MARGO_SHAREPOINT_HOSTS', value: sharePointHosts } ], [ { name: 'MARGO_MODEL_REASONING_EFFORT', value: modelReasoningEffort }, { name: 'MARGO_STATE_DAILY_RETENTION_DAYS', value: string(stateDailyRetentionDays) } ])
 }
 
 // Started by messages on the provisioning queue (a KEDA azure-queue rule read with the job's own identity, which

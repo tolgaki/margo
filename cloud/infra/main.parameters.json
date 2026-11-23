@@ -30,6 +30,9 @@
     "voiceMaxToolCalls": { "value": "${MARGO_VOICE_MAX_TOOL_CALLS=}" },
     "extraTokenIssuers": { "value": "${MARGO_EXTRA_TOKEN_ISSUERS=}" },
     "platformAppIds": { "value": "${MARGO_PLATFORM_APP_IDS=}" },
-    "extraServiceHosts": { "value": "${MARGO_EXTRA_SERVICE_HOSTS=}" }
+    "extraServiceHosts": { "value": "${MARGO_EXTRA_SERVICE_HOSTS=}" },
+    "modelReasoningEffort": { "value": "${MARGO_MODEL_REASONING_EFFORT=low}" },
+    "sharePointHosts": { "value": "${MARGO_SHAREPOINT_HOSTS=}" },
+    "stateDailyRetentionDays": { "value": "${MARGO_STATE_DAILY_RETENTION_DAYS=30}" }
   }
 }

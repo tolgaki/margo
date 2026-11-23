@@ -477,6 +477,26 @@ public sealed class StateSyncTests
     }
 
     [Fact]
+    public async Task Daily_copies_older_than_the_retention_are_deleted()
+    {
+        // Python kept every daily copy for ever, so what the manager had Margo forget stayed readable in old copies.
+        using var state = new TempState();
+        var (db, sync) = Session(state, "sandbox-a");
+        await Turn(sync, () => MakeDb(db, Fixtures.Binding.Account));
+        Assert.Equal(30, sync.DailyRetentionDays);
+        for (var day = 1; day <= 31; day++)
+        {
+            await sync.RunAsync(_ => Task.FromResult(true), Now.AddDays(day), Cancel);
+        }
+
+        // 17 Oct plus 31 more days were written; on 17 Nov the copies before 18 Oct are gone, 30 days of copies remain.
+        Assert.Equal(32, _store.Puts.Count);
+        Assert.Null(_store.GetCopy("daily/2026-10-17.zip"));
+        Assert.NotNull(_store.GetCopy("daily/2026-10-18.zip"));
+        Assert.NotNull(_store.GetCopy("daily/2026-11-17.zip"));
+    }
+
+    [Fact]
     public async Task The_daily_copy_is_written_once_a_day()
     {
         using var state = new TempState();

@@ -107,6 +107,25 @@ public sealed class ConfigurationTests
         environment.Remove("MARGO_PLATFORM_APP_IDS");
         environment["MARGO_EXTRA_SERVICE_HOSTS"] = "smba.example.com";
 
+        Assert.Equal(("low", 16000, 30), (settings.ReasoningEffort, settings.MaxOutputTokens, settings.DailyRetentionDays));
+        Assert.Empty(settings.SharePointHosts);
+        environment["MARGO_MODEL_REASONING_EFFORT"] = "None";
+        environment["MARGO_MODEL_MAX_OUTPUT_TOKENS"] = "4000";
+        environment["MARGO_STATE_DAILY_RETENTION_DAYS"] = "0";
+        environment["MARGO_SHAREPOINT_HOSTS"] = "contoso.sharepoint.com contoso-my.sharepoint.com";
+        var tuned = HostSettings.Load(Configuration(environment));
+        Assert.Equal(("none", 4000, 0), (tuned.ReasoningEffort, tuned.MaxOutputTokens, tuned.DailyRetentionDays));
+        Assert.Equal(["contoso.sharepoint.com", "contoso-my.sharepoint.com"], tuned.SharePointHosts);
+        environment["MARGO_MODEL_REASONING_EFFORT"] = "maximum";
+        Assert.StartsWith("MARGO_MODEL_REASONING_EFFORT is not", Assert.Throws<HostStartupException>(() => HostSettings.Load(Configuration(environment))).Message, StringComparison.Ordinal);
+        environment["MARGO_MODEL_REASONING_EFFORT"] = "low";
+        environment["MARGO_MODEL_MAX_OUTPUT_TOKENS"] = "lots";
+        Assert.StartsWith("MARGO_MODEL_MAX_OUTPUT_TOKENS is not", Assert.Throws<HostStartupException>(() => HostSettings.Load(Configuration(environment))).Message, StringComparison.Ordinal);
+        foreach (var name in (string[])["MARGO_MODEL_REASONING_EFFORT", "MARGO_MODEL_MAX_OUTPUT_TOKENS", "MARGO_STATE_DAILY_RETENTION_DAYS", "MARGO_SHAREPOINT_HOSTS"])
+        {
+            environment.Remove(name);
+        }
+
         // An unknown zone would pass the probes and fail every turn: refuse to start instead.
         environment["MARGO_TIMEZONE"] = "Mars/Olympus_Mons";
         Assert.Equal("MARGO_TIMEZONE is not a known IANA time zone: Mars/Olympus_Mons",

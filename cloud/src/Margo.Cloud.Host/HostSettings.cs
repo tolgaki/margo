@@ -115,6 +115,20 @@ public sealed record HostSettings
     /// Empty by default: any application's own token, never a person's.</summary>
     public IReadOnlyList<string> PlatformAppIds { get; init; } = [];
 
+    /// <summary><c>MARGO_MODEL_REASONING_EFFORT</c> (default <c>low</c>): the reasoning effort asked of the chat model;
+    /// <c>none</c> sends no reasoning settings, for a deployment that is not a reasoning model.</summary>
+    public string? ReasoningEffort { get; init; } = "low";
+
+    /// <summary><c>MARGO_MODEL_MAX_OUTPUT_TOKENS</c> (default 16000).</summary>
+    public int MaxOutputTokens { get; init; } = 16000;
+
+    /// <summary><c>MARGO_SHAREPOINT_HOSTS</c>: the tenant's own SharePoint and OneDrive hosts, separated by spaces: the
+    /// only hosts a file link given to Copilot search may name. Empty: any one tenant under sharepoint.com.</summary>
+    public IReadOnlyList<string> SharePointHosts { get; init; } = [];
+
+    /// <summary><c>MARGO_STATE_DAILY_RETENTION_DAYS</c> (default 30): how long daily state copies are kept; 0 keeps all.</summary>
+    public int DailyRetentionDays { get; init; } = 30;
+
     /// <summary><c>MARGO_EXTRA_SERVICE_HOSTS</c>: hosts Margo may reply to besides Microsoft's own (the SDK's built-in
     /// list), separated by spaces. Empty by default.</summary>
     public IReadOnlyList<string> ExtraServiceHosts { get; init; } = [];
@@ -205,6 +219,26 @@ public sealed record HostSettings
             throw new HostStartupException("MARGO_TIMEZONE is not a known IANA time zone: " + timeZone);
         }
 
+        var effort = Get("MARGO_MODEL_REASONING_EFFORT") is { Length: > 0 } wanted ? wanted.Trim().ToLowerInvariant() : "low";
+        if (effort is not ("none" or "minimal" or "low" or "medium" or "high"))
+        {
+            throw new HostStartupException("MARGO_MODEL_REASONING_EFFORT is not none, minimal, low, medium or high: " + effort);
+        }
+
+        var maxOutputTokens = 16000;
+        if (Get("MARGO_MODEL_MAX_OUTPUT_TOKENS") is { Length: > 0 } limit
+            && (!int.TryParse(limit, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out maxOutputTokens) || maxOutputTokens < 256))
+        {
+            throw new HostStartupException("MARGO_MODEL_MAX_OUTPUT_TOKENS is not a number of at least 256: " + limit);
+        }
+
+        var dailyRetention = 30;
+        if (Get("MARGO_STATE_DAILY_RETENTION_DAYS") is { Length: > 0 } days
+            && !int.TryParse(days, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out dailyRetention))
+        {
+            throw new HostStartupException("MARGO_STATE_DAILY_RETENTION_DAYS is not a number of days: " + days);
+        }
+
         var stateDir = Get("MARGO_STATE_DIR");
         var managedIdentity = Get("AZURE_CLIENT_ID");
         return new HostSettings
@@ -234,6 +268,10 @@ public sealed record HostSettings
             ExtraIssuers = SplitList(Get("MARGO_EXTRA_TOKEN_ISSUERS")),
             PlatformAppIds = SplitList(Get("MARGO_PLATFORM_APP_IDS")),
             ExtraServiceHosts = SplitList(Get("MARGO_EXTRA_SERVICE_HOSTS")),
+            ReasoningEffort = effort,
+            DailyRetentionDays = dailyRetention,
+            MaxOutputTokens = maxOutputTokens,
+            SharePointHosts = SplitList(Get("MARGO_SHAREPOINT_HOSTS")),
             ApplicationInsights = Get("APPLICATIONINSIGHTS_CONNECTION_STRING") is { Length: > 0 } insights ? insights : null,
             ListenHost = Get("HOST") ?? "0.0.0.0",
             Port = port,

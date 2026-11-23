@@ -258,6 +258,11 @@ internal sealed class FakeBlobService : HttpMessageHandler
                     return Error(HttpStatusCode.PreconditionFailed, "LeaseIdMismatchWithBlobOperation");
                 }
 
+                if (Header(request, "If-None-Match") is { } known && known == blob.ETag)
+                {
+                    return Error(HttpStatusCode.NotModified, "ConditionNotMet");
+                }
+
                 var response = Ok(HttpStatusCode.OK, blob.ETag);
                 response.Content = new ByteArrayContent(blob.Data);
                 response.Content.Headers.ContentLength = blob.Data.Length;

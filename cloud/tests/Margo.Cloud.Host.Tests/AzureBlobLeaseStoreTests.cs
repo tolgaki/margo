@@ -165,10 +165,16 @@ public sealed class AzureBlobLeaseStoreTests : IDisposable
         var (data, readTag) = await lease.ReadAsync(Token);
         Assert.Equal("bundle", Encoding.UTF8.GetString(data!));
         Assert.Equal(etag, readTag);
+
+        // A caller that already has that version is not sent it again (If-None-Match); a changed blob is.
+        Assert.Equal((null, etag, true), await lease.ReadIfChangedAsync(etag, Token));
+        var (changed, changedTag, unchanged) = await lease.ReadIfChangedAsync("\"0x8DE000000\"", Token);
+        Assert.Equal(("bundle", etag, false), (Encoding.UTF8.GetString(changed!), changedTag, unchanged));
+        Assert.False((await lease.ReadIfChangedAsync(null, Token)).Unchanged);
         var leased = _blobs.Requests.Where(request => request.Method == HttpMethod.Get
                                                       || (request.Method == HttpMethod.Put && request.Headers.Contains("x-ms-lease-id") && !request.RequestUri!.Query.Contains("comp=", StringComparison.Ordinal)));
         Assert.All(leased, request => Assert.Equal(leaseId, request.Headers.GetValues("x-ms-lease-id").Single()));
-        Assert.Equal(3, leased.Count());
+        Assert.Equal(6, leased.Count()); // two reads, one write, and the three conditional reads above
     }
 
     [Fact]

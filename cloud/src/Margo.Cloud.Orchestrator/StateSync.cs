@@ -119,6 +119,12 @@ public sealed class StateSync
     /// <summary>Where the daily copies go (<c>prefix + daily/</c>).</summary>
     public string DailyPrefix { get; }
 
+    /// <summary>How many days of daily copies are kept; 0 keeps them all (Python kept them all).</summary>
+    public int DailyRetentionDays { get; init; } = DefaultDailyRetentionDays;
+
+    /// <summary>The default for <see cref="DailyRetentionDays"/>.</summary>
+    public const int DefaultDailyRetentionDays = 30;
+
     /// <summary>The manager's preferences file, when carried.</summary>
     public string? Preferences { get; }
 
@@ -227,6 +233,12 @@ public sealed class StateSync
                         bundle ??= await Task.Run(() => MakeBundle(database, preferences, stamp), cancellationToken).ConfigureAwait(false);
                         await Store.PutAsync(DailyPrefix + day + ".zip", bundle, cancellationToken).ConfigureAwait(false);
                         WriteMarker(DailyMarkerPath, day);
+                        if (DailyRetentionDays > 0)
+                        {
+                            // Daily copies expire: what the manager had Margo forget must not stay in old copies for ever.
+                            var firstKept = stamp.AddDays(-DailyRetentionDays).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                            await Store.DeleteBeforeAsync(DailyPrefix, DailyPrefix + firstKept + ".zip", cancellationToken).ConfigureAwait(false);
+                        }
                     }
                     catch (Exception) when (!cancellationToken.IsCancellationRequested)
                     {

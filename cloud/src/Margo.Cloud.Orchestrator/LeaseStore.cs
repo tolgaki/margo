@@ -23,6 +23,13 @@ public interface ILeaseStore
 
     /// <summary><c>store.put(name, data)</c>: an unleased copy, overwriting any earlier one.</summary>
     Task PutAsync(string name, byte[] data, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes the unleased copies whose names start with <paramref name="prefix"/> and sort before
+    /// <paramref name="firstKept"/> (ordinal), and returns how many: how the daily copies, named by date, expire. The
+    /// default deletes nothing, for a store that cannot list. No Python equivalent (daily copies were kept for ever).
+    /// </summary>
+    Task<int> DeleteBeforeAsync(string prefix, string firstKept, CancellationToken cancellationToken = default) => Task.FromResult(0);
 }
 
 /// <summary>
@@ -84,6 +91,24 @@ public sealed class InMemoryLeaseStore : ILeaseStore
             {
                 return [.. _blobs.Keys];
             }
+        }
+    }
+
+    /// <inheritdoc/>
+    public Task<int> DeleteBeforeAsync(string prefix, string firstKept, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(prefix);
+        ArgumentNullException.ThrowIfNull(firstKept);
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_gate)
+        {
+            var old = _copies.Keys.Where(name => name.StartsWith(prefix, StringComparison.Ordinal) && string.CompareOrdinal(name, firstKept) < 0).ToList();
+            foreach (var name in old)
+            {
+                _copies.Remove(name);
+            }
+
+            return Task.FromResult(old.Count);
         }
     }
 

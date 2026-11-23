@@ -97,6 +97,10 @@ public sealed class VoiceService : IDisposable
     /// <summary><c>HELLO_SECONDS</c>: how long the first message may take.</summary>
     public static readonly TimeSpan HelloSeconds = TimeSpan.FromSeconds(15);
 
+    /// <summary>The most of one tool result that is given to the voice model: spoken answers need less than a chat
+    /// turn's, and realtime input costs more.</summary>
+    public const int VoiceMaxOutputChars = 8000;
+
     /// <summary>The page socket's <c>heartbeat</c>: a ping every 20 seconds, closed after 10 more without a pong.</summary>
     public static readonly TimeSpan Heartbeat = TimeSpan.FromSeconds(20);
 
@@ -309,7 +313,10 @@ public sealed class VoiceService : IDisposable
         }
 
         var guard = new WorkIQGuard(binding, new TurnTokens(tokens), _orchestrator.Transport, recorder: options.GuardRecorder,
-                                    budget: new CallBudget(VoiceCallBudget), principalAccess: options.PrincipalAccess);
+                                    budget: new CallBudget(VoiceCallBudget), principalAccess: options.PrincipalAccess)
+        {
+            FileHosts = options.FileHosts,
+        };
         var engine = _orchestrator.Engine;
         var library = new SkillLibrary(engine.RepoRoot, preferences);
         var office = new OfficeReader(() => binding.OpenLedger(root));
@@ -365,7 +372,7 @@ public sealed class VoiceService : IDisposable
         await using (connection.ConfigureAwait(false))
         {
             var bridge = new VoiceBridge(dispatch, connection.SendAsync, (message, token) => SendJsonAsync(ws, message, token), Settings,
-                                         EngineTools.Clip, runLocked, () => _time.GetTimestamp() / (double)_time.TimestampFrequency);
+                                         result => EngineTools.Clip(result, VoiceMaxOutputChars), runLocked, () => _time.GetTimestamp() / (double)_time.TimestampFrequency);
             await bridge.StartAsync(instructions, tools, cancellationToken).ConfigureAwait(false);
 
             using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

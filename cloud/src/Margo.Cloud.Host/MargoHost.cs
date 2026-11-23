@@ -244,7 +244,11 @@ public static class MargoHost
         var loggers = provider.GetRequiredService<ILoggerFactory>();
         var logger = loggers.CreateLogger(LogCategory);
         var engine = new Margo.Cloud.Engine.Engine(provider.GetRequiredService<IModelClient>(), settings.ModelDeployment, settings.RepoRoot,
-                                                   timeZone: settings.TimeZone);
+                                                   timeZone: settings.TimeZone, options: new Margo.Cloud.Engine.EngineOptions
+                                                   {
+                                                       ReasoningEffort = settings.ReasoningEffort == "none" ? string.Empty : settings.ReasoningEffort,
+                                                       MaxOutputTokens = settings.MaxOutputTokens,
+                                                   });
         void Receipt(System.Text.Json.Nodes.JsonObject receipt)
         {
             if (logger.IsEnabled(LogLevel.Information))
@@ -264,6 +268,8 @@ public static class MargoHost
                 StateContainer = settings.StateContainer,
                 VoiceUrl = settings.VoiceUrl,
                 Logger = logger,
+                DailyRetentionDays = settings.DailyRetentionDays,
+                FileHosts = settings.SharePointHosts.Count == 0 ? null : new HashSet<string>(settings.SharePointHosts, StringComparer.OrdinalIgnoreCase),
             });
     }
 

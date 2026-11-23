@@ -169,6 +169,24 @@ public sealed class AzureBlobLeaseStore : ILeaseStore, IDisposable
         await Container.GetBlobClient(name).UploadAsync(BinaryData.FromBytes(data), overwrite: true, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Deletes the copies under <paramref name="prefix"/> whose names sort before <paramref name="firstKept"/>.</summary>
+    public async Task<int> DeleteBeforeAsync(string prefix, string firstKept, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(prefix);
+        ArgumentNullException.ThrowIfNull(firstKept);
+        var deleted = 0;
+        await foreach (var item in Container.GetBlobsAsync(BlobTraits.None, BlobStates.None, prefix, cancellationToken).ConfigureAwait(false))
+        {
+            if (string.CompareOrdinal(item.Name, firstKept) < 0)
+            {
+                await Container.GetBlobClient(item.Name).DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                deleted++;
+            }
+        }
+
+        return deleted;
+    }
+
     /// <summary>Python: <c>_Lease</c>.</summary>
     private sealed class Lease(AzureBlobLeaseStore store, BlobClient blob) : IStateLease
     {
@@ -263,6 +281,46 @@ public sealed class AzureBlobLeaseStore : ILeaseStore, IDisposable
 
             var data = result.Content.ToArray();
             return (data.Length == 0 ? null : data, ETagText(result.Details.ETag));
+        }
+
+        /// <summary>The blob only if it no longer has <paramref name="knownETag"/> (<c>If-None-Match</c>): an unchanged
+        /// bundle is not downloaded again on every turn.</summary>
+        public async Task<(byte[]? Data, string? ETag, bool Unchanged)> ReadIfChangedAsync(string? knownETag, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(knownETag))
+            {
+                var (all, tag) = await ReadAsync(cancellationToken).ConfigureAwait(false);
+                return (all, tag, false);
+            }
+
+            BlobDownloadResult result;
+            try
+            {
+                var conditions = new BlobRequestConditions { LeaseId = _lease?.LeaseId, IfNoneMatch = new ETag(knownETag) };
+                // The SDK answers 304 with a response that has no value (reading it throws), not with an exception.
+                var response = await blob.DownloadContentAsync(new BlobDownloadOptions { Conditions = conditions }, cancellationToken).ConfigureAwait(false);
+                if (response.GetRawResponse().Status == 304)
+                {
+                    return (null, knownETag, true);
+                }
+
+                result = response.Value;
+            }
+            catch (RequestFailedException exc) when (exc.Status == 304)
+            {
+                return (null, knownETag, true);
+            }
+            catch (RequestFailedException exc) when (exc.Status == 404)
+            {
+                return (null, null, false);
+            }
+            catch (Exception exc) when (IsAzureError(exc, cancellationToken))
+            {
+                throw new SyncException("could not read instance state", exc);
+            }
+
+            var data = result.Content.ToArray();
+            return (data.Length == 0 ? null : data, ETagText(result.Details.ETag), false);
         }
 
         public async Task<string?> WriteAsync(byte[] data, CancellationToken cancellationToken = default)

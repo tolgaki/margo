@@ -138,6 +138,13 @@ public sealed record OrchestratorOptions
     /// token counts per model turn (Python's <c>margo.autopilot</c> logger). Nothing logged holds message text or tokens.</summary>
     public ILogger? Logger { get; init; }
 
+    /// <summary>How many days of daily state copies are kept (<see cref="StateSync.DailyRetentionDays"/>); 0 keeps all.</summary>
+    public int DailyRetentionDays { get; init; } = StateSync.DefaultDailyRetentionDays;
+
+    /// <summary>The file hosts <c>workiq-ask</c> may be given links to (<see cref="WorkIQGuard.FileHosts"/>): the tenant's
+    /// own SharePoint and OneDrive hosts. Null keeps the guard's default (any one tenant under sharepoint.com).</summary>
+    public IReadOnlySet<string>? FileHosts { get; init; }
+
     /// <summary>How long a manager conversation that is not used is kept in memory.</summary>
     public TimeSpan ConversationIdle { get; init; } = TimeSpan.FromMinutes(30);
 
@@ -388,12 +395,14 @@ public sealed class Orchestrator
             return (new StateSync(database, StoreFor(Options.StateContainer), binding.Account, preferences, Options.StateRenewInterval, prefix)
             {
                 LocalStateReplaced = Replaced,
+                DailyRetentionDays = Options.DailyRetentionDays,
             }, preferences);
         }
 
         return (new StateSync(database, StoreFor(StateSync.ContainerName(binding.Account)), binding.Account, preferences, Options.StateRenewInterval)
         {
             LocalStateReplaced = Replaced,
+            DailyRetentionDays = Options.DailyRetentionDays,
         }, preferences);
 
         // The schemas initialised in the local files are gone with them: initialise again before the next command.
@@ -529,7 +538,10 @@ public sealed class Orchestrator
         }
 
         var guard = new WorkIQGuard(binding, new TurnTokens(tokens), Transport, recorder: Options.GuardRecorder,
-                                    budget: new CallBudget(TurnCallBudget), principalAccess: Options.PrincipalAccess);
+                                    budget: new CallBudget(TurnCallBudget), principalAccess: Options.PrincipalAccess)
+        {
+            FileHosts = Options.FileHosts,
+        };
         if (inbound.ConversationId is null)
         {
             // Python: binding.account + "|" + None.
