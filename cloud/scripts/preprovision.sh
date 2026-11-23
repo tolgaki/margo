@@ -14,7 +14,9 @@ done
 
 # Known only after a first provision (main.bicep outputs PROVISIONER_NAME and RESOURCE_GROUP).
 if [ -n "${PROVISIONER_NAME:-}" ] && [ -n "${RESOURCE_GROUP:-}" ]; then
-  if trigger=$(az containerapp job show -n "$PROVISIONER_NAME" -g "$RESOURCE_GROUP" \
+  # --only-show-errors: stderr is captured with the value (to tell "not found" from other failures), and az warnings,
+  # such as the containerapp extension's notice, would otherwise become part of it.
+  if trigger=$(az containerapp job show -n "$PROVISIONER_NAME" -g "$RESOURCE_GROUP" --only-show-errors \
       --query "properties.configuration.triggerType" -o tsv 2>&1); then
     case "$trigger" in
       Event) ;;

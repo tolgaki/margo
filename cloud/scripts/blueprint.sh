@@ -63,7 +63,7 @@ fi
 
 progress "blueprint: Work IQ access ($workiq_scope)"
 # 'az ad sp show' fails both when Work IQ has no service principal here and when the directory cannot be read.
-if workiq=$(az ad sp show --id "api://workiq.svc.cloud.microsoft" -o json 2>&1); then
+if workiq=$(az ad sp show --id "api://workiq.svc.cloud.microsoft" --only-show-errors -o json 2>&1); then
   workiq_app=$(printf '%s' "$workiq" | json_field 'd.get("appId")')
   workiq_sp=$(printf '%s' "$workiq" | json_field 'd.get("id")')
 else
