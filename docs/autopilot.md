@@ -454,8 +454,8 @@ forgotten items cannot return. No automatic sync between local and hosted in v1.
 
 In the 1:1 chat: "what do you know about me", "forget that", "don't learn from this". These
 map to the existing `inspect`, `forget`, and do-not-learn commands. Retiring an instance
-deletes its state partition and memory store scope; the docs must say plainly that previously
-sent messages and backups are separate.
+removes its app and identity; its stored state stays until an operator deletes the instance's
+storage container (see the deployment guide). Earlier copies expire after the retention period.
 
 ### 5.6 Margo's own memory
 

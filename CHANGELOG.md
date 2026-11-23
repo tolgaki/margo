@@ -8,6 +8,20 @@
   deployment guide's known limits for what is unverified and the hardening still open.
 - Margo Cloud delegation mode reads the manager's mail and calendar directly through the delegation and searches only
   what is shared with Margo; Copilot search of the manager's whole data reports "unavailable".
+- Margo Cloud security review (23 November 2026). Platform tokens are accepted only from the platform, never a
+  signed-in person (`MARGO_PLATFORM_APP_IDS` pins the application); replies go only to Microsoft hosts; the voice page
+  signs in for its own app's scope, not the blueprint's; the guard refuses disguised path segments and limits file
+  links to SharePoint hosts; logs carry path templates, not identifiers.
+- Margo Cloud privacy: the model service stores nothing (`store: false`; the conversation is carried in memory,
+  bounded); replaced state versions and daily copies expire after 30 days; `cloud/terms.md` rewritten to match what
+  this version does and keeps.
+- Margo Cloud reliability: per-instance router pools; no routing before the route table has loaded; turns in flight
+  finish when a container is stopped; duplicate deliveries are dropped; a second message waits for a long turn instead
+  of failing; `azd provision` no longer breaks the provisioner job; a failed retirement cannot bring an agent back;
+  an instance cap; the provisioner job is queue-triggered.
+- Margo Cloud cost: instructions are cacheable (the time moved to the message), reasoning effort and output limits are
+  set, per-turn token usage is logged, Work IQ reads reuse connections, unchanged state is neither downloaded nor
+  uploaded, the image is compiled ahead of time, health probes are not traced.
 - Margo Cloud hardening: the router and instances accept tokens only from Bot Framework and the tenant's own Entra
   issuers (`MARGO_EXTRA_TOKEN_ISSUERS` admits another); the router finishes forwarding an activity after Agent 365
   stops waiting, so a cold instance no longer loses the first message; the provisioner may grant an instance's roles
