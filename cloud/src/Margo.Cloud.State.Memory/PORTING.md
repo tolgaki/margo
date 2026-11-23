@@ -178,7 +178,7 @@ subprocess and inference tests belong to the paths not ported (below).
   `work_source_revisions` tables when they exist; the scenarios create minimal fixture tables. A cross-component
   scenario with the real Work schema belongs to the integration owner.
 
-## Review findings (independent review of 96f64f7)
+## Review findings (independent review)
 
 A differential review drove both implementations through the probe with generated inputs (more than 30 000 calls:
 Unicode text helpers, export markers, `_normalise_data` mutations, lifecycle sequences with revisions and evidence,

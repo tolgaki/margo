@@ -1,7 +1,8 @@
-# Plan: one container per hired Margo
+# One container per hired Margo
 
 **Status: built, 18 October 2026; since 6 November 2026 the only way Margo is hosted; since the Phase 6 cutover
-(November 2026) every part is C# in [Margo Cloud](../cloud/README.md). Unproven in a live tenant.** Deploy it with the
+(November 2026) every part is C# in [Margo Cloud](../cloud/README.md). The core path ran once in one test tenant in
+November 2026; the fixes made after the 23 November 2026 security review have not yet run in a tenant.** Deploy it with the
 [deployment guide](autopilot-deployment.md).
 
 ## Self-hosted for Agent 365
@@ -10,7 +11,7 @@ Margo runs in your own Azure subscription; Agent 365 provides the agent around h
 
 | | Who does it |
 | --- | --- |
-| Blueprint, messaging endpoint registration | **The Agent 365 CLI** (`a365 setup blueprint --messaging-endpoint …`) |
+| Blueprint, messaging endpoint registration | **The Agent 365 CLI** (`a365 setup blueprint --no-endpoint`, then `--endpoint-only`; see the [deployment guide](autopilot-deployment.md#2-create-the-blueprint-with-the-agent-365-cli)) |
 | Publishing, admin approval, hiring, agent identity and agent user | **Agent 365** and the Microsoft 365 admin center |
 | Teams chat, mail and notifications | Delivered by Agent 365 to **the router** (`/api/messages`), which forwards each to **the instance's own container** |
 | Lifecycle events (hired, suspended, deleted) | **The router** turns them into provisioning requests; they never reach an instance |
@@ -31,14 +32,16 @@ the same persona and skills, and no general shell.
 | Names, route table, lifecycle mapping, plans | [`Margo.Cloud.Core`](../cloud/src/Margo.Cloud.Core/Instances.cs) | Offline (`Margo.Cloud.Core.Tests`) |
 | Router: platform-token check, forwarding, lifecycle to the queue, voice proxy | [`Margo.Cloud.Router`](../cloud/src/Margo.Cloud.Router/PORTING.md) | Decisions offline; the ASP.NET Core app against a fake instance (`Margo.Cloud.Router.Tests`) |
 | Provisioner job: deploy, suspend, retire, route table with ETags | [`Margo.Cloud.Provisioner`](../cloud/src/Margo.Cloud.Provisioner/PORTING.md) | Steps offline with a fake cloud; SDK calls checked against the libraries |
-| One instance: identity, scoped storage role, Container App | [`infra/instance.bicep`](../cloud/infra/instance.bicep) → `instance.json` | Compiled with Bicep before the Agent 365 change; `instance.json` since edited by hand to match (at the cutover: the host's container command), with parameters checked against the provisioner. Rebuild with `bicep build` before deploying |
-| Shared: model, environment, router, provisioner job, queue, route table | [`infra/main.bicep`](../cloud/infra/main.bicep) | Compiled with Bicep before the Agent 365 change; since edited by hand and checked by tests, not recompiled |
-| One image for all three roles | [`cloud/Dockerfile`](../cloud/Dockerfile) | Inputs and each Release publish checked; not yet built and run in Azure |
+| One instance: identity, scoped storage role, Container App | [`infra/instance.bicep`](../cloud/infra/instance.bicep) → `instance.json` | Compiled with the Bicep CLI; a test compares the two |
+| Shared: model, environment, router, provisioner job, queue, route table | [`infra/main.bicep`](../cloud/infra/main.bicep) | Compiled with the Bicep CLI; deployed once to a test tenant before the security review |
+| One image for all three roles | [`cloud/Dockerfile`](../cloud/Dockerfile) | Built with `az acr build` and run in a test tenant before the security review; the ReadyToRun build since then has not been built in Azure |
 | Roles by name, image, router and job update | [`scripts/postprovision.sh`](../cloud/scripts/postprovision.sh) | Syntax; its required values checked against the Bicep outputs |
 | Blueprint: federated credential, Work IQ scope and consent | [`scripts/blueprint.sh`](../cloud/scripts/blueprint.sh), [`connect-blueprint.sh`](../cloud/scripts/connect-blueprint.sh) | Syntax only |
 | Instance mode in the host and orchestrator | `Margo.Cloud.Host`, `Margo.Cloud.Orchestrator` (`StateSync`) | Offline; the host started in instance mode |
 
-Nothing was deployed: no Azure subscription or tenant was used.
+One deployment to a test tenant, in November 2026, proved the core path: the router, provisioning, agentic sign-in, a
+Teams chat turn and delegated calendar reads. See the deployment guide's
+[known limits](autopilot-deployment.md#known-limits).
 
 ## Why
 
@@ -73,7 +76,7 @@ Provisioner (separate, privileged) ◄── Agent 365 lifecycle notifications
 | **Router** | Receives activities at the blueprint endpoint, validates the platform token (the host's existing JWT middleware), reads `recipient.agenticAppId` / `agenticUserId`, forwards to that instance's internal address | No Microsoft 365 tokens, no state |
 | **Instance container** | Today's image (orchestrator, guard, engine, skills, core). Serves exactly one instance and refuses activities for any other | Its own user-assigned managed identity; the instance's SQLite on local disk |
 | **Instance storage** | One Blob container per instance for snapshots and daily copies (`StateSync` unchanged) | Role assignment scoped to that container only |
-| **Provisioner** | Creates and retires an instance's identity, storage, container and route; reconciles drift | Contributor on one resource group; never the model, never a token for anyone's data |
+| **Provisioner** | Creates and retires an instance's identity, storage, container and route; reconciles drift | Contributor on the resource group (it creates apps and identities), plus role administration limited to the instance roles on the storage account, registry and AI account, for service principals other than Margo's own identities. Never a token for anyone's data, but Contributor could reconfigure storage access |
 | **Scheduler** | Wakes an instance for its automations (`automations/*.md` crons) | Nothing; it sends a scheduled event through the router |
 
 ### Storage
@@ -97,9 +100,12 @@ This replaces today's account-wide storage role.
 
 ### Network
 
-Outbound traffic is limited to the Work IQ endpoint, Entra sign-in, the AI Services account, the
-instance's Blob container (private endpoint) and Application Insights. Inbound traffic comes
-only from the router (internal ingress).
+**Built:** instances have internal ingress only; inbound traffic comes only from the router. Storage, the registry and
+the AI account allow Entra sign-in only (no shared keys, no anonymous access) but accept connections from public
+networks.
+
+**Target, not built:** outbound traffic limited to the Work IQ endpoint, Entra sign-in, the AI Services account,
+the instance's Blob container (private endpoint) and Application Insights.
 
 ## Hosting choice
 
@@ -126,7 +132,7 @@ only from the router (internal ingress).
 
 | Event | What happens |
 | --- | --- |
-| Instance hired (lifecycle notification or admin action) | The provisioner creates identity, storage, app and route; the first message is held with a fixed "setting up" note until ready |
+| Instance hired (lifecycle notification or admin action) | The provisioner creates identity, storage, app and route; until it is ready the router answers activities for it with 503 and `Retry-After: 30`, so the platform retries; Margo does not message first |
 | Manager changes | Same container; the account key changes (already true today), so the new manager starts with fresh state. The previous manager's data follows the retention rule |
 | Instance retired | The route is removed and the app and identity are deleted; storage is kept for the retention period, then deleted |
 | Image update | Staged by blueprint version: a new revision per instance, canary first; the lease prevents two writers during a swap |
@@ -157,8 +163,9 @@ only from the router (internal ingress).
 ## Risks
 
 - **Cold starts** if instances scale to zero. Option: keep a warm minimum for active managers.
-- **Provisioner privilege.** Keep it separate, with a minimal role on one resource group, audited,
-  with no access to any instance's data.
+- **Provisioner privilege.** It is separate and has no Microsoft 365 access, but holds Contributor on the resource
+  group, which could re-enable shared-key access to storage and so reach every instance's state. Replacing it with
+  narrower roles is open.
 - **Cost at scale.** A container per instance costs more than one shared agent, even at zero
   scale. Fixed costs (router, firewall if used) are shared. No estimate is made here.
 - **Orphaned resources** after partial failures. The provisioner reconciles on a schedule.
@@ -167,10 +174,12 @@ only from the router (internal ingress).
 ## Decisions taken (change them with the setting shown)
 
 1. **Container Apps**, as recommended.
-2. **Scale to zero** by default (`instanceMinReplicas=0`); set `1` to keep instances warm.
-3. **No automatic deletion of state.** Retirement removes an instance's app and identity and keeps
-   its storage. An operator deletes the `margo-i-…` container when the retention period agreed
-   with the organisation has passed.
+2. **Scale to zero** by default; `azd env set MARGO_INSTANCE_MIN_REPLICAS 1` keeps instances warm. A turn in flight
+   when an instance is stopped gets up to nine minutes to finish.
+3. **No automatic deletion of a retired instance's state.** Retirement removes an instance's app and identity and
+   keeps its storage. An operator deletes the `margo-i-…` container when the organisation decides. Within a live
+   instance, replaced versions of the state bundle and daily copies expire after 30 days
+   (`MARGO_STATE_VERSION_RETENTION_DAYS`, `MARGO_STATE_DAILY_RETENTION_DAYS`).
 
 ## Not done yet
 
@@ -180,6 +189,7 @@ only from the router (internal ingress).
   The federated credential is added by `blueprint.sh` where the deployer may, otherwise by an
   Entra administrator.
 - **Shared credential:** all instances share the blueprint credential identity, so a compromised
-  instance could get Margo-the-agent's token for another instance. It could not get another
-  manager's data, which needs that manager's own sign-in. Verification item 2 asks whether this
-  can be per instance.
+  instance could get another instance's agent token. In delegation mode that agent user has delegate access to its
+  own manager's mailbox and calendar, so **a compromised instance could reach another manager's mail and calendar**.
+  Isolation between managers rests on the software checks in each container. Verification item 2 asks whether the
+  credential can be per instance; a token broker that issues only the caller's own token is the alternative.

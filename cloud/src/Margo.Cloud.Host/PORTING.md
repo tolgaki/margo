@@ -148,6 +148,24 @@ and `SCOPES__0` changed the Python `AgentAuthConfiguration` but not what it acce
     person's token, 401 without `kid`.
 15. **`MARGO_TIMEZONE` is checked at start-up.** An unknown zone stops the host (exit 1) instead of passing the probes
     and failing every turn.
+16. **Turns finish when the host stops (23 Nov 2026).** The SDK runs a turn on its background service and cancels it
+    the moment the host begins to stop; the activity was answered 202 long before, so a scale-in or redeploy ended the
+    turn with no reply and nothing saved. Turns run on a token cancelled `MargoTurns.TurnDrain` (nine minutes) after
+    the stop signal, and the host's shutdown timeout is raised to match; `instance.bicep` gives the container a
+    600-second termination grace period.
+17. **The state lease is taken before any create (23 Nov 2026).** Python uploaded an empty blob (create if missing)
+    before every acquire, which Azure refused with 409 on every turn but the first. The lease is acquired first; only
+    a 404 (no blob, or no container) leads to the bootstrap.
+18. **Conditional download and daily-copy expiry (23 Nov 2026).** `ReadIfChangedAsync` asks with `If-None-Match`, so an
+    unchanged bundle is not downloaded again (the SDK answers 304 with a value-less response, not an exception).
+    `DeleteBeforeAsync` lists the daily copies by prefix and deletes those older than
+    `MARGO_STATE_DAILY_RETENTION_DAYS` (default 30). The listing path is covered only by reading; the offline blob fake
+    does not implement listing.
+19. **Settings added (23 Nov 2026):** `MARGO_PLATFORM_APP_IDS`, `MARGO_EXTRA_SERVICE_HOSTS` (both above),
+    `MARGO_MODEL_REASONING_EFFORT` (`none`, `minimal`, `low`, `medium`, `high`; default `low`; `none` sends no reasoning
+    settings), `MARGO_MODEL_MAX_OUTPUT_TOKENS` (default 16000, at least 256), `MARGO_SHAREPOINT_HOSTS` (the guard's
+    `FileHosts`), `MARGO_STATE_DAILY_RETENTION_DAYS`. Invalid values stop the host at start-up. Health probe requests
+    are not traced.
 11. **Mail notification without a readable reference** (review): Python's `on_email` wrapper raised `ValueError` when an
     activity had neither a readable `emailNotification` entity nor a known notification `name` (the turn then failed);
     the host queues it with the transport's IDs instead. A reference that fails validation is dropped in both.
@@ -194,7 +212,7 @@ and `SCOPES__0` changed the Python `AgentAuthConfiguration` but not what it acce
    the state lease, as in Python with several workers. Whether Agent 365 retries an activity that was answered 202 but
    whose turn later failed is unknown; the office queue's stable IDs make a redelivery a no-op either way.
 
-## Independent review (worktree-wf_d9a503d3-da2-2, on top of ec3f9c7)
+## Independent review
 
 Found by differential runs against the Python SDKs in the reference venv and the decompiled .NET SDKs, each fixed with a
 failing-first test:

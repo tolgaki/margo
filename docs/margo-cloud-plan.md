@@ -1,6 +1,7 @@
 # Plan: Margo Cloud in C#
 
-**Status: phases 1 to 6 done offline (November 2026); phase 0 partly run in one test tenant.** Margo Cloud, the hosted
+**Status: phases 1 to 6 done offline (November 2026); phase 0 partly run in one test tenant. The fixes from the
+23 November 2026 security review have not yet run in a tenant.** Margo Cloud, the hosted
 Margo, is written in **C# on .NET 10 (LTS)** in [`cloud/`](../cloud/README.md). It replaced the Python hosted
 runtime, which was deleted in the phase 6 cutover, and keeps its design: Agent 365 self-hosted, one container per
 hired Margo, the same persona and skills, the Work IQ guard ([design](autopilot.md),
@@ -151,10 +152,15 @@ unattended) unless the manager approves the exact action.
 
 ## Next steps
 
-1. Finish phase 0 with [VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md): mail queueing, voice, restarts and
-   state safety, and **Create instance** from the admin center.
-2. Confirm live what was fixed after the first run: the issuer allowlist (which issuer Agent 365 uses), the forward
-   that outlives the caller (cold starts), and the provisioner's narrowed role administration (a hire still succeeds).
-   Still open: replace the provisioner's resource-group Contributor with narrower roles, and remove the Agent 365
-   CLI's Graph consent (documented, not scripted).
-3. Then start phase 7 with schedules.
+1. **Run the security-review fixes in a test tenant** with [VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md):
+   which token issuer, calling application and reply host Agent 365 uses (then pin `MARGO_PLATFORM_APP_IDS`); that
+   the model deployment accepts the `store: false` request with the replayed conversation; that the queue-triggered
+   provisioner job fires and a hire still passes the narrowed role conditions; the new voice sign-in; daily-copy
+   deletion in Azure.
+2. **Finish phase 0:** mail queueing, voice, restarts and state safety, and **Create instance** from the admin center.
+3. **Close the open limits** in the deployment guide's [known limits](autopilot-deployment.md#known-limits): narrower
+   roles than Contributor for the provisioner; a per-instance credential or token broker instead of the shared
+   blueprint credential; checking a hired identity against the directory before provisioning; removing the Agent 365
+   CLI's Graph consent (documented, not scripted); voice tool results marked as untrusted and voice joining the
+   per-manager turn queue; an idle timeout for voice.
+4. Then start phase 7 with schedules.

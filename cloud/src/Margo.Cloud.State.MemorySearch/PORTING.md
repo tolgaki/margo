@@ -155,7 +155,7 @@ scenarios with the fake encoder; the model ranking itself is not portable.
 - The FTS proof is per SQLite build: if SQLitePCLRaw's bundled SQLite or the system SQLite changes its unicode61
   tables or bm25, `fts_queries` will show it; re-run it after upgrading either.
 
-## Independent review (second agent)
+## Independent review
 
 Re-read both Python modules against the port line by line, then ran differential programs through both probes:
 560 random store programs (records of every kind with entities, routines, uses, canonical decisions, conflicts,

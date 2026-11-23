@@ -96,12 +96,27 @@ or written to Outlook/shared storage unattended. An anchor may make its brief av
 availability is not proof that a human has read it.
 
 **The hosted autopilot design has one approved exception.** If Margo runs as an Agent 365
-autopilot with her own identity (Margo Cloud: built and tested offline, unproven in a live tenant, not a supported
-mode; see [autopilot](autopilot.md)),
+autopilot with her own identity (Margo Cloud; its core path ran once in a test tenant, it is not ready for
+production; see [autopilot](autopilot.md)),
 she may message her own manager in their one-to-one chat at any time, including unattended. The
 target is fixed at hire and enforced in code, and a run started by anyone else's message cannot
-use it; every other outbound action keeps the rules above.
+use it; every other outbound action keeps the rules above. This exception is designed but **not built** in the
+current version: Margo Cloud answers only within a conversation.
 The local assistant in this repository is unchanged.
+
+### Margo Cloud fixed notices
+
+Margo Cloud takes no outbound action in this version: every Work IQ write is refused by the guard. It does send two
+fixed notices over the Teams channel, without per-message approval, and the guard does not see them (the reply gate in
+`Margo.Cloud.Orchestrator` controls them):
+
+- **The group-chat refusal.** Mentioned in a group chat or channel, Margo answers with one fixed sentence saying she
+  works only in her manager's one-to-one chat. She reads nothing there.
+- **The "passed this on" acknowledgement**, off by default. With `/replies acknowledge`, a colleague who messages Margo
+  gets one fixed note per conversation saying their message was passed to her manager. It is the manager's standing
+  setting, triggered by the colleague's message, and names neither content nor data. `/replies none` turns it off.
+
+Neither notice is written by the model, and neither contains the manager's data.
 
 **What this rule does and does not cover.** It is scoped to *outbound* actions — anything another
 person can see. A skill may still write to its own **local** state: the proactive ledger under

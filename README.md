@@ -66,6 +66,18 @@ payload discipline that keeps briefs fast.
 
 ---
 
+## Two implementations
+
+Margo has two implementations that share the persona (`agents/`) and the skills (`skills/`):
+
+- **Margo desktop:** GitHub Copilot with Margo's persona, skills and the Python state helpers. This is what the
+  installers set up and what most of this documentation describes. It is in maintenance mode: kept working, no new
+  features.
+- **Margo Cloud** ([`cloud/`](cloud/README.md)): the same Margo, in C# on .NET 10, self-hosted in your own Azure
+  subscription as a Microsoft Agent 365 agent with her own identity. Read-only in this version. Its core path ran
+  once in a test tenant; it is **not ready for production use**. See the
+  [deployment guide](docs/autopilot-deployment.md) and its known limits.
+
 ## What's in here
 
 ```
@@ -91,6 +103,8 @@ tools/margo-scheduled.sh    Runs a scheduled brief with Work IQ writes denied at
 tools/check-clean.sh        Fails if real workplace data creeps into the repo
 .github/extensions/         Optional action-desk canvas; the CLI works without it
 tests/                     Synthetic state, approval, capacity and installer regressions
+
+cloud/                      Margo Cloud (C#, .NET 10): router, instance host, provisioner, infra
 
 docs/                       Start here ↓
 ```
@@ -155,7 +169,8 @@ the synthetic core without connecting a real mailbox or installing into your nor
 
 Margo will never send an email, post to Teams, react, accept or decline a meeting, delete
 anything, or change a work item without your explicit approval **of that specific action**. A
-summary is not consent. Reading is free; writing is not.
+summary is not consent. Reading is free; writing is not. (Margo Cloud, which writes nothing in this version, sends
+two fixed notices without per-message approval; see [Trust & safety](docs/safety.md#margo-cloud-fixed-notices).)
 
 There is a bounded exception for actions that are reversible *and* invisible to anyone else —
 mark-read, categorize, flag, archive, move between folders — which you can grant as a standing
@@ -173,7 +188,8 @@ treated as data rather than instructions.
 server** connected, and Python 3.9+ for the bundled scripts.
 
 **Download an installer** — [macOS `.pkg` or Windows `.exe`](https://github.com/tolgaki/margo/releases).
-Both run a short wizard, install per-user, and let you pick the optional skills.
+Both run a short wizard, install per-user, and let you pick the optional skills. The packaged installers are
+release 1.0.0; later changes (see the [changelog](CHANGELOG.md)) are available only from a clone, below.
 
 Or from a terminal:
 
@@ -278,5 +294,6 @@ Also: [Code of conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md)
 
 [MIT](LICENSE).
 
-Not an official Microsoft product. "Microsoft 365", "Teams", "Outlook" and "Viva Engage" are
-trademarks of Microsoft Corporation, referenced here descriptively.
+Not an official Microsoft or GitHub product. Microsoft, Microsoft 365, Microsoft 365 Copilot, Work IQ, Agent 365,
+Azure, Entra, Teams, Outlook, Viva Engage, GitHub and GitHub Copilot are trademarks of their owners, referenced here
+descriptively.

@@ -42,9 +42,28 @@ environment does not match the platform's token: fix the variables, do not loose
 other than Bot Framework's or your tenant's Entra issuers. Record the issuer. Admit it with `MARGO_EXTRA_TOKEN_ISSUERS`
 only if it is Microsoft's and not another tenant's, and report it so the default list can include it.
 
+Record the platform's application: the router logs `Platform token accepted from application <id>` once. Set
+`MARGO_PLATFORM_APP_IDS` to it, provision, redeploy all, and send another message: it must still be answered. A
+refusal logged as `JWT is a person's token (scp)` or `JWT caller application not accepted` means Agent 365 delivers
+with a kind of token this check does not expect; record the log line.
+
+The instance answers 400 and logs `ServiceUrl host is not in the configured allowed hosts` if Agent 365's reply
+address is not one of the SDK's Microsoft hosts. Record the host; admit it with `MARGO_EXTRA_SERVICE_HOSTS` only if it
+is Microsoft's.
+
+The model request: the first answered turn proves the deployment accepts `store: false`, the replayed conversation
+and the reasoning settings. Ask a second question that needs the first answer, and check the `turn usage` line shows
+`cached=` above zero on the second turn. If every turn fails with a 4xx from the model, set
+`MARGO_MODEL_REASONING_EFFORT none` and try again; record which one worked.
+
 Then, with the instance scaled to zero (`az containerapp update -n margo-<key> -g <group> --min-replicas 0`, and wait
 until it has no replicas), send another message. Expect an answer, even if late, and possibly the router's
-`activity delivered after the caller stopped waiting` warning. Record whether Margo answered once or twice.
+`activity delivered after the caller stopped waiting` warning. Record whether Margo answered once or twice (a repeat
+delivery to the same container is dropped as `duplicate`).
+
+Stop a turn mid-way: ask something that needs several reads, and while the typing indicator shows, run
+`az containerapp revision restart`. Expect the answer to arrive (a turn in flight gets up to nine minutes) and the
+next message to see the state that turn saved.
 
 ## 3. Agentic sign-in and Margo's Work IQ token (manager, one-to-one chat)
 
@@ -112,12 +131,16 @@ line, and Teams/files reads report unavailable.
 1. As the manager, send `/voice`. Expect `turn status=voice_link` and a link
    `https://<public base>/i/<instance key>/voice/`.
 2. Open it. The page loads without a platform token (`/voice/` is outside the check); `/voice/config` answers the
-   the tenant, the sign-in app's client ID (`MARGO_VOICE_CLIENT_ID`, or the blueprint's if unset) and
-   `api://<blueprint client id>/Voice.Talk`.
+   the tenant, the voice app's client ID (`MARGO_VOICE_CLIENT_ID`) and `api://<voice app id>/Voice.Talk`, the voice
+   app's own scope, never the blueprint's.
 3. Sign in as the manager and start a call. Expect `margo.voice` lines for the session (no audio, transcript or token
-   content), Margo's Work IQ token obtained through the SDK connection (`GetAgenticUserTokenAsync`), and, under `obo`,
-   the on-behalf-of exchange with the person's voice token. Ask `What is my next meeting?`: an answer by voice.
-4. Sign in as the second account: refused (`Your sign-in can't be used to talk to this Margo.`).
+   content) and Margo's Work IQ token obtained through the SDK connection (`GetAgenticUserTokenAsync`); no
+   on-behalf-of exchange. Ask `What is my next meeting?`: an answer by voice.
+4. Sign in as the second account: refused (`Your sign-in can't be used to talk to this Margo.`), with no token
+   exchanged for it.
+5. Take a voice sign-in token (from the page's network trace) and POST it as the bearer of an activity to the
+   router's `/api/messages`: expect 401 and `JWT is a person's token (scp)` or an audience refusal. A voice sign-in
+   must never be accepted as a platform token.
 
 ## 9. Telemetry
 
@@ -125,6 +148,9 @@ In Application Insights: requests for `/api/messages` (or `/activity/messages`) 
 `margo.autopilot` lines above, dependencies to Work IQ, Blob Storage and Azure OpenAI. Confirm that:
 
 - no trace, request or dependency holds message text, model input/output (GenAI content capture is off) or a token;
+- `workiq` receipts show path templates such as `/users/{user}/messages/{id}`, never an address, a file name or search
+  text;
+- there are no request traces for `/liveness` or `/readiness`;
 - the voice page's request URL does **not** keep the one-time `?code=` value (PORTING.md, open question 2).
 
 ## 10. Failure behaviour (optional, test tenant only)

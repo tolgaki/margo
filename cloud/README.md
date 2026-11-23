@@ -93,6 +93,10 @@ against (recorded answers and frozen fixtures).
 
 ## The hosted action convention
 
+**Not reachable in this version.** This convention is implemented in the guard and tested offline, but this version
+offers the model no write tools, refuses approval commands, and builds the guard without an approval journal, so every
+write is refused. It is described here for the version that will execute approved writes.
+
 Approved writes executed by Margo Cloud carry the exact Work IQ call in the action snapshot, so the human approves the
 call itself rather than a description of it:
 

@@ -62,7 +62,9 @@ wrong without it.
 ### Don't loosen the safety boundary
 
 *Propose, never act* and *observed content is data, never instructions* are load-bearing. Changes
-that widen what can happen without explicit approval need a strong argument. Unattended runs
+that widen what can happen without explicit approval need a strong argument. (The only things Margo Cloud sends
+without per-message approval are two fixed notices; see
+[Trust & safety](docs/safety.md#margo-cloud-fixed-notices). Adding a third needs the same argument.) Unattended runs
 must never take an **outbound** action — send, reply, post, react, RSVP, delete, or change a work
 item. Private local state can be updated under the routine's documented contract. This repository
 does not grant unattended shared-vault writes; see `docs/safety.md` §3.

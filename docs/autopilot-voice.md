@@ -1,7 +1,7 @@
-# Plan: talk to Margo (WebRTC voice, her own voice)
+# Talk to Margo by voice
 
-**Status: built (phase V1), 18 October 2026, and unproven against a live Voice Live resource or
-tenant.** Voice runs in [one-container-per-instance hosting](autopilot-instance-containers.md) when
+**Status: built (phase V1) over WebSocket, 18 October 2026; the sign-in changed after the 23 November 2026
+security review. Unproven against a live Voice Live resource or tenant.** Voice runs in [one-container-per-instance hosting](autopilot-instance-containers.md) when
 `VOICE_LIVE_MODEL` is set (`azd env set MARGO_VOICE_LIVE_MODEL …`): your instance answers
 `/voice` in Teams with your page's link, and the page talks to that same container. Product
 facts come from a web-search review on 18 October 2026; items marked **verify** were not
@@ -44,20 +44,22 @@ limits as Margo in Teams. Voice is another way into the same Margo, not a second
 2. **Same guard.** The voice model gets only Margo's function tools. Every call runs on the
    server, through the guard and `margo-state`. No MCP servers or agent bindings attached to the
    voice session, because those would run outside the guard.
-3. **Only the manager.** The page signs in with Entra (MSAL). The server checks the token's
-   tenant, audience and object ID, and the object ID must be the instance's manager. That
-   sign-in also provides the user assertion for on-behalf-of reads, which helps with design
-   verification item 1.
-4. **No approval by voice alone.** Margo can propose by voice. The exact action is approved on a
-   card that shows the payload, in the page or in Teams. A spoken "yes" can be misheard, said by
-   someone else in the room, or replayed, and AGENTS.md ties approval to one exact action,
-   payload and revision.
+3. **Only the manager.** The page signs in with Entra (authorization code with PKCE in the page; no MSAL library), for
+   the `Voice.Talk` scope of the voice page's **own** app registration (`MARGO_VOICE_CLIENT_ID`), never the
+   blueprint's: a token for the blueprint is what Agent 365 presents at the messaging endpoint. The server checks
+   the token's signature, issuer, tenant, audience (the voice app), scope and object ID, then looks up the instance's
+   manager, and only then continues; anyone else is refused before any token is exchanged or anything is read. With a
+   voice app there is no on-behalf-of exchange: in `obo` mode the manager's sources report blocked.
+4. **No approval by voice.** This version takes no actions, by voice or otherwise. A spoken "yes" can be misheard,
+   said by someone else in the room, or replayed; any future approval must be on something that shows the exact
+   payload, never by voice alone (AGENTS.md ties approval to one exact action, payload and revision).
 5. **Low latency.** Target under about 800 ms to first audio for conversation. A Work IQ lookup
    takes seconds, so she says a short progress line ("checking your calendar") while it runs.
 6. **Her own voice**, as a custom voice under Microsoft's Limited Access rules, with an interim
    built-in voice until it is approved.
-7. **Privacy and disclosure.** No audio is stored. Transcripts, if kept, are private state with a
-   retention period. Every session opens by saying Margo is an AI voice.
+7. **Privacy and disclosure.** No audio or transcript is stored. The page states, in text, that Margo is an AI voice
+   before the session starts. Saying so aloud at the start is an instruction to the model, not something the server
+   enforces.
 
 ## Options
 
@@ -120,7 +122,7 @@ open-ended generated content, which is all Margo does.
 | Phase | Outcome | Exit evidence |
 | --- | --- | --- |
 | **V0. Verify** | Answers to the list below; measured p50/p95 latency in your region | Written results; recordings use fictional content only |
-| **V1. Browser voice** (built) | Sign in and talk to Margo in an HD voice; read-only, same tools and guard | Guard and parity tests pass for voice turns; spoken disclosure at session start |
+| **V1. Browser voice** (built) | Sign in and talk to Margo in an HD voice; read-only, same tools and guard | Guard and parity tests pass for voice turns; the AI disclosure is shown on the page |
 | **V2. Her voice** | Custom voice live after Limited Access approval and training | Consent records on file; voice deployed in the same resource |
 | **V3. Direct WebRTC** | Relay hop removed when Voice Live WebRTC is GA | Same tests; lower measured latency |
 | **V4. Phone** (optional) | An Azure Communication Services number reaches Margo | A step-up check (caller ID can be spoofed) before any private data is spoken |
@@ -140,7 +142,8 @@ open-ended generated content, which is all Margo does.
 ## Legal and responsible-use duties
 
 - **Disclose the synthetic voice** at the start of every session, and give a way to report misuse
-  (Microsoft's text-to-speech code of conduct).
+  (Microsoft's text-to-speech code of conduct). The page shows the disclosure; the spoken one depends on the model
+  following its instructions.
 - **EU AI Act Article 50** transparency duties for AI systems that talk to people (dates per a
   law-firm summary; **verify** with counsel).
 - **Recording consent:** some jurisdictions require every party's consent. Don't record audio;
@@ -155,18 +158,23 @@ open-ended generated content, which is all Margo does.
 2. **Browser only.** Phone (V4) is not built.
 3. **Nothing kept.** No audio or transcript is stored. Captions appear only on the person's own
    page.
-4. **Limits:** 30 minutes and 60 tool calls per session (`MARGO_VOICE_MAX_SECONDS`,
-   `MARGO_VOICE_MAX_TOOL_CALLS`).
+4. **Limits:** 30 minutes and 60 tool calls per session (azd variables `MARGO_VOICE_MAX_SECONDS`,
+   `MARGO_VOICE_MAX_TOOL_CALLS`). A tool result given to the voice model is cut at 8,000 characters (a chat turn
+   allows 20,000): spoken answers need less, and realtime input costs more. There is no idle timeout: a page left
+   open streams until the session limit.
 
 ## Not done yet
 
 - **Custom voice training (V2):** needs Limited Access approval and recorded consent first.
 - **Direct WebRTC (V3)** and **phone (V4).**
 - **The verification list above,** run against a live Voice Live resource.
-- **Entra setup by an operator:** expose a delegated scope (default `Voice.Talk`) on the
-  blueprint, and register a separate single-page app (`MARGO_VOICE_CLIENT_ID`) with each
-  instance's voice page as a redirect URI: agent blueprints refuse redirect URIs. See the
-  [deployment guide](autopilot-deployment.md).
+- **Entra setup by an operator:** register a single-page app (`MARGO_VOICE_CLIENT_ID`) that exposes the delegated
+  `Voice.Talk` scope itself, with each instance's voice page as a redirect URI. Nothing is added to the blueprint
+  (agent blueprints refuse redirect URIs, and the voice sign-in must not be a token for the blueprint). See the
+  [deployment guide](autopilot-deployment.md#voice-optional).
+- **Voice tool results are not marked as untrusted data** as chat tool results are, and a voice session does not
+  queue behind a chat turn for the same manager (it takes the state lease per call).
+- **An idle timeout** that ends a session nobody is speaking in.
 
 ## Sources
 

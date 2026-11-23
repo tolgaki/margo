@@ -45,7 +45,8 @@ There is no Microsoft Foundry project or hosted agent. Azure AI Services serves 
 
 ## What gets created
 
-`azd provision` in `cloud/` creates, in one resource group:
+`azd provision` in `cloud/` creates, in one resource group (`azd` asks for it, or uses `AZURE_RESOURCE_GROUP`; create
+it first if your role is scoped to a resource group):
 
 | Resource | Why |
 | --- | --- |
@@ -84,7 +85,7 @@ messaging endpoint. The post-provision hook (`scripts/postprovision.sh`) does th
 
 | Step | Who | Role |
 | --- | --- | --- |
-| Provision and build | You or an Azure admin | **Owner**, or **Contributor** plus **Role Based Access Control Administrator**, on the resource group |
+| Provision and build | You or an Azure admin | **Owner**, or **Contributor** plus **Role Based Access Control Administrator**, on the resource group; the first provision also registers resource providers, which needs those rights on the **subscription** (or have an admin register them once) |
 | Create the blueprint (Agent 365 CLI) | You | **Agent ID Developer** at least; the CLI's permission steps may need **Agent ID Administrator** |
 | Consent to Work IQ for the blueprint | Entra admin | **Global Administrator** or **Privileged Role Administrator** |
 | Approve Margo | Microsoft 365 admin | **Global Administrator** or **AI Administrator** |
@@ -102,9 +103,23 @@ messaging endpoint. The post-provision hook (`scripts/postprovision.sh`) does th
 - Usage-based billing for Copilot Credits, if your tenant meters Work IQ that way. Which of the
   manager and Margo is billed under on-behalf-of access is still unverified.
 
+- **One tenant.** The Azure subscription must be in the same Entra tenant as Microsoft 365: the router and instances
+  trust tokens from the subscription's tenant only.
+
+### What it costs
+
+Everything is billed to your organisation. Fixed while deployed: the router (always one replica, 0.25 vCPU), the
+container registry (Basic), Log Analytics ingestion (capped at 1 GB a day by default) and storage. Per use: the chat
+model's tokens (the `turn usage` log line shows them per turn), Voice Live minutes, and each instance's container
+while it runs (scaled to zero when idle, unless kept warm). Per hired Margo: her agent user's Microsoft 365 and
+Copilot licences, and Copilot Credits where Work IQ is metered. No estimate is made here; use the Azure pricing
+calculator with your expected number of managers and turns.
+
 ### Tools on your machine
 
-`az` (Azure CLI), `azd` 1.27.1 or later, the **Agent 365 CLI** (`a365`, a .NET tool), `git`, `curl`
+macOS, Linux or WSL: the `azd` hooks are POSIX shell scripts and there are no Windows versions.
+
+`az` (Azure CLI), `azd` 1.27.1 or later, the **Agent 365 CLI** (`a365`, a .NET tool), `git`
 and `python3` (the hook scripts use it to read JSON). Docker and the .NET SDK are not needed: the image is built
 in Azure Container Registry. To build and test Margo Cloud yourself, see [cloud/README.md](../cloud/README.md).
 
@@ -128,6 +143,7 @@ All commands run from `cloud/` in a clean checkout of this repository.
 ```sh
 cd cloud
 az login --tenant {tenant-id}
+az account set --subscription {subscription-id}
 azd auth login --tenant-id {tenant-id}
 
 azd env new margo-test

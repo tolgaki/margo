@@ -166,6 +166,10 @@ handler. Order of the sign-in (review): verify the token, get Margo's own token,
 then exchange the manager's sign-in; Python exchanged before the manager check, so any tenant user's sign-in was
 exchanged for a Work IQ token before being refused.
 
+**Smaller tool results (23 Nov 2026).** A tool result given to the voice model is cut at `VoiceMaxOutputChars` (8,000
+characters), where a chat turn now allows 20,000 and Python allowed 40,000: spoken answers need less, and realtime input
+costs more. The guard gets the orchestrator's `FileHosts`.
+
 ## Not ported, and why
 
 - **Host wiring** (`host/app.py`: constructing `VoiceService` from `MARGO_VOICE_SCOPE`, the tenant and blueprint IDs,

@@ -204,6 +204,10 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
     `ReplyText.Neutralise` before it leaves: Markdown images become their alternative text, `<img>` its `alt`, and
     the opening `<` of other self-loading HTML tags (`iframe`, `video`, `script`, ...) is written `&lt;`. Links are
     kept. Fixed notices are not model text and are not touched.
+19. **Daily copies expire (23 Nov 2026).** After the day's copy is written, copies older than
+    `StateSync.DailyRetentionDays` (default 30; 0 keeps all; Host: `MARGO_STATE_DAILY_RETENTION_DAYS`) are deleted
+    through `ILeaseStore.DeleteBeforeAsync`, whose default deletes nothing. Python kept every daily copy, so what the
+    manager had Margo forget stayed readable in them for ever. `OrchestratorOptions.FileHosts` is passed to the guard.
 
 ## Not ported here
 
@@ -279,7 +283,7 @@ CLI (referenced by the test project, so `margo-state.dll` sits next to the tests
   and by the port, compared exactly: `load_reply_policy`, the two command patterns, `set_reply_mode`, `_manager_from`,
   the office excerpt and conversation key, and `ReplyGate.decide` sequences in `none` and `acknowledge` modes.
 
-Verification at the original port commit (cab0043): this project 116 passed; the full solution run had one failure,
+Verification at the original port: this project 116 passed; the full solution run had one failure,
 the in-suite parity wrapper hitting its 15-minute limit (request 4, since resolved on the base branch).
 
 Verification after the review (base branch merged): `dotnet build cloud/Margo.Cloud.slnx` 0 warnings, 0 errors;
