@@ -64,7 +64,7 @@ who's affected before anything changes.
 explicitly this occurrence vs. the whole series), a proposed new time if rescheduling, and who is
 notified.
 
-**What needs your decision:** cancelling or rescheduling sends a message to attendees — treat it
+**What needs your decision:** canceling or rescheduling sends a message to attendees — treat it
 with the same care as any other send, always per-action. If you don't organize the meeting, Margo
 proposes the attendee-side action instead (respond, propose a new time, message the organizer) —
 it will not modify or delete an event you don't own.

@@ -1,26 +1,23 @@
 # Margo Cloud (C#)
 
 Hosted Margo, in C# on .NET 10: self-hosted for Agent 365 in Azure Container Apps, one container per hired Margo.
-Plan and phases: [docs/margo-cloud-plan.md](../docs/margo-cloud-plan.md). Design and decisions:
-[Margo as an autopilot](../docs/autopilot.md). Deployment: [Deploy Margo as an Agent 365 agent](../docs/autopilot-deployment.md).
+Design: [Margo as an autopilot](../docs/autopilot.md). Deployment: [Deploy Margo as an Agent 365 agent](../docs/autopilot-deployment.md).
 
-**Status: built and tested offline; the core path ran once in a test tenant** (router, provisioning, agentic sign-in, a
-Teams chat turn, delegated calendar reads). The rest of the Phase 0 checklist in
-[Margo.Cloud.Host/VERIFY.md](src/Margo.Cloud.Host/VERIFY.md) is still to run, and the deployment guide's
-[known limits](../docs/autopilot-deployment.md#known-limits) list the hardening still open. Not for production use yet.
-Margo Cloud is not installed by the local installers.
+Margo Cloud is not installed by the local installers. Before relying on it, run the live checklist in
+[Margo.Cloud.Host/VERIFY.md](src/Margo.Cloud.Host/VERIFY.md) in a test tenant and read the deployment guide's
+[known limits](../docs/autopilot-deployment.md#known-limits).
 
 Margo has two implementations that share the persona (`agents/`) and the skills (`skills/`):
 
 - **Margo desktop**: GitHub Copilot with Margo's persona, skills and the Python state helpers in
   `skills/chief-of-staff/scripts/`. Maintenance mode.
-- **Margo Cloud**: this folder. It replaced the Python hosted runtime in the Phase 6 cutover. Its state commands
+- **Margo Cloud**: this folder. Its state commands
   (`margo-state`) must stay byte-compatible with the desktop helpers; `tools/state_parity.py` is the judge.
 
 ## Build, test, publish
 
 Needs the .NET 10 SDK and, for the tests and the parity judge, `python3` (the desktop helpers; the judge pins
-CPython 3.13 behaviour).
+CPython 3.13 behavior).
 
 ```sh
 cd cloud
@@ -88,7 +85,7 @@ and quiet hours need), running as the non-root user the .NET images provide; `ag
 
 The state helpers named above live in `skills/chief-of-staff/scripts/` and remain the specification. The hosted
 runtime modules (`engine.py`, `guard.py`, ...) were removed in the cutover; each project's `PORTING.md` records the
-mapping, the deliberate deviations and, under **Cutover**, how its tests keep the Python behaviour they were checked
+mapping, the deliberate deviations and, under **Cutover**, how its tests keep the Python behavior they were checked
 against (recorded answers and frozen fixtures).
 
 ## The hosted action convention
@@ -121,9 +118,9 @@ published reference: `search_paths` takes `query`, and `get_schema` accepts `act
 
 These hold for every project.
 
-1. **Behaviour is specified, not invented.** The state commands are specified by the desktop helpers (and judged by
+1. **Behavior is specified, not invented.** The state commands are specified by the desktop helpers (and judged by
    `tools/state_parity.py`); the hosted modules were specified by the removed Python runtime, whose recorded answers
-   and fixtures the tests keep. Port or change behaviour deliberately, including error cases, limits, exit codes and
+   and fixtures the tests keep. Port or change behavior deliberately, including error cases, limits, exit codes and
    messages, and note every deviation in the project's `PORTING.md`.
 2. **State commands must be indistinguishable from the Python helpers.** Same subcommands and options, same exit
    codes, same stdout bytes (JSON key order, spacing, `ensure_ascii` escaping, number formatting, text views), same

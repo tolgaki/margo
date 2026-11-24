@@ -5,7 +5,7 @@ after your first brief to refine the settings that made its recommendations usef
 This is the personalization step in the [user journey](user-guide.md#1-set-up-a-small-private-starting-point).
 
 Margo can explain routines before setup, but durable state requires an explicitly configured
-account. Personalisation then makes the difference between a generic summary and advice grounded
+account. Personalization then makes the difference between a generic summary and advice grounded
 in the user's actual working hours, priorities and communication preferences.
 
 The private preferences and compatibility view sit next to `SKILL.md` in the installed skill:
@@ -26,7 +26,7 @@ not authentication and the Markdown view is not a second writable task database.
 
 ## The four sections that earn their keep
 
-`preferences.md` has ten sections. Four of them change Margo's behaviour immediately; the rest
+`preferences.md` has ten sections. Four of them change Margo's behavior immediately; the rest
 sharpen it over time.
 
 ### 1. About me

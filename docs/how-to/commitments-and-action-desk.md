@@ -174,7 +174,7 @@ or `cancel`; an edit without a transition uses `edit`. Every edit of ever-confir
 human evidence. New messages can suggest resolution but cannot silently close the item.
 
 Reject or defer an unconfirmed candidate rather than confirming it merely to load a tracker.
-An unconfirmed deferred/cancelled item must pass through confirmation before active work.
+An unconfirmed deferred/canceled item must pass through confirmation before active work.
 `relate` links work IDs with `depends_on`, `blocks`, or `supersedes`, or uses `tracked_in` for an
 actual canonical tracker reference. Confirmed relationships require `relate` evidence. A link
 does not complete either item or replace Planner/the decision log.
@@ -274,17 +274,17 @@ machine with tests). Since 1.1.0.
 
 Know what you're waiting on, aged honestly, with silent resolution checked before any nudge is
 drafted — see the [follow-through procedure](../../skills/chief-of-staff/references/follow-through.md)
-for the ageing ladder
+for the aging ladder
 and escalation rungs; there is no dedicated CLI section for this routine beyond the shared
 `work`/`proactive` commands used throughout this page. Try it: *"What am I waiting on? What needs
 chasing?"* What you'll see: rows aged in working days, checked for a reply that already arrived,
 each with a recommended nudge or escalation, never a second nudge inside three working days of
 the last one. What needs your decision: each drafted nudge is approved individually — "send them
 all" is not consent for four different people. Change your mind by asking to skip a row or adjust
-its threshold; nothing sends until approved per message. Your data: ageing state lives in the same
+its threshold; nothing sends until approved per message. Your data: aging state lives in the same
 private work ledger as commitments, above. If something goes wrong: an inconclusive resolution
 check is reported as inconclusive, never as "still outstanding" by default. Implemented, procedure
-(ageing/escalation judgment is model-driven over the deterministic ledger). Since 1.1.0.
+(aging/escalation judgment is model-driven over the deterministic ledger). Since 1.1.0.
 
 ### Action desk
 

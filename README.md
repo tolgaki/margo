@@ -50,7 +50,7 @@ That gap is where **Work IQ** earns its keep, and where Margo is built to show i
 |---|---|---|
 | Knowing what happened | `retrieve` and `ask` across mail, Teams, meetings, files | Turns it into a ranked brief with a recommendation per line |
 | Knowing it's *true* | Every hit carries a `webLink` and a sensitivity label | Cites the source on every claim, so nothing has to be taken on trust |
-| Enumerating without drowning | `fetch` with `$select` / `$top` against real Graph paths | Bounded reads, so the model spends its context on judgement not payload |
+| Enumerating without drowning | `fetch` with `$select` / `$top` against real Graph paths | Bounded reads, so the model spends its context on judgment not payload |
 | Actually doing it | `do_action`, `create_entity`, `update_entity` | Books, moves, replies, RSVPs — **only after you approve that exact action** |
 | Carrying work across days | — | Account-scoped work history, evidence revisions, approval records, and delivery receipts |
 
@@ -137,7 +137,7 @@ capability, its availability, and where its detailed guide lives.
 | **[How-to guides](docs/how-to/README.md)** | Briefs, inbox, calendar, commitments, meetings, files, GitHub/ADO, community, decisions, memory and health — one guide per task |
 | **[Feature reference](docs/features.md)** | Every capability, where it lives, and its limits |
 | **[Personalization](docs/personalization.md)** | Teaching Margo your voice, VIPs and rules |
-| **[Trust & safety](docs/safety.md)** | The approval model, prompt-injection defence, privacy |
+| **[Trust & safety](docs/safety.md)** | The approval model, prompt-injection defense, privacy |
 | **[Walkthroughs](docs/walkthroughs.md)** | End-to-end: calendar management → sending the email |
 | **[Proactive & scheduled](docs/proactive.md)** | Unattended briefs, sweeps, and the state ledger |
 | **[Closed-loop productivity](docs/closed-loop.md)** | How the ledger, actions, evidence and connected routines fit together |
@@ -158,8 +158,7 @@ the synthetic core without connecting a real mailbox or installing into your nor
 | **[Running in a container](docs/container.md)** | Reproducible unattended runs, and the two-sign-in problem |
 | **[Margo as an autopilot](docs/autopilot.md)** | Design: an Agent 365 autopilot with her own identity, reading on your behalf — and the guard that keeps it honest |
 | **[Deploy the autopilot](docs/autopilot-deployment.md)** | Margo Cloud: what it does, prerequisites, `azd provision`, approval cards and hiring |
-| **[Margo Cloud](cloud/README.md)** | Hosted Margo in C# (.NET 10): build, test, image and layout. Built and tested offline; the core path ran once in a test tenant. Not for production use yet. Desktop Margo stays Python and shares the persona and skills |
-| **[The agentic development plan](docs/agentic-development-plan.md)** | The contribution contract, state ownership, and delivery sequencing for coding agents |
+| **[Margo Cloud](cloud/README.md)** | Hosted Margo in C# (.NET 10): build, test, image and layout. Desktop Margo is Python and shares the persona and skills |
 | **[Contributing](CONTRIBUTING.md)** | Ground rules, testing, and the one hard rule about real data |
 
 ---

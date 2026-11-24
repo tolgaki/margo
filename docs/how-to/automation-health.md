@@ -254,7 +254,7 @@ proactive publication-record --json - < standalone-output.json
 proactive publication-list --limit 10
 ```
 
-**Expected:** a standalone output with zero included items and no pending acknowledgements.
+**Expected:** a standalone output with zero included items and no pending acknowledgments.
 Omit `--batch` and membership fields; do not call `queue-ack`. A standalone prepared output can
 become available/published later without a queue lease.
 
@@ -390,9 +390,9 @@ Implemented, procedure. Since 1.0.0.
 
 ### Automation commitments
 
-Get a weekly commitments-ageing pass and ambient digest every Friday afternoon. Try it: inspect
+Get a weekly commitments-aging pass and ambient digest every Friday afternoon. Try it: inspect
 the actual schedule/latest run and the latest stored publication.
-What you'll see: silent-resolution checked before ageing anything, then
+What you'll see: silent-resolution checked before aging anything, then
 versioned nudge proposals held in the action desk (never sent) plus a five-item digest rendered
 from the week's ambient queue. Nothing sends.
 Change your mind: review a pause/edit in [your scheduler](../proactive.md).
@@ -415,7 +415,7 @@ procedure. Since 1.0.0.
 
 ### Automation ambient
 
-Get a quiet daily scan for slow-moving drift — commitment ageing, relationship cadence, stale
+Get a quiet daily scan for slow-moving drift — commitment aging, relationship cadence, stale
 PRs, calendar hygiene, unread documents — queued for the Friday digest and never interrupting. Try
 it: check `proactive queue-list` to see what's queued. What you'll see: items promoted only the
 run they first cross a threshold, never re-promoted every day after. Nothing sends or changes

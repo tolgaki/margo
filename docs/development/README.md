@@ -49,7 +49,7 @@ request by itself, or sandbox other host tools. A prepared draft is not a sent m
 | `skills/*/SKILL.md` | Trigger descriptions, shared rules and routine routing | Which procedure a request loads |
 | `skills/*/references/` | Focused procedures, input/output contracts and recovery | How the assistant performs a routine |
 | `skills/chief-of-staff/scripts/` | Python 3.9+ standard-library core and CLI adapters | Durable state, validation, calculations or recovery |
-| `cloud/` | Margo Cloud: the hosted runtime in C# (.NET 10) and its `margo-state` port of the scripts above ([cloud/README.md](../../cloud/README.md)) | Hosted behaviour; a script change also needs its C# port and parity scenarios |
+| `cloud/` | Margo Cloud: the hosted runtime in C# (.NET 10) and its `margo-state` port of the scripts above ([cloud/README.md](../../cloud/README.md)) | Hosted behavior; a script change also needs its C# port and parity scenarios |
 | `.github/extensions/margo-action-desk/` | Optional thin action, memory and task-progress views | Presentation over existing CLI contracts |
 | `automations/`, `tools/margo-scheduled.*` | Schedule manifests and wrapper execution | Cadence, prompts and unattended restrictions |
 | `install.*`, `packaging/` | Copy/link installs, preservation, provenance and native wrappers | How changed files reach another machine |
@@ -148,7 +148,7 @@ useful example because it crosses every layer without granting the UI an executi
 | Optional canvas | `extension.mjs`, `task-backend.mjs`, `server.mjs`, `task-app.js` in the extension | `margo-task-progress` reads state; a browser review request does not execute cancellation |
 | Installed copy | `install.sh`, `install.ps1`; `tests/test_task_cli.py` | Task modules and references ship; existing memory and customized preferences survive |
 | User help and catalog | [Task guide](../how-to/task-progress-and-recovery.md); `docs/feature-catalog.json` | Discovery, prerequisites, CLI/canvas references and evidence class remain accurate |
-| Scenario | `tests/test_user_journeys.py`; `tests/fixtures/journeys/scenarios.json` | A cancelled task with an uncertain effect never becomes a no-effect success |
+| Scenario | `tests/test_user_journeys.py`; `tests/fixtures/journeys/scenarios.json` | A canceled task with an uncertain effect never becomes a no-effect success |
 
 Read commands must report missing initialization instead of creating an empty database. The
 task panel must show “not initialized” differently from “no runs yet.” The same principle
@@ -156,7 +156,7 @@ applies to absent memory, unavailable provider coverage and missing delivery rec
 
 ### A concrete contribution example
 
-Suppose your task is **make a cancelled run's unknown effect clearer**:
+Suppose your task is **make a canceled run's unknown effect clearer**:
 
 1. Capture the expected outcome: the user sees that future work stopped, the earlier effect
    remains unknown, and reconciliation is needed before another attempt. Non-goal: change

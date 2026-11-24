@@ -3,7 +3,7 @@
 Margo combines agent and skill definitions with a private Python state core and optional local
 review panels. Desktop Margo has no Margo-hosted service; the optional canvas uses a loopback HTTP server,
 and the host, Work IQ, and other integrations use their configured services. **Margo Cloud**
-([`cloud/`](cloud/README.md)) is a self-hosted service an organisation deploys into its own Azure
+([`cloud/`](cloud/README.md)) is a self-hosted service an organization deploys into its own Azure
 subscription as an Agent 365 agent; nobody runs a shared Margo service for you. It is designed to
 access a real mailbox, calendar, and file store, so the security surface is real.
 
@@ -21,7 +21,7 @@ Include what you can:
 - Which file or routine is involved
 - What an attacker gets out of it
 
-Expect an acknowledgement within a few days. Please give a reasonable window to fix before
+Expect an acknowledgment within a few days. Please give a reasonable window to fix before
 disclosing publicly.
 
 ## In scope
@@ -48,7 +48,7 @@ disclosing publicly.
 - Vulnerabilities in Microsoft 365, Microsoft Graph, Work IQ, or the Copilot CLI itself — report
   those to the respective vendor. [MSRC](https://msrc.microsoft.com/report) handles Microsoft
   products.
-- Model behaviour that's merely wrong or unhelpful rather than a security boundary failure. That's
+- Model behavior that's merely wrong or unhelpful rather than a security boundary failure. That's
   a normal issue.
 - Anything requiring an attacker to already have local access to the machine running the agent.
 

@@ -44,5 +44,5 @@ A path such as `scripts/work_state.py` is accepted and matched by file name.
 
 ## Not ported / open questions
 
-None. Per-script behaviour lives in the State.* projects; see
+None. Per-script behavior lives in the State.* projects; see
 `cloud/src/Margo.Cloud.State.Core/PORTING.md` for the shared helpers and the judge.

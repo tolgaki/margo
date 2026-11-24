@@ -1,11 +1,9 @@
 # Talk to Margo by voice
 
-**Status: built (phase V1) over WebSocket, 18 October 2026; the sign-in changed after the 23 November 2026
-security review. Unproven against a live Voice Live resource or tenant.** Voice runs in [one-container-per-instance hosting](autopilot-instance-containers.md) when
-`VOICE_LIVE_MODEL` is set (`azd env set MARGO_VOICE_LIVE_MODEL …`): your instance answers
-`/voice` in Teams with your page's link, and the page talks to that same container. Product
-facts come from a web-search review on 18 October 2026; items marked **verify** were not
-confirmed against the official page.
+Voice runs in [one-container-per-instance hosting](autopilot-instance-containers.md) when `VOICE_LIVE_MODEL` is set
+(`azd env set MARGO_VOICE_LIVE_MODEL …`): your instance answers `/voice` in Teams with your page's link, and the page
+talks to that same container, over WebSocket. Items marked **verify** are product facts not confirmed against
+Microsoft's documentation, and voice has not been tested against a live Voice Live resource.
 
 ## What is built
 

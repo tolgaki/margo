@@ -12,7 +12,7 @@ the small tokenizer/config assets using their Git blob identities. It writes a c
 only after every asset verifies. No downloaded Python or pickle code is executed.
 
 The runtime uses ONNX Runtime's CPU provider and the locally loaded tokenizer, producing
-384-dimensional vectors. Attention-mask mean pooling and L2 normalisation are followed by
+384-dimensional vectors. Attention-mask mean pooling and L2 normalization are followed by
 token-count-weighted aggregation across all 256-token overflow chunks for long inputs.
 Queries and memories use the same pipeline. The preprocessing, tokenizer identity, dimensions
 and model revision determine the fingerprint stored beside every vector.
@@ -22,7 +22,7 @@ fallback. Changing the pinned model/preprocessing requires reindexing incompatib
 The index is rebuildable; memory claims and their authority remain in SQLite independently.
 
 The model is small and primarily suited to English semantic similarity. Exact identifiers and
-keywords remain important for names, acronyms and specialised terms. Similarity is not factual
+keywords remain important for names, acronyms and specialized terms. Similarity is not factual
 confidence, permission, or proof of a trend. Evaluate retrieval on the intended workload before
 changing the model.
 

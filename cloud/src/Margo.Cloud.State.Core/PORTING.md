@@ -3,7 +3,7 @@
 Ports `skills/chief-of-staff/scripts/margo_store.py` (as `StateStore`, the name `cloud/README.md`
 uses) and provides the Python-compatible helpers every
 later state port must use so that `margo-state SCRIPT.py ...` is indistinguishable from
-`python3 SCRIPT.py ...`. Reference behaviour is **CPython 3.13** (measured on 3.13.16) and its
+`python3 SCRIPT.py ...`. Reference behavior is **CPython 3.13** (measured on 3.13.16) and its
 `sqlite3`, `json`, `argparse`, `datetime`, `pathlib` and `textwrap` modules.
 
 ## What maps to what
@@ -127,7 +127,7 @@ non-string `choices`, `metavar` tuples, `exit_on_error=False`.
 
 ## Deliberate deviations (and why)
 
-1. **Python version.** Behaviour is CPython 3.13 (argparse `options:` heading and usage wrapping,
+1. **Python version.** Behavior is CPython 3.13 (argparse `options:` heading and usage wrapping,
    `json` "Illegal trailing comma" errors, `fromisoformat` accepting the extended formats). Older
    Pythons that desktop Margo may run (3.9+) word some errors differently. The parity judge always
    compares against the local `python3`.
@@ -240,7 +240,7 @@ here, and every state project uses them (`Margo.Cloud.State.Work`, `.Proactive`,
 
 ### Where the copies differed
 
-The kept behaviour is the one that matches CPython 3.13.16; each difference was checked against CPython.
+The kept behavior is the one that matches CPython 3.13.16; each difference was checked against CPython.
 
 1. **Deep copies.** Proactive's `Py.Copy` recursed (a stack overflow before the deepest JSON `PyJson` accepts) and fell
    back to `JsonNode.DeepClone`; Work's iterative `Clone` also fell back to it for unexpected values; Memory's was
@@ -286,7 +286,7 @@ command shows it, a parity scenario that failed against that build:
   `PyIO.StdinReader` now models `TextIOWrapper` (deviation 7). The Helpers' `PyProcess.ReadStdin` is gone.
 - **`JsonNode.DeepClone` on Python values:** replaced everywhere by `PyNode.Copy`; the guard test scans every
   `Margo.Cloud.State*` source and the state tests.
-- **`PyJson.Loads` near the nesting limit** modelled only the container limit, so every port except the Helpers
+- **`PyJson.Loads` near the nesting limit** modeled only the container limit, so every port except the Helpers
   answered decode errors, `NaN`, failing hooks, "Expecting value" and over-long ints near the limit with the
   ordinary error where CPython raises `RecursionError` (`core/json_recursion_budget.json`: `work_state.py source` and
   `import-preview`).
@@ -323,7 +323,7 @@ the MemoryCommands port should add zone/fold handling in its own project or requ
 - `PyNode.DictWith` cannot hold a key that is not a string (a `JsonObject` cannot): it raises the `StateError` that
   `canonical_json` would raise once every pair has been read. A library caller that uses such a dict before
   `canonical_json` (for example `_resolve_work_sources` reading `ref["ref"]` of a reference written as pairs) sees that
-  `StateError` where Python raises a `KeyError` or a later `StateError`. Python's callers pass normalised data.
+  `StateError` where Python raises a `KeyError` or a later `StateError`. Python's callers pass normalized data.
 - `os.getcwd()` is `Directory.GetCurrentDirectory()`: a working directory whose name is not UTF-8
   would be decoded with U+FFFD rather than surrogate escapes (the hosted tool always runs in an ASCII
   scratch directory).
@@ -344,7 +344,7 @@ the MemoryCommands port should add zone/fold handling in its own project or requ
 - `tests/Margo.Cloud.State.Tests`: PyJson (dumps/loads/parse_json against CPython output,
   1000+ random floats), PyTime (fromisoformat, validate_timestamp, timedelta), PyArgs (demo parser
   help/usage/errors, abbreviations, `int()`), UTF-8 codec errors, private modes, nested savepoints,
-  config initialisation (including an interrupted and a concurrent link), sqlite3 semantics, the
+  config initialization (including an interrupted and a concurrent link), sqlite3 semantics, the
   CLI dispatcher, and a test that runs `tools/state_parity.py --check`. Expected values come from
   `Fixtures/generate_python_fixtures.py` (CPython 3.13).
 - `python3 tools/state_parity.py --check`: `cloud/contracts/state/core/*.json` pass.

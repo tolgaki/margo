@@ -1,33 +1,22 @@
 # Margo as an autopilot
 
-**Status: design with a first deployable version, not a supported mode.** The
-[deployment guide](autopilot-deployment.md) creates Azure resources and connects an Agent 365
-blueprint; one test-tenant run proved the core path (see the guide's status), the rest is unverified, and nothing here changes the current
-[trust and safety](safety.md) policy for the local assistant. Hosted Margo is **Margo Cloud**, a C# (.NET 10)
-service in [`cloud/`](../cloud/README.md) (decision 14); its pieces are tested offline against synthetic data only.
-Items marked **VERIFY** are platform behaviours the public documentation does not settle; each
-needs a separately authorised test-tenant proof before any build depends on it.
+This is the design of Margo Cloud, the hosted Margo: a C# (.NET 10) service in [`cloud/`](../cloud/README.md),
+deployed with the [deployment guide](autopilot-deployment.md). It does not change the [trust and safety](safety.md)
+policy for desktop Margo. Items marked **VERIFY** are platform behaviors that Microsoft's public documentation does not
+settle; each needs a test-tenant proof before a build depends on it.
 
 [Documentation hub](README.md) · [Developer journey](development/README.md) ·
 [Current feature inventory](features.md)
 
-Sources checked October 2026: Microsoft Learn *What is an autopilot in Microsoft Foundry?*,
-*Quickstart: Build your first autopilot*, *Create and use memory in Foundry Agent Service*,
-*Understand MCP server options in Agent 365*, *Work IQ MCP tool reference*, *Use the retrieve
-tool in Work IQ MCP*, *Work IQ API permissions reference*, Entra *Agent OAuth flows —
-On-behalf-of flow*; and the `microsoft-foundry/foundry-samples` Python autopilot sample.
+Sources: Microsoft Learn *Understand MCP server options in Agent 365*, *Work IQ MCP tool reference*, *Use the
+retrieve tool in Work IQ MCP*, *Work IQ API permissions reference*, and Entra *Agent OAuth flows — On-behalf-of flow*.
 Platform contracts change; re-check them before acting on this page.
 
-**Hosting changed on 6 November 2026 (decision 13).** Margo is no longer a Foundry hosted agent.
-She is self-hosted for Agent 365: one container per hired Margo behind a router that is the
-blueprint's messaging endpoint, with the blueprint created by the Agent 365 CLI. Sections below
-that mention the Foundry sample describe where a design idea came from, not what runs.
-
-**Margo Cloud is C# (decision 14, November 2026).** The hosted runtime was ported from Python to C# and the Python
-hosted runtime was removed. Desktop Margo stays Python (maintenance mode) and shares `agents/` and `skills/` with
-Margo Cloud; Margo Cloud's state commands stay byte-compatible with the desktop helpers, checked by
-`tools/state_parity.py`. File names below are Margo Cloud's; where this page names a Python module of the earlier
-hosted runtime (`guard.py`, `parity.py`, ...), the C# project that ports it is listed in [cloud/README.md](../cloud/README.md#layout).
+Margo Cloud is self-hosted for Agent 365: one container per hired Margo behind a router that is the blueprint's
+messaging endpoint, with the blueprint created by the Agent 365 CLI. It is C# (.NET 10); desktop Margo is Python and
+shares `agents/` and `skills/` with it, and Margo Cloud's state commands stay byte-compatible with the desktop helpers,
+checked by `tools/state_parity.py`. Where this page names a Python module (`guard.py`, `parity.py`, ...), the C#
+project that implements it is listed in [cloud/README.md](../cloud/README.md#layout).
 
 ---
 
@@ -102,7 +91,7 @@ Three identities are in play, and the design must never confuse them:
 | Identity | What it is | Used for |
 | --- | --- | --- |
 | **Agent identity** (service principal) | Infrastructure identity of the instance | Reaching the model, storage, the state database |
-| **Agent user account** (user object) | Margo as a member of the organisation | Her own mailbox, calendar, Teams chat with the principal, her own OneDrive |
+| **Agent user account** (user object) | Margo as a member of the organization | Her own mailbox, calendar, Teams chat with the principal, her own OneDrive |
 | **Principal** (human user, the instance's manager) | The one person Margo serves | Source of authority, preferences and approvals |
 
 ### How Margo reads the principal's work
@@ -132,7 +121,7 @@ An autopilot acting as itself cannot read the principal's data. Options:
 
 | Token | Subject | Used for |
 | --- | --- | --- |
-| **Margo token** (agentic user authorisation in the Agents SDK) | Margo's agent user | Her own inbox (requests to the office), her chat with the principal, her own OneDrive |
+| **Margo token** (agentic user authorization in the Agents SDK) | Margo's agent user | Her own inbox (requests to the office), her chat with the principal, her own OneDrive |
 | **Principal token** (agent OBO + refresh) | The principal, with Margo as actor | Reading the principal's mail, calendar, Teams, files; approved actions as the principal |
 
 Design consequence: every Microsoft 365 call declares `on_data_of: principal | self`, and the
@@ -217,7 +206,7 @@ listed.
 - **No Agent 365 MCP servers.** The workload-specific servers (Mail, Calendar, Teams,
   SharePoint, OneDrive, User, Word, Copilot) are excluded. Microsoft also marks them legacy
   for new projects (*Understand MCP server options in Agent 365*, updated 2026-10-08).
-- **No Foundry Toolbox.** The Foundry sample's Toolbox (web search, code interpreter) is not used.
+- **No web search or code interpreter.**
 - **No Microsoft Graph client.** The local large-file bridge (`m365_files.py`) is not part of the
   hosted runtime.
 - The blueprint's tool configuration declares exactly one remote MCP endpoint. The guard
@@ -239,7 +228,7 @@ Not included in v1: web search, code interpreter, Azure DevOps, GitHub.
 
 **The problem.** Every Margo procedure is written in `/me` terms: `/me/messages`,
 `/me/calendarView`, `/me/chats`. Locally, `/me` is the principal. In the autopilot, `/me` means
-whoever the token's subject is. With Margo's token, the morning brief would summarise *her*
+whoever the token's subject is. With Margo's token, the morning brief would summarize *her*
 empty inbox and report a quiet day — plausible, success-shaped and wrong.
 
 **The rule.** The model never receives raw Work IQ tools. It receives wrapped tools that require
@@ -260,8 +249,7 @@ one extra argument, `on_data_of: "principal" | "self"`. The guard picks the matc
 [`Margo.Cloud.Guard`](../cloud/src/Margo.Cloud.Guard/WorkIQGuard.cs):
 
 0. **One endpoint.** The guard refuses any transport not bound to
-   `https://workiq.svc.cloud.microsoft/mcp`. Agent 365 tooling servers and the Foundry Toolbox
-   are not used.
+   `https://workiq.svc.cloud.microsoft/mcp`. Agent 365 tooling servers are not used.
 1. **Token follows intent, never the model's wording.** The model declares `on_data_of`; the
    guard asks the token provider for `principal` or `margo` and never exposes the token.
 2. **Path policy.** Relative Graph paths only; no absolute URLs, traversal, encoded separators
@@ -311,7 +299,7 @@ impossible, and it keeps the shared skills unchanged across the CLI and hosted r
 
 ### 4.2.2 The principal's controls over OBO
 
-- **Opt-in at hire.** The first chat asks the principal to authorise Margo to read as them. No
+- **Opt-in at hire.** The first chat asks the principal to authorize Margo to read as them. No
   principal reads happen before that. Declining leaves a Margo that only knows her own inbox,
   and she says so.
 - **"Stop reading as me."** Deletes the refresh token from Key Vault at once and marks principal
@@ -350,7 +338,7 @@ unchanged. Where the file lives, and why it is not enough on its own:
 - **Bundles are checked.** Each carries a manifest with the account hash and database hash; a
   foreign, tampered or corrupt bundle is refused and nothing local is replaced. The manager's
   private `preferences.md` travels in the same bundle.
-- **Limits.** Turns for one instance are serialised, which suits one assistant serving one
+- **Limits.** Turns for one instance are serialized, which suits one assistant serving one
   person. Postgres remains the next step if that ever becomes a bottleneck.
 
 The partition key is the instance's agent identity plus the principal ID
@@ -384,7 +372,7 @@ The partition key is the instance's agent identity plus the principal ID
 
 The publish details are also in the [deployment guide](autopilot-deployment.md#4-publish-and-approve).
 Terms and privacy are in [`cloud/terms.md`](../cloud/terms.md); the icons are in
-[`cloud/assets/`](../cloud/assets/) (192 px colour and 32 px white outline PNGs, with SVG
+[`cloud/assets/`](../cloud/assets/) (192 px color and 32 px white outline PNGs, with SVG
 sources). The URLs resolve once these files are on `main`.
 
 `canRespondWithoutMention: false` keeps Margo silent in any group surface she is added to.
@@ -394,9 +382,9 @@ sources). The URLs resolve once these files are on `main`.
 
 | Wizard step | Requested setting | Reason |
 | --- | --- | --- |
-| Activate (hiring scope) | Whatever the admin chooses (decided). The blueprint does not restrict it | Each instance costs a licence seat; Frontier preview gives 25 |
+| Activate (hiring scope) | Whatever the admin chooses (decided). The blueprint does not restrict it | Each instance costs a license seat; Frontier preview gives 25 |
 | Policy template | Microsoft defaults + custom: block external recipients, apply DLP | Margo never mails outside the tenant in v1 |
-| Admin consent | Work IQ's delegated `WorkIQAgent.Ask`, `WorkIQ.Read` and `WorkIQ.Act` (decided 8 Nov 2026; `WorkIQ.Act` is consent only: the guard still refuses every write without the manager's approval of that exact action), configured as an **inheritable permission on the blueprint** so instances can do OBO without a consent prompt, plus the platform's own observability permissions | Consent governs what calls are ever possible, not whose data |
+| Admin consent | Work IQ's delegated `WorkIQAgent.Ask`, `WorkIQ.Read` and `WorkIQ.Act` (decided Nov 8, 2026; `WorkIQ.Act` is consent only: the guard still refuses every write without the manager's approval of that exact action), configured as an **inheritable permission on the blueprint** so instances can do OBO without a consent prompt, plus the platform's own observability permissions | Consent governs what calls are ever possible, not whose data |
 
 Blueprint-level controls then apply to every instance: update the blueprint and all instances
 update; block it and all instances stop. That is the kill switch.
@@ -418,7 +406,7 @@ happened before — and remember it across sessions and devices.
 | **Episodes (past experiences)** | "The Q3 offsite moved twice; principal chose the later date" | `source_observed` with links | Dream-style sourced episodes |
 | **Lessons** | "Principal rejects drafts over 120 words" | candidate until confirmed | Agent-learning records |
 | **Operational state** | Commitments, proposals, approvals, task runs | Not memory | Work ledger (linked by ID, never copied) |
-| **Conversation continuity** | What we discussed yesterday in chat | Short-lived | Margo's own episodes (5.6); Foundry managed memory deferred (5.3) |
+| **Conversation continuity** | What we discussed yesterday in chat | Short-lived | Margo's own episodes (5.6) |
 | **Margo's own memory** | What she did, how it went, what she has noticed, her working views | `source_observed` from her own records | Agent-domain memory (5.6) |
 
 ### 5.2 The governed store stays authoritative
@@ -428,20 +416,6 @@ trustworthy chief of staff needs: candidates versus confirmed facts, provenance,
 `allowed_uses`, suppression, forgetting with tombstones, retention policy and a bounded
 context packet with mandatory preferences. In hosted mode it moves to the instance's state store
 (4.3) unchanged in semantics. Semantic indexing uses the project's embedding deployment.
-
-### 5.3 Where Foundry's managed memory fits
-
-**Decided: deferred in v1**, and since decision 13 it would mean calling a Foundry project
-from Margo's containers. Foundry Memory (preview) offers user-scoped stores with automatic
-profile extraction, chat summaries, TTL and item CRUD. It is convenient, but its automatic
-extraction writes facts without Margo's confirmation discipline. If adopted later:
-
-- **Use it only for conversation continuity** (`chat_summary_enabled: true`,
-  `user_profile_enabled: false`), with a short default TTL (proposed 30 days).
-- **Scope key:** `{agent_identity_id}:{principal_object_id}`. Never the email or display name.
-- Anything it recalls is treated as `inferred` evidence. It can lead Margo to propose a
-  candidate memory; it can never become a preference or rule without confirmation.
-- Revisit once item-level provenance and confirmation states exist in the managed service.
 
 ### 5.4 Migration from local Margo
 
@@ -468,9 +442,9 @@ episodes, trends, lessons and capabilities. Her own memory is that domain, used 
 
 | Her memory of… | Example | Kind | Comes from |
 | --- | --- | --- | --- |
-| **Her experiences** | "On 3 Oct I proposed moving the design review; Dana declined and kept it" | `episode` | Her own receipts, approvals, task runs and chats |
+| **Her experiences** | "On Oct 3 I proposed moving the design review; Dana declined and kept it" | `episode` | Her own receipts, approvals, task runs and chats |
 | **Her working views** | "Approval cards with more than three actions get abandoned" | `trend` (candidate until the evidence threshold is met) | Repeated, independently resolved episodes |
-| **How to do her job better** | "Dana prefers a one-line summary above every draft" | `lesson` (needs Dana's confirmation to change behaviour) | Corrections and feedback |
+| **How to do her job better** | "Dana prefers a one-line summary above every draft" | `lesson` (needs Dana's confirmation to change behavior) | Corrections and feedback |
 | **What she can and cannot do** | "Teams reads fail when the OBO token lapses" | `capability` | Real tool results in this tenant |
 | **The people she deals with** | "Rafa answers scheduling requests within the hour" | `person` (observed facts only) | Her own interactions |
 | **Reflection** | A daily look back over her own sessions | Dream episodes | Her own session checkpoints |
@@ -498,14 +472,14 @@ procedure describes when she consults them.
 
 ---
 
-## 6. Runtime behaviour and authority
+## 6. Runtime behavior and authority
 
 ### 6.1 Who can instruct Margo
 
 - **Only the principal**, identified by Entra object ID from the authenticated activity, never
   by display name or email header.
 - Messages from anyone else — mail to Margo's address, Teams messages, meeting chat — are
-  **data**. They go into a "requests to the office" queue that Margo summarises for the
+  **data**. They go into a "requests to the office" queue that Margo summarizes for the
   principal.
 - **Whether she replies is the principal's setting (decided).** One line in their private
   `preferences.md`, `- **Replies to other people:** none | acknowledge | approve`, read by the
@@ -524,7 +498,7 @@ procedure describes when she consults them.
 | --- | --- | --- |
 | Read principal's data (OBO) | Allowed, bounded, attended or unattended | Same authority as local Margo; new mechanism |
 | Write to Margo's private local state (ledger, memory) | Allowed | Same |
-| **Message the manager in their 1:1 chat with Margo** (briefs, questions, approval cards) | Allowed at any time, including unattended | **Approved policy change (17 Oct 2026).** Fixed target recorded at hire; nobody else |
+| **Message the manager in their 1:1 chat with Margo** (briefs, questions, approval cards) | Allowed at any time, including unattended | **Approved policy change (Oct 17, 2026).** Fixed target recorded at hire; nobody else |
 | **Send mail on the manager's behalf, or from Margo's own mailbox** | Per-action approval by the manager | Decided: both allowed. The approval must be recorded with the manager's object ID; the guard refuses any other approver |
 | Any other Microsoft 365 write: drafts, replies, RSVP, meeting moves, deletes, posts, work items, files | Per-action approval via Adaptive Card, attended only | Same rule, stronger evidence |
 | Replies to other people | Governed by the manager's setting (6.1) | New, default off |
@@ -570,7 +544,7 @@ starts, and partial results are reported as partial.
 | Blueprint supply chain | One update reaches every instance | Signed images, pinned digests, staged rollout by blueprint version, blueprint block as kill switch |
 | Telemetry leakage | Sample enables GenAI message capture by default | Capture disabled; spans carry IDs and counts, not content |
 | Cross-instance bleed | Shared database or memory store | Partition by agent identity on every query; tests that prove isolation |
-| Licence exhaustion | One seat per instance | Admin hiring scope limited to pilot group; instance creation fails cleanly and is reported |
+| License exhaustion | One seat per instance | Admin hiring scope limited to pilot group; instance creation fails cleanly and is reported |
 | Copilot Credits billing | Work IQ `retrieve` requires usage-based billing and the *calling user* in a spending policy that includes Work IQ API | Both the principal (OBO calls) and Margo's agent user (her own reads) may need assignment until verification item 4 settles it; a billing denial is reported as a blocked source, not an empty one |
 
 ---
@@ -624,7 +598,7 @@ Required repository gates still apply (unit tests, feature catalog, journey cont
 
 | Phase | Outcome | Exit evidence |
 | --- | --- | --- |
-| **0. Verify** (test tenant, separately authorised) | Answers to every **VERIFY** item | Written results per item; no real data |
+| **0. Verify** (test tenant, separately authorized) | Answers to every **VERIFY** item | Written results per item; no real data |
 | **1. Read-only Margo in Teams** | Hire, chat, brief on request, memory import, inspect/forget | Isolation tests; no outward action possible |
 | **2. Scheduled delivery** | Morning brief arrives in the principal's 1:1 chat | Safety review of the §6.2 policy change signed off |
 | **3. Approved actions** | Card-approved drafts, sends, calendar moves | Journal receipts; replay and timeout tests |
@@ -633,7 +607,7 @@ Required repository gates still apply (unit tests, feature catalog, journey cont
 Proposals beyond these phases: [one container per hired Margo](autopilot-instance-containers.md)
 and [talking to Margo by voice](autopilot-voice.md).
 
-## 10. Verification list (phase 0)
+## 10. Verification list
 
 1. **OBO end to end (critical path).** In Teams, the principal's 1:1 activity yields (via SSO)
    a user token audienced to the Margo blueprint; the agent identity exchanges it for a
@@ -646,32 +620,30 @@ and [talking to Margo by voice](autopilot-voice.md).
 5. Adaptive Card submit activities carry a verifiable Entra object ID for the responder.
 6. Scheduled/proactive activity mechanism for hosted autopilots, and its identity.
 7. `canRespondWithoutMention: false` still allows 1:1 conversation with the manager.
-8. Hosted-agent replica behaviour and persistent storage options.
-9. Foundry memory store scope isolation and deletion on instance retirement.
-10. What happens to instance data, mailbox, licence and refresh token when the manager leaves.
+8. Hosted-agent replica behavior and persistent storage options.
+10. What happens to instance data, mailbox, license and refresh token when the manager leaves.
 11. Fallback only: Exchange delegation to an agent user, if OBO refresh is blocked by policy.
 12. How the activity protocol maps conversations and notifications to sessions, and Blob lease
-    behaviour under real concurrency and lease expiry.
+    behavior under real concurrency and lease expiry.
 
-## 11. Decisions (17 October 2026)
+## 11. Decisions
 
 | # | Decision | Effect |
 | --- | --- | --- |
 | 1 | Margo may message her manager in their 1:1 chat at any time, including unattended | Guard allows the fixed principal-chat post in attended and unattended runs, not in runs another person's message started; nothing else unattended |
 | 2 | Mail may go on the manager's behalf or from Margo's own mailbox, each with the manager's explicit approval | Guard requires a live claim approved by the manager's object ID for either subject |
 | 3 | Start with SQLite | SQLite in each instance's container, saved to its own Blob container under a lease (4.3) |
-| 4 | Margo's governed memory, plus memories of her own | Foundry managed memory deferred (5.3); agent-domain memory (5.6) |
+| 4 | Margo's governed memory, plus memories of her own | Agent-domain memory (5.6); no managed memory service |
 | 5 | Replies to other people are a manager setting in `preferences.md` | `none` default; `acknowledge`; `approve`; enforced by `ReplyGate` (6.1) |
 | 6 | Exchange delegation is an acceptable fallback if OBO refresh is blocked | Mail and calendar only; Teams reported unavailable |
 | 7 | Approvals bind the exact Work IQ call (`payload.workiq`) | Kept; cards must render the call readably |
 | 8 | Hiring scope is whatever the admin configures | Blueprint does not restrict it (4.5) |
 | 9 | Publisher Tolga Kilicli; terms and icon in this repository | `cloud/terms.md`, `cloud/assets/`, publish details in the deployment guide |
-| 10 | Hosted Margo is desktop Margo, hosted and live: the same persona and skills regardless of engine (18 Oct 2026) | Persona and every skill loaded unchanged; the skill scripts through `margo-state`, not a shell; every gap named in one list (`NotHosted`); a parity test in CI (4.1.1) |
-| 11 | One container per hired instance (18–19 Oct 2026) | Each instance gets its own Container App, identity and state container, scale to zero by default, storage never deleted automatically ([plan](autopilot-instance-containers.md)). First built beside a Foundry agent; the only hosting since decision 13 |
-| 12 | Talk to Margo by voice (18 Oct 2026) | Voice Live behind Margo's own server, same tools and guard, HD voice until a custom voice is trained, nothing recorded; WebSocket transport because Container Apps has no UDP ([plan](autopilot-voice.md)) |
-| 13 | Self-hosted for Agent 365; Foundry removed (6 Nov 2026) | A Foundry-created blueprint cannot point its messaging at our own containers, so chat could never reach them. The Agent 365 CLI creates the blueprint with the router as its messaging endpoint; Agent 365 publishes, approves and hires; Azure AI Services serves the model directly ([deployment](autopilot-deployment.md)) |
+| 10 | Hosted Margo is desktop Margo, hosted and live: the same persona and skills regardless of engine | Persona and every skill loaded unchanged; the skill scripts through `margo-state`, not a shell; every gap named in one list (`NotHosted`); a parity test in CI (4.1.1) |
+| 11 | One container per hired instance | Each instance gets its own Container App, identity and state container, scale to zero by default, storage never deleted automatically ([one container per hired Margo](autopilot-instance-containers.md)) |
+| 12 | Talk to Margo by voice | Voice Live behind Margo's own server, same tools and guard, HD voice until a custom voice is trained, nothing recorded; WebSocket transport because Container Apps has no UDP ([voice](autopilot-voice.md)) |
+| 13 | Self-hosted for Agent 365 | The Agent 365 CLI creates the blueprint with the router as its messaging endpoint; Agent 365 publishes, approves and hires; Azure AI Services serves the model directly ([deployment](autopilot-deployment.md)) |
+| 14 | Margo Cloud in C#; desktop in Python | The hosted runtime is a C# (.NET 10) solution in `cloud/`. Desktop Margo (GitHub Copilot, persona, skills, Python state helpers) is in maintenance mode and shares `agents/` and `skills/`. The C# state commands stay byte-compatible with the desktop helpers (`tools/state_parity.py`, CPython 3.13 behavior) |
 
-| 14 | Margo Cloud in C#; desktop stays Python (November 2026) | The hosted runtime is a C# (.NET 10) solution in `cloud/` and the Python hosted runtime is removed. The desktop (GitHub Copilot, persona, skills, Python state helpers) stays, in maintenance mode, and shares `agents/` and `skills/`. The C# state commands stay byte-compatible with the desktop helpers (`tools/state_parity.py`, CPython 3.13 behaviour) ([plan](margo-cloud-plan.md)) |
-
-Still open: Copilot Credits billing subject (verification item 4) and the phase-0 results (run by an operator in a
-test tenant with [VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md)).
+Still open: the Copilot Credits billing subject (verification item 4). The live checklist is
+[VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md).

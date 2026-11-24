@@ -2,7 +2,7 @@
 
 Ports `skills/chief-of-staff/scripts/proactive_state.py` completely: the `proactive_state.py` CLI (all 24
 subcommands) and the library functions that `task_runs.py` and `memory_dream.py` import. Reference
-behaviour is CPython 3.13 with the shared helpers of `Margo.Cloud.State.Core` (see its PORTING.md).
+behavior is CPython 3.13 with the shared helpers of `Margo.Cloud.State.Core` (see its PORTING.md).
 Nothing here reaches the network; no real workplace data is used anywhere (fixtures use `example.com`).
 
 ## What maps to what
@@ -73,7 +73,7 @@ contain and which runs only with `MARGO_STATE_PROBES=1` (and the hosted tool run
 
 Every subcommand and option, success and failure paths, replay/idempotency, text and JSON views: argparse
 surface and help (`cli_args`), accounts and setup (`setup_and_accounts`), queue add/list
-(`queue_add_list`), drain/record/ack/seen/mark (`delivery_end_to_end`), receipts and acknowledgement errors
+(`queue_add_list`), drain/record/ack/seen/mark (`delivery_end_to_end`), receipts and acknowledgment errors
 (`delivery_receipts`), leases, expiry, renew/release, prune (`delivery_leases`), standalone outputs and
 receipt/publish/review errors (`publications`), pages (`coverage_pages`), finish (`coverage_finish`), delta
 tokens and resume (`coverage_tokens`), failure episodes and freshness (`coverage_health`), source identity,
@@ -150,7 +150,7 @@ the Engine's `statecmd` port; the C# command itself implements `import-legacy` f
 - `status_report` orders `health_events` by `created_at DESC` only, and `publication_show`/`queue_ack` read
   joined publication items without `ORDER BY`. Ties and join order are SQLite query-plan details: the bundled
   `e_sqlite3` and the system SQLite matched in every scenario here (including equal timestamps under a fixed
-  clock and a three-item publication), but a future SQLite could differ. Python behaviour kept; an explicit
+  clock and a three-item publication), but a future SQLite could differ. Python behavior kept; an explicit
   tiebreaker in both implementations would remove the risk.
 - `main()` initializes the proactive schema for every command, including read commands such as `status`
   (AGENTS.md asks read commands not to initialize). Kept as the specification.

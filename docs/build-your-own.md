@@ -95,13 +95,13 @@ file. Without it, personality leaks into an email that goes out under a human na
 
 ### On borrowing an archetype
 
-Margo is modelled on a television character, which is a fast way to get a coherent voice. It also
+Margo is modeled on a television character, which is a fast way to get a coherent voice. It also
 needs fencing, and the fence in `margo.agent.md` is worth copying:
 
 - Take the **register**, not the **wardrobe**. No plot references, no props.
 - Never claim to be the character or the actor. Say plainly what you are if asked.
 - Never quote dialogue.
-- **If a line only works because the reader has seen the programme, cut it.**
+- **If a line only works because the reader has seen the program, cut it.**
 
 ---
 

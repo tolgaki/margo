@@ -65,7 +65,7 @@ request when all of these hold, in this order:
    `null` or `"soon"` refused; compared exactly with the float clock). `sub` and `jti` must be strings
    when present. No claim is required: a token without `exp` is accepted.
 9. `aud` is one string equal to the client ID, ignoring case (Python `str.lower`).
-10. Tenant binding: when `iss` is a recognised Entra issuer with a GUID tenant
+10. Tenant binding: when `iss` is a recognized Entra issuer with a GUID tenant
     (`https://sts.windows.net/<guid>/`, `https://login.microsoftonline.com/<guid>/v2.0`, or the `.us`
     form; the prefix compared with Python's Unicode `IGNORECASE`, `$` also before a final newline) and
     `tid` is a string, `tid` must be that tenant, ignoring case.
@@ -203,9 +203,9 @@ ingress target port) and `LOG_LEVEL` (default `INFO`; Python's level names). New
     Entra issuers, which Python accepted, are refused: Margo deploys to the public cloud. The host's copy changes with
     it.
 14. **The forward does not follow the caller.** Python forwarded on the caller's request: when Agent 365 stopped
-    waiting, aiohttp cancelled the handler, the connection to the instance closed and the instance's turn was cut off.
+    waiting, aiohttp canceled the handler, the connection to the instance closed and the instance's turn was cut off.
     A cold instance (scaled to zero) can take longer to start than the platform waits, so the first message after a
-    quiet spell was lost. The slot, the request and the response now run on the router's lifetime (cancelled only at
+    quiet spell was lost. The slot, the request and the response now run on the router's lifetime (canceled only at
     shutdown) within the connector's own timeouts (10 s to connect, 300 s in total). If the caller has left by then,
     the router logs `activity delivered after the caller stopped waiting key=<key> status=<status>` (a warning) and
     writes nothing. A platform retry of the same activity can then reach the instance twice; the instance has no

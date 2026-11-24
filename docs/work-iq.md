@@ -5,7 +5,7 @@ Teams chats and channels, OneDrive/SharePoint documents, meeting recaps and the 
 to an agent — for reading *and* for writing.
 
 This document is about the part that isn't obvious from the tool list: **which tool to reach for,
-how to keep payloads small enough that judgement survives, and what to do when a call fails.**
+how to keep payloads small enough that judgment survives, and what to do when a call fails.**
 Those three things are the difference between a brief that arrives in twenty seconds with a
 recommendation on every line, and one that arrives in three minutes having spent its whole context
 window on JSON.
@@ -40,7 +40,7 @@ Three rules that follow from the table:
   message or person ID. A synthesized answer is not an identifier.
 
 Margo's default shape for a brief is therefore: **`fetch` in parallel to enumerate the skeleton,
-then one to three focused `ask` calls to work out what it means.** Enumeration and judgement are
+then one to three focused `ask` calls to work out what it means.** Enumeration and judgment are
 different jobs and use different tools.
 
 The relative costs above explain the retrieval strategy, not a latency guarantee. Actual
@@ -118,7 +118,7 @@ asking to be trusted; one that cites is asking to be checked. For a brief you ac
 
 Two related rules:
 
-- **Check `sensitivityLabel` before quoting.** `retrieve` returns it. Reproducing labelled
+- **Check `sensitivityLabel` before quoting.** `retrieve` returns it. Reproducing labeled
   content into a summary the user might forward is how a label gets laundered off a document.
 - **Incomplete evidence is `unknown`, not `zero`.** A failed page, a rate limit, or a parser warning
   means you didn't find out. Reporting it as "nothing found" is a fabrication with extra steps.
@@ -145,7 +145,7 @@ Two notes specific to Work IQ that shape how Margo drafts:
 - **Name the draft's location.** The action desk can hold a versioned local proposal unattended;
   it is not an Outlook draft. A request for an Outlook draft requires an explicitly approved
   draft-creation write, and sending remains separately approved. Never call a local proposal
-  an Outlook draft or a prepared artefact a published one.
+  an Outlook draft or a prepared artifact a published one.
 - **External tasks keep their canonical store.** A request for a Planner or To Do task uses
   the supported Work IQ surface and its approval boundary. A local commitment ledger or
   bounded task run is not a substitute for creating that requested external task. Link the

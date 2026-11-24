@@ -1,7 +1,7 @@
 # Margo.Cloud.State.Tasks: porting notes
 
 Ports `skills/chief-of-staff/scripts/task_runs.py` (durable bounded task progress over the work ledger, the coverage
-journal and receipts) and `task_state.py` (its CLI, every subcommand). Reference behaviour is CPython 3.13, as for
+journal and receipts) and `task_state.py` (its CLI, every subcommand). Reference behavior is CPython 3.13, as for
 `Margo.Cloud.State.Core`; `tools/state_parity.py` judges the CLI and the library byte for byte
 (`cloud/contracts/state/tasks/`). The project builds on `Margo.Cloud.State.Work` (`Ledger`, `WorkLedger.Digest`,
 `WorkLedger.Human`) and `Margo.Cloud.State.Proactive` (`ProactiveState.Initialize`, `CoverageStart`, `CoverageFinish`)
@@ -60,14 +60,14 @@ that fixes `task_runs.clock` (Python) / `TaskRuns.OverrideClock` (C#), `TaskStor
 `from_connection`, read-only, or inside an outer transaction that is rolled back), the module functions, the ledger and
 `proactive_state` coverage calls on the store's connection, SQL and input files (prefix + body * N + suffix). Bindings
 must be observed within five minutes and deadlines lie within seven days of the real clock, so fixed timestamps cannot
-drive these flows; the judge normalises the volatile timestamps, ids and tokens.
+drive these flows; the judge normalizes the volatile timestamps, ids and tokens.
 
 ## Scenarios (`cloud/contracts/state/tasks/`)
 
 | File | Covers |
 | --- | --- |
 | `cli_parser_and_errors.json` | help of the root parser and the 19 subcommands (also `COLUMNS=60`), argparse errors, `record-id` and account resolution, read commands before `init` (`not_initialized`), `init` replay, list/history limits and cursors, unknown runs/steps/attempts, reasons, `--input` errors, the `**data` `TypeError`s, cost and outcome validation |
-| `input_files.json` (probe) | `--input` files: universal newlines (also split across decoder chunks), BOM, undecodable/truncated UTF-8, the 256 KiB bound in characters, positions relative to the second chunk, pathlib normalisation, stdin |
+| `input_files.json` (probe) | `--input` files: universal newlines (also split across decoder chunks), BOM, undecodable/truncated UTF-8, the 256 KiB bound in characters, positions relative to the second chunk, pathlib normalization, stdin |
 | `local_workflow.json` (probe) | `test_task_cli.py::test_read_setup_and_full_local_workflow_across_processes` and the claim/settlement refusals around it |
 | `plan_validation.json` (probe) | every rule of `_plan` (including unhashable values, cycles, unattended reauthentication and actions, the storage budget) |
 | `read_steps.json`, `read_recovery_and_retry.json` (probe) | reads: coverage binding, result validation, actual costs, prerequisites, recovery, exponential and provider backoff, continuation, reconciliation of a completed source |
@@ -127,7 +127,7 @@ Nothing from `task_runs.py` or `task_state.py`.
   patched clock the two disagree (kept, and shown in `lifecycle_and_views.json`).
 - A read recovered as interrupted keeps the durable coverage error class (`timeout`, written by recovery) rather than
   the `interrupted` it reported, because `_result` replaces the reported class with the coverage one. Retry still
-  works (timeout is retryable); the Python behaviour is kept.
+  works (timeout is retryable); the Python behavior is kept.
 
 ## Review findings fixed
 

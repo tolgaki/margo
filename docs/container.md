@@ -1,9 +1,9 @@
 # Running Margo in a container
 
-**Status: illustrative deployment recipe; no Dockerfile, published image or container CI is
-shipped by this repository for desktop Margo.** (Margo Cloud's image, `cloud/Dockerfile`, is the hosted
-runtime, not a container for Copilot CLI; see [cloud/README.md](../cloud/README.md).) A container is optional and is not required to contribute.
-Start with the credential-free [developer journey](development/README.md) for normal development.
+This page is an illustrative recipe for running desktop Margo in a container; the repository ships no Dockerfile,
+published image or container CI for it. (Margo Cloud's image, `cloud/Dockerfile`, is the hosted service, not a
+container for Copilot CLI; see [cloud/README.md](../cloud/README.md).) A container is optional and is not needed to
+contribute. Start with the credential-free [developer journey](development/README.md) for normal development.
 
 Potential uses are repeatable unattended private preparation and a smaller filesystem exposure
 than a host with your entire home available. A container with tokens, network and general shell
@@ -132,7 +132,7 @@ tools/forbidden.local.txt
 ```
 
 Mount private configuration at runtime rather than removing these exclusions. Inspect the
-build context and use a clean, sanitised checkout. Save the illustrative Dockerfile before
+build context and use a clean, sanitized checkout. Save the illustrative Dockerfile before
 building; this repository does not ship one.
 
 ```bash
@@ -178,7 +178,7 @@ integration in your everyday profile. Read-only mounts do not prevent credential
 The legacy volume is only needed for legacy state and rolling agenda files. Provision state
 volume ownership for the container's
 non-root user and mode 0700; do not weaken the storage guard to make a root-owned mount work.
-Initialise the confirmed account inside the container, and migrate legacy state once, following
+Initialize the confirmed account inside the container, and migrate legacy state once, following
 [setup and migration](how-to/setup-and-migration.md). An empty mount is not an imported database.
 
 The template/config exclusions mean you must supply every private file the selected routines
@@ -221,7 +221,7 @@ not enforce the routine's read/private-preparation boundary. The wrapper adds fo
 rules for Work IQ's `create_entity`, `update_entity`, `delete_entity` and `do_action` tool
 families, and denial takes precedence over allow rules. Those paths are blocked, but
 general-purpose tools remain available;
-this does not enforce read-only behaviour across every possible outbound route. The deny list
+this does not enforce read-only behavior across every possible outbound route. The deny list
 is hard-coded and cannot be trimmed.
 
 That requires `tools/` **and** `automations/` in the image — the wrapper reads its

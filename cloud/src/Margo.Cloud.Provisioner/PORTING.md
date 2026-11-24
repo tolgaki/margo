@@ -25,7 +25,7 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
 | `os.environ[name]` (KeyError) | `ProvisionerConfig.Require` (`KeyNotFoundException`) |
 | `logging.basicConfig(...)` + `logging.getLogger("margo.provision")` | `ProvisionerLog` |
 
-## Behaviour kept exactly
+## Behavior kept exactly
 
 - **Handling one message.** Malformed text, a non-object, an unknown action or identifiers that
   cannot form a key: logged as `dropped malformed provisioning message` and dropped, before the
@@ -100,7 +100,7 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
    exception's `ToString()` (type, message, stack) to standard error and returns 1. Usage text names
    `Margo.Cloud.Provisioner` instead of the Python module.
 4. **Cancellation.** Python has none. Here an `OperationCanceledException` raised because the job's
-   token was cancelled propagates instead of being recorded as a step failure (the analogue of the
+   token was canceled propagates instead of being recorded as a step failure (the analog of the
    process being stopped); `Program.cs` passes no token, so the job behaves as Python's did.
 5. **Identity without a usable principal.** A missing `properties` gives `InvalidOperationException`
    (Python: `TypeError`), a missing `principalId` `KeyNotFoundException` (Python: `KeyError`), and a
@@ -114,7 +114,7 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
    job keeps draining). Azure SDK HTTP logging (Python's `azure.*` loggers at INFO through
    `basicConfig`) is not reproduced: the .NET SDK logs through EventSource, off by default.
 7. **ARM deployments package.** `Azure.ResourceManager.Resources` 1.12.0 marks its deployment types
-   obsolete in favour of `Azure.ResourceManager.Resources.Deployments`, and its obsolete
+   obsolete in favor of `Azure.ResourceManager.Resources.Deployments`, and its obsolete
    `ArmDeploymentCollection.CreateOrUpdate` fails at run time ("No ModelReaderWriterTypeBuilder
    found for ArmDeploymentData"; found by `AzureCloudTests`). This project therefore references
    `Azure.ResourceManager.Resources.Deployments` 1.0.0 (added to `cloud/Directory.Packages.props`;
@@ -141,7 +141,7 @@ the route table come from `Margo.Cloud.Core`; nothing is re-implemented here.
     surrogates are dropped by both, as they cannot form a key). Owned by Margo.Cloud.Core; not
     changed here.
 
-### Safety changes after the cutover (not Python's behaviour, on purpose)
+### Safety changes after the cutover (not Python's behavior, on purpose)
 
 The Python job was the specification of the port; these are reviewed changes to it. The lines Python logged are
 unchanged; what an operator must act on is logged at `ERROR` in the same format (`ProvisionerLog.Error`).
@@ -184,7 +184,7 @@ unchanged; what an operator must act on is logged at `ERROR` in the same format 
 - `logging.basicConfig` for every logger (Azure SDK loggers included): only `margo.provision`
   lines are written, see deviation 6.
 - The `Deployment` tests in the former Python instance tests (`main.bicep` outputs against
-  `postprovision.sh`, no Foundry hosted agent): they check the deployment scripts and infrastructure,
+  `postprovision.sh`): they check the deployment scripts and infrastructure,
   not the provisioner. The `instance.json`/`instance.bicep` parameter check is in
   `Margo.Cloud.Core.Tests` (`PlanTests`).
 - (Done at the cutover: `main.bicep` runs `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll run`.) Pointing the job at
@@ -211,7 +211,7 @@ unchanged; what an operator must act on is logged at `ERROR` in the same format 
   role assignments answered with 204 and listed in pages, refused role assignment deletes, and
   deviations 8 and 9.
 
-What these do not show: behaviour against real Azure (permissions, real LRO headers, throttling
+What these do not show: behavior against real Azure (permissions, real LRO headers, throttling
 and retries), and that the C# job and a Python router agree on a live queue. Neither was run.
 
 ## Review (independent, after the port)

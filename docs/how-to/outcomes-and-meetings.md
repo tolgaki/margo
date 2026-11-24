@@ -35,7 +35,7 @@ An outcome approval is not permission to move meetings, delegate, or send messag
 
 **Preconditions:** normalize working time, meeting occurrences, known leave, buffers, and reserves
 into offset-bearing timestamps. Expand recurrence first. Resolve each day's confirmed time-zone
-offset, including DST changes. Calendar presence is not proof of attendance. Exclude cancelled,
+offset, including DST changes. Calendar presence is not proof of attendance. Exclude canceled,
 declined, or free events only when their source fields establish that status.
 
 Save this fictional one-day example as `capacity.json`:
@@ -257,11 +257,11 @@ work carry-forward MEETING_ID --revision REVISION --input carry.json
 
 **Expected:** one atomic update returns `source` and `target`. The source becomes
 `carried_forward`; the target becomes `agenda_accumulating`. Open topics retain their ID, owner,
-creation time, and reason. Existing work IDs are reused; resolved/rejected/cancelled work is not
+creation time, and reason. Existing work IDs are reused; resolved/rejected/canceled work is not
 newly carried, and no commitment is re-ingested.
 
 **Recovery:** mismatched series, stale revisions, or conflicting same-ID topics fail. Review the
-conflict rather than inventing a merged topic. Moving/cancelling one occurrence never applies a
+conflict rather than inventing a merged topic. Moving/canceling one occurrence never applies a
 series-wide calendar change.
 See [meeting lifecycle](../../skills/chief-of-staff/references/meeting-lifecycle.md).
 

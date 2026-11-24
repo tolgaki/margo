@@ -42,9 +42,9 @@ What each outcome means to the guard (`guard.py` lines around `self.transport.ca
 | no answer in time | `unknown`, claim `outcome_unknown` | `TransportTimeoutException` |
 | HTTP error, JSON-RPC error, tool error, not-an-answer, unreachable before sending | reads: `error`; writes: `failed` only for a status in `REJECTED_NO_EFFECT`, else `unknown` | `TransportException` (`StatusCode` = HTTP or tool status, else `null`) |
 | anything else | `unknown`, "transport failure; effect unknown, not retried" | any other exception |
-| caller cancelled | (no Python equivalent) | `OperationCanceledException` |
+| caller canceled | (no Python equivalent) | `OperationCanceledException` |
 
-## Behaviour reproduced
+## Behavior reproduced
 
 - **Requests.** JSON-RPC 2.0 POSTs with keys in Python's order: `initialize` (`protocolVersion`,
   `capabilities: {}`, `clientInfo`), `notifications/initialized` (no id), `tools/call`
@@ -56,7 +56,7 @@ What each outcome means to the guard (`guard.py` lines around `self.transport.ca
   `Connection: close` on HTTP/1.1 only; the port now does that only for writes (deviation 10). Bodies are
   ASCII-only, as `json.dumps(ensure_ascii=True)`.
 - **Sessions.** One per SHA-256 of the bearer token, in a bounded cache (deviation 12). The cache is checked under the lock, the
-  handshake runs outside it (two concurrent first calls may both initialise; the last one stored wins, as
+  handshake runs outside it (two concurrent first calls may both initialize; the last one stored wins, as
   in Python). `initialize` answered with a JSON-RPC `error` is "Work IQ refused the MCP session". The
   session id is the last `Mcp-Session-Id` response header; an empty one counts as none. The protocol
   version is `(result or {}).get("protocolVersion", "2025-06-18")`, rendered as http.client renders a header
@@ -80,7 +80,7 @@ What each outcome means to the guard (`guard.py` lines around `self.transport.ca
   the SSE event is skipped, or the content text becomes `{"text": ...}`; the same bound keeps `BigInteger`
   parsing of server-sent numbers cheap. A lone surrogate character inside a JSON string (possible in a text
   item that came from a `\ud800` escape) survives, as it does when Python parses a `str`.
-- **Normalisation.** A non-object `result` is "malformed tool result". An object `structuredContent` is the
+- **Normalization.** A non-object `result` is "malformed tool result". An object `structuredContent` is the
   payload; otherwise text items (`type == "text"` and a string `text`) are joined with `\n` and parsed: an
   object is the payload, any other JSON value becomes `{"value": ...}`, non-JSON becomes `{"text": ...}`, no
   text gives `{}`. A `content` that is a string or an object yields no items; `null`, numbers and booleans
@@ -116,12 +116,12 @@ unknown outcome. Reads share pooled connections (deviation 10).
 
 ## Deliberate deviations
 
-1. **Async with cancellation.** `CallAsync` takes a `CancellationToken`. Cancelling throws
+1. **Async with cancellation.** `CallAsync` takes a `CancellationToken`. Canceling throws
    `OperationCanceledException`, never a timeout. Python has no equivalent; once a request may have been
    sent, its effect is unknown (see open questions for the guard).
 2. **Timeout before the response headers.** Connect, send and the wait for headers share one timeout;
    Python applies the timeout to each of those socket operations separately, so its worst case before the
-   headers is a few multiples of the timeout. After the headers the behaviour is the same (per read).
+   headers is a few multiples of the timeout. After the headers the behavior is the same (per read).
 3. **Timeout validation.** A zero, negative or longer-than-24.8-day timeout is refused at construction
    (`ArgumentOutOfRangeException`). Python accepts any value and fails each call instead (`ValueError` for
    negative, "unreachable" for zero). `Timeout.InfiniteTimeSpan` is Python's `timeout=None`.
@@ -155,7 +155,7 @@ unknown outcome. Reads share pooled connections (deviation 10).
    takes it as the final response (`Work IQ HTTP 1xx`). A backslash in an `https://` authority is a path
    separator to `Uri` but part of the host name to urllib (which then fails to resolve it).
 
-10. **Reads reuse connections; writes do not (review, 23 Nov 2026).** Python opened a TCP and TLS connection for
+10. **Reads reuse connections; writes do not (review, Nov 23, 2026).** Python opened a TCP and TLS connection for
     every request (up to 40 calls a turn, plus handshakes). Calls of `McpTransportOptions.PooledTools` (default
     `ReadTools`: `fetch`, `fetch_blob`, `call_function`, `ask`, `retrieve`, `list_agents`, `get_schema`,
     `search_paths`; a Guard test keeps the list equal to the guard's read tools) now go through a pooling handler:
@@ -197,7 +197,7 @@ unknown outcome. Reads share pooled connections (deviation 10).
   The SDK owns session negotiation, reconnection and its own error types, so it cannot reproduce what the
   guard relies on: exactly one resend and only after a 404 for a known session id, one session per bearer
   token with the token chosen per call, no redirects, the precise before/after-send error classification and
-  the Python normalisation of tool results. No package was added.
+  the Python normalization of tool results. No package was added.
 - **`guard.WORKIQ_RESOURCE`** (the token audience). The transport does not use it; it stays with the guard or
   host port.
 - **The guard's own tests** (the former Python guard tests) use a fake transport and belong to the Guard
@@ -212,7 +212,7 @@ unknown outcome. Reads share pooled connections (deviation 10).
   reused connection, gzip answers, the response bound (declared, chunked and compressed bodies; exact at the
   limit), the session cache (capacity, least recently used, idle time with a manual clock, 404 races, `Dispose`).
 - `TransportTests`: the Python `TransportTests` (https rule, JSON and SSE handshake, session per token,
-  expired session re-initialised once, 503 / tool error / timeout mapping) and `RedirectTests`, against a
+  expired session re-initialized once, 503 / tool error / timeout mapping) and `RedirectTests`, against a
   real loopback HTTP server (`LoopbackHttpServer`, `FakeMcpServer`: the Python `_McpHandler` with extra
   modes), plus request shapes and headers, version handling, refused and failed sessions, notification
   failures, id sequence, concurrency, detachment, user info in the URL, and the failure classification
@@ -234,7 +234,7 @@ cd cloud && dotnet test --project tests/Margo.Cloud.WorkIQ.Tests/Margo.Cloud.Wor
 ```
 
 Not verified: anything against the real Work IQ endpoint, TLS or a proxy (all tests are loopback or
-in-process), so neither HTTP/2 negotiation nor the endpoint's idle-connection behaviour (deviation 10) has been
+in-process), so neither HTTP/2 negotiation nor the endpoint's idle-connection behavior (deviation 10) has been
 seen live; and Python 3.12 (the image's version); the Python checks ran on 3.13.
 
 ## Open questions
@@ -250,7 +250,7 @@ seen live; and Python 3.12 (the image's version); the Python checks ran on 3.13.
    (booleans count, `200.0` does not) on the payload. `PythonJson` here is internal; the Guard port can
    either get it made public here or use `Margo.Cloud.State.Core`'s `PyJson` if it offers the same.
 4. **Client identity.** `clientInfo` stays `margo-autopilot` `0.1.0` (and the User-Agent follows it). The cloud
-   may want its own name; that is a behaviour change for both implementations.
+   may want its own name; that is a behavior change for both implementations.
 5. **Constructor overloads.** `new TransportException(message, null)` is ambiguous between the
    `(string, Exception)` and `(string, int?, Exception?)` overloads; a caller passing a null status must name it
    (`statusCode: null`). Left as is so the public surface does not change under the Guard port.

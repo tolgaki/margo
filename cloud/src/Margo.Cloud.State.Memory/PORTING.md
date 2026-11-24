@@ -1,9 +1,9 @@
 # Margo.Cloud.State.Memory: porting notes
 
 Ports `skills/chief-of-staff/scripts/memory_store.py` (complete), `memory_governance.py` (complete) and the observable
-behaviour of `memory_encoder.py` in Margo Cloud, where local embeddings are never available (no ONNX model, no
+behavior of `memory_encoder.py` in Margo Cloud, where local embeddings are never available (no ONNX model, no
 `onnxruntime`/`tokenizers`, no private interpreter is ever run, nothing is downloaded). These are libraries: the
-`memory_state.py` CLI that calls them is a later port (MemoryCommands). Reference behaviour is CPython 3.13, as for
+`memory_state.py` CLI that calls them is a later port (MemoryCommands). Reference behavior is CPython 3.13, as for
 `Margo.Cloud.State.Core`; `tools/state_parity.py` judges the libraries through the `memory_probe.py` probe pair.
 
 ## What maps to what
@@ -90,7 +90,7 @@ State.Core, and `MemoryUnicodeData` with its generator became State.Core's `PyUn
 `StateStore.ValidateTimestamp` raises the timestamp `StateError` for a list or dict itself (review finding 1).
 What stays here:
 
-| Python behaviour | C# | Note |
+| Python behavior | C# | Note |
 | --- | --- | --- |
 | the regular expressions of memory_store.py and memory_governance.py (`\w`, `\s`, `\b`, `(?i)` over code points) | `PyPatterns` | matched by hand on State.Core's Unicode 15.1 tables; .NET's `Regex` classes differ |
 | `os.stat` device/inode/nanosecond times, `os.fstat`, buffered `read` | `MemoryNative`, `PyFileStat` | State.Core's `PyStat` has mode/uid/nlink/size only |
@@ -173,7 +173,7 @@ subprocess and inference tests belong to the paths not ported (below).
   `record_usage(**input)`: State.Core's `PyCall` has them, and `PyArg` lets it pass "omitted" versus `None` exactly.
 - `_resolve_work_sources` given a reference written as pairs with a key that is not a string raises the `StateError`
   "value must contain finite JSON data" once every pair is read (a `JsonObject` cannot hold the key); Python goes on
-  and fails later (`KeyError: 'ref'`, or a dependency `StateError`). Python's callers pass normalised references.
+  and fails later (`KeyError: 'ref'`, or a dependency `StateError`). Python's callers pass normalized references.
 - Python's `_resolve_work_sources` and `_work_sources_current` read the Work ledger's `work_sources` and
   `work_source_revisions` tables when they exist; the scenarios create minimal fixture tables. A cross-component
   scenario with the real Work schema belongs to the integration owner.
@@ -192,7 +192,7 @@ entry point with arguments of every JSON type). Fixed, each with a scenario that
    consolidation State.Core's `StateStore.ValidateTimestamp` does this itself and the wrapper is gone.
 2. **A file source path containing NUL** made eligibility, health and export fail with `ValueError: embedded null
    byte`; `os.stat` says `stat: embedded null character in path` (after encoding, so a lone surrogate still raises
-   `UnicodeEncodeError` first). Model input can store such a reference (normalisation does not stat it), and
+   `UnicodeEncodeError` first). Model input can store such a reference (normalization does not stat it), and
    memory_state.py prints `ValueError` texts (`review_file_source_nul`).
 3. **`DreamSources.SourceKeys`** raised `TypeError` for a non-string `ref` (Python: `parse_json`'s `StateError("invalid
    JSON")`) and `'str'/'dict' object is not subscriptable` for string or dict identities (Python: `IndexError`/
@@ -215,4 +215,4 @@ including database rows, matched.
   runs the judge.
 - `python3 tools/state_parity.py --check --filter memory/`: 39 scenarios passed (34 + 4 from the review + 1 from the state
   consolidation, `consolidation_dict_pairs.json`, which fails on the build before it).
-- Model-dependent behaviour is out of scope: these are state-library contracts, not model evaluations.
+- Model-dependent behavior is out of scope: these are state-library contracts, not model evaluations.

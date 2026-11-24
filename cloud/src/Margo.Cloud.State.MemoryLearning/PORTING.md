@@ -4,7 +4,7 @@ Ports `skills/chief-of-staff/scripts/memory_learning.py` and `memory_consolidati
 without a command line: `memory_state.py` (the MemoryCommands port) calls them for `capabilities`,
 `validate-capability`, `propose-lesson`, `activate-lesson`, `trend-definition`, `trend`, `preferences-preview`,
 `preferences-import`, `consolidate` and `record-consolidation`, and `memory_consolidation.py` imports `_data`, `_digest`
-and `_file` from `memory_learning.py`. (`memory_dream.py` imports neither.) Reference behaviour is CPython 3.13, as for
+and `_file` from `memory_learning.py`. (`memory_dream.py` imports neither.) Reference behavior is CPython 3.13, as for
 `Margo.Cloud.State.Core`; `tools/state_parity.py` judges both libraries through the `memory_learning_probe.py` probe
 pair. Nothing here reaches the network, executes a stored recipe or invokes a tool.
 
@@ -150,7 +150,7 @@ the oversized-file half is `Preference_preview_of_an_oversized_file_changes_noth
   should `_input_contract` iterate extra keys in a defined order upstream?
 - `memory_state.py` passes `args.skills_dir`/`args.tools` straight through; an empty `--tools ""` is a path to the
   working directory in both implementations ("observation file is unavailable"), not a missing option. Kept.
-- Security note for the hosted command (behaviour kept, Python is the specification): a synthetic fixture's `path`
+- Security note for the hosted command (behavior kept, Python is the specification): a synthetic fixture's `path`
   comes from model JSON and may name any local file. The refusals tell apart a missing or unreadable file ("observation
   file is unavailable"), a readable file with another hash ("observation file revision changed") and a matching file
   that is not a fixture, so a model can test whether a path exists and whether it has a given SHA-256. The MemoryCommands
@@ -167,10 +167,10 @@ the oversized-file half is `Preference_preview_of_an_oversized_file_changes_noth
   float/int bounds (1600 calls); mutated trends with duplicate and contradictory reports, big populations, partial
   coverage, configured definitions, then consolidation pages and delivery (20 programs); tool inventories, synthetic
   validations, lessons, activation, inventory refreshes and consolidation (66 programs); preference files near the
-  1500 code-point chunk budget with imports and replays (39 programs). The only behavioural difference found was the
+  1500 code-point chunk budget with imports and replays (39 programs). The only behavioral difference found was the
   prior-event key handling in `trend` (fixed, deviation 5); the `_trend_evidence` message order is deviation 6.
 - Differential fuzzing during the port (not committed): 4800 random pure-helper calls (`_input_contract`,
   `classify_error`, `_preference_sections`, `_definition`, `_refs`, `_conditional`), and mutated trend, manifest,
   definition, environment, lesson and consolidation programs on real stores (about 1100 stateful calls); all outputs and
   final states matched.
-- Model-dependent behaviour is out of scope: these are state-library contracts, not model evaluations.
+- Model-dependent behavior is out of scope: these are state-library contracts, not model evaluations.

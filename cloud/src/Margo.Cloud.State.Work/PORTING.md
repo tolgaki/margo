@@ -1,7 +1,7 @@
 # Margo.Cloud.State.Work: porting notes
 
 Ports `skills/chief-of-staff/scripts/work_ledger.py`, `work_productivity.py` and `work_state.py` (the work ledger,
-the typed productivity records and the CLI action desk). Reference behaviour is CPython 3.13 (as for
+the typed productivity records and the CLI action desk). Reference behavior is CPython 3.13 (as for
 `Margo.Cloud.State.Core`); `tools/state_parity.py` judges the CLI and the library byte for byte.
 
 ## What maps to what
@@ -108,7 +108,7 @@ cases belong to those ports (the ledger calls they make are covered by `library_
 ## Deliberate deviations (and why)
 
 1. **Hash-order-dependent messages.** Where Python's message depends on the slots of *strings* in a `set`
-   (string hashes are randomised per process), C# picks a fixed order: several drifted tables report the first
+   (string hashes are randomized per process), C# picks a fixed order: several drifted tables report the first
    in sorted order ("work schema contract mismatch: ..."). For a `patch` given as a list of pairs with `None`,
    bool, int or float keys, `_item_data`'s `", ".join(sorted(set(data) - allowed))` text is reproduced from
    CPython's own algorithms (`PySortedKeys`: those hashes do not depend on `PYTHONHASHSEED`); the remaining
@@ -177,4 +177,4 @@ Before the consolidation:
   after the review (1955 before; the 603 new ones are `SortedKeyTests`; `ParityTests` runs the judge as well).
 - `python3 tools/state_parity.py --check`: 26 scenarios (8 core, 18 work) passed.
 - `python3 -m unittest discover -s tests -p 'test_*.py'`: 518 tests OK (4 skipped); `./tools/check-clean.sh`: clean.
-- Model-dependent behaviour is out of scope: these are state-command contracts, not model evaluations.
+- Model-dependent behavior is out of scope: these are state-command contracts, not model evaluations.

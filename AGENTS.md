@@ -56,11 +56,11 @@ Margo is a Work IQ reference implementation, not a standalone hosted assistant. 
 - The C# state commands (`margo-state`) must stay byte-compatible with the desktop helpers in
   `skills/chief-of-staff/scripts/`: same commands, exit codes, stdout bytes, files and SQLite rows.
   `tools/state_parity.py` judges it. A change to a desktop helper ships with the matching C# change
-  and parity scenarios in the same commit. The judge pins CPython 3.13 behaviour; run it on 3.13.
+  and parity scenarios in the same commit. The judge pins CPython 3.13 behavior; run it on 3.13.
 - In `cloud/`, follow its conventions: warnings are errors, central package versions, one owner per
   project (`PORTING.md` records mappings and deliberate deviations). The hosted modules' recorded
   Python answers and frozen fixtures are regression baselines: change them only for a reviewed,
-  deliberate behaviour change, never to make a failing test pass.
+  deliberate behavior change, never to make a failing test pass.
 - Release builds never contain the contract probes (`Margo.Cloud.State.Probes`).
 - Make one complete vertical slice. Update its feature catalog entry, user guide, router
   and executable scenario together. Explain limitations and recovery, not just syntax.

@@ -8,7 +8,7 @@ Work IQ actions and records their actual results.
 
 Start with the [user journey](user-guide.md#5-make-the-work-survive-the-next-session) for the
 user-facing flow, the [how-to index](how-to/README.md) for step-by-step recipes, or the
-[feature reference](features.md) for implemented behaviour and limits. Developers can follow
+[feature reference](features.md) for implemented behavior and limits. Developers can follow
 the same path through the [state-ownership map](development/architecture.md).
 
 ## One thread, several distinct decisions
@@ -40,7 +40,7 @@ Python 3.9+ is required. From a reviewed checkout:
 
 For an unversioned installation, use that normal install rather than `update`. Do not use
 `--force` to repair missing metadata: that option also overwrites personal files. Back up existing
-code and state, pause affected schedules, and review managed-file customisations first.
+code and state, pause affected schedules, and review managed-file customizations first.
 
 The installer records the version, source revision when available, and managed-file hashes.
 The private runtime directory is not removed on uninstall. Legacy state stays intact until an
@@ -57,7 +57,7 @@ The action-desk canvas is opt-in:
 ```
 
 Reload Copilot extensions after installing it. The reference checkout also declares the project
-canvas. It uses the same CLI backend and private records, not a browser database. Customised
+canvas. It uses the same CLI backend and private records, not a browser database. Customized
 renderer files are preserved rather than overwritten silently.
 
 ## Setup and migration
@@ -108,7 +108,7 @@ An OAuth failure blocks the live bootstrap until the Work IQ connection is signe
 An unsupported or denied source is not an empty one. Source coverage is recorded separately
 from scheduler success, and a local scheduler cannot report while its machine is asleep.
 
-Use synthetic fixtures before enabling new behaviour, then review-only operation, then one
+Use synthetic fixtures before enabling new behavior, then review-only operation, then one
 specifically approved action. Retain the current database on rollback; restarting a legacy writer
 or blindly restoring an old snapshot could lose the intervening history.
 

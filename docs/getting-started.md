@@ -341,8 +341,8 @@ or scopes to bypass a policy denial.
 | Scheduled runs repeat themselves | State ledger reset | Run `proactive_state.py status`; check for `WARNING` output |
 | Installer says "unidentified developer" | Build may be unsigned | Confirm the release source and follow your organization's software policy; use a reviewed source checkout if appropriate |
 | Windows SmartScreen warning | Build may be unsigned or unrecognized | Confirm the release source and follow your organization's software policy rather than treating the warning as a setup step |
-| Reinstall didn't pick up a change | Preserved personal file or customised prompt | Review and reconcile the diff. `--force` also replaces personal files; do not use it merely to update a prompt |
-| State commands say setup required | No explicit account configured | Initialise the confirmed owner with `margo_store.py init`; this is separate from OAuth |
+| Reinstall didn't pick up a change | Preserved personal file or customized prompt | Review and reconcile the diff. `--force` also replaces personal files; do not use it merely to update a prompt |
+| State commands say setup required | No explicit account configured | Initialize the confirmed owner with `margo_store.py init`; this is separate from OAuth |
 | App prompts did not change after copying | Workflow store is separate from installed files | Ask to sync the reviewed automation files to existing workflows |
 | Canvas edits fail after a source changed | Revision or fingerprint is stale | Reload, revalidate sources, and prepare a new proposal; do not reuse old approval |
 

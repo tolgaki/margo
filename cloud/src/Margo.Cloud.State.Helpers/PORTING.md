@@ -8,7 +8,7 @@ Ports the three stateless helpers in `skills/chief-of-staff/scripts/`:
 
 They touch no Margo state: no `--account`/`--state-dir` (the judge's `STATEFUL` set and
 `statecmd.STATEFUL` leave them out, and `statecmd.COMMANDS` classifies them as `READ: {None}`, a
-script without subcommands). Reference behaviour is CPython 3.13 (measured on 3.13.16), as for
+script without subcommands). Reference behavior is CPython 3.13 (measured on 3.13.16), as for
 `Margo.Cloud.State.Core`.
 
 No other script imports these modules, so the public API below exists for the hosted engine and
@@ -111,7 +111,7 @@ Unicode-table semantics explicit (`.NET` regex sees UTF-16 units and Unicode 16 
   - errors raised after the scan (`Extra data`, the BOM check) are at level 0 and unaffected.
 
   The first of these in document order wins (`json_recursion_budget.json`, `JsonRecursionBudgetTests`). This
-  port's `PyJsonLoad` modelled these rules by re-walking the valid prefix after `PyJson.Loads`; the state
+  port's `PyJsonLoad` modeled these rules by re-walking the valid prefix after `PyJson.Loads`; the state
   consolidation built them into State.Core's decoder, which also gets the `RecursionError` text right where a
   Python frame (not a C call) runs out ("maximum recursion depth exceeded" without "while calling a Python
   object" two and one levels below the limit).
@@ -150,7 +150,7 @@ the following, each now covered by a test that failed before the fix:
 - `PyJsonLoad` counted the fraction and exponent digits of a float (`1e000...`, `0.000...1`) as an
   over-long int literal, so a document with such a float, then a too-deep container, then an
   over-long int raised `ValueError` where CPython raises `RecursionError`.
-- Near the nesting limit the port modelled only the container limit (and capacity.py and
+- Near the nesting limit the port modeled only the container limit (and capacity.py and
   engage_parse.py did not use `PyJsonLoad` at all). CPython also raises `RecursionError` for
   `NaN`/`Infinity` at the limit, for decode errors built in C within four levels of it (capacity.py
   printed `ERROR: ...` and exit 2, engage_parse.py salvaged the blob, teams_feedback.py reported the
@@ -183,7 +183,7 @@ extra exception classes moved to State.Core; `PyIO.ReadText` reads `margo-state`
 | `capacity_python_tests.json` | every case of `tests/test_capacity.py`, through the command line |
 | `capacity_reports.json` | warnings, merged/clipped intervals across offsets, focus threshold, int versus float effort, big ints, `-0.0`, microsecond intervals and compensated sums, spans past 2**53 microseconds, `fromisoformat` forms, `ensure_ascii` ids, duplicate keys |
 | `capacity_errors.json` | every refusal message, JSON errors (BOM, digit limit, nesting), uncaught `OverflowError`s |
-| `capacity_cli.json` | help (COLUMNS), argparse errors, `--input=-`, abbreviations, pathlib-normalised file errors, universal newlines, BOM, invalid and truncated UTF-8, empty files |
+| `capacity_cli.json` | help (COLUMNS), argparse errors, `--input=-`, abbreviations, pathlib-normalized file errors, universal newlines, BOM, invalid and truncated UTF-8, empty files |
 | `teams_feedback_triage.json` | statuses, replies inline and separate, dedupe by newest copy, dropped messages, `--since`, both views |
 | `teams_feedback_problems.json` | unreadable files, HTTP errors per page, missing value arrays, partial output and exit 1, undecodable path bytes |
 | `teams_feedback_types.json` | untrusted JSON types throughout, equal keys across types, NaN, lone surrogates |

@@ -46,7 +46,7 @@ As in Python, each step failing closed: the first message within 15 s must be te
 timeout is the generic failure); the token is verified; Margo's agentic token for Work IQ is requested (empty is the
 generic failure "no agent token"), then the manager's OBO token under `obo`; the manager is looked up with Margo's token
 and must be the caller (no manager, or another person, is a refused sign-in); the state lease's ledger and
-memory/task state are initialised once per account per service; then the guard (budget 120, the instance's principal
+memory/task state are initialized once per account per service; then the guard (budget 120, the instance's principal
 access, the orchestrator's guard recorder), the skill library with the manager's preferences, the office reader and
 `margo-state` (budget 60) back the engine's own dispatcher (`Engine.DispatchAsync`, attended); the instructions are
 `EngineTools.LoadInstructions(repo, engine time zone, library)` + `"\n\n"` + the addendum; the tools are
@@ -56,7 +56,7 @@ The page and Voice Live are pumped concurrently until either ends, the person se
 passes; then `{"type": "closed", "reason": "time limit reached" | "call ended"}` if the page is still open, and the
 Voice Live session is closed. An error in either loop (a dispatch that throws, an unhashable tool name, a Voice Live
 message that is not a JSON object, a send to a closed socket) ends the call quietly, as Python never read the
-cancelled tasks' outcome. A refused sign-in sends `{"type": "error", "fatal": true, "message": "Your sign-in can't be
+canceled tasks' outcome. A refused sign-in sends `{"type": "error", "fatal": true, "message": "Your sign-in can't be
 used to talk to this Margo."}` and logs `voice sign-in refused: <reason>` (information); anything else sends "Something
 failed on my side, so the call ended. Nothing was sent." and logs `voice session failed` (error, with the exception).
 Nothing is sent on a closed socket. No token, audio, transcript or text is logged or stored.
@@ -114,8 +114,8 @@ JSON) would need its source and a capture, and the hand-written client is checke
 
 ## Sockets
 
-`MessageSocket` gives a .NET `WebSocket` aiohttp's behaviour as the server uses it: a reader task queues whole
-messages, so waiting with a timeout (the hello) or stopping (the end of the call) never aborts the socket (cancelling a
+`MessageSocket` gives a .NET `WebSocket` aiohttp's behavior as the server uses it: a reader task queues whole
+messages, so waiting with a timeout (the hello) or stopping (the end of the call) never aborts the socket (canceling a
 .NET receive does); a message whose size reaches the limit closes with 1009 and a non-UTF-8 text message with 1007; a
 peer close is answered with 1000; once closing has started receives return "closed" and sends fail; one sender at a
 time (Python's single-threaded loop made concurrent sends safe; here both pumps may send). As aiohttp's
@@ -141,22 +141,22 @@ with `KeepAliveInterval` 20 s and `KeepAliveTimeout` 10 s (aiohttp `heartbeat=20
    ended with the generic failure; here such a call simply has no practical time limit.
 7. **The NFKC netloc check** of Python's `urlsplit` (`_checknetloc`: a non-ASCII host whose NFKC form contains `/?#@:`
    is a `ValueError`) is not reproduced: the solution builds with invariant globalization, where .NET has no NFKC
-   normalisation. `VOICE_LIVE_ENDPOINT` is operator configuration; such a host fails at DNS resolution instead.
+   normalization. `VOICE_LIVE_ENDPOINT` is operator configuration; such a host fails at DNS resolution instead.
 5. **EC/OKP keys in the key set** are accepted by key type only; PyJWT also validates their coordinates and skips an
    invalid one. Either way such a key never verifies an RS256 token (Entra publishes RSA keys only); the difference is
    the generic failure versus a refused sign-in.
-6. **Cancellation**: when the call ends, the loops' pending work is cancelled through a `CancellationToken` (a running
+6. **Cancellation**: when the call ends, the loops' pending work is canceled through a `CancellationToken` (a running
    tool call may finish in the background, as Python's thread did); the hello wait and the pumps never cancel a socket
    receive.
 
-## Separate voice sign-in app (21 Nov 2026)
+## Separate voice sign-in app (Nov 21, 2026)
 
 Agent blueprints refuse redirect URIs (`PropertyNotCompatibleWithAgenticApplication`), so the page cannot sign in as
 the blueprint, as `voice/server.py` assumed. `VoiceServiceOptions.PageClientId` (Host: `MARGO_VOICE_CLIENT_ID`) names a
 single-page-app registration the page signs in with; `/voice/config` returns it as `clientId`. Unset, the page signs in
 as the blueprint as before (which a blueprint cannot actually serve).
 
-**Own audience (23 Nov 2026, security review).** With a page app, the sign-in is for the page app's own scope,
+**Own audience (Nov 23, 2026, security review).** With a page app, the sign-in is for the page app's own scope,
 `api://<page app>/Voice.Talk`, and the token check's audience is the page app, not the blueprint. Until then the page
 asked for `api://<blueprint>/Voice.Talk`, so every person in the tenant could hold a token whose audience was the
 blueprint, which is what the platform presents at `/api/messages` (the Router and Host now refuse a person's token
@@ -166,11 +166,11 @@ handler. Order of the sign-in (review): verify the token, get Margo's own token,
 then exchange the manager's sign-in; Python exchanged before the manager check, so any tenant user's sign-in was
 exchanged for a Work IQ token before being refused.
 
-**No approval in Teams (23 Nov 2026, first live test).** The addendum's "When something needs approval, say exactly
+**No approval in Teams (Nov 23, 2026, first live test).** The addendum's "When something needs approval, say exactly
 what you would do and that the approval happens in Teams" sent the manager looking for an approval card that does not
 exist. It now says nothing is approved or sent, by voice or in chat, and that the manager sends the draft themselves.
 
-**Smaller tool results (23 Nov 2026).** A tool result given to the voice model is cut at `VoiceMaxOutputChars` (8,000
+**Smaller tool results (Nov 23, 2026).** A tool result given to the voice model is cut at `VoiceMaxOutputChars` (8,000
 characters), where a chat turn now allows 20,000 and Python allowed 40,000: spoken answers need less, and realtime input
 costs more. The guard gets the orchestrator's `FileHosts`.
 

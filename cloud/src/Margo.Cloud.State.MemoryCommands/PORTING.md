@@ -2,7 +2,7 @@
 
 Ports `skills/chief-of-staff/scripts/memory_dream.py` (complete) and `memory_state.py` (the CLI, all 47 subcommands)
 on top of the Memory, MemorySearch, MemoryLearning, Proactive and Tasks ports, using only their public APIs and
-State.Core's shared helpers. Reference behaviour is CPython 3.13 (3.13.16 here) with its C `zoneinfo` and the system
+State.Core's shared helpers. Reference behavior is CPython 3.13 (3.13.16 here) with its C `zoneinfo` and the system
 time zone database; `tools/state_parity.py` judges everything through `memory_state.py` and the
 `memory_commands_probe.py` probe pair (`cloud/contracts/state/memory-commands/`, 39 scenarios). Nothing here reaches the
 network, calls a model, discovers host history or invokes a tool.
@@ -14,7 +14,7 @@ network, calls a model, discovers host history or invokes a tool.
 | Python | C# |
 | --- | --- |
 | module docstring, `parser()` | `MemoryStateScript.Doc`, `Parser()` (same subcommands, options, defaults, choices, help strings and order; `--relation` choices are `sorted(RELATIONS)`) |
-| `load(path, maximum=None)` | `Load(path, stdin, maximum)`: stdin `read()` / `read(n)` (`PyIO.ReadText`), files `Path(path).open(encoding="utf-8").read()` (`PyIO.ReadTextFile` of the pathlib-normalised path) or `.read(n)` (`PyTextFile.Read`, below); the 100000-character Dream budget; `parse_json`; objects only |
+| `load(path, maximum=None)` | `Load(path, stdin, maximum)`: stdin `read()` / `read(n)` (`PyIO.ReadText`), files `Path(path).open(encoding="utf-8").read()` (`PyIO.ReadTextFile` of the pathlib-normalized path) or `.read(n)` (`PyTextFile.Read`, below); the 100000-character Dream budget; `parse_json`; objects only |
 | `main(argv)` | `Main(argv, stdin, stdout, stderr)`: `record-id` without storage, the read-only command set (and `trend-definition` without a truthy `--evidence`), `MemoryStore(..., migrate=, read_only=)`, `MemorySearch(..., rebuild_schema=)` for `init/migrate/status/search/context/graph/explain/index`, the dispatch with Python's argument evaluation order (for example `--evidence` is loaded before `--input` for `link`, after it everywhere else), `canonical_json` output, and the same `except (StateError, OSError, sqlite3.Error, ValueError, TypeError, KeyError)` mapping to `{"error", "command"[, "code": "not_initialized"]}` with exit 2; anything else (for example `memory_encoder.EmbeddingError`, a `RuntimeError`) escapes with exit 1 |
 | `memory.put(args.key, revision=args.revision, **load(...))` | `PyCall.MergeKeywords("memory_store.MemoryStore.put()", ...)` then `PyCall.Bind("MemoryStore.put", ...)`: CPython 3.13's "got multiple values for keyword argument", "got multiple values for argument", "unexpected keyword argument ... Did you mean" and "missing N required positional argument(s)" texts; an omitted `status` stays Python's default (`PyArg.Omitted`) while `"status": null` is an explicit `None` |
 | `memory.record_usage(**load(...))` | `PyCall.Bind("MemoryStore.record_usage", ...)`, then `MemoryStore.RecordUsage` with `outcome` omitted or explicit |
@@ -94,8 +94,8 @@ tests (`MemoryStateScript.Main`, `PyTextFile`).
 | Files | Cover |
 | --- | --- |
 | `cli_help`, `cli_argument_errors` | help of the root parser and every subcommand (also narrow and wide `COLUMNS`), argparse errors for every option kind, abbreviations |
-| `cli_storage_and_accounts`, `cli_migrate` | read commands never initialise (`not_initialized`), `record-id` without storage and account resolution, init/migrate replays, `MARGO_STATE_DIR`, a second account; a v1 schema refused until `migrate` |
-| `cli_input_loading` | `load()` for files (universal newlines, pathlib normalisation, BOM, undecodable bytes, duplicate keys, NaN, missing, directories, NUL) and stdin, `--input -` with `--evidence -`, the Dream `read(100001)` budget with chunk-relative decoding errors |
+| `cli_storage_and_accounts`, `cli_migrate` | read commands never initialize (`not_initialized`), `record-id` without storage and account resolution, init/migrate replays, `MARGO_STATE_DIR`, a second account; a v1 schema refused until `migrate` |
+| `cli_input_loading` | `load()` for files (universal newlines, pathlib normalization, BOM, undecodable bytes, duplicate keys, NaN, missing, directories, NUL) and stdin, `--input -` with `--evidence -`, the Dream `read(100001)` budget with chunk-relative decoding errors |
 | `cli_memory_lifecycle`, `cli_policy_usage_capture`, `cli_search_context_index`, `cli_review_regressions`, `cli_lexical_without_index` | every lifecycle, policy, usage, capture, search/context/graph/explain/index, link/unlink, forget, tombstone and maintain subcommand with its options and failures, the `**data` binding errors, a held writer transaction, missing and dropped semantic tables |
 | `cli_link_evidence_and_explain_options` | `link --evidence` (loaded before `--input`, both from stdin, empty, unreadable), `explain`'s `--budget-chars`, `--domain`, `--routine`, `--usage` and an empty `--environment` (added in review: these options had no scenario) |
 | `cli_learning_commands`, `cli_trends_and_preferences` | capabilities, validate-capability, propose/activate-lesson, export-preview/export, consolidate, record-consolidation, trend-definition, trend, preferences-preview/-import and the changed-preferences guard |
@@ -133,7 +133,7 @@ round trip and code-point substring matching of citation quotes.
 An independent review (differential scenarios over put/record-usage binding, revise/search/context/link loading
 order, every Dream validation path with malformed claims and citations, file and stdin loading edge cases, the daily
 window over unusual keys, cutoffs, days and DST transitions, and very large `--revision`/`--limit` values) found one
-behavioural difference, fixed with a failing-first scenario:
+behavioral difference, fixed with a failing-first scenario:
 
 1. `finish()` checked `citation["quote"] not in row["text"]` with an ordinal UTF-16 search, so a quote that is a lone
    surrogate (for example `"\ud83d"`, half of an emoji in the cited text) counted as present; Python refuses it with
@@ -155,7 +155,7 @@ scenario (`cli_link_evidence_and_explain_options`).
 4. **Damaged TZif files**: files in the system database are valid; for truncated or corrupt files with the TZif magic
    the port raises `ValueError`s whose texts (`unexpected end of file`, `... is not a valid TZ string`) can differ from
    CPython's `struct.error`/`AssertionError` texts. Only a hand-written file under `TZPATH` can do that.
-5. **The ZoneInfo cache** is not modelled (it is not observable: zone files do not change while a command runs).
+5. **The ZoneInfo cache** is not modeled (it is not observable: zone files do not change while a command runs).
 6. **Uncaught exceptions** (`OverflowError` at the limits of the datetime range, `EmbeddingError`) exit 1 with a
    traceback-shaped report; the judge compares the class (State.Core deviation 6).
 
@@ -165,7 +165,7 @@ scenario (`cli_link_evidence_and_explain_options`).
   project (probes live there by convention); `cloud/contracts/state/probes/memory_commands_probe.py`.
 - `cloud/tests/Margo.Cloud.State.Tests/ParityTests.cs`: the judge's time limit went from 15 to 40 minutes. With the
   37 memory-commands scenarios (about 2 minutes) the whole judge (219 scenarios) took about 17 minutes standalone on
-  this loaded 4-core runner, so the 15-minute limit cancelled a passing run. The judge itself is unchanged.
+  this loaded 4-core runner, so the 15-minute limit canceled a passing run. The judge itself is unchanged.
 - Documentation rows in `cloud/contracts/state/README.md`, `cloud/src/Margo.Cloud.State.Probes/PORTING.md` and
   `cloud/README.md`.
 
@@ -188,4 +188,4 @@ scenario (`cli_link_evidence_and_explain_options`).
 - `dotnet test --solution Margo.Cloud.slnx`: 5180 tests, 5179 passed, 1 skipped (the Engine's container-image check);
   the Engine's `Initialise_prepares_memory_and_task_state`, skipped until `memory_state.py` was ported, now runs.
 - `python3 -m unittest discover -s tests -p 'test_*.py'`: 520 tests OK (4 skipped); `./tools/check-clean.sh`: clean.
-- Model-dependent behaviour is out of scope: these are state-command contracts, not model evaluations.
+- Model-dependent behavior is out of scope: these are state-command contracts, not model evaluations.

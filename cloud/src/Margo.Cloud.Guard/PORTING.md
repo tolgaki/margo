@@ -59,14 +59,14 @@ specification; everything not listed under "Deliberate deviations" is meant to b
 | --- | --- |
 | `InstanceBinding.open_ledger(state_root)` | `InstanceLedger.OpenLedger(this InstanceBinding, string? stateRoot)`: `new Ledger(binding.Account, stateRoot)` through State.Work's public API |
 
-## Behaviour reproduced
+## Behavior reproduced
 
 - **Order of checks** in `CallAsync`, as in `call`/`_authorise`: run mode, arguments object, known tool, `on_data_of`,
   unexpected arguments (sorted by code point), third-party principal reads, claims on read tools, per-tool argument
   checks and paths (`MUST_BE_EMPTY` first), third-party writes, third-party read rule, the delegation rewrite and
   re-validation, the principal-chat post (JSON object body), unattended writes, the journal, then the claim checks
   (already used in this guard, account, approver, `on_data_of`, exact canonical call). Then budget, token, durable
-  dispatch, transport. Any other exception during authorisation is "malformed tool call", with a receipt.
+  dispatch, transport. Any other exception during authorization is "malformed tool call", with a receipt.
 - **Path policy** follows `_check_path` (plus the percent-encoding rule under "Privacy and hardening"): relative paths only, control characters, backslashes, encoded
   separators (`%2e`, `%2f`, `%5c`, `%00`, case-insensitive), Python `str.isspace` whitespace, empty/`.`/`..`
   segments, roots per subject, blocked segments at any depth, `/users/{id}` directory reads only, and under
@@ -121,9 +121,9 @@ specification; everything not listed under "Deliberate deviations" is meant to b
 ## Deliberate deviations
 
 1. **Async with cancellation.** `CallAsync` awaits `IWorkIQTransport.CallAsync`. Python has no cancellation:
-   - already cancelled on entry: `OperationCanceledException`, nothing charged, no token asked for, no receipt;
-   - cancelled by the caller's token while Work IQ is being called: the request may have been sent, so a claim is
-     settled `outcome_unknown` (never resent), an `unknown` receipt with reason "cancelled; effect unknown, not
+   - already canceled on entry: `OperationCanceledException`, nothing charged, no token asked for, no receipt;
+   - canceled by the caller's token while Work IQ is being called: the request may have been sent, so a claim is
+     settled `outcome_unknown` (never resent), an `unknown` receipt with reason "canceled; effect unknown, not
      retried" is recorded, and the exception is rethrown. This also covers a transport that stops before sending
      (the guard cannot tell), which errs on the side of reconciliation;
    - an `OperationCanceledException` not caused by the caller's token is Python's "any other exception":
@@ -158,9 +158,9 @@ specification; everything not listed under "Deliberate deviations" is meant to b
    a token that is not a three-segment JWS (opaque or encrypted) cannot be read and is sent as before. Margo's own
    token and delegated principal reads (Margo's token) are not checked. Tests: `TokenSubjectTests`.
 
-## Delegation-mode changes after the cutover (21 Nov 2026)
+## Delegation-mode changes after the cutover (Nov 21, 2026)
 
-Deliberate behaviour changes, decided by the owner after the first live delegation run; Margo Cloud now differs from the
+Deliberate behavior changes, decided by the owner after the first live delegation run; Margo Cloud now differs from the
 frozen Python `guard.py` here, and the affected answers in `Parity/guard_cases.json` were regenerated:
 
 1. **`self` reaches what is shared with Margo.** `Roots[self]` adds `teams`, `sites` and `drives`, so Margo's own token
@@ -172,9 +172,9 @@ frozen Python `guard.py` here, and the affected answers in `Parity/guard_cases.j
    (a principal path outside mail and calendar) name the `fetch` paths for the manager's mail and calendar and the `self`
    alternative, so the model retries correctly. Statuses are unchanged (`unavailable`); 62 recorded reasons changed text.
 
-## Privacy and hardening (review, 23 Nov 2026)
+## Privacy and hardening (review, Nov 23, 2026)
 
-Deliberate behaviour changes after a security and privacy review; Margo Cloud differs from the frozen Python `guard.py`
+Deliberate behavior changes after a security and privacy review; Margo Cloud differs from the frozen Python `guard.py`
 in each. Tests: `HardeningTests` (every case fails without its fix, except the concurrency test, which confirms).
 
 1. **Percent-encoding cannot disguise a path segment.** Python refused only `%2e`, `%2f`, `%5c` and `%00`, so
@@ -192,7 +192,7 @@ in each. Tests: `HardeningTests` (every case fails without its fix, except the c
    port, escape or non-ASCII in the host and no control characters, whitespace or backslashes anywhere; at most
    `MaxFileUrls` (20) links of at most `MaxPath` characters. Path, query and fragment stay free (`?web=1`, `?d=`,
    `?csf=1`). Refusal: `GuardPolicy.ForeignFileUrl`. `WorkIQGuard.FileHosts` (init-only, default null) replaces the
-   suffix rule with an exact host list: the way to pin links to the organisation's own hosts, and to serve a cloud with
+   suffix rule with an exact host list: the way to pin links to the organization's own hosts, and to serve a cloud with
    other suffixes. The eleven recorded cases with `https://contoso.example.com/d` are unchanged: `GuardParityTests`
    pins `FileHosts` to that fictional host; the default rule is covered by `HardeningTests`.
    Residual risk: without `FileHosts`, another tenant's SharePoint host is accepted.
@@ -213,7 +213,7 @@ in each. Tests: `HardeningTests` (every case fails without its fix, except the c
    - `Parity/guard_cases.json`: 256 recorded cases changed, strings only (199 receipt `paths`, 56 `reason`s in receipt
      and response, one receipt `on_data_of`); no status, sent call, token request or journal interaction changed. The
      new values were produced by the C# guard and substituted in place, object by object, by a script that asserted
-     only those three fields differ; the file was not re-serialised (256 lines differ).
+     only those three fields differ; the file was not re-serialized (256 lines differ).
 4. **An oversized answer.** `Margo.Cloud.WorkIQ` now bounds the response body (`TransportResponseTooLargeException`).
    A read gets `error` with `WorkIQGuard.ResponseTooLarge` (ask for less); a write stays `unknown`, as any transport
    error without a status code does.
@@ -302,10 +302,10 @@ version; the fixture was recorded on 3.13). These are policy and contract tests,
    `binding.Account`; `InstanceLedger.OpenLedger` here does exactly that and can be what they call.
 3. **`PyDynamic`** (used for Python value rules on claims and arguments) still lives in `Margo.Cloud.State.Work`;
    if it moves to State.Core, only the `using` changes here.
-4. **Hosted writes** (resolved 23 Nov 2026, below): model turns still get a guard without a journal; the approved
+4. **Hosted writes** (resolved Nov 23, 2026, below): model turns still get a guard without a journal; the approved
    action runs through a guard with the `LedgerClaimJournal`, whose ledger the decision owns for that one call.
 
-## Approval cards (23 Nov 2026)
+## Approval cards (Nov 23, 2026)
 
 - `DelegableWrites` (`sendmail`): under delegation an approved `/me/sendMail` is rewritten to
   `/users/{manager}/sendMail`, for write tools only; reads of that path stay unavailable. Deliberate deviation: the
@@ -324,5 +324,5 @@ port; the C# code is now the implementation of record, and the desktop state hel
 
 - `Parity/guard_cases.json` is frozen: `guard_cases.py --check` passed just before the cutover, and the script and
   `Fixture_is_current_with_guard_py` were removed with `guard.py`. The 1709 replayed scenarios remain the guard's
-  regression baseline; a deliberate change to the guard's behaviour now edits the fixture by hand, with review
-  (never by re-serialising the file: one case per line, edit only the lines that change).
+  regression baseline; a deliberate change to the guard's behavior now edits the fixture by hand, with review
+  (never by re-serializing the file: one case per line, edit only the lines that change).

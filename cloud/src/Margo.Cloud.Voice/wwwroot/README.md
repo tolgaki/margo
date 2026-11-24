@@ -48,7 +48,7 @@ Client to server:
 
 Server to client:
 
-| Message | Page behaviour |
+| Message | Page behavior |
 | --- | --- |
 | `{"type":"ready","disclosure":"...","voice":"..."}` | Starts sending audio; shows the disclosure and voice name under the static disclosure. |
 | `{"type":"audio","audio":"<base64>"}` | PCM16 24 kHz, converted and queued on the player. Malformed frames are skipped. |

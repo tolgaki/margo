@@ -44,7 +44,7 @@ anything merely because this document mentions one.
 
 ### Example task contract
 
-**Outcome:** a user cancelling a task with an in-flight effect can see that future work stopped,
+**Outcome:** a user canceling a task with an in-flight effect can see that future work stopped,
 but the earlier effect still needs reconciliation. **Non-goal:** change approval or retry rules.
 Trace the existing task feature before editing. If its core state is already correct, keep the
 change in the procedure, user guide or rendering layer; do not add another status representation.

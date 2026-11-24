@@ -25,7 +25,7 @@ assignees: ''
 
 ## Where it lives
 
-- [ ] Agent file (`agents/margo.agent.md`) — wrong voice or persona behaviour
+- [ ] Agent file (`agents/margo.agent.md`) — wrong voice or persona behavior
 - [ ] Skill procedure (`skills/*/SKILL.md` or `references/`) — wrong steps or output
 - [ ] Script (`skills/chief-of-staff/scripts/`) — crash, wrong output, silent failure
 - [ ] Documentation (`docs/`) — inaccurate or out of date

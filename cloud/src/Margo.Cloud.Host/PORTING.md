@@ -78,7 +78,7 @@ unavoidable, both made in code (`MargoHost.SdkConfigurationAdaptations`), not in
    into the handler's `IList<string> Scopes` (it stays null; the test shows it); the host adds the same value as
    `...:Scopes:0`. These scopes are used only when the SDK signs Margo in for the route; every Work IQ token is asked for
    with the Work IQ scope explicitly.
-2. **`AgentApplication:NormalizeMentions` defaults to `false`** (unless set). The .NET SDK normalises every mention in
+2. **`AgentApplication:NormalizeMentions` defaults to `false`** (unless set). The .NET SDK normalizes every mention in
    message text by default; Python only removed the recipient's mention, which `RemoveRecipientMention` (on in both)
    still does. The text matters: it is the command (`/voice`, `/replies`) and part of a derived message ID.
 
@@ -113,7 +113,7 @@ and `SCOPES__0` changed the Python `AgentAuthConfiguration` but not what it acce
 1. **202 before the turn.** The .NET `CloudAdapter` queues an ordinary (non-invoke, non-`expectReplies`) activity on its
    background service and answers 202 at once; Python's adapter ran the turn before answering. The router therefore no
    longer waits for a turn (its 300 s limit never applies); everything else (one turn per activity, the state lease) is
-   unchanged. A turn still running when the process stops is cancelled through the turn's token; its state is not saved
+   unchanged. A turn still running when the process stops is canceled through the turn's token; its state is not saved
    (StateSync removes the marker) and the next turn reinstalls the shared bundle.
 2. **Route order.** Python registered the message route first, so mail arriving as a `message` on `agents:email` was a
    message turn (`Mail reaches this route first`), and its notification handler only saw other activity types. The .NET
@@ -148,20 +148,20 @@ and `SCOPES__0` changed the Python `AgentAuthConfiguration` but not what it acce
     person's token, 401 without `kid`.
 15. **`MARGO_TIMEZONE` is checked at start-up.** An unknown zone stops the host (exit 1) instead of passing the probes
     and failing every turn.
-16. **Turns finish when the host stops (23 Nov 2026).** The SDK runs a turn on its background service and cancels it
+16. **Turns finish when the host stops (Nov 23, 2026).** The SDK runs a turn on its background service and cancels it
     the moment the host begins to stop; the activity was answered 202 long before, so a scale-in or redeploy ended the
-    turn with no reply and nothing saved. Turns run on a token cancelled `MargoTurns.TurnDrain` (nine minutes) after
+    turn with no reply and nothing saved. Turns run on a token canceled `MargoTurns.TurnDrain` (nine minutes) after
     the stop signal, and the host's shutdown timeout is raised to match; `instance.bicep` gives the container a
     600-second termination grace period.
-17. **The state lease is taken before any create (23 Nov 2026).** Python uploaded an empty blob (create if missing)
+17. **The state lease is taken before any create (Nov 23, 2026).** Python uploaded an empty blob (create if missing)
     before every acquire, which Azure refused with 409 on every turn but the first. The lease is acquired first; only
     a 404 (no blob, or no container) leads to the bootstrap.
-18. **Conditional download and daily-copy expiry (23 Nov 2026).** `ReadIfChangedAsync` asks with `If-None-Match`, so an
+18. **Conditional download and daily-copy expiry (Nov 23, 2026).** `ReadIfChangedAsync` asks with `If-None-Match`, so an
     unchanged bundle is not downloaded again (the SDK answers 304 with a value-less response, not an exception).
     `DeleteBeforeAsync` lists the daily copies by prefix and deletes those older than
     `MARGO_STATE_DAILY_RETENTION_DAYS` (default 30). The listing path is covered only by reading; the offline blob fake
     does not implement listing.
-19. **Settings added (23 Nov 2026):** `MARGO_PLATFORM_APP_IDS`, `MARGO_EXTRA_SERVICE_HOSTS` (both above),
+19. **Settings added (Nov 23, 2026):** `MARGO_PLATFORM_APP_IDS`, `MARGO_EXTRA_SERVICE_HOSTS` (both above),
     `MARGO_MODEL_REASONING_EFFORT` (`none`, `minimal`, `low`, `medium`, `high`; default `low`; `none` sends no reasoning
     settings), `MARGO_MODEL_MAX_OUTPUT_TOKENS` (default 16000, at least 256), `MARGO_SHAREPOINT_HOSTS` (the guard's
     `FileHosts`), `MARGO_STATE_DAILY_RETENTION_DAYS`. Invalid values stop the host at start-up. Health probe requests
@@ -208,7 +208,7 @@ and `SCOPES__0` changed the Python `AgentAuthConfiguration` but not what it acce
 2. **Request telemetry.** Azure Monitor's ASP.NET Core instrumentation records request URLs; recent OpenTelemetry
    versions redact query-string values by default. Confirm in the test tenant that the voice page's `?code=` does not
    reach Application Insights (VERIFY.md step 9).
-3. **Concurrency.** The SDK's background service runs activities concurrently; turns for one instance are serialised by
+3. **Concurrency.** The SDK's background service runs activities concurrently; turns for one instance are serialized by
    the state lease, as in Python with several workers. Whether Agent 365 retries an activity that was answered 202 but
    whose turn later failed is unknown; the office queue's stable IDs make a redelivery a no-op either way.
 
@@ -218,7 +218,7 @@ Found by differential runs against the Python SDKs in the reference venv and the
 failing-first test:
 
 1. **Connection failures and network timeouts escaped `except AzureError`.** With the Azure SDK's default retries,
-   .NET reports them as an `AggregateException` of the attempts, which `IsAzureError` did not recognise: a storage
+   .NET reports them as an `AggregateException` of the attempts, which `IsAzureError` did not recognize: a storage
    outage became turn status `error` ("turn failed") instead of Python's `state_unsafe`, and a release over a dead
    connection threw out of `DisposeAsync`. (`AzureBlobLeaseStoreTests.Connection_failures_after_the_sdk_s_retries_are_typed_sync_errors`,
    `Network_timeouts_are_typed_sync_errors_but_the_caller_s_cancellation_is_not`.)
@@ -244,7 +244,7 @@ route still uses the extension's wrapper (a lifecycle event carrying an unreadab
 Python's would not); the .NET `RemoveRecipientMention` throws on a recipient mention in a message without text (Python
 skipped such messages; read in the decompiled SDK, not run).
 
-## Approval cards (23 Nov 2026)
+## Approval cards (Nov 23, 2026)
 
 `ApprovalCards` draws an Adaptive Card (1.5) for each `TurnReply.Cards` entry, sent after the reply: a title from the
 call, who it comes from, the recipients, subject, text or meeting times parsed from the exact call, why, and the exact

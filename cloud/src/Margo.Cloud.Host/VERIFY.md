@@ -1,6 +1,6 @@
-# Margo.Cloud.Host: first live verification (Phase 0 spike)
+# Margo Cloud: live verification checklist
 
-A step-by-step checklist for the first run of the C# host in a **test tenant**. It cannot be run from the repository:
+A step-by-step checklist for checking a Margo Cloud deployment in a **test tenant**. It cannot be run from the repository:
 it needs the tenant's agent blueprint, a hired Margo instance, a manager account and Azure resources. Use only test
 accounts and invented content; do not paste real messages, tokens or tenant identifiers into notes, issues or this file.
 
@@ -99,7 +99,7 @@ message: zero hits).
 ## 5. Colleagues, group chats and mail (no outward action)
 
 1. From a second test account, message Margo one-to-one: `Can you send me the board deck?` Expect
-   `turn status=queued` and, in `acknowledge` mode, one acknowledgement in that conversation only; nothing sent anywhere
+   `turn status=queued` and, in `acknowledge` mode, one acknowledgment in that conversation only; nothing sent anywhere
    else.
 2. Add Margo to a group chat with the manager and send a message there. Expect `turn status=group_refused` and the
    refusal text in that chat; no `workiq` receipt other than the manager lookup.
@@ -153,7 +153,7 @@ In Application Insights: requests for `/api/messages` (or `/activity/messages`) 
 - there are no request traces for `/liveness` or `/readiness`;
 - the voice page's request URL does **not** keep the one-time `?code=` value (PORTING.md, open question 2).
 
-## 10. Failure behaviour (optional, test tenant only)
+## 10. Failure behavior (optional, test tenant only)
 
 1. Temporarily deny the instance identity's Blob role. Send a message: expect `turn status=state_unsafe` and the
    "couldn't load my records safely" notice to the manager; nothing answered from partial state. Restore the role.

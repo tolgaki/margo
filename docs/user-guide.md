@@ -85,7 +85,7 @@ When you do want to send, approve the exact displayed recipient and content. A c
 recipient, attachment, text, or action revision requires a new decision. Before executing,
 Margo checks the current target and relevant evidence again.
 
-**Afterwards, look for the result, not just the intention.** A successful receipt records what
+**Afterward, look for the result, not just the intention.** A successful receipt records what
 happened. A failure should be explicit. If the send timed out and its effect is unknown, ask
 Margo to reconcile the outcome; do not ask it to repeat the send blindly.
 

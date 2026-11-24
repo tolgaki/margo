@@ -46,7 +46,7 @@ retained on uninstall.
 The source payload includes the SQLite helpers, doctor, capacity calculator and optional action-desk
 renderer source. The native skill checkboxes do not automatically enable the renderer; run the
 staged installer with `--action-desk`/`-ActionDesk` to opt in, then reload extensions.
-Copying automation files does not synchronise the app's saved workflow prompts.
+Copying automation files does not synchronize the app's saved workflow prompts.
 
 The current source also includes private memory and task-run helpers. The generic skill payload
 copies these modules and their references; no separate background service is installed. The
@@ -75,7 +75,7 @@ not the staged native package's older source. `update --reinstall` / `update -Re
 refreshes the same revision. Remote failures never fall back to a stale staged payload.
 
 The install also records managed-file hashes in `.margo-files.json` and source revision when
-available. These describe the copied files, not a signed attestation. Customised automation
+available. These describe the copied files, not a signed attestation. Customized automation
 prompts may intentionally differ from upstream; reconcile them explicitly.
 
 ## Building

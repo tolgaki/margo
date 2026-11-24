@@ -4,15 +4,15 @@
 
 - **Margo Cloud**: hosted Margo rewritten in C# on .NET 10 (`cloud/`), self-hosted for Agent 365 with one
   container per hired Margo. Its state commands stay byte-compatible with the desktop helpers, judged by
-  `tools/state_parity.py`; the Python hosted runtime was removed. The core path ran once in a test tenant; see the
-  deployment guide's known limits for what is unverified and the hardening still open.
+  `tools/state_parity.py`. See the deployment guide's known limits for what is unverified and the hardening still
+  open.
 - Margo Cloud delegation mode reads the manager's mail and calendar directly through the delegation and searches only
   what is shared with Margo; Copilot search of the manager's whole data reports "unavailable".
 - Margo Cloud approval cards: Margo sends email and replies from the manager's mailbox (on their behalf), sets up,
   moves or cancels meetings, and posts Teams messages as herself, each only after the manager taps Approve on a card
   in Teams showing that exact action. The tap runs the stored call once through the guard; typed or spoken "yes" is not
   an approval. Needs Send on Behalf and calendar Editor delegation for the agent user.
-- Margo Cloud security review (23 November 2026). Platform tokens are accepted only from the platform, never a
+- Margo Cloud security review (November 23, 2026). Platform tokens are accepted only from the platform, never a
   signed-in person (`MARGO_PLATFORM_APP_IDS` pins the application); replies go only to Microsoft hosts; the voice page
   signs in for its own app's scope, not the blueprint's; the guard refuses disguised path segments and limits file
   links to SharePoint hosts; logs carry path templates, not identifiers.
@@ -97,7 +97,7 @@
 
 ### Proactive reliability
 
-- Leased delivery batches with receipt-gated acknowledgements and interrupted-run recovery.
+- Leased delivery batches with receipt-gated acknowledgments and interrupted-run recovery.
 - Standalone publications for anchors with no queued inputs.
 - Independent source attempts and coverage, stable polling identity, fixed provider windows,
   query-bound delta tokens, continuation checks, failure episodes and explicit retirement.

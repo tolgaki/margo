@@ -39,7 +39,7 @@ Order and rules, as in Python: Margo's token first (an exception from the getter
 different account and different state); notices only in a one-to-one Teams chat with a sender (mail is never one-to-one);
 mail is never a conversation turn, even from the manager; the manager outside a one-to-one chat is refused before any
 token, state or model call; the principal token is requested only for the manager and only under `obo`; the turn runs
-under `StateSync`; for the manager the ledger is created and closed, memory and task state are initialised once per
+under `StateSync`; for the manager the ledger is created and closed, memory and task state are initialized once per
 account (`StateCommands.InitialiseAsync`), then `/voice`, `/replies MODE` or the engine (attended, guard budget 40, state
 budget 40, office reader, the manager's preferences, the conversation carried in memory; deviation 12); for anyone else the
 message is queued as a candidate and the reply gate decides (`approve` is treated as `none`; mail always `none`). A
@@ -117,8 +117,8 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
    types here (`GuardRecorder`, `StateRecorder`). The `margo.autopilot` logger is an `ILogger` (the project references
    the ASP.NET Core shared framework for `Microsoft.Extensions.Logging` only; no new package version).
 3. **Asynchronous lease store with cancellation.** `ILeaseStore`/`IStateLease` are async; disposing the lease is
-   `__exit__`. Cancelling `HandleAsync`'s token throws `OperationCanceledException` (Python has no cancellation); a
-   cancelled turn saves nothing and its marker is removed. A token getter that throws counts as no token, except for
+   `__exit__`. Canceling `HandleAsync`'s token throws `OperationCanceledException` (Python has no cancellation); a
+   canceled turn saves nothing and its marker is removed. A token getter that throws counts as no token, except for
    that cancellation.
 4. **Zip and SQLite libraries.** Bundles are written with `System.IO.Compression` (deflate) and read back by
    `zipfile`; Python bundles are read here (both directions are tested against the Python `StateSync`). Every entry
@@ -146,13 +146,13 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
 9. **Threads.** Python opens a ledger on the thread that uses it (`asyncio.to_thread`); here SQLite work runs in
    `Task.Run` and each ledger is opened, used and disposed within one call (`OfficeReader` per read). State.Core's SQLite
    connections are not thread-affine, but none is shared between concurrent calls. `_conversations` and
-   `_initialised` are concurrent dictionaries; the acknowledgement set is locked.
+   `_initialised` are concurrent dictionaries; the acknowledgment set is locked.
 10. **The `margo-state` command** comes from Engine's `StateCommands` (the C# CLI by default, or
     `OrchestratorOptions.StateCliCommand`), not `scripts_dir`.
 11. **Test seam.** `Orchestrator.TurnGuardObserver` (internal) sees each manager turn's guard, where the Python test
     replaced `engine.run` with a spy.
 
-12. **The conversation is carried here, in memory, and bounded (23 Nov 2026).** Python kept a response ID per
+12. **The conversation is carried here, in memory, and bounded (Nov 23, 2026).** Python kept a response ID per
     conversation and the service kept the conversation (see Engine's PORTING.md, deviation 13). `ConversationStore`
     keeps each conversation's items (`EngineResult.History`, already trimmed to the engine's budget) for the next
     turn: dropped after `OrchestratorOptions.ConversationIdle` (30 minutes) without use, at most `MaxConversations`
@@ -163,12 +163,12 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
     since it may be what was refused. The engine's `prompt_cache_key` is `sha256(account)[:32]`. One information line
     per model turn: `turn usage input=N cached=N output=N reasoning=N rounds=N tool_calls=N requests=N
     history_turns=N` (counts only).
-13. **Redelivered manager activities (23 Nov 2026).** A manager activity whose `ActivityId` was already taken up for
+13. **Redelivered manager activities (Nov 23, 2026).** A manager activity whose `ActivityId` was already taken up for
     the account is dropped before the lease and the engine: status `duplicate`, no reply, an information line. The
     record (`RecentActivities`) is in memory, the newest `RecentActivityLimit` (256) IDs per account; a turn that
-    fails or is cancelled releases its ID so a redelivery may run. It does not span containers or restarts. Other
+    fails or is canceled releases its ID so a redelivery may run. It does not span containers or restarts. Other
     people's messages are not checked here: the ledger already records them idempotently by ID.
-14. **One turn of an account at a time, and busy is not unsafe (23 Nov 2026).** Turns of one account wait for one
+14. **One turn of an account at a time, and busy is not unsafe (Nov 23, 2026).** Turns of one account wait for one
     another on an in-process gate in front of the lease (the Azure store gives up after 120 s, which a long turn
     exceeds). A lease that could not be taken (`SyncException.LeaseNotAcquired`, set by `StateSync` around
     `AcquireAsync`) is status `busy` with the notice `Orchestrator.StateBusy` to the manager; Python's
@@ -176,11 +176,11 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
     Queuing someone else's message is tried again after a `SyncException` (`IntakeRetryDelays`, default 2 s then
     10 s; the record is idempotent); when it is still not queued the status is `busy`/`state_unsafe` and an error line
     says so without the message. A manager turn is never repeated here.
-15. **State is initialised again when the local copy changed (23 Nov 2026).** `StateSync.LocalStateReplaced` is
+15. **State is initialized again when the local copy changed (Nov 23, 2026).** `StateSync.LocalStateReplaced` is
     called when the local copy was installed from the shared bundle or discarded; `StateSyncFor` uses it to clear
     `_initialised` for the account, so the two idempotent `init` commands run again (Python, and the port until now,
     skipped them for the life of the process, after which memory and task commands failed until a restart).
-16. **A turn that changes nothing uploads nothing (23 Nov 2026).** After the work, the online-backup snapshot and the
+16. **A turn that changes nothing uploads nothing (Nov 23, 2026).** After the work, the online-backup snapshot and the
     preferences are hashed (`StateSync.ContentHash`); when the hash equals `.synced-content` (written when the bundle
     was installed or uploaded) and the ETag marker stands, the integrity check, the zip and the upload are skipped.
     An online backup of an unchanged database is byte-identical (tests cover both an uploader and an installer).
@@ -189,7 +189,7 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
     ReadIfChangedAsync(knownETag)` lets a store skip the download when the ETag still stands (default: read, and the
     ETag is compared here); `InMemoryLeaseStore` implements it. Markers are removed with the ETag marker on a failed
     turn. The bundle and manifest formats are unchanged.
-17. **The office queue against floods and odd names (23 Nov 2026).** The sender's display name is cleaned before it
+17. **The office queue against floods and odd names (Nov 23, 2026).** The sender's display name is cleaned before it
     is stored or shown (`OfficeQueue.CleanSenderName`: control, format, private-use and unassigned characters and
     line breaks become spaces, double quotes single, white space collapsed, at most 80 code points); the item title
     is `Request to the office from "<name>" (unverified sender name)` (Python: the raw name, unquoted). With
@@ -200,11 +200,11 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
     places while others wait, places dealt one per sender in turn, then listed oldest first, each still carrying
     the trust label, `more_from_sender` where collapsed), `total`, `shown`, `senders`, and `not_queued_today`.
     `OfficeQueue.Pending(limit)` is Python's (oldest first, no counts) and `OfficeQueue(ledger)` has no limit.
-18. **Replies load nothing by themselves (23 Nov 2026).** The model's reply to the manager passes
+18. **Replies load nothing by themselves (Nov 23, 2026).** The model's reply to the manager passes
     `ReplyText.Neutralise` before it leaves: Markdown images become their alternative text, `<img>` its `alt`, and
     the opening `<` of other self-loading HTML tags (`iframe`, `video`, `script`, ...) is written `&lt;`. Links are
     kept. Fixed notices are not model text and are not touched.
-19. **Daily copies expire (23 Nov 2026).** After the day's copy is written, copies older than
+19. **Daily copies expire (Nov 23, 2026).** After the day's copy is written, copies older than
     `StateSync.DailyRetentionDays` (default 30; 0 keeps all; Host: `MARGO_STATE_DAILY_RETENTION_DAYS`) are deleted
     through `ILeaseStore.DeleteBeforeAsync`, whose default deletes nothing. Python kept every daily copy, so what the
     manager had Margo forget stayed readable in them for ever. `OrchestratorOptions.FileHosts` is passed to the guard.
@@ -240,22 +240,22 @@ the ledger is closed before the reply gate runs, and the manager turn closes its
 4. **`Margo.Cloud.State.Tests`:** done on the base branch (96fb6a0, merged into the review branch): the in-suite
    parity wrapper now runs only with `MARGO_RUN_PARITY_IN_TESTS=1`, and `state_parity.py --check` is its own gate.
 
-5. **`Margo.Cloud.Host` (23 Nov 2026):** (a) wire `OrchestratorOptions` from settings where an operator may want
+5. **`Margo.Cloud.Host` (Nov 23, 2026):** (a) wire `OrchestratorOptions` from settings where an operator may want
    them (suggested: `MARGO_CONVERSATION_IDLE_MINUTES` = `30`, `MARGO_MAX_CONVERSATIONS` = `200`,
    `MARGO_OFFICE_SENDER_DAILY_LIMIT` = `20`); the defaults apply until then. (b) `AzureBlobLeaseStore`'s lease can
    implement `IStateLease.ReadIfChangedAsync` with `If-None-Match` and answer `(null, knownETag, true)` on 304, which
-   saves the bundle download on every turn; the default implementation keeps today's behaviour. (c) Statuses
+   saves the bundle download on every turn; the default implementation keeps today's behavior. (c) Statuses
    `duplicate`, `busy` and `rate_limited` are new; `busy` or `state_unsafe` for someone else's message means it was
    not queued, and answering the platform with a retryable status would let it be redelivered (the record is
    idempotent). (d) `InboundEvent.ActivityId` must stay the platform's stable activity ID for Teams messages
    (`ActivityClassifier.StableIds` does this today): the duplicate check depends on it. (e) The Host sends replies as
    Markdown; `ReplyText.Neutralise` covers the model's reply only.
-6. **`Margo.Cloud.Voice` (23 Nov 2026):** its turns take the state lease through `StateSyncFor` but not the
+6. **`Margo.Cloud.Voice` (Nov 23, 2026):** its turns take the state lease through `StateSyncFor` but not the
    orchestrator's per-account gate, so a voice tool call can still meet a held lease while a long chat turn runs
    (the store's 120 s wait applies). `OfficeReader.PendingAsync` now returns the page object (the engine's
    `DispatchAsync` passes it on).
 
-## Approval cards (23 Nov 2026)
+## Approval cards (Nov 23, 2026)
 
 New, no Python equivalent (Python's hosted runtime never executed approved writes):
 
@@ -280,7 +280,7 @@ CLI (referenced by the test project, so `margo-state.dll` sits next to the tests
 - `OrchestratorTests`: every `OrchestratorTests` test of the former Python runtime tests (all 18 Python tests, the
   group-chat one as a 3-case theory and the lookup failures as a 4-case theory), including the instance-mode
   (`An_instance_container_serves_only_its_own_instance`) and voice-link tests; plus a throwing token getter, invalid
-  bindings, a misconfigured transport, unsafe state, initialisation failure, initialisation once per account,
+  bindings, a misconfigured transport, unsafe state, initialization failure, initialization once per account,
   conversation continuity, the round limit (`stopped`), the setting written to private preferences, and state paths.
 - `StateSyncTests`: every `StateSyncTests` test (9), plus the bundle and manifest contents and modes, installing once,
   bundles Python would refuse (not a zip, missing entries, bad JSON, hash mismatch, a forged manifest over another
@@ -306,11 +306,11 @@ Verification after the review (base branch merged): `dotnet build cloud/Margo.Cl
 `dotnet test --solution Margo.Cloud.slnx` 5266 total, 5261 passed, 0 failed, 5 skipped (Engine's four, and the
 parity wrapper, which now runs only on request); `python3 tools/state_parity.py --check` 182 of 182 scenarios passed (15 min 54 s); `python3 -m unittest discover -s tests -p 'test_*.py'` 520 OK (4 skipped); `./tools/check-clean.sh` clean.
 
-Hardening of 23 Nov 2026 (deviations 12 to 18): `OrchestratorHardeningTests` (the conversation in memory and
+Hardening of Nov 23, 2026 (deviations 12 to 18): `OrchestratorHardeningTests` (the conversation in memory and
 `store: false`, a failed turn, a refused request, history committed after the save, the idle time and bounds, the
 usage line, redelivered activities, the per-account gate against a store that refuses a held lease, intake retries,
-`busy` against `state_unsafe`, initialisation after the local copy was discarded or reinstalled, an unchanged turn
-uploading nothing, reply sanitising with 16 texts, a flood counted not queued), six more `StateSyncTests` (no upload
+`busy` against `state_unsafe`, initialization after the local copy was discarded or reinstalled, an unchanged turn
+uploading nothing, reply sanitizing with 16 texts, a flood counted not queued), six more `StateSyncTests` (no upload
 or download without a change, the daily copy once a day, the lease-not-taken flag, the replaced callback) and four more
 `OfficeTests` (names, the fair page, the daily limit). Three older tests changed on purpose:
 `Conversations_continue_until_a_turn_has_no_response_id` now checks the messages carried instead of

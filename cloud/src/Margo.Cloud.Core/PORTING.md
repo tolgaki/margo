@@ -110,7 +110,7 @@ shapes). The C# output is compared to them exactly.
 5. **`CheckMessage` returns a typed message.** Python returns `dict(message, key=key)` with every
    field. `CheckedMessage` keeps what a provisioner reads: the recomputed key, `action`, the two
    identifiers, `event` when it is a string, and `redeploy` evaluated by Python truthiness. Unknown
-   fields are not re-serialised by any Python caller, so nothing observable changes.
+   fields are not re-serialized by any Python caller, so nothing observable changes.
 6. **`RouteEntry` is a snapshot with typed accessors.** A property is `null` when the field is
    missing or not of the expected JSON type (Python would hand back the raw value, and a
    non-string `url` would crash the router's string concatenation). `ToJsonObject()` returns the
@@ -128,7 +128,7 @@ shapes). The C# output is compared to them exactly.
    U+212A as `k`, and .NET casing depends on the globalization mode.
 10. **Non-string entity fields.** `ActivityEntity.FromJson` keeps a truthy non-string value as its
     JSON text where Python uses `str()`; neither ever equals `productinfo` or `email`.
-11. **Additions for adapters, no new behaviour:** `EmailFacts.FromActivityJson` and
+11. **Additions for adapters, no new behavior:** `EmailFacts.FromActivityJson` and
     `ActivityClassifier.IsEmail(JsonNode?)` read raw activity JSON (Python only had the SDK object
     path; the entity loop covers what the product-info getter would find, so `ProductInfoId` is
     left empty there); `Instances.Plan(action, redeploy, state)`; `CheckMessage(ProvisioningMessage)`

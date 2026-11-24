@@ -9,8 +9,8 @@ It combines an assistant persona, procedural skills, private local state, and op
 panels. It is not a hosted service: you supply the host, connected accounts, and permissions.
 
 **Two implementations.** Most of this documentation is about **Margo desktop** (a Copilot host on your machine).
-**Margo Cloud** is the hosted Margo, in C# in [`cloud/`](../cloud/README.md); earlier documents call it "the
-autopilot" or "hosted Margo", which mean the same thing.
+**Margo Cloud** is the hosted Margo, in C# in [`cloud/`](../cloud/README.md); some documents call it "the autopilot"
+or "hosted Margo", which mean the same thing.
 
 Choose the journey that matches what you want to do. You do not need to understand the Python
 core to use Margo, or connect a real mailbox to contribute.
@@ -26,7 +26,7 @@ core to use Margo, or connect a real mailbox to contribute.
 
 Read in order the first time, then return to the task guides as needed.
 
-| Stage | Read | What you should be able to do afterwards |
+| Stage | Read | What you should be able to do afterward |
 | --- | --- | --- |
 | Understand the boundaries | [Trust and safety](safety.md) | Distinguish a recommendation, a local draft, an exact approval, and an actual external result |
 | Get connected | [Getting started](getting-started.md) | Install a private copy, confirm Work IQ identity, configure local storage, and request a first brief |
@@ -90,13 +90,11 @@ Read these after the current implementation, not as extra setup requirements.
 | --- | --- |
 | [Running in a container](container.md) | Optional deployment guidance, including separate Copilot and Work IQ sign-ins; not a ready-made security sandbox |
 | [Margo as an autopilot](autopilot.md) | Agent 365 autopilot design and decisions; not part of the local install |
-| [Deploy Margo as an Agent 365 agent](autopilot-deployment.md) | Step-by-step, self-hosted deployment of the first, read-only version of Margo Cloud (C#) to a test tenant; core path ran once in a test tenant, not ready for production |
+| [Deploy Margo as an Agent 365 agent](autopilot-deployment.md) | Step-by-step, self-hosted deployment of Margo Cloud (C#) to a test tenant |
 | [One container per hired Margo](autopilot-instance-containers.md) | Per-instance isolation, router, provisioning, scoped identity; what is built and what is only the target |
-| [Talk to Margo](autopilot-voice.md) | Voice in the browser, in an HD voice; built, unproven against a live service |
-| [Margo Cloud in C#](margo-cloud-plan.md) | Hosted Margo ported to C# in phases: phases 1 to 6 done, phase 0 partly run in a test tenant, the security-review fixes not yet run live |
+| [Talk to Margo](autopilot-voice.md) | Voice in the browser, in an HD voice |
 | [Before making the repository public](development/publishing-checklist.md) | Maintainer checklist: vulnerability reporting, history, releases |
 | [Margo Cloud code](../cloud/README.md) | Build, test, publish and deploy Margo Cloud; the C# projects and what each ports |
-| [Agentic development plan](agentic-development-plan.md) | Delivery strategy and sequencing; use the current architecture, catalog, and workflow for implementation facts |
 
 ## Help and documentation maintenance
 

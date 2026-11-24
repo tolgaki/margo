@@ -645,7 +645,7 @@
       "surfaces": [
         "cli"
       ],
-      "approval": "Cancelling or moving a meeting sends a notification and needs the same care as any send",
+      "approval": "Canceling or moving a meeting sends a notification and needs the same care as any send",
       "guide": {
         "path": "docs/how-to/calendar-management.md",
         "anchor": "calendar-reschedule"
@@ -994,7 +994,7 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "A labelled sensitive document is cited, never excerpted into a forwardable card"
+        "A labeled sensitive document is cited, never excerpted into a forwardable card"
       ]
     },
     {
@@ -1750,7 +1750,7 @@
         "cli",
         "scheduled"
       ],
-      "approval": "Reviewing, commenting, merging, closing or labelling always needs its own explicit approval",
+      "approval": "Reviewing, commenting, merging, closing or labeling always needs its own explicit approval",
       "guide": {
         "path": "docs/how-to/github-and-work-items.md",
         "anchor": "github-reviews"
@@ -2219,7 +2219,7 @@
     {
       "id": "automation-commitments",
       "name": "Get a weekly commitments and ambient digest",
-      "user_goal": "Run commitment ageing and render the week's ambient digest every Friday",
+      "user_goal": "Run commitment aging and render the week's ambient digest every Friday",
       "availability": "implemented",
       "implementation_kind": "procedure",
       "since_version": "1.0.0",
@@ -2255,7 +2255,7 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Checks for silent resolution before ageing anything, even unattended",
+        "Checks for silent resolution before aging anything, even unattended",
         "The schedule itself lives only in automations/*.md front matter"
       ]
     },
@@ -2305,7 +2305,7 @@
     {
       "id": "automation-ambient",
       "name": "Get a quiet daily scan for slow-moving drift",
-      "user_goal": "Run a daily ambient scan for commitment ageing, relationship drift and stale PRs, queued for the next anchor, never interrupting",
+      "user_goal": "Run a daily ambient scan for commitment aging, relationship drift and stale PRs, queued for the next anchor, never interrupting",
       "availability": "implemented",
       "implementation_kind": "procedure",
       "since_version": "1.0.0",

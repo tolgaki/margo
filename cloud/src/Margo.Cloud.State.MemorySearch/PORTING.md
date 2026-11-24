@@ -2,7 +2,7 @@
 
 Ports `skills/chief-of-staff/scripts/memory_search.py` and `memory_context.py` completely. Both are libraries: the
 `memory_state.py` commands that call them (`init`, `migrate`, `status`, `search`, `context`, `graph`, `explain`,
-`index`) belong to the MemoryCommands port, which uses the public API below. Reference behaviour is CPython 3.13 with
+`index`) belong to the MemoryCommands port, which uses the public API below. Reference behavior is CPython 3.13 with
 its system SQLite (3.45.1 here); `tools/state_parity.py` judges the libraries through the `memory_search_probe.py`
 probe pair. Margo Cloud never has a local embedding runtime, so the default encoder is State.Memory's
 `MemoryEncoder.EncodeLocal`, which fails exactly as Python's does without a runtime; every vector path is still
@@ -19,7 +19,7 @@ packets are `json.loads(canonical_json(...))`, so their keys are sorted, as in P
 
 | Python | C# |
 | --- | --- |
-| `representation`, `text_hash`, `vector_bytes`, `decoded_vector` | static `MemorySearch.Representation`, `TextHash`, `VectorBytes(vector, dimensions)` (bytes), `DecodedVector(blob, dimensions)` (doubles); `dimensions` is a `long` for the callers, or any Python value (`JsonNode`) with Python's equality, repetition and `struct` behaviour (`2.0`/`True` match, `None`/dict are a `TypeError`, a non-integral float can raise `struct.error`, `MemorySearch.StructError`) |
+| `representation`, `text_hash`, `vector_bytes`, `decoded_vector` | static `MemorySearch.Representation`, `TextHash`, `VectorBytes(vector, dimensions)` (bytes), `DecodedVector(blob, dimensions)` (doubles); `dimensions` is a `long` for the callers, or any Python value (`JsonNode`) with Python's equality, repetition and `struct` behavior (`2.0`/`True` match, `None`/dict are a `TypeError`, a non-integral float can raise `struct.error`, `MemorySearch.StructError`) |
 | `MemorySearch(memory, encoder=None, rebuild_schema=False)` | `new MemorySearch(MemoryStore, encoder, rebuildSchema)` or `new MemorySearch(IMemorySource, ...)`; `encoder` is `Func<JsonArray, JsonNode?>` (texts to the result dict) |
 | `memory`, `conn`, `encoder` (assignable), `read_only`, `initialized`, `fts` | `Memory`, `Conn`, `Encoder` (settable), `ReadOnly`, `Initialized`, `Fts` |
 | `_prepare_rebuild`, `_semantic_tables`, `_inspect_schema(allow_missing_fts)`, `_initialize_schema` | private methods of the same meaning |
@@ -89,7 +89,7 @@ run store-changing steps on its first call (forgetting during an embedding reque
 | `index_lifecycle`, `index_quarantine` | first and repeated indexing (vectors, documents, FTS rows), limits, the absent runtime, transient and every malformed encoder result, forgetting while encoding, model fingerprints, stale revisions, replayed/duplicate keyword rows, corrupt vectors, orphan and NULL-ID purges, drifted job revisions; the representation limit boundary, quarantine not consuming the page, blocks persisting through rebuilds and recovering on a new revision, sensitive deletes first in rebuilds, delete-only rebuilds without an encoder |
 | `fts_queries` | FTS5 query results (see below) |
 | `search_validation` | argument validation order and binding errors, eligibility filters, hybrid/semantic searches failing without the runtime or skipping it when nothing is eligible |
-| `semantic_ranking` | weighted float vectors, cosine similarity, positive similarities only, fusion scores and component scores of all four channels, exact identities, canonicalised entities, relationship neighbours through applicable links only, model/dimension mismatches, malformed query embeddings, forgetting during the request (also of a relationship seed) |
+| `semantic_ranking` | weighted float vectors, cosine similarity, positive similarities only, fusion scores and component scores of all four channels, exact identities, canonicalized entities, relationship neighbors through applicable links only, model/dimension mismatches, malformed query embeddings, forgetting during the request (also of a relationship seed) |
 | `context_work_live`, `context_work_fixtures` | live work joins through the real ledger (work_refs, work_ids, outcomes, meetings, resolution, other accounts, changed and restricted sources) and every work-entry branch over hand-built ledger rows (states, unknown fields, recap, unsupported kinds, relationship directions, superseded items, edge/node limits, the 200-row discovery limit, malformed meeting data) |
 | `context_decisions`, `context_diagnostic_limit` | supersession chains, decision references, retired decisions, unconfirmed/contradicting/duplicate/disputed decisions, the 50-gap cap |
 | `context_identities_relationships`, `context_memory_edges` | identities, relationship validity and evidence, environment filters, coverage evidence, shared-source depth; supersession limits and evidence, diagnostics for every ineligible kind, entity seeds, edge limits, nested environment requirements |
@@ -147,7 +147,7 @@ scenarios with the fake encoder; the model ranking itself is not portable.
 - The `no such module: fts5` fallbacks in `_initialize_schema` are ported but cannot be reached: both SQLite builds
   include FTS5, so no scenario exercises them (the bounded-lexical backend itself is covered through `fts5=0`
   metadata).
-- Model-dependent behaviour (real embeddings and their ranking quality) is out of scope: Margo Cloud has no runtime.
+- Model-dependent behavior (real embeddings and their ranking quality) is out of scope: Margo Cloud has no runtime.
 
 ## Open questions
 

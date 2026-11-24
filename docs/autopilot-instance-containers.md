@@ -1,9 +1,6 @@
 # One container per hired Margo
 
-**Status: built, 18 October 2026; since 6 November 2026 the only way Margo is hosted; since the Phase 6 cutover
-(November 2026) every part is C# in [Margo Cloud](../cloud/README.md). The core path ran once in one test tenant in
-November 2026; the fixes made after the 23 November 2026 security review have not yet run in a tenant.** Deploy it with the
-[deployment guide](autopilot-deployment.md).
+Every hired Margo runs in a container of her own. Deploy it with the [deployment guide](autopilot-deployment.md).
 
 ## Self-hosted for Agent 365
 
@@ -19,10 +16,7 @@ Margo runs in your own Azure subscription; Agent 365 provides the agent around h
 | Creating and retiring instance containers | **The provisioner** job |
 | The model and Voice Live | **Azure AI Services**, called by each instance with its own identity |
 
-An earlier version ran Margo as a Microsoft Foundry hosted agent, with these containers beside it
-for voice. That blueprint belonged to Foundry and could not point at the router, so chat could
-never reach the containers; Foundry hosting was removed. This design extends
-[Margo as an autopilot](autopilot.md) and keeps decision 10: hosted Margo is desktop Margo, with
+This design extends [Margo as an autopilot](autopilot.md) and keeps decision 10: hosted Margo is desktop Margo, with
 the same persona and skills, and no general shell.
 
 ## What is built
@@ -45,7 +39,7 @@ Teams chat turn and delegated calendar reads. See the deployment guide's
 
 ## Why
 
-With one shared process serving every hired instance (as the earlier Foundry hosted agent did),
+With one shared process serving every hired instance,
 one managed identity holds **Storage Blob Data Contributor on the whole storage account**, so
 anything that compromises the shared process can read every manager's state.
 
@@ -113,13 +107,12 @@ the instance's Blob container (private endpoint) and Application Insights.
 | --- | --- | --- |
 | **Azure Container Apps** (recommended) | One app per instance, at most one replica, scale to zero, its own managed identity, internal ingress, jobs or scale rules for cron | Verify apps-per-environment limits and cold-start time |
 | AKS | One StatefulSet pod per instance with an Azure Disk | Most control, most operations work |
-| Foundry hosted agents | Not possible, and removed | One agent serves every instance; sessions follow conversations; its blueprint cannot point elsewhere |
 | Container Apps dynamic sessions | Wrong shape | Built for short untrusted-code sessions, not a long-lived agent |
 
 ## Code changes
 
 - **Orchestrator:** the instance is fixed by configuration (`MARGO_INSTANCE_AGENT_ID`, `MARGO_INSTANCE_USER_ID`);
-  any activity for another instance is refused, as defence in depth behind the router.
+  any activity for another instance is refused, as defense in depth behind the router.
 - **Host:** accepts only router-forwarded requests (internal token check), and gets its Blob
   container name and identity from configuration.
 - **New `router` service:** a small ASP.NET Core app (`Margo.Cloud.Router`; first built in Python with aiohttp);
@@ -155,7 +148,7 @@ the instance's Blob container (private endpoint) and Application Insights.
 2. **Token exchange.** Can a container with its own identity perform the agentic token exchange
    for its instance, and only that instance?
 3. **Timing.** Cold start versus Teams activity timeouts. Do long turns need an immediate
-   acknowledgement and a proactive reply?
+   acknowledgment and a proactive reply?
 4. **Lifecycle.** Notification payloads and their reliability, including manager-changed events.
 5. **Quotas.** Container Apps limits per environment, and how many instances one environment
    holds.
@@ -177,7 +170,7 @@ the instance's Blob container (private endpoint) and Application Insights.
 2. **Scale to zero** by default; `azd env set MARGO_INSTANCE_MIN_REPLICAS 1` keeps instances warm. A turn in flight
    when an instance is stopped gets up to nine minutes to finish.
 3. **No automatic deletion of a retired instance's state.** Retirement removes an instance's app and identity and
-   keeps its storage. An operator deletes the `margo-i-…` container when the organisation decides. Within a live
+   keeps its storage. An operator deletes the `margo-i-…` container when the organization decides. Within a live
    instance, replaced versions of the state bundle and daily copies expire after 30 days
    (`MARGO_STATE_VERSION_RETENTION_DAYS`, `MARGO_STATE_DAILY_RETENTION_DAYS`).
 

@@ -47,8 +47,8 @@ is currently blocked on an external condition) or `planned` (not yet built).
 | Feature | User goal | Availability | Kind | Guide |
 | --- | --- | --- | --- | --- |
 | `containers` | Run scheduled routines in a container instead of a local machine, with the same unattended contract | Optional | procedure | [Run Margo unattended somewhere other than a laptop](container.md#running-it) |
-| `automation-ambient` | Run a daily ambient scan for commitment ageing, relationship drift and stale PRs, queued for the next anchor, never interrupting | Implemented | procedure | [Get a quiet daily scan for slow-moving drift](how-to/automation-health.md#automation-ambient) |
-| `automation-commitments` | Run commitment ageing and render the week's ambient digest every Friday | Implemented | procedure | [Get a weekly commitments and ambient digest](how-to/automation-health.md#automation-commitments) |
+| `automation-ambient` | Run a daily ambient scan for commitment aging, relationship drift and stale PRs, queued for the next anchor, never interrupting | Implemented | procedure | [Get a quiet daily scan for slow-moving drift](how-to/automation-health.md#automation-ambient) |
+| `automation-commitments` | Run commitment aging and render the week's ambient digest every Friday | Implemented | procedure | [Get a weekly commitments and ambient digest](how-to/automation-health.md#automation-commitments) |
 | `automation-eod` | Run the end-of-day/catch-up wrap-up on weekday evenings | Implemented | procedure | [Get an end-of-day wrap-up automatically](how-to/automation-health.md#automation-eod) |
 | `automation-hourly` | Run a lightweight, usually silent hourly sweep for anything that clears the interrupt test | Implemented | procedure | [Get cheap, silent hourly checks](how-to/automation-health.md#automation-hourly) |
 | `automation-morning` | Run the full daily brief automatically on weekday mornings | Implemented | procedure | [Get the morning brief without asking for it](how-to/automation-health.md#automation-morning) |
@@ -125,7 +125,7 @@ outbound Microsoft 365 APIs on the state/approval path. The separate
 [large-file bridge](how-to/documents-and-files.md) is an authenticated Graph client with its
 own platform and scope limitations; it is not a state helper or an approval bypass.
 
-| Feature | Implemented behaviour | Boundary |
+| Feature | Implemented behavior | Boundary |
 |---|---|---|
 | Account-scoped storage | Explicit owner configuration, private SQLite database per account, transactions and schema checks | Configuration is not authentication; verify Work IQ identity before ingestion |
 | Evidence and revisions | Stable source identity, immutable evidence revisions, links, sensitivity and freshness | Search links are not provider IDs; semantic merging is not automatic |
@@ -141,14 +141,14 @@ Use [Work ledger](../skills/chief-of-staff/references/work-ledger.md) and
 
 ## Reliable proactive operation
 
-| Feature | Implemented behaviour | Boundary |
+| Feature | Implemented behavior | Boundary |
 |---|---|---|
 | Source coverage | Attempts, complete/partial/blocked results, continuation and successful checkpoints | A successful mail read does not advance calendar or Teams |
 | Stable polling scope | Ordinary polling bounds remain per-attempt; fixed provider windows bind calendar delta scope | Changed capabilities/query versions invalidate incompatible tokens |
 | Coverage history | Failure episodes, retry information, recovery and explicit collection retirement | A retired collection remains historical evidence, not a current health obligation |
 | Leased delivery | One owner per queue batch; release/expiry enables redelivery | Another anchor cannot steal a live lease |
 | Output receipts | Prepared, available, published and explicitly reviewed outputs | Local availability is not proof of host delivery or human reading |
-| Standalone output | Persist a brief even when its input queue is empty | No fake queue items and no acknowledgement required |
+| Standalone output | Persist a brief even when its input queue is empty | No fake queue items and no acknowledgment required |
 | Doctor | Required preference fields, managed-file drift, coverage, delivery backlog and supplied host snapshots | It does not read the host database, authenticate, or silently repair configuration |
 | Six scheduled routines | Morning brief, EOD, week ahead, commitment digest, hourly sweep and ambient scan | Same prompt files; app workflows and CLI wrappers have different permission enforcement |
 
@@ -158,16 +158,16 @@ cannot run while its machine is asleep. See [automation health](how-to/automatio
 
 ## Connected productivity routines
 
-| Routine | Stored state and output | What still requires judgement |
+| Routine | Stored state and output | What still requires judgment |
 |---|---|---|
 | Weekly outcomes | Up to three agreed outcomes with completion criteria, effort, next step, allocation or blocker | The user chooses priorities and agrees commitments |
-| Capacity | Working/busy/protected interval unions, focus gaps and minimum overflow | Normalise provider data; incomplete coverage cannot establish feasibility |
+| Capacity | Working/busy/protected interval unions, focus gaps and minimum overflow | Normalize provider data; incomplete coverage cannot establish feasibility |
 | Meeting lifecycle | Series/occurrence identity, preparation, recap-pending retries, debrief review and carry-forward | A calendar event does not prove attendance; no recap does not mean no actions |
 | Explicit corrections | Exact subject revision, correction and supplied reason | A one-off edit is not automatically a permanent preference |
 | Scoped rules | Proposed/active/revoked rules with supporting feedback and conflict checks | Activation needs approval; learning cannot grant permissions |
 | Do-not-learn | Minimal operational opt-out marker without correction/reason text | It is not a general erasure facility for all prior records |
 | Work products | Versioned private Markdown memos, comparisons, updates, agendas and delegation briefs | The agent authors the content; local storage does not create a shared document |
-| Artefact delivery | Separate link to a successful execution receipt for the exact version | Content approval is not approval to publish or send |
+| Artifact delivery | Separate link to a successful execution receipt for the exact version | Content approval is not approval to publish or send |
 
 How to use these: [outcomes and meetings](how-to/outcomes-and-meetings.md) and
 [feedback and work products](how-to/feedback-and-work-products.md).
@@ -175,21 +175,21 @@ How to use these: [outcomes and meetings](how-to/outcomes-and-meetings.md) and
 ## Deployment and maintenance
 
 The installers copy managed files by default. Link mode is for contributors and can place
-personalisation inside a checkout; it does not move the account-scoped database into the repo.
+personalization inside a checkout; it does not move the account-scoped database into the repo.
 Version metadata, source revision when available, and managed-file hashes make drift visible.
-Customised prompts and renderer files are preserved rather than silently replaced.
+Customized prompts and renderer files are preserved rather than silently replaced.
 
 Legacy notification state imports without inventing proof of delivery or successful coverage.
 Reviewed commitments import separately. Original files remain available for recovery; never run
 old and new state writers concurrently. Uninstall retains the account's runtime directory.
 
 The native packages include the core and optional renderer source. Enable the canvas with
-`--action-desk` or `-ActionDesk`; copying it does not reload extensions or synchronise app
+`--action-desk` or `-ActionDesk`; copying it does not reload extensions or synchronize app
 workflows. See [setup and migration](how-to/setup-and-migration.md).
 
 ## Local semantic memory
 
-| Feature | Behaviour | Boundary |
+| Feature | Behavior | Boundary |
 |---|---|---|
 | User and agent domains | Explicit sourced facts/preferences, episodes, capabilities, lessons and trend candidates | Separate from authoritative obligations and action permissions |
 | Memory lifecycle | Conditional revisions, confirmation, dispute/staleness, source/time/routine/environment filtering | Candidate/inferred content is not recalled as established active knowledge |
@@ -202,7 +202,7 @@ workflows. See [setup and migration](how-to/setup-and-migration.md).
 | Rebuildable indexes | Revision/content/model fingerprints and transactional index jobs | Old vectors never override changed or forgotten authoritative records |
 | Local encoder | Pinned MiniLM ONNX artifacts, explicit download, CPU inference with a private optional runtime | No implicit download, remote code or cloud embedding fallback |
 | Capability evidence and lessons | Installed files, host-exported tool schemas, pinned local input exercises, existing execution receipts and reviewed environment-scoped recipes | Input-contract validation is not remote execution; neither level grants permissions or proves general competence |
-| Trend candidates | Reviewed thresholds, bounded windows, independent event groups, population and explicit coverage | Rates apply only to the observed population; no automatic behavioural activation or colleague performance scoring |
+| Trend candidates | Reviewed thresholds, bounded windows, independent event groups, population and explicit coverage | Rates apply only to the observed population; no automatic behavioral activation or colleague performance scoring |
 | Consolidation proposals | Bounded exact-duplicate/candidate/failure review pages with once-per-evidence delivery markers | Page-local dedupe is not a global semantic merge; availability is not human review |
 | Forgetting | Remove retrievable memory/history and derived local indexes; retain minimal tombstones | Does not delete source mail, work records, prior outputs or backup copies |
 | Suppression and retention | Do-not-use preserves history; reviewed per-kind retention erases due records in bounded batches | Suppression cannot be undone by passive recapture; no retention grant means no automatic erasure |
@@ -258,7 +258,7 @@ See the [Dream guide](how-to/dream.md).
 ## What this is not yet
 
 There is no model-weight training, automatic public lesson publication, cross-account knowledge
-sharing or multi-device memory synchronisation. Permission-aware recall is conservative; sensitive
+sharing or multi-device memory synchronization. Permission-aware recall is conservative; sensitive
 records are excluded rather than assuming cached access remains valid. The user still agrees
 capture scope, preferences and lessons. Margo does not infer a complete biography from a mailbox.
 

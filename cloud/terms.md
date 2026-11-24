@@ -1,15 +1,15 @@
 # Margo — terms of use and privacy
 
 **Publisher:** Tolga Kilicli · **Source:** [github.com/tolgaki/margo](https://github.com/tolgaki/margo)
-· **Last updated:** 23 November 2026
+· **Last updated:** November 23, 2026
 
-An organisation that deploys Margo publishes these terms to its own users: replace the publisher and
+An organization that deploys Margo publishes these terms to its own users: replace the publisher and
 contact details with your own, and check each statement against how you deployed it (retention
 periods, model region, whether voice is on).
 
-These terms cover the Margo Cloud agent blueprint and the instances an organisation creates from
+These terms cover the Margo Cloud agent blueprint and the instances an organization creates from
 it. The Margo source code is separately licensed under the [MIT License](../LICENSE); nothing
-here narrows that licence.
+here narrows that license.
 
 ## What Margo is
 
@@ -39,45 +39,45 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
   your approval.
 - AI output can be wrong, incomplete or out of date. Check facts that matter, especially
   dates, figures, commitments and anything sent to other people.
-- Use Margo only in line with your organisation's policies and the terms of the Microsoft
+- Use Margo only in line with your organization's policies and the terms of the Microsoft
   services it runs on.
 
 ## Privacy
 
 - **Where your data goes.** An instance runs in the Azure subscription and Microsoft 365 tenant
-  of the organisation that deploys it. Its memory and work records are stored in that
-  organisation's storage account. The publisher of the source code does not receive your content,
+  of the organization that deploys it. Its memory and work records are stored in that
+  organization's storage account. The publisher of the source code does not receive your content,
   prompts or results, and the blueprint sends no telemetry to the publisher.
 - **What Margo reads.** In delegation mode: her manager's mail and calendar, through the access
   the manager or an administrator delegated to her, and whatever is shared with Margo's own
   account (mail sent to her, chats and channels she is in, files and sites shared with her). She
   reads through Work IQ, and only for her manager's requests.
 - **The AI model.** What Margo reads for a request, and the conversation so far, is sent to the
-  organisation's Azure AI model deployment to produce the answer. Margo asks the service not to
+  organization's Azure AI model deployment to produce the answer. Margo asks the service not to
   store it. Microsoft's own abuse monitoring may retain prompts for a limited time unless the
-  organisation has an exemption, and with the default deployment type the request may be processed
-  outside the organisation's chosen region. The conversation is kept only in the running instance's
+  organization has an exemption, and with the default deployment type the request may be processed
+  outside the organization's chosen region. The conversation is kept only in the running instance's
   memory, for up to 30 minutes without use, and is lost when the instance restarts.
 - **What Margo remembers.** Facts, preferences and past events relevant to helping her manager,
   each recorded with its source, plus her own working notes. The manager can ask what Margo knows,
   correct it, or have her forget something. Forgetting removes it from her current records at
   once; earlier copies of those records (storage versions and daily copies) are deleted after the
-  organisation's retention period, 30 days unless it chose otherwise.
+  organization's retention period, 30 days unless it chose otherwise.
 - **Messages from other people.** When someone other than the manager writes to Margo, she keeps
   the sender's directory ID and display name, the conversation, and a short excerpt, for the
   manager to review. These records have no automatic expiry. Senders are not told unless the
-  manager turned the acknowledgement on.
+  manager turned the acknowledgment on.
 - **When an instance is retired or the manager changes.** The instance stops and its identity is
-  removed. Its stored records are not deleted automatically: the organisation's administrators
+  removed. Its stored records are not deleted automatically: the organization's administrators
   delete them. A new manager never sees a previous manager's records.
-- **Who else can read it.** Administrators of the deploying organisation with data access to the
+- **Who else can read it.** Administrators of the deploying organization with data access to the
   storage account can read every manager's stored records.
-- **Operational logs.** The organisation's monitoring records which operations ran, on what kind
+- **Operational logs.** The organization's monitoring records which operations ran, on what kind
   of resource, and their outcome. It is configured not to record message content; the resources Margo read
-  are logged by kind, without names, addresses or search text. Logs are kept 30 days unless the organisation chose otherwise.
+  are logged by kind, without names, addresses or search text. Logs are kept 30 days unless the organization chose otherwise.
 - **Voice, if turned on.** The manager's speech is sent to Azure Voice Live for the session.
   Margo stores no audio or transcript.
-- **Microsoft services.** Microsoft processes data under the deploying organisation's agreements
+- **Microsoft services.** Microsoft processes data under the deploying organization's agreements
   with Microsoft, not under these terms.
 
 ## No warranty
