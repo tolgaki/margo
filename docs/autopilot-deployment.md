@@ -336,9 +336,21 @@ As the manager, open a chat with **the instance you hired** (by the name you gav
 Ask a colleague to message or email her. They should get no reply (or one acknowledgement, if
 enabled), and you should see it when you ask "anything from other people?".
 
-Margo works for you only in your one-to-one chat. If you @mention her in a group chat or
-channel she answers with a fixed note and reads nothing, so your mail and calendar never appear
-in front of other people.
+### Who Margo answers
+
+Margo works for you only in your one-to-one chat. Everywhere else she answers nobody, apart from two fixed notices that
+the model does not write:
+
+| Where | The manager writes | Anyone else writes |
+| --- | --- | --- |
+| One-to-one chat | A full conversation; the only place she takes instructions and posts approval cards | — |
+| Group chat or channel (she receives only messages that @mention her) | One fixed note: she works only in the one-to-one chat. She reads nothing there | No answer. Queued for the manager as an unverified request. With `/replies acknowledge`, one fixed "passed this on" note per conversation, which everyone in that chat sees |
+| Meeting | She does not join meetings; a meeting's chat is a group chat (row above) | As above |
+| Email to her, or copying her | Never answered; queued | Never answered, not even acknowledged; queued |
+
+Queued requests are listed when the manager asks "anything from other people?". An approval tap counts only in the
+one-to-one chat, so nothing she sends can be started from a group chat, a meeting or an email. Apart from the two fixed
+notices, the only messages other people get from her are actions the manager approved on a card.
 
 ## Voice (optional)
 

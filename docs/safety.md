@@ -125,11 +125,12 @@ enforced in code, not left to the model:
 Besides approved actions, Margo Cloud sends two fixed notices over the Teams channel, without per-message approval,
 and the guard does not see them (the reply gate in `Margo.Cloud.Orchestrator` controls them):
 
-- **The group-chat refusal.** Mentioned in a group chat or channel, Margo answers with one fixed sentence saying she
-  works only in her manager's one-to-one chat. She reads nothing there.
+- **The group-chat refusal.** When her manager @mentions her in a group chat, channel or meeting chat, Margo answers
+  with one fixed sentence saying she works only in their one-to-one chat. She reads nothing there.
 - **The "passed this on" acknowledgement**, off by default. With `/replies acknowledge`, a colleague who messages Margo
-  gets one fixed note per conversation saying their message was passed to her manager. It is the manager's standing
-  setting, triggered by the colleague's message, and names neither content nor data. `/replies none` turns it off.
+  in Teams gets one fixed note per conversation saying their message was passed to her manager; in a group chat,
+  everyone in it sees the note. It is the manager's standing setting, triggered by the colleague's message, and names
+  neither content nor data. Email is never answered, so it is never acknowledged. `/replies none` turns it off.
 
 Neither notice is written by the model, and neither contains the manager's data.
 
