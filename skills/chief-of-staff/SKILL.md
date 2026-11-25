@@ -62,7 +62,10 @@ documents, meeting recaps, people — comes from **Work IQ**. Load the `workiq` 
 guidance (call the `skill` tool with `workiq`) and use its MCP tools.
 
 Every Work IQ tool is prefixed `workiq-`. **Always use the full prefixed name**
-(`workiq-do_action`, not `do_action`) — unprefixed names are not callable.
+(`workiq-do_action`, not `do_action`) — unprefixed names are not callable. Other hosts spell the
+same tools differently: in Claude Code they are `mcp__workiq__fetch`, `mcp__workiq__do_action` and
+so on; in Margo Cloud, `workiq-fetch` as here. Wherever these procedures say `workiq-<tool>`, use
+your host's name for that Work IQ tool.
 
 The prefix comes from the **MCP server name**, never from a skill or folder name. If a call fails
 with "tool does not exist", that is almost always the cause: find the entry in your available
@@ -223,7 +226,7 @@ the user asks about the schedule itself.
 
 Three things about it matter enough to state here:
 
-- **Unattended is a different mode.** No `ask_user`, no trailing offers, and **silence is a
+- **Unattended is a different mode.** No asking the user (`ask_user` or your host's equivalent), no trailing offers, and **silence is a
   successful run**. Every other routine assumes a human is reading; a scheduled one must not.
 - **Proactive runs never act on the outside world.** They never send, post, RSVP, or change a work item —
   regardless of any standing authorization. Drafts may be prepared and held, never delivered.

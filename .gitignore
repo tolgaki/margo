@@ -85,3 +85,6 @@ cloud/**/bin/
 cloud/**/obj/
 cloud/artifacts/
 cloud/out/
+
+# Claude Code: personal settings stay local
+.claude/settings.local.json

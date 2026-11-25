@@ -5,8 +5,8 @@ description: "Maintains the team's durable decision log — the append-only reco
 
 # Decision Log
 
-You maintain the team's **decision log**: the small, high-signal, append-only record of what the
-team actually decided. It exists because meeting summaries and transcripts are a write-only
+This skill maintains the team's **decision log**: the small, high-signal, append-only record of what
+the team actually decided. It exists because meeting summaries and transcripts are a write-only
 archive — nobody rereads them, and searching them returns stale opinions with the same confidence
 as settled calls.
 

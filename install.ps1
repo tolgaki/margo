@@ -891,12 +891,20 @@ function Invoke-Install {
     Write-Host ""
     Write-Host "Installed $(Get-SourceVersion -Src $src)" -ForegroundColor Green
     Write-Host ""
+    if (-not (Get-Command copilot -ErrorAction SilentlyContinue)) {
+        Write-Host "  copilot not found on PATH - install GitHub Copilot CLI to run Margo (see docs/getting-started.md)" -ForegroundColor Yellow
+    }
     Write-Host "Next:"
-    Write-Host "  1. notepad $(Join-Rel $Dest 'skills/chief-of-staff/preferences.md')"
+    Write-Host "  1. Connect Work IQ in Copilot CLI (once): run copilot, then"
+    Write-Host "     /plugin marketplace add microsoft/work-iq  and  /plugin install workiq@work-iq;"
+    Write-Dim "restart, sign in with your work account, and check that /mcp lists workiq"
+    Write-Host "  2. notepad $(Join-Rel $Dest 'skills/chief-of-staff/preferences.md')"
     Write-Dim "fill in About me, VIPs, the priority ladder, and your drafting voice"
-    Write-Host "  2. Start the agent: copilot --agent margo"
+    Write-Host "  3. python `"$(Join-Rel $Dest 'skills/chief-of-staff/scripts/margo_store.py')`" init --account you@example.com"
+    Write-Dim "your work address: creates Margo's private records"
+    Write-Host "  4. Start the agent: copilot --agent margo"
     Write-Host "     Then ask: Brief me."
-    Write-Host "  3. $(Join-Rel $Dest 'tools/margo-scheduled.ps1') list"
+    Write-Host "  5. $(Join-Rel $Dest 'tools/margo-scheduled.ps1') list"
     Write-Dim "the scheduled runs - start with the morning brief, add the rest later"
     Write-Host "  Files only: private-state migration, saved app workflow sync, and extension/session reload"
     Write-Host "  are separate steps. Capture and schedules are not enabled by installation."

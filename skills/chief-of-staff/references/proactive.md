@@ -7,7 +7,7 @@ for proposed actions; a notification queue is not a commitments tracker.
 
 ## Unattended mode contract
 
-- Never call `ask_user`, end with an offer, or wait for a human response.
+- Never ask the user (`ask_user` or your host's equivalent), end with an offer, or wait for a human response.
 - Never send, post, react, RSVP, delete, change a work item, confirm an obligation, or approve an
   external action unattended. Local candidates, proposed resolutions, and private drafts may be
   stored; Outlook draft creation and shared publishing are separate writes.

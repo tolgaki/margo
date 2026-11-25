@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m unittest discover:*)",
+      "Bash(python3 tools/feature_catalog.py --check)",
+      "Bash(python3 tools/journey_contracts.py --check)",
+      "Bash(./tools/gen-automations-docs.sh --check)",
+      "Bash(./tools/check-clean.sh)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(node --test:*)"
+    ],
+    "ask": [
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(git reset:*)",
+      "Bash(git stash:*)",
+      "Bash(./install.sh:*)"
+    ]
+  }
+}
