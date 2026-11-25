@@ -6,22 +6,64 @@ using Margo.Cloud.State.Core;
 namespace Margo.Cloud.Orchestrator;
 
 /// <summary>Tokens for one turn (<c>orchestrator.py</c> <c>TurnTokens</c>). A missing token throws; there is no fallback.</summary>
-public sealed class TurnTokens : ITokenProvider
+public sealed class TurnTokens : IRefreshingTokenProvider
 {
     private readonly Dictionary<string, string?> _tokens;
+    private readonly Func<string, CancellationToken, Task<string?>>? _refresh;
+    private readonly Lock _lock = new();
 
     /// <param name="tokens">The turn's tokens by subject (<c>margo</c>, <c>principal</c>); a null or empty value is missing.</param>
-    public TurnTokens(IReadOnlyDictionary<string, string?> tokens)
+    /// <param name="refresh">Gets a fresh token for a subject after Work IQ answered 401; null when tokens can't be refreshed.</param>
+    public TurnTokens(IReadOnlyDictionary<string, string?> tokens, Func<string, CancellationToken, Task<string?>>? refresh = null)
     {
         ArgumentNullException.ThrowIfNull(tokens);
         _tokens = new Dictionary<string, string?>(tokens, StringComparer.Ordinal);
+        _refresh = refresh;
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> RefreshAsync(string subject, CancellationToken cancellationToken = default)
+    {
+        if (_refresh is null)
+        {
+            return null;
+        }
+
+        string? fresh;
+        try
+        {
+            fresh = await _refresh(subject, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exc) when (exc is not OperationCanceledException)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrEmpty(fresh))
+        {
+            lock (_lock)
+            {
+                _tokens[subject] = fresh; // later calls in this turn use it too
+            }
+        }
+
+        return fresh;
     }
 
     /// <inheritdoc />
     /// <exception cref="TokenUnavailableException">"<c>{subject} token not available for this turn</c>".</exception>
     public string TokenFor(string subject)
     {
-        if (subject is null || !_tokens.TryGetValue(subject, out var value) || string.IsNullOrEmpty(value))
+        string? value;
+        lock (_lock)
+        {
+            if (subject is null || !_tokens.TryGetValue(subject, out value))
+            {
+                value = null;
+            }
+        }
+
+        if (string.IsNullOrEmpty(value))
         {
             throw new TokenUnavailableException(subject + " token not available for this turn");
         }

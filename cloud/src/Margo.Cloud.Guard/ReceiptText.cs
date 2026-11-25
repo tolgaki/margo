@@ -75,6 +75,10 @@ public static class ReceiptText
         "music", "termstore", "getallsites",
         // planner and to-do
         "plans", "buckets", "tasks", "details", "todo", "linkedresources", "checklistitems",
+        // Work IQ path families
+        "office-agent-mcp", "generate_artifact", "edit_artifact", "engage", "sharepoint", "copilot", "communications",
+        "realtimeactivityfeed", "multiactivitysubscriptions", "create_page", "edit_page", "onlinemeetings", "transcripts",
+        "recordings", "content",
         // OData
         "$value", "$count", "$ref", "$batch", "$metadata",
     }.ToFrozenSet(StringComparer.Ordinal);

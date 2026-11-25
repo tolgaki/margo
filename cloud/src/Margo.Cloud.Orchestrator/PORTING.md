@@ -374,3 +374,9 @@ port; the C# code is now the implementation of record, and the desktop state hel
 - `StateSyncTests.A_bundle_the_python_service_packed_installs_here` replaces the two-way bundle test: a deployment that
   switches images finds Python-packed bundles in Blob storage, so `Parity/python_state_bundle.zip` (packed by the
   Python `StateSync` from a fictional database) must install here; the other direction has no Python reader left.
+
+## Token refresh and newer card kinds (Nov 25, 2026)
+
+`TurnTokens` takes a refresh delegate (the host's token getter) and implements `IRefreshingTokenProvider`; manager
+turns and decisions pass it. `CardContext.KindOf` recognizes Pages, Viva Engage, SharePoint and live-transcript
+subscriptions, and `CardDecisions.Done` words their outcomes.

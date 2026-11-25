@@ -21,6 +21,10 @@ public enum ApprovalKind
     DocumentChange,
     Share,
     Delete,
+    Page,
+    EngagePost,
+    SharePointChange,
+    MeetingListen,
     Other,
 }
 
@@ -57,6 +61,29 @@ public static class CardContext
     public static ApprovalKind KindOf(string tool, string? path)
     {
         var lower = (path ?? "").Split('?')[0].ToLowerInvariant();
+        if (tool is "create_entity" or "update_entity" or "do_action" or "delete_entity")
+        {
+            if (lower.StartsWith("/pages", StringComparison.Ordinal))
+            {
+                return ApprovalKind.Page;
+            }
+
+            if (lower.StartsWith("/engage/", StringComparison.Ordinal))
+            {
+                return ApprovalKind.EngagePost;
+            }
+
+            if (lower.StartsWith("/sharepoint/", StringComparison.Ordinal))
+            {
+                return ApprovalKind.SharePointChange;
+            }
+
+            if (lower.Contains("/realtimeactivityfeed/", StringComparison.Ordinal))
+            {
+                return ApprovalKind.MeetingListen;
+            }
+        }
+
         return tool switch
         {
             "do_action" when lower.EndsWith("/sendmail", StringComparison.Ordinal) => ApprovalKind.Email,

@@ -83,6 +83,43 @@ public sealed class WorkIQMcpTransport : IWorkIQTransport, IAsyncDisposable, IDi
     public async Task<JsonObject> CallAsync(string tool, JsonObject arguments, string bearer, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(tool);
+        var write = !Options.PooledTools.Contains(tool);
+        using var activity = WorkIQTelemetry.Source.StartActivity("workiq " + tool, System.Diagnostics.ActivityKind.Client);
+        activity?.SetTag("workiq.tool", tool);
+        activity?.SetTag("workiq.write", write);
+        var started = Options.TimeProvider.GetTimestamp();
+        Exception? failure = null;
+        try
+        {
+            return await CallCoreAsync(tool, arguments, bearer, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exc)
+        {
+            failure = exc;
+            throw;
+        }
+        finally
+        {
+            var outcome = WorkIQTelemetry.Outcome(failure);
+            var status = (failure as TransportException)?.StatusCode;
+            activity?.SetTag("workiq.outcome", outcome);
+            if (status is not null)
+            {
+                activity?.SetTag("http.response.status_code", status);
+            }
+
+            if (failure is not null)
+            {
+                activity?.SetStatus(System.Diagnostics.ActivityStatusCode.Error, outcome);
+            }
+
+            WorkIQTelemetry.CallDuration.Record(Options.TimeProvider.GetElapsedTime(started).TotalMilliseconds,
+                new KeyValuePair<string, object?>("workiq.tool", tool), new KeyValuePair<string, object?>("workiq.outcome", outcome));
+        }
+    }
+
+    private async Task<JsonObject> CallCoreAsync(string tool, JsonObject arguments, string bearer, CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(bearer);
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -130,6 +167,7 @@ public sealed class WorkIQMcpTransport : IWorkIQTransport, IAsyncDisposable, IDi
     public async Task<IReadOnlyList<WorkIQTool>> ListToolsAsync(string bearer, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(bearer);
+        using var activity = WorkIQTelemetry.Source.StartActivity("workiq tools/list", System.Diagnostics.ActivityKind.Client);
         ObjectDisposedException.ThrowIf(_disposed, this);
         var session = SessionFor(bearer);
         if (session.Tools is { } known)
@@ -421,6 +459,12 @@ public sealed class WorkIQMcpTransport : IWorkIQTransport, IAsyncDisposable, IDi
             PooledConnectionLifetime = pooled ? Options.PooledConnectionLifetime : TimeSpan.Zero,
             PooledConnectionIdleTimeout = Options.PooledConnectionIdleTimeout,
         };
+        if (pooled && Options.MaxRetryAfter > TimeSpan.Zero)
+        {
+            inner = new RetryAfterHandler(inner, Options.MaxRetryAfter, Options.TimeProvider); // reads only
+        }
+
+        WorkIQTelemetry.SessionsOpened.Add(1, new KeyValuePair<string, object?>("workiq.write", !pooled));
         return new HttpClient(new BoundedHandler(inner, Options.MaxResponseBytes)) { Timeout = Timeout.InfiniteTimeSpan };
     }
 

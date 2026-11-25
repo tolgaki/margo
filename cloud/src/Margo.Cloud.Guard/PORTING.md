@@ -343,3 +343,16 @@ port; the C# code is now the implementation of record, and the desktop state hel
 charged to the call budget, and returns an empty list when it cannot. A read that fails with a JSON-RPC error returns
 the server's text to the model as `data.error`; the receipt keeps the fixed reason "Work IQ error", because the text
 may echo the request. Tests: `ServerToolsTests`.
+
+## Discovery, paging, Copilot agents and token refresh (Nov 25, 2026)
+
+- `WorkIQFamilies` (`office-agent-mcp`, `pages`, `engage`, `sharepoint`, `copilot`) are allowed roots for both
+  subjects, so what `search_paths` finds can be read. Every write under them still needs a live claim. Under
+  delegation, the principal's reads there are reported unavailable, as for any path delegation does not cover.
+- A Microsoft Graph paging or delta link (`https://graph.microsoft.com/v1.0/...` or `/beta/...`) in `fetch`'s
+  `entityUrls` or `call_function`'s path is sent as the relative path it names, after meeting every path rule.
+- `ask` may name a Copilot agent (`agentId`, as `list_agents` gives it: 1-128 letters, digits and `._:-`). Every other
+  tool still refuses `agentId` and `backend`.
+- `IRefreshingTokenProvider`: when a read gets HTTP 401, the guard asks once for a fresh token for the same subject and
+  sends the read once more (never a write; never the same token; a principal token must still be the bound principal's).
+- Receipt words gained the Work IQ families' path words. Tests: `DiscoveryPolicyTests`, `ServerToolsTests`.

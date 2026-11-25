@@ -40,6 +40,12 @@ public sealed record McpTransportOptions
     /// </summary>
     public IReadOnlySet<string> PooledTools { get; init; } = ReadTools;
 
+    /// <summary>
+    /// The longest <c>Retry-After</c> a throttled read (429 or 503) waits before it is sent once more. A longer wait, or a
+    /// second refusal, is reported as the HTTP error. Writes are never resent. Default 10 seconds.
+    /// </summary>
+    public TimeSpan MaxRetryAfter { get; init; } = TimeSpan.FromSeconds(10);
+
     /// <summary>How long a pooled connection may live, so DNS and load-balancer changes are picked up. Default 2 minutes.</summary>
     public TimeSpan PooledConnectionLifetime { get; init; } = TimeSpan.FromMinutes(2);
 
@@ -61,6 +67,7 @@ public sealed record McpTransportOptions
         ArgumentOutOfRangeException.ThrowIfLessThan(MaxSessions, 1, nameof(MaxSessions));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(SessionIdleTimeout, TimeSpan.Zero, nameof(SessionIdleTimeout));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(CallTimeout, TimeSpan.Zero, nameof(CallTimeout));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxRetryAfter, TimeSpan.Zero, nameof(MaxRetryAfter));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(PooledConnectionLifetime, TimeSpan.Zero, nameof(PooledConnectionLifetime));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(PooledConnectionIdleTimeout, TimeSpan.Zero, nameof(PooledConnectionIdleTimeout));
         ArgumentNullException.ThrowIfNull(TimeProvider);

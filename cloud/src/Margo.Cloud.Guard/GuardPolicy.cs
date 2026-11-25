@@ -70,13 +70,26 @@ public static class GuardPolicy
     /// <summary><c>CONTROL_ARGS</c>: the guard's own arguments, never sent to Work IQ.</summary>
     public static IReadOnlySet<string> ControlArgs { get; } = Set("on_data_of", "action_id", "attempt_id");
 
+    /// <summary>
+    /// Work IQ's own path families beyond Microsoft Graph, found with <c>search_paths</c>: Office documents, Copilot
+    /// Pages, Viva Engage, SharePoint, and Copilot (meeting transcripts). Reads are allowed for either subject; every
+    /// write still needs a live claim of the manager's approval of that exact call, as for any other path.
+    /// </summary>
+    public static IReadOnlyList<string> WorkIQFamilies { get; } = ["office-agent-mcp", "pages", "engage", "sharepoint", "copilot"];
+
+    /// <summary>The Graph hosts whose paging and delta links are accepted and sent as relative paths.</summary>
+    public static IReadOnlyList<string> GraphLinkPrefixes { get; } = ["https://graph.microsoft.com/v1.0/", "https://graph.microsoft.com/beta/"];
+
+    /// <summary>The longest Copilot agent ID <c>ask</c> may name.</summary>
+    public const int MaxAgentId = 128;
+
     /// <summary><c>ROOTS</c>: the allowed first path segment (lower-cased) per <c>on_data_of</c>.</summary>
     public static IReadOnlyDictionary<string, IReadOnlySet<string>> Roots { get; } = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal)
     {
-        [Subjects.Principal] = Set("me", "users", "sites", "drives", "chats", "teams", "planner"),
+        [Subjects.Principal] = Set([.. (string[])["me", "users", "sites", "drives", "chats", "teams", "planner"], .. WorkIQFamilies]),
         // Margo's own token reaches only what is hers or shared with her: her mail, her chats (including group chats she
         // is in), channels of teams she belongs to, and files and sites shared with her. Writes still need a live claim.
-        [Subjects.Self] = Set("me", "users", "chats", "teams", "sites", "drives", "shares", "office-agent-mcp"),
+        [Subjects.Self] = Set([.. (string[])["me", "users", "chats", "teams", "sites", "drives", "shares"], .. WorkIQFamilies]),
     }.ToFrozenDictionary(StringComparer.Ordinal);
 
     /// <summary><c>USER_DIRECTORY_READS</c>: what <c>/users/{id}/...</c> may read.</summary>
@@ -415,6 +428,11 @@ public static class GuardPolicy
         foreach (var key in MustBeEmpty)
         {
             var routed = PyNode.Get(args, key);
+            if (tool == "ask" && key == "agentId" && IsAgentId(routed))
+            {
+                continue; // a question for one Copilot agent from list_agents; its answer is data like any other
+            }
+
             if (!IsNone(routed) && !PyNode.Is(routed, ""))
             {
                 throw new RefusedException("'" + key + "' would route outside the built-in Work IQ path");
@@ -510,6 +528,32 @@ public static class GuardPolicy
         {
             throw new RefusedException("includeDeveloperCard must be a boolean");
         }
+    }
+
+    /// <summary>A Copilot agent ID as <c>list_agents</c> gives it: 1 to <see cref="MaxAgentId"/> letters, digits and <c>._:-</c>.</summary>
+    internal static bool IsAgentId(JsonNode? value) =>
+        PyNode.AsString(value) is { Length: > 0 and <= MaxAgentId } id && id.All(ch => char.IsAsciiLetterOrDigit(ch) || ch is '.' or '_' or ':' or '-');
+
+    /// <summary>
+    /// A Microsoft Graph paging or delta link (<c>@odata.nextLink</c>, <c>@odata.deltaLink</c>) as the relative path Work IQ
+    /// takes, or null when <paramref name="value"/> is not one. The relative path then meets every path rule.
+    /// </summary>
+    internal static string? RelativeGraphLink(JsonNode? value)
+    {
+        if (PyNode.AsString(value) is not { } text)
+        {
+            return null;
+        }
+
+        foreach (var prefix in GraphLinkPrefixes)
+        {
+            if (text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && text.Length > prefix.Length)
+            {
+                return "/" + text[prefix.Length..];
+            }
+        }
+
+        return null;
     }
 
     private static void ValidateAsk(JsonObject args, IReadOnlySet<string>? fileHosts)

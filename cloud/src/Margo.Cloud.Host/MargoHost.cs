@@ -147,7 +147,9 @@ public static class MargoHost
                 throw new ArgumentException(problem);
             }
 
-            builder.Services.AddOpenTelemetry().UseAzureMonitor(options => options.ConnectionString = settings.ApplicationInsights);
+            builder.Services.AddOpenTelemetry().UseAzureMonitor(options => options.ConnectionString = settings.ApplicationInsights)
+                .WithTracing(tracing => tracing.AddSource(WorkIQTelemetry.Name, WorkIQTelemetry.SdkSourceName))
+                .WithMetrics(metrics => metrics.AddMeter(WorkIQTelemetry.Name));
 
             // Health probes arrive every few seconds for as long as a replica is up: tracing them is most of an idle
             // instance's telemetry and says nothing.

@@ -58,4 +58,13 @@ public sealed class ServerToolDefinitionTests
         Assert.Equal(EngineTools.FunctionTools(RunModes.Attended).ToJsonString(), EngineTools.FunctionTools(RunModes.Attended, []).ToJsonString());
         Assert.Equal(8, EngineTools.FunctionTools(RunModes.Attended).OfType<JsonObject>().Count(tool => ((string?)tool["name"])!.StartsWith("workiq-", StringComparison.Ordinal)));
     }
+
+    [Fact]
+    public void Ask_offers_a_copilot_agent_id_and_no_other_tool_does()
+    {
+        var schema = """{"type": "object", "properties": {"question": {"type": "string"}, "entityUrls": {"type": "array"}, "agentId": {"type": "string"}}}""";
+        var tools = EngineTools.FunctionTools(RunModes.Attended, [Tool("ask", "Ask Copilot.", schema), Tool("fetch", "Fetch.", schema)]);
+        Assert.True(Named(tools, "workiq-ask")["parameters"]!["properties"]!.AsObject().ContainsKey("agentId"));
+        Assert.False(Named(tools, "workiq-fetch")["parameters"]!["properties"]!.AsObject().ContainsKey("agentId"));
+    }
 }

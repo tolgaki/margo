@@ -34,10 +34,13 @@ param tags object = {}
 
 @allowed(['obo', 'delegation'])
 @description('How each Margo reads her manager\'s work: obo (on-behalf-of) or delegation (mailbox permissions).')
-param principalAccess string = 'obo'
+param principalAccess string = 'delegation'
 
-@description('On-behalf-of user-authorisation handler name (obo mode); empty leaves principal sources blocked.')
+@description('On-behalf-of user-authorization handler name (obo mode), e.g. PRINCIPAL; empty leaves principal sources blocked.')
 param principalAuthHandler string = ''
+
+@description('obo mode: the OAuth connection on the agent\'s Azure Bot that signs the manager in (Teams single sign-on); the handler exchanges that sign-in for a Work IQ token through the blueprint connection.')
+param principalOAuthConnection string = ''
 
 @description('The managers\' time zone (IANA name); Margo states every time in it.')
 param timezone string = 'America/Los_Angeles'
@@ -339,10 +342,12 @@ var provisionerConfig = {
   voiceName: voiceName
   voiceEndpointId: voiceEndpointId
   // Settings every instance container gets; never secrets.
+  // obo mode: the manager's sign-in handler (Azure Bot token service, single sign-on in Teams), exchanged on behalf of
+  // the manager for a Work IQ token through the blueprint's own connection.
   extraEnv: concat([
     { name: 'MARGO_PRINCIPAL_ACCESS', value: principalAccess }
     { name: 'MARGO_TIMEZONE', value: timezone }
-  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ], empty(voiceClientId) ? [] : [ { name: 'MARGO_VOICE_CLIENT_ID', value: voiceClientId } ], empty(extraTokenIssuers) ? [] : [ { name: 'MARGO_EXTRA_TOKEN_ISSUERS', value: extraTokenIssuers } ], empty(voiceMaxSeconds) ? [] : [ { name: 'MARGO_VOICE_MAX_SECONDS', value: voiceMaxSeconds } ], empty(voiceMaxToolCalls) ? [] : [ { name: 'MARGO_VOICE_MAX_TOOL_CALLS', value: voiceMaxToolCalls } ], empty(platformAppIds) ? [] : [ { name: 'MARGO_PLATFORM_APP_IDS', value: platformAppIds } ], empty(extraServiceHosts) ? [] : [ { name: 'MARGO_EXTRA_SERVICE_HOSTS', value: extraServiceHosts } ], empty(sharePointHosts) ? [] : [ { name: 'MARGO_SHAREPOINT_HOSTS', value: sharePointHosts } ], [ { name: 'MARGO_MODEL_REASONING_EFFORT', value: modelReasoningEffort }, { name: 'MARGO_STATE_DAILY_RETENTION_DAYS', value: string(stateDailyRetentionDays) } ])
+  ], empty(principalAuthHandler) ? [] : [ { name: 'PRINCIPAL_AUTH_HANDLER', value: principalAuthHandler } ], empty(principalAuthHandler) || empty(principalOAuthConnection) ? [] : [ { name: 'AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__${toUpper(principalAuthHandler)}__TYPE', value: 'AzureBotUserAuthorization' }, { name: 'AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__${toUpper(principalAuthHandler)}__SETTINGS__AZUREBOTOAUTHCONNECTIONNAME', value: principalOAuthConnection }, { name: 'AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__${toUpper(principalAuthHandler)}__SETTINGS__OBOCONNECTIONNAME', value: 'SERVICE_CONNECTION' }, { name: 'AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__${toUpper(principalAuthHandler)}__SETTINGS__OBOSCOPES__0', value: 'api://workiq.svc.cloud.microsoft/.default' }, { name: 'AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__${toUpper(principalAuthHandler)}__SETTINGS__ENABLESSO', value: 'true' } ], empty(voiceClientId) ? [] : [ { name: 'MARGO_VOICE_CLIENT_ID', value: voiceClientId } ], empty(extraTokenIssuers) ? [] : [ { name: 'MARGO_EXTRA_TOKEN_ISSUERS', value: extraTokenIssuers } ], empty(voiceMaxSeconds) ? [] : [ { name: 'MARGO_VOICE_MAX_SECONDS', value: voiceMaxSeconds } ], empty(voiceMaxToolCalls) ? [] : [ { name: 'MARGO_VOICE_MAX_TOOL_CALLS', value: voiceMaxToolCalls } ], empty(platformAppIds) ? [] : [ { name: 'MARGO_PLATFORM_APP_IDS', value: platformAppIds } ], empty(extraServiceHosts) ? [] : [ { name: 'MARGO_EXTRA_SERVICE_HOSTS', value: extraServiceHosts } ], empty(sharePointHosts) ? [] : [ { name: 'MARGO_SHAREPOINT_HOSTS', value: sharePointHosts } ], [ { name: 'MARGO_MODEL_REASONING_EFFORT', value: modelReasoningEffort }, { name: 'MARGO_STATE_DAILY_RETENTION_DAYS', value: string(stateDailyRetentionDays) } ])
 }
 
 // Started by messages on the provisioning queue (a KEDA azure-queue rule read with the job's own identity, which

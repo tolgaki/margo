@@ -47,3 +47,11 @@ project has none.
 `HttpMessageHandler`: sessions per token, writes on their own session and never resent, the forgotten-session
 resend, tool and HTTP and JSON-RPC errors, timeouts versus the caller's cancellation, the response bound, resource
 links, text results, `tools/list` paging and caching, session eviction, https only.
+
+## Throttling and telemetry (Nov 25, 2026)
+
+- Read sessions resend a request answered 429 or 503 once, after its `Retry-After` when that is at most
+  `MaxRetryAfter` (10 s). Write sessions never do.
+- `WorkIQTelemetry`: an activity per `tools/call` and `tools/list` (`Margo.Cloud.WorkIQ`; tags: tool, write, outcome,
+  HTTP status; never arguments or results), the `workiq.call.duration` histogram and counters for sessions and
+  throttling retries. The host exports them, with the SDK's own spans, to Application Insights.

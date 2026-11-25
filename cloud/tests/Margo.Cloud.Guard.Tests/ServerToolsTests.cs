@@ -60,4 +60,56 @@ public sealed class ServerToolsTests
         Assert.Equal("entityUrls must be an array, got /users/dana@example.com", PyNode.AsString(read.Data!["error"]));
         Assert.DoesNotContain("dana", PyJson.Dumps(Assert.Single(receipts).ToJsonObject()), StringComparison.Ordinal);
     }
+
+    private sealed class Refreshing(string fresh) : IRefreshingTokenProvider
+    {
+        public List<string> Asked { get; } = [];
+
+        public string TokenFor(string subject) => subject + "-token";
+
+        public Task<string?> RefreshAsync(string subject, CancellationToken cancellationToken = default)
+        {
+            Asked.Add(subject);
+            return Task.FromResult<string?>(fresh);
+        }
+    }
+
+    private sealed class ExpiringTransport : IWorkIQTransport
+    {
+        public string Endpoint => WorkIQEndpoints.McpUrl;
+
+        public List<string> Bearers { get; } = [];
+
+        public Task<JsonObject> CallAsync(string tool, JsonObject arguments, string bearer, CancellationToken cancellationToken = default)
+        {
+            Bearers.Add(bearer);
+            return bearer.EndsWith("-token", StringComparison.Ordinal)
+                ? Task.FromException<JsonObject>(new TransportException("Work IQ answered HTTP 401", 401))
+                : Task.FromResult(new JsonObject { ["statusCode"] = 200 });
+        }
+    }
+
+    [Fact]
+    public async Task An_expired_token_is_refreshed_once_for_a_read()
+    {
+        var tokens = new Refreshing("margo-fresh");
+        var transport = new ExpiringTransport();
+        var guard = new WorkIQGuard(Fixtures.Binding, tokens, transport);
+        var read = await guard.CallAsync("fetch", new JsonObject { ["on_data_of"] = "self", ["entityUrls"] = new JsonArray("/me/messages") },
+                                         RunModes.Attended, TestContext.Current.CancellationToken);
+        Assert.Equal(GuardStatuses.Ok, read.Status);
+        Assert.Equal(["margo-token", "margo-fresh"], transport.Bearers);
+        Assert.Equal([Subjects.Margo], tokens.Asked);
+    }
+
+    [Fact]
+    public async Task The_same_token_back_is_not_a_refresh()
+    {
+        var transport = new ExpiringTransport();
+        var guard = new WorkIQGuard(Fixtures.Binding, new Refreshing("margo-token"), transport);
+        var read = await guard.CallAsync("fetch", new JsonObject { ["on_data_of"] = "self", ["entityUrls"] = new JsonArray("/me/messages") },
+                                         RunModes.Attended, TestContext.Current.CancellationToken);
+        Assert.Equal(GuardStatuses.Error, read.Status);
+        Assert.Single(transport.Bearers);
+    }
 }

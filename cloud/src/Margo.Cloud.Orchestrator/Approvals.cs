@@ -156,6 +156,9 @@ internal static class CardDecisions
         ApprovalKind.DocumentChange => "Done: the document is changed.",
         ApprovalKind.Share => "Done: the file is shared.",
         ApprovalKind.Delete => "Done: it's deleted.",
+        ApprovalKind.Page => "Done: the Page is published.",
+        ApprovalKind.EngagePost => "Done: the post is up on Viva Engage.",
+        ApprovalKind.SharePointChange => "Done: the SharePoint change is made.",
         _ => Sent,
     };
     public const string Rejected = "Rejected. Nothing was sent.";

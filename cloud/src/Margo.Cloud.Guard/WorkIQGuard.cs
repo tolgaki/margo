@@ -248,10 +248,11 @@ public sealed class WorkIQGuard
         }
 
         string bearer;
+        var asPrincipal = intent == Subjects.Principal && !delegated;
+        var subject = asPrincipal ? Subjects.Principal : Subjects.Margo;
         try
         {
-            var asPrincipal = intent == Subjects.Principal && !delegated;
-            bearer = _tokens.TokenFor(asPrincipal ? Subjects.Principal : Subjects.Margo);
+            bearer = _tokens.TokenFor(subject);
             if (asPrincipal && !TokenSubject.MayBe(bearer, Binding.PrincipalId))
             {
                 throw new TokenUnavailableException("the token is not the bound principal's");
@@ -282,7 +283,21 @@ public sealed class WorkIQGuard
         JsonObject? result;
         try
         {
-            result = await Transport.CallAsync(tool!, authorised.Arguments, bearer, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                result = await Transport.CallAsync(tool!, authorised.Arguments, bearer, cancellationToken).ConfigureAwait(false);
+            }
+            catch (TransportException exc) when (!write && exc.StatusCode == 401 && _tokens is IRefreshingTokenProvider refreshing)
+            {
+                // The token expired during the turn: a read is sent once more with a fresh one. Writes are never resent.
+                var fresh = await refreshing.RefreshAsync(subject, cancellationToken).ConfigureAwait(false);
+                if (string.IsNullOrEmpty(fresh) || fresh == bearer || (asPrincipal && !TokenSubject.MayBe(fresh, Binding.PrincipalId)))
+                {
+                    throw;
+                }
+
+                result = await Transport.CallAsync(tool!, authorised.Arguments, fresh, cancellationToken).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -468,6 +483,28 @@ public sealed class WorkIQGuard
             if (!ControlArgs.Contains(key))
             {
                 args[key] = PyNode.Copy(value);
+            }
+        }
+
+        // A paging or delta link Work IQ returned is followed as the relative path it names (then checked like any path).
+        if (tool == "fetch" && args["entityUrls"] is JsonArray links)
+        {
+            for (var i = 0; i < links.Count; i++)
+            {
+                if (RelativeGraphLink(links[i]) is { } relative)
+                {
+                    links[i] = relative;
+                }
+            }
+        }
+        else if (tool == "call_function")
+        {
+            foreach (var key in (string[])["functionUrl", "parentUrl"])
+            {
+                if (RelativeGraphLink(args[key]) is { } relative)
+                {
+                    args[key] = relative;
+                }
             }
         }
 

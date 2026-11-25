@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/WorkIQHello/WorkIQHello.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Margo.Cloud.Core/Margo.Cloud.Core.csproj" />
     <Project Path="src/Margo.Cloud.Engine/Margo.Cloud.Engine.csproj" />

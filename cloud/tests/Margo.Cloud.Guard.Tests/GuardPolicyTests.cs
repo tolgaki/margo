@@ -102,7 +102,8 @@ public sealed class GuardPolicyTests
             ("send_mail", """{"on_data_of": "principal"}"""),
             ("fetch", """{"on_data_of": "principal", "entityUrls": ["/me/messages"], "extra": 1}"""),
             ("fetch", """{"entityUrls": ["/me/messages"]}"""),
-            ("ask", """{"on_data_of": "principal", "question": "Anything urgent?", "agentId": "custom-agent"}"""),
+            ("ask", """{"on_data_of": "principal", "question": "Anything urgent?", "agentId": "../other agent"}"""),
+            ("fetch", """{"on_data_of": "principal", "entityUrls": ["/me/messages"], "agentId": "custom-agent"}"""),
             ("retrieve", """{"on_data_of": "principal", "query": "escalations", "capabilities": [{"name": "Email", "shared_mailbox": "support@example.com"}]}"""),
             ("get_schema", """{"on_data_of": "self", "path": "/me/messages", "operationType": "fetch", "backend": "other"}"""),
         ];

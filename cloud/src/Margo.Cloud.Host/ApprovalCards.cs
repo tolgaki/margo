@@ -129,6 +129,10 @@ public static class ApprovalCards
         ApprovalKind.DocumentChange => "Change this document?",
         ApprovalKind.Share => "Share this file?",
         ApprovalKind.Delete => "Delete this?",
+        ApprovalKind.Page => "Publish this Page?",
+        ApprovalKind.EngagePost => "Post this on Viva Engage?",
+        ApprovalKind.SharePointChange => "Make this SharePoint change?",
+        ApprovalKind.MeetingListen => "Let Margo follow this meeting's live transcript?",
         _ => "Let Margo do this?",
     };
 
@@ -137,6 +141,7 @@ public static class ApprovalCards
         (ApprovalKind.Email or ApprovalKind.Reply or ApprovalKind.Forward, true) => "From your mailbox. It will show as sent by Margo on your behalf.",
         (ApprovalKind.MeetingNew or ApprovalKind.MeetingChange or ApprovalKind.MeetingCancel, true) => "On your calendar. Invitations go out from Margo on your behalf.",
         (_, true) => "Using your account, by Margo on your behalf.",
+        (ApprovalKind.EngagePost, false) => "Posted by Margo, under her own name.",
         (ApprovalKind.Chat or ApprovalKind.Channel, false) => "From Margo, in a conversation she's part of.",
         _ => "From Margo's own account.",
     };
@@ -184,6 +189,12 @@ public static class ApprovalCards
         Add(kind == ApprovalKind.MeetingCancel ? "Note to attendees" : "Note", PyNode.AsString(body["comment"]) ?? PyNode.AsString(body["message"]));
         Add(kind is ApprovalKind.MeetingNew or ApprovalKind.MeetingChange ? "Details" : "Message", Text(message["body"] ?? body["body"]));
         Add("Attachments", Names(message["attachments"]));
+        if (kind is ApprovalKind.Page or ApprovalKind.EngagePost)
+        {
+            Add("Title", PyNode.AsString(body["title"]));
+            Add("Text", PyNode.AsString(body["content"]) ?? PyNode.AsString(body["text"]));
+        }
+
         if (kind == ApprovalKind.DocumentChange)
         {
             Add("Document", PyNode.AsString(body["artifactUrl"]));

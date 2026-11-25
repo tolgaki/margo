@@ -494,7 +494,9 @@ public sealed class Orchestrator
                         _initialised.TryAdd(binding.Account, true);
                     }
 
-                    return await ManagerTurnAsync(inbound, binding, tokens, preferences, token).ConfigureAwait(false);
+                    // A token that expires during a long turn is fetched again once, for reads (WorkIQGuard).
+                    Task<string?> Refresh(string subject, CancellationToken refreshToken) => TokenAsync(getToken, subject, refreshToken);
+                    return await ManagerTurnAsync(inbound, binding, tokens, preferences, Refresh, token).ConfigureAwait(false);
                 }
 
                 return new TurnOutcome(await Task.Run(() => ThirdPartyTurn(inbound, binding, preferences, managerName), token).ConfigureAwait(false));
@@ -546,11 +548,12 @@ public sealed class Orchestrator
         new(binding.Account, StateRoot, preferences, budget, Options.StateRecorder, cliCommand: Options.StateCliCommand);
 
     private async Task<TurnOutcome> ManagerTurnAsync(InboundEvent inbound, InstanceBinding binding, IReadOnlyDictionary<string, string?> tokens,
-                                                     string preferences, CancellationToken cancellationToken)
+                                                     string preferences, Func<string, CancellationToken, Task<string?>> refresh,
+                                                     CancellationToken cancellationToken)
     {
         if (inbound.Decision is { } decision)
         {
-            return await DecideAsync(inbound, decision, binding, tokens, cancellationToken).ConfigureAwait(false);
+            return await DecideAsync(inbound, decision, binding, tokens, refresh, cancellationToken).ConfigureAwait(false);
         }
 
         if (ManagerCommands.IsVoice(inbound.Text))
@@ -570,7 +573,7 @@ public sealed class Orchestrator
             return new TurnOutcome(new TurnReply(ReplySetting.ChangedNote(mode), TurnStatuses.SettingChanged));
         }
 
-        var guard = new WorkIQGuard(binding, new TurnTokens(tokens), Transport, recorder: Options.GuardRecorder,
+        var guard = new WorkIQGuard(binding, new TurnTokens(tokens, refresh), Transport, recorder: Options.GuardRecorder,
                                     budget: new CallBudget(TurnCallBudget), principalAccess: Options.PrincipalAccess)
         {
             FileHosts = Options.FileHosts,
@@ -587,7 +590,7 @@ public sealed class Orchestrator
         var state = NewStateCommands(binding, preferences, new CallBudget(StateCallBudget));
         var approvals = new TurnApprovals(binding, StateRoot, guard);
         // A guard of its own for documents: the standing permission applies to these calls only, never to the model's.
-        var documents = new TurnDocuments(new WorkIQGuard(binding, new TurnTokens(tokens), Transport, recorder: Options.GuardRecorder,
+        var documents = new TurnDocuments(new WorkIQGuard(binding, new TurnTokens(tokens, refresh), Transport, recorder: Options.GuardRecorder,
                                                           budget: new CallBudget(TurnDocuments.MaxDocuments * 3), principalAccess: Options.PrincipalAccess)
         {
             FileHosts = Options.FileHosts,
@@ -632,10 +635,11 @@ public sealed class Orchestrator
     /// call once, through a guard holding the ledger's claim journal. The model is not involved.
     /// </summary>
     private async Task<TurnOutcome> DecideAsync(InboundEvent inbound, CardDecision decision, InstanceBinding binding,
-                                                IReadOnlyDictionary<string, string?> tokens, CancellationToken cancellationToken)
+                                                IReadOnlyDictionary<string, string?> tokens, Func<string, CancellationToken, Task<string?>> refresh,
+                                                CancellationToken cancellationToken)
     {
         WorkIQGuard NewGuard(IClaimJournal journal) =>
-            new(binding, new TurnTokens(tokens), Transport, journal, recorder: Options.GuardRecorder, budget: new CallBudget(1),
+            new(binding, new TurnTokens(tokens, refresh), Transport, journal, recorder: Options.GuardRecorder, budget: new CallBudget(1),
                 principalAccess: Options.PrincipalAccess)
             {
                 FileHosts = Options.FileHosts,

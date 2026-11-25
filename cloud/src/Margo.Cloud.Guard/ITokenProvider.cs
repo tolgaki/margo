@@ -16,3 +16,13 @@ public interface ITokenProvider
     /// <exception cref="TokenUnavailableException">The token cannot be produced.</exception>
     string TokenFor(string subject);
 }
+
+/// <summary>
+/// A token provider that can fetch a fresh token for a subject when Work IQ answers 401 (the token expired during a
+/// long turn). The guard asks once per read; a write is never resent.
+/// </summary>
+public interface IRefreshingTokenProvider : ITokenProvider
+{
+    /// <summary>A fresh token for <paramref name="subject"/>, or null when none can be had.</summary>
+    Task<string?> RefreshAsync(string subject, CancellationToken cancellationToken = default);
+}

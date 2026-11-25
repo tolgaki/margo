@@ -255,4 +255,83 @@ public sealed class WorkIQMcpTransportTests
 
         Assert.True(condition());
     }
+
+    private static HttpResponseMessage Throttled(TimeSpan wait)
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+        response.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(wait);
+        return response;
+    }
+
+    [Fact]
+    public async Task A_throttled_read_waits_its_short_retry_after_once()
+    {
+        var (transport, server) = Create(McpTransportOptions.Default with { MaxRetryAfter = TimeSpan.FromSeconds(2) });
+        await using var _ = transport;
+        var calls = 0;
+        server.OnCall = (_, _, _) => Task.FromResult(Interlocked.Increment(ref calls) == 1
+            ? Throttled(TimeSpan.Zero)
+            : ScriptedMcpServer.Result(new JsonObject { ["statusCode"] = 200 }));
+        var payload = await transport.CallAsync("fetch", Fetch(), "token-a", Cancel);
+        Assert.Equal((200, 2), ((int)payload["statusCode"]!, calls));
+    }
+
+    [Fact]
+    public async Task A_long_retry_after_or_a_second_refusal_is_the_error()
+    {
+        var (transport, server) = Create(McpTransportOptions.Default with { MaxRetryAfter = TimeSpan.FromSeconds(2) });
+        await using var _ = transport;
+        var calls = 0;
+        server.OnCall = (_, _, _) =>
+        {
+            Interlocked.Increment(ref calls);
+            return Task.FromResult(Throttled(TimeSpan.FromSeconds(30)));
+        };
+        Assert.Equal(429, (await Assert.ThrowsAsync<TransportException>(() => transport.CallAsync("fetch", Fetch(), "token-a", Cancel))).StatusCode);
+        Assert.Equal(1, calls);
+
+        calls = 0;
+        server.OnCall = (_, _, _) =>
+        {
+            Interlocked.Increment(ref calls);
+            return Task.FromResult(Throttled(TimeSpan.Zero));
+        };
+        Assert.Equal(429, (await Assert.ThrowsAsync<TransportException>(() => transport.CallAsync("fetch", Fetch(), "token-a", Cancel))).StatusCode);
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
+    public async Task A_throttled_write_is_never_resent()
+    {
+        var (transport, server) = Create();
+        await using var _ = transport;
+        var calls = 0;
+        server.OnCall = (_, _, _) =>
+        {
+            Interlocked.Increment(ref calls);
+            return Task.FromResult(Throttled(TimeSpan.Zero));
+        };
+        var error = await Assert.ThrowsAsync<TransportException>(() =>
+            transport.CallAsync("do_action", new JsonObject { ["actionUrl"] = "/me/sendMail", ["jsonBody"] = "{}" }, "token-a", Cancel));
+        Assert.Equal((429, 1), (error.StatusCode, calls));
+    }
+
+    [Fact]
+    public async Task Each_call_is_traced_without_its_arguments()
+    {
+        var (transport, server) = Create();
+        await using var _ = transport;
+        var seen = new List<System.Diagnostics.Activity>();
+        using var listener = new System.Diagnostics.ActivityListener
+        {
+            ShouldListenTo = source => source.Name == WorkIQTelemetry.Name,
+            Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) => System.Diagnostics.ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = activity => { lock (seen) { seen.Add(activity); } },
+        };
+        System.Diagnostics.ActivitySource.AddActivityListener(listener);
+        await transport.CallAsync("fetch", Fetch("/me/messages?$search=secret-project"), "token-a", Cancel);
+        var activity = Assert.Single(seen, a => a.OperationName == "workiq fetch");
+        Assert.Equal(("fetch", false, "ok"), ((string?)activity.GetTagItem("workiq.tool"), (bool?)activity.GetTagItem("workiq.write"), (string?)activity.GetTagItem("workiq.outcome")));
+        Assert.DoesNotContain(activity.TagObjects, tag => tag.Value?.ToString()?.Contains("secret-project", StringComparison.Ordinal) == true);
+    }
 }

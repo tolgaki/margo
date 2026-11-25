@@ -130,4 +130,17 @@ public sealed class ApprovalCardTests
         Assert.Equal((CardDecision.Approve, "act_1", 2L, "hash-1"), (decision.Verb, decision.ActionId, decision.Revision, decision.ActionHash));
         Assert.Equal(card.Context, decision.Context);
     }
+
+    [Theory]
+    [InlineData("do_action", "/pages/create_page", "Publish this Page?")]
+    [InlineData("create_entity", "/engage/communities/c1/threads", "Post this on Viva Engage?")]
+    [InlineData("do_action", "/sharepoint/sites/s1/lists/l1/items/7/approve", "Make this SharePoint change?")]
+    [InlineData("create_entity", "/copilot/communications/realtimeActivityFeed/multiActivitySubscriptions", "Let Margo follow this meeting's live transcript?")]
+    public void Newer_work_iq_actions_get_plain_titles(string tool, string path, string title)
+    {
+        var card = Card(tool, path, JsonNode.Parse("""{"title": "Q3 launch notes", "content": "Highlights from the review."}""")!.AsObject(), onDataOf: "self");
+        var text = Text(ApprovalCards.Card(card, null));
+        Assert.StartsWith(title, text, StringComparison.Ordinal);
+        Plain(text);
+    }
 }
