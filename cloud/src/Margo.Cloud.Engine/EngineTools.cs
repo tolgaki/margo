@@ -38,6 +38,9 @@ public static class EngineTools
     /// <summary><c>STATE_TOOL</c>.</summary>
     public const string StateTool = "margo-state";
 
+    /// <summary>The function tool that creates an Office document and shares it with the manager.</summary>
+    public const string DocumentTool = "create_document";
+
     /// <summary>The function tool that asks the manager to approve a proposed action on a card.</summary>
     public const string ApprovalTool = "request_approval";
 
@@ -109,6 +112,49 @@ public static class EngineTools
             ["required"] = new JsonArray("action_id"),
         },
     };
+
+    /// <summary>The <see cref="DocumentTool"/> definition.</summary>
+    public static JsonObject DocumentToolDefinition() => new()
+    {
+        ["type"] = "function",
+        ["name"] = DocumentTool,
+        ["description"] = "Create a Word document, Excel workbook or PowerPoint presentation from a complete outline you write, "
+                          + "in your own OneDrive, and share it with your manager only. Returns its link. Call once per document.",
+        ["parameters"] = new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = new JsonObject
+            {
+                ["app"] = new JsonObject { ["type"] = "string", ["enum"] = new JsonArray("Word", "Excel", "PowerPoint") },
+                ["outline"] = new JsonObject
+                {
+                    ["type"] = "string",
+                    ["description"] = "The complete content in Markdown: every heading, paragraph, bullet, table and value, then formatting preferences.",
+                },
+                ["request"] = new JsonObject { ["type"] = "string", ["description"] = "Your manager's request, in one or two sentences." },
+            },
+            ["required"] = new JsonArray("app", "outline"),
+        },
+    };
+
+    /// <summary>Appended to the hosted context in a chat turn that can create documents (<see cref="DocumentTool"/>).</summary>
+    public const string DocumentAddendum = """
+        # Documents you create
+
+        When your manager asks for a Word document, Excel workbook or PowerPoint presentation, write the
+        complete content yourself: the document type, purpose and audience, then every heading, paragraph,
+        bullet, table and value in Markdown, then formatting preferences. No placeholders and no
+        instructions to invent content; facts you do not have stay out or are marked as unknown. Then call
+        `create_document` with `app`, that `outline`, and their request in a sentence or two.
+        - The document is created in your own OneDrive and shared with your manager alone, who can edit it.
+          Give them the link it returns. This needs no approval card.
+        - Call it once per document. If the answer is `unknown`, say you don't know whether it was created
+          and do not call it again; if it is `partial`, it was created but not shared: give the link and
+          say so.
+        - Sharing it with anyone else, or changing a document other people use, needs your manager's
+          approval on a card. `create_document` never shares with anyone but your manager.
+
+        """;
 
     /// <summary>Appended to the hosted context in a chat turn that can ask for approval (<see cref="ApprovalTool"/>).</summary>
     public const string ApprovalAddendum = """
@@ -234,7 +280,7 @@ public static class EngineTools
     /// </summary>
     /// <exception cref="TimeZoneNotFoundException">The time zone is unknown.</exception>
     public static string StableInstructions(string repoRoot, string timeZone = DefaultTimeZone, SkillLibrary? library = null,
-                                            string? principalAccess = null, bool approvals = false)
+                                            string? principalAccess = null, bool approvals = false, bool documents = false)
     {
         ArgumentNullException.ThrowIfNull(timeZone);
         library ??= new SkillLibrary(repoRoot);
@@ -253,6 +299,11 @@ public static class EngineTools
         if (approvals)
         {
             addendum += ApprovalAddendum;
+        }
+
+        if (documents)
+        {
+            addendum += DocumentAddendum;
         }
 
         return string.Join("\n\n", library.Persona(), addendum);

@@ -133,6 +133,8 @@ public static class ApprovalCards
         "do_action" when path.EndsWith("/cancel", StringComparison.Ordinal) => "Cancel this meeting?",
         "create_entity" when path.EndsWith("/events", StringComparison.Ordinal) => "Set up this meeting?",
         "update_entity" when path.Contains("/events/", StringComparison.Ordinal) => "Change this meeting?",
+        "do_action" when path.EndsWith("/office-agent-mcp/edit_artifact", StringComparison.Ordinal) => "Change this document?",
+        "do_action" when path.EndsWith("/invite", StringComparison.Ordinal) => "Share this file?",
         "delete_entity" => "Delete this?",
         "create_entity" when path.EndsWith("/messages", StringComparison.Ordinal) && (path.StartsWith("/chats/", StringComparison.Ordinal)
                                                                                    || path.StartsWith("/teams/", StringComparison.Ordinal)) => "Post this Teams message?",

@@ -203,6 +203,12 @@ unknown outcome. Reads share pooled connections (deviation 10).
 - **The guard's own tests** (the former Python guard tests) use a fake transport and belong to the Guard
   port. None of them exercises `transport.py` directly.
 
+## Resource links (Nov 25, 2026)
+
+`McpMessages.Normalise` keeps `resource_link` content items as `resource_links` (`uri`, and `name` and `mimeType` when
+given), beside the payload and only when present. Python dropped them; tools that create something (Office documents,
+Pages) answer with one. An `isError` result still raises, link or not.
+
 ## Tests and evidence
 
 `cloud/tests/Margo.Cloud.WorkIQ.Tests` (227 test cases):

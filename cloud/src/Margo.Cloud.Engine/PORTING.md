@@ -212,6 +212,9 @@ failure of a write as `unknown`, and receipts are all as in Python.
     manager": propose the exact call with `work_state.py propose`, ask for a card, never call a write tool, a typed or
     spoken "yes" is not an approval, the call shapes for mail, meetings and Teams). Without one (voice, unattended runs,
     `FunctionTools` as Python recorded it) nothing changes. The write reason in `NotHosted` now points to that section.
+19. **Documents (Nov 25, 2026).** In an attended turn that has an `IDocuments`, the engine offers `create_document`
+    (`app`: Word, Excel or PowerPoint; `outline`; optional `request`) and appends `DocumentAddendum` (write the complete
+    content, call once, `unknown` is never retried, sharing beyond the manager needs a card).
 
 ## Delegation-mode instructions (Nov 21, 2026)
 

@@ -484,6 +484,11 @@ public sealed class WorkIQGuard
             return new Authorisation(sendArgs, null, paths);
         }
 
+        if (!claimed && mode == RunModes.Attended && AllowsOwnDocuments && IsOwnDocumentCall(tool, intent, args))
+        {
+            return new Authorisation(sendArgs, null, paths);
+        }
+
         if (!claimed && IsPrincipalChatPost(tool, intent, paths))
         {
             if (PyNode.AsString(PyNode.Get(args, "jsonBody")) is not { } body || PyJson.Loads(body) is not JsonObject)
@@ -634,6 +639,64 @@ public sealed class WorkIQGuard
         {
             throw new RefusedException("a third-party-triggered run may only open the message that triggered it");
         }
+    }
+
+    /// <summary>
+    /// The manager's standing permission for documents they ask for (decided by the manager, Nov 25, 2026): in an
+    /// attended turn, with <see cref="AllowsOwnDocuments"/> on, two writes run without a card. Creating an Office
+    /// document in Margo's own space (<c>/office-agent-mcp/generate_artifact</c>), and sharing an item with the manager
+    /// and nobody else (<c>.../items/{id}/invite</c> whose only recipient is the bound manager's object ID, sign-in
+    /// required). Neither is visible to anyone but the manager. Any other shape, or any other recipient, needs a claim.
+    /// </summary>
+    public bool AllowsOwnDocuments { get; init; }
+
+    /// <summary>The Office applications a document can be created for.</summary>
+    public static readonly IReadOnlySet<string> OfficeApps = new HashSet<string>(StringComparer.Ordinal) { "Word", "Excel", "PowerPoint" };
+
+    private bool IsOwnDocumentCall(string tool, string intent, JsonObject args)
+    {
+        if (tool != "do_action" || intent != Subjects.Self || args.Any(pair => pair.Key is not ("actionUrl" or "jsonBody"))
+            || PyNode.AsString(args["actionUrl"]) is not { } url || url.Contains('?', StringComparison.Ordinal)
+            || PyNode.AsString(args["jsonBody"]) is not { } text)
+        {
+            return false;
+        }
+
+        JsonObject body;
+        try
+        {
+            if (PyJson.Loads(text) is not JsonObject parsed)
+            {
+                return false;
+            }
+
+            body = parsed;
+        }
+        catch (Exception exc) when (exc is PyJsonDecodeError or System.Text.Json.JsonException)
+        {
+            return false;
+        }
+
+        if (url == "/office-agent-mcp/generate_artifact")
+        {
+            return body.All(pair => pair.Key is "appName" or "taskDescription" or "userRequest")
+                   && PyNode.AsString(body["appName"]) is { } app && OfficeApps.Contains(app)
+                   && PyNode.AsString(body["taskDescription"]) is { Length: > 0 }
+                   && (!body.ContainsKey("userRequest") || PyNode.AsString(body["userRequest"]) is not null);
+        }
+
+        var segments = url.Split('/');
+        var invite = (segments is ["", "drives", { Length: > 0 }, "items", { Length: > 0 }, "invite"])
+                     || (segments is ["", "me", "drive", "items", { Length: > 0 }, "invite"]);
+        return invite
+               && body.All(pair => pair.Key is "recipients" or "roles" or "requireSignIn" or "sendInvitation" or "message")
+               && body["recipients"] is JsonArray { Count: 1 } recipients && recipients[0] is JsonObject recipient
+               && recipient.Count == 1 && PyNode.AsString(recipient["objectId"]) is { } objectId
+               && string.Equals(objectId, Binding.PrincipalId, StringComparison.Ordinal)
+               && body["roles"] is JsonArray { Count: 1 } roles && PyNode.AsString(roles[0]) is "read" or "write"
+               && body["requireSignIn"] is JsonValue signIn && signIn.TryGetValue<bool>(out var required) && required
+               && (body["sendInvitation"] is null || (body["sendInvitation"] is JsonValue notify && notify.TryGetValue<bool>(out _)))
+               && (body["message"] is null || PyNode.AsString(body["message"]) is { Length: <= 1000 });
     }
 
     /// <summary>The chat ID must be the Graph chat ID recorded at hire; unbound means no such post (<c>_is_principal_chat_post</c>).</summary>

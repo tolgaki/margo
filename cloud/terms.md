@@ -24,6 +24,9 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
   on the manager's calendar, and posts Teams messages as itself, only after the manager taps Approve
   on a card in Teams showing that exact action. Each approval covers that one action, once. A "yes"
   in chat or by voice is not an approval. Everything else outward is refused in software.
+- **Documents you ask for.** Margo creates a Word, Excel or PowerPoint file you ask for in its own
+  OneDrive and shares it with you alone, without a card. Sharing it with anyone else needs your
+  approval on a card.
 - **Takes instructions only from its manager**, and only in their one-to-one chat. Messages and
   mail from anyone else are kept as requests for the manager to review, not acted on.
 - **Two fixed notices are sent without per-message approval.** In a group chat or channel Margo

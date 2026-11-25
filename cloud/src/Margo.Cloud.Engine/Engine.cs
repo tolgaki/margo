@@ -24,6 +24,17 @@ public interface IApprovalRequests
     Task<JsonObject> RequestAsync(string actionId, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Office documents the manager asks for (no Python equivalent): created in Margo's own OneDrive and shared with the
+/// manager alone. The engine offers <c>create_document</c> only when a turn has one.
+/// </summary>
+public interface IDocuments
+{
+    /// <summary>Creates one document from a complete outline and shares it with the manager. Returns the tool's answer;
+    /// a failure is an answer, not an exception. Never retried.</summary>
+    Task<JsonObject> CreateAsync(string app, string outline, string? request, CancellationToken cancellationToken = default);
+}
+
 /// <summary>Token use of one turn, summed over its model requests (the Responses API's <c>usage</c>). No content.</summary>
 /// <param name="InputTokens">Input tokens of every request of the turn.</param>
 /// <param name="CachedInputTokens">The part of them served from the provider's prompt cache.</param>
@@ -179,17 +190,24 @@ public sealed class Engine
     public async Task<EngineResult> RunAsync(string text, string? mode, WorkIQGuard guard, IOfficeRequests? office = null,
                                              IStateCommands? state = null, JsonArray? history = null,
                                              DateTimeOffset? now = null, string? preferencesPath = null, string? cacheKey = null,
-                                             IApprovalRequests? approvals = null, CancellationToken cancellationToken = default)
+                                             IApprovalRequests? approvals = null, IDocuments? documents = null,
+                                             CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(guard);
         var library = new SkillLibrary(RepoRoot, preferencesPath ?? PreferencesPath);
         approvals = mode == RunModes.Attended ? approvals : null;
-        var instructions = EngineTools.StableInstructions(RepoRoot, TimeZone, library, guard.PrincipalAccess, approvals is not null);
+        documents = mode == RunModes.Attended ? documents : null;
+        var instructions = EngineTools.StableInstructions(RepoRoot, TimeZone, library, guard.PrincipalAccess, approvals is not null, documents is not null);
         var tools = EngineTools.FunctionTools(mode);
         if (approvals is not null)
         {
             tools.Add(EngineTools.ApprovalToolDefinition());
+        }
+
+        if (documents is not null)
+        {
+            tools.Add(EngineTools.DocumentToolDefinition());
         }
         var earlier = history is null ? [] : (JsonArray)PyNode.Copy(history)!;
         var message = new JsonObject { ["role"] = "user", ["content"] = EngineTools.TimeLine(TimeZone, now) + "\n\n" + text };
@@ -246,7 +264,7 @@ public sealed class Engine
                 items.Add(PyNode.Copy(item));
             }
 
-            var results = await DispatchAllAsync(calls, mode, guard, office, library, state, approvals, cancellationToken).ConfigureAwait(false);
+            var results = await DispatchAllAsync(calls, mode, guard, office, library, state, approvals, documents, cancellationToken).ConfigureAwait(false);
             usage = usage with { ToolCalls = usage.ToolCalls + calls.Count };
             for (var index = 0; index < calls.Count; index++)
             {
@@ -305,12 +323,12 @@ public sealed class Engine
     /// </summary>
     private async Task<JsonNode?[]> DispatchAllAsync(List<JsonNode?> calls, string? mode, WorkIQGuard guard, IOfficeRequests? office,
                                                      SkillLibrary library, IStateCommands? state, IApprovalRequests? approvals,
-                                                     CancellationToken cancellationToken)
+                                                     IDocuments? documents, CancellationToken cancellationToken)
     {
         var results = new JsonNode?[calls.Count];
         bool Read(int at) => PyNode.AsString(Get(calls[at], "name"))?.StartsWith(EngineTools.Prefix, StringComparison.Ordinal) == true;
         Task<JsonNode?> One(int at) =>
-            DispatchAsync(Get(calls[at], "name"), Get(calls[at], "arguments"), mode, guard, office, library, state, approvals, cancellationToken);
+            DispatchAsync(Get(calls[at], "name"), Get(calls[at], "arguments"), mode, guard, office, library, state, approvals, documents, cancellationToken);
 
         var index = 0;
         while (index < calls.Count)
@@ -384,7 +402,8 @@ public sealed class Engine
     /// <param name="cancellationToken">Cancels the call.</param>
     public static async Task<JsonNode?> DispatchAsync(JsonNode? name, JsonNode? rawArguments, string? mode, WorkIQGuard guard,
                                                       IOfficeRequests? office, SkillLibrary library, IStateCommands? state = null,
-                                                      IApprovalRequests? approvals = null, CancellationToken cancellationToken = default)
+                                                      IApprovalRequests? approvals = null, IDocuments? documents = null,
+                                                      CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(guard);
         ArgumentNullException.ThrowIfNull(library);
@@ -439,6 +458,18 @@ public sealed class Engine
         if (function == EngineTools.StateTool && mode is RunModes.Attended or RunModes.Unattended && state is not null)
         {
             return await state.RunAsync(given, mode, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (function == EngineTools.DocumentTool && mode == RunModes.Attended && documents is not null)
+        {
+            var app = PyNode.AsString(PyNode.Get(given, "app"));
+            var outline = PyNode.AsString(PyNode.Get(given, "outline"));
+            if (app is null || !WorkIQGuard.OfficeApps.Contains(app) || string.IsNullOrWhiteSpace(outline))
+            {
+                return Refused("create_document needs app (Word, Excel or PowerPoint) and the complete outline");
+            }
+
+            return await documents.CreateAsync(app, outline, PyNode.AsString(PyNode.Get(given, "request")), cancellationToken).ConfigureAwait(false);
         }
 
         if (function == EngineTools.ApprovalTool && mode == RunModes.Attended && approvals is not null)

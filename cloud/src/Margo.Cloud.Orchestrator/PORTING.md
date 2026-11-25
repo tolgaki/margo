@@ -271,6 +271,14 @@ New, no Python equivalent (Python's hosted runtime never executed approved write
   and never retried. `TurnReply.Decided` carries the card's outcome; the status is `decided`.
 - `TurnReply` compares its cards by value.
 
+## Documents (Nov 25, 2026)
+
+`TurnDocuments` implements the engine's `IDocuments` for a manager turn, on a guard of its own with
+`AllowsOwnDocuments`: create the document (`generate_artifact`), read its drive item through
+`/shares/u!{url}/driveItem`, and share it with the manager (`invite`, write role, sign-in required, notification
+sent). At most three documents a turn. An unclear creation, or one without a returned link, is `unknown` and nothing
+else runs; a failed lookup or share is `partial` with the link. Never retried. Tests: `DocumentTests`.
+
 ## Tests and evidence
 
 `cloud/tests/Margo.Cloud.Orchestrator.Tests` (119 test cases), a fake model, a fake Work IQ directory transport

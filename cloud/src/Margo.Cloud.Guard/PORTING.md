@@ -247,6 +247,16 @@ in each. Tests: `HardeningTests` (every case fails without its fix, except the c
 - **`InstanceBindingTests`** of the former Python guard tests are in `Margo.Cloud.Core.Tests`.
 - The the former Python runtime tests engine and orchestrator tests that pass through the guard belong to those ports.
 
+## Documents the manager asks for (Nov 25, 2026)
+
+`AllowsOwnDocuments` (off by default; the orchestrator turns it on for the guard of `create_document` only) lets an
+attended turn make two writes without a claim, as Margo (`self`): `/office-agent-mcp/generate_artifact` with exactly
+`appName` (Word, Excel, PowerPoint), `taskDescription` and optional `userRequest`; and `.../items/{id}/invite` whose
+only recipient is `{"objectId": <bound manager>}`, one role (`read` or `write`), `requireSignIn: true`, optional
+`sendInvitation` and a message of at most 1000 characters. Any other shape needs a claim. The manager decided this
+standing permission (it is invisible to anyone else); see `docs/safety.md`. `self` gains the roots `shares` (reading an
+item by its sharing link) and `office-agent-mcp`. Tests: `OwnDocumentTests`.
+
 ## Tests and evidence
 
 `cloud/tests/Margo.Cloud.Guard.Tests` (1907 test cases), fakes for the transport and tokens, a real temporary

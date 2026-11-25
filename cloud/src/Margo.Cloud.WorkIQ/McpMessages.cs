@@ -148,7 +148,44 @@ internal static class McpMessages
             throw new TransportException(ToolError, StatusCodeOf(payload));
         }
 
+        // Tools that create something (Office documents, Pages) answer with a resource_link content item: kept as
+        // resource_links, which Python dropped (deliberate deviation, PORTING.md). Only when present.
+        if (ResourceLinks(tool) is { Count: > 0 } links && !payload.ContainsKey("resource_links"))
+        {
+            payload["resource_links"] = links;
+        }
+
         return payload;
+    }
+
+    /// <summary>The <c>resource_link</c> content items: <c>uri</c>, and <c>name</c> and <c>mimeType</c> when given.</summary>
+    private static JsonArray? ResourceLinks(JsonObject tool)
+    {
+        if (tool["content"] is not JsonArray items)
+        {
+            return null;
+        }
+
+        var links = new JsonArray();
+        foreach (var item in items)
+        {
+            if (item is JsonObject entry && PythonJson.TryGetString(entry["type"], out var type) && type == "resource_link"
+                && PythonJson.TryGetString(entry["uri"], out var uri) && uri.Length > 0)
+            {
+                var link = new JsonObject { ["uri"] = uri };
+                foreach (var key in (string[])["name", "mimeType"])
+                {
+                    if (PythonJson.TryGetString(entry[key], out var value))
+                    {
+                        link[key] = value;
+                    }
+                }
+
+                links.Add(link);
+            }
+        }
+
+        return links;
     }
 
     /// <summary>

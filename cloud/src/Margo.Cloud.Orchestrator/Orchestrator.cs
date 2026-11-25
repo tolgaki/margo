@@ -586,6 +586,13 @@ public sealed class Orchestrator
         var office = new OfficeReader(() => binding.OpenLedger(StateRoot), senderDailyLimit: Options.SenderDailyLimit);
         var state = NewStateCommands(binding, preferences, new CallBudget(StateCallBudget));
         var approvals = new TurnApprovals(binding, StateRoot, guard);
+        // A guard of its own for documents: the standing permission applies to these calls only, never to the model's.
+        var documents = new TurnDocuments(new WorkIQGuard(binding, new TurnTokens(tokens), Transport, recorder: Options.GuardRecorder,
+                                                          budget: new CallBudget(TurnDocuments.MaxDocuments * 3), principalAccess: Options.PrincipalAccess)
+        {
+            FileHosts = Options.FileHosts,
+            AllowsOwnDocuments = true,
+        }, binding.PrincipalId);
         var history = _conversations.Get(key);
         EngineResult result;
         try
@@ -593,7 +600,7 @@ public sealed class Orchestrator
             // The cache key is a hash of the account: opaque, and the same for every turn of this instance and manager.
             result = await Engine.RunAsync(inbound.Text ?? "", RunModes.Attended, guard, office, state, history,
                                            preferencesPath: preferences, cacheKey: PyIds.Sha256Hex(binding.Account)[..32],
-                                           approvals: approvals, cancellationToken: cancellationToken).ConfigureAwait(false);
+                                           approvals: approvals, documents: documents, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (ModelApiException exc) when (history is not null && (int?)exc.StatusCode is >= 400 and < 500 and not 408 and not 429)
         {

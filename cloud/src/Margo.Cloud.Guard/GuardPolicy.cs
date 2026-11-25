@@ -76,7 +76,7 @@ public static class GuardPolicy
         [Subjects.Principal] = Set("me", "users", "sites", "drives", "chats", "teams", "planner"),
         // Margo's own token reaches only what is hers or shared with her: her mail, her chats (including group chats she
         // is in), channels of teams she belongs to, and files and sites shared with her. Writes still need a live claim.
-        [Subjects.Self] = Set("me", "users", "chats", "teams", "sites", "drives"),
+        [Subjects.Self] = Set("me", "users", "chats", "teams", "sites", "drives", "shares", "office-agent-mcp"),
     }.ToFrozenDictionary(StringComparer.Ordinal);
 
     /// <summary><c>USER_DIRECTORY_READS</c>: what <c>/users/{id}/...</c> may read.</summary>

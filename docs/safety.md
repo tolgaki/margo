@@ -57,6 +57,13 @@ that are reversible *and* invisible to anyone else**:
 
 Margo confirms the grant back to you once, in writing, and notes its scope.
 
+One standing permission is built in, because it is invisible to everyone but you: **creating a
+document you asked for.** A Word document, Excel workbook or PowerPoint presentation you ask for is
+created without a per-action prompt, in your own OneDrive (desktop) or in Margo's OneDrive and
+shared with you alone, with editing rights (Margo Cloud). In Margo Cloud the guard allows that share
+only when you are the single recipient and sign-in is required. Sharing the document with anyone
+else, editing a document other people use, or sending it stays per-action.
+
 These **always** require per-action approval, no matter what standing instruction exists, because
 they are visible to other people or cannot be undone:
 

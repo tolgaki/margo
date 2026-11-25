@@ -33,6 +33,7 @@ Azure AI Services serves the chat model
 | Read her manager's mail and calendar (delegation mode), and what is shared with her own account, through the Work IQ guard | Run on a schedule or brief you unprompted |
 | Brief, triage, prep meetings and draft text | Answer email from anyone, including her manager |
 | **After her manager approves each one on a card in Teams:** send email and replies from the manager's mailbox (as Margo on their behalf), set up, move or cancel meetings on the manager's calendar, and post Teams messages as herself in chats and channels she is in | Ask for approval from a voice call, or take a "yes" typed in chat or spoken as approval |
+| Create a Word document, Excel workbook or PowerPoint presentation her manager asks for, in her own OneDrive, and share it with the manager alone (no card) | Share a document with anyone else, or change one other people use, without a card |
 | Queue messages and mail other people send her, as untrusted requests for her manager | Reply to other people with a drafted answer (the `approve` reply setting acts as `none`) |
 | Send one fixed "passed this on" note per conversation, if her manager turns that on | Join meetings live |
 | Talk by voice with her manager, if voice is turned on | Talk to any MCP server except Work IQ |
@@ -289,6 +290,20 @@ not an Exchange one. Remove the permissions when you retire the instance.
 The UI equivalent: [Microsoft 365 admin center](https://admin.microsoft.com) › **Users › Active users** › the manager ›
 **Mail** › **Read and manage permissions** › add Margo's agent user (or the Exchange admin center › **Recipients ›
 Mailboxes** › the manager › **Delegation**).
+
+### Documents she creates for you
+
+Ask in your one-to-one chat: "turn this into a Word document", "build a deck on the Q3 results". Margo writes the full
+content, Work IQ's Office document tools (preview) create the file in **her** OneDrive, and she shares it with **you
+alone**, with editing rights: you get the usual "shared with you" email and a link in the chat. No card, because nobody
+else can see it; the guard allows that share only to you, with sign-in required. Sharing it further, or changing a
+document others use, goes through a card.
+
+Needs: the tenant's Work IQ policy must allow writes for Office documents and file sharing (Microsoft blocks Work IQ
+writes by default; see *Policy governance for Work IQ MCP* on Microsoft Learn), and Work IQ's `WorkIQ.Act` scope, which
+`blueprint.sh` consents. Unverified in a tenant: that the Office tools accept Margo's own account, where they save the
+file, and that her account can share it. If creation gets no clear answer, Margo says so and does not try again: check
+your "Shared with me" list first.
 
 ### Sending on your behalf: approval cards
 

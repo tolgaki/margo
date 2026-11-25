@@ -1644,7 +1644,7 @@
     {
       "id": "work-products",
       "name": "Get a useful first draft of the real deliverable",
-      "user_goal": "Produce a decision memo, comparison, status update, agenda or delegation brief tied to its sources",
+      "user_goal": "Produce a decision memo, comparison, status update, agenda or delegation brief tied to its sources, as a draft or a real Word, Excel or PowerPoint file",
       "availability": "implemented",
       "implementation_kind": "runtime",
       "since_version": "1.1.0",
@@ -1654,7 +1654,7 @@
       "surfaces": [
         "cli"
       ],
-      "approval": "Content approval is separate from delivery approval; nothing is shared automatically",
+      "approval": "Content approval is separate from delivery approval; a document you ask for is created for you alone without a prompt, and sharing it with anyone else needs approval",
       "guide": {
         "path": "docs/how-to/feedback-and-work-products.md",
         "anchor": "work-products"
@@ -1686,7 +1686,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Unattended preparation is local only and bounded to the single highest-priority item"
+        "Unattended preparation is local only and bounded to the single highest-priority item",
+        "Office documents use Work IQ's preview Office document tools, need the tenant's Work IQ policy to allow writes, and are never re-created after an unclear answer"
       ]
     },
     {

@@ -219,6 +219,9 @@ internal sealed class DirectoryTransport : IWorkIQTransport
 
     public object? LookupFailure { get; set; }
 
+    /// <summary>Answers a call before the defaults (a task's result, or a faulted task); null falls through.</summary>
+    public Func<string, JsonObject, Task<JsonObject>?>? Answer { get; set; }
+
     public string Endpoint => WorkIQEndpoints.McpUrl;
 
     public IReadOnlyList<(string Tool, JsonObject Arguments, string Bearer)> Calls
@@ -237,6 +240,11 @@ internal sealed class DirectoryTransport : IWorkIQTransport
         lock (_calls)
         {
             _calls.Add((tool, PyNode.CopyObject(arguments), bearer));
+        }
+
+        if (Answer?.Invoke(tool, arguments) is { } answered)
+        {
+            return answered;
         }
 
         if (tool == "fetch" && PyNode.AsString(arguments["entityUrls"]?[0])?.StartsWith("/me/manager", StringComparison.Ordinal) == true)
