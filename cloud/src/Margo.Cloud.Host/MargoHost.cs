@@ -204,13 +204,18 @@ public static class MargoHost
             Hosts = [.. settings.ExtraServiceHosts],
         })));
         services.TryAddSingleton<MargoTurns>();
+        services.TryAddSingleton<IVoiceTokens>(provider => new SdkVoiceTokens(provider.GetRequiredService<Microsoft.Agents.Authentication.IConnections>()));
+        if (settings.Instance is not null && settings.Backchannel && settings.ListenMinutes > 0)
+        {
+            // Margo in the room: reads the chats and channels she is a member of, and tells her manager what matters.
+            services.AddHostedService<RoomListener>();
+        }
 
         // Stopping waits for turns in flight (MargoTurns.TurnDrain) rather than the default 30 seconds.
         services.Configure<Microsoft.Extensions.Hosting.HostOptions>(options => options.ShutdownTimeout = MargoTurns.TurnDrain + TimeSpan.FromSeconds(30));
 
         if (settings.VoiceEnabled)
         {
-            services.TryAddSingleton<IVoiceTokens>(provider => new SdkVoiceTokens(provider.GetRequiredService<Microsoft.Agents.Authentication.IConnections>()));
             services.TryAddSingleton(provider => new VoiceServiceOptions
             {
                 Scope = settings.VoiceScope,

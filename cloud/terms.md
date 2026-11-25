@@ -58,9 +58,9 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
   the manager or an administrator delegated to her, and whatever is shared with Margo's own
   account (mail sent to her, chats and channels she is in, files and sites shared with her). She
   reads through Work IQ, for her manager's requests and to look into what other people send her.
-- **What Margo tells her manager.** If you message, email or copy Margo, she may tell her manager
-  what you wrote and what she found when she looked into it. Write to her as you would write to the
-  person she works for.
+- **What Margo tells her manager.** If you message, email or copy Margo, or talk in a chat, meeting
+  chat or channel she is a member of, she reads it and may tell her manager what was said and what she
+  found when she looked into it. Treat Margo in a conversation as you would the person she works for.
 - **The AI model.** What Margo reads for a request, and the conversation so far, is sent to the
   organization's Azure AI model deployment to produce the answer. Margo asks the service not to
   store it. Microsoft's own abuse monitoring may retain prompts for a limited time unless the

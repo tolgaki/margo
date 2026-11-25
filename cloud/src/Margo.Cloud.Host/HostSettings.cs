@@ -136,6 +136,10 @@ public sealed record HostSettings
     /// <summary><c>MARGO_BACKCHANNEL_DAILY_RUNS</c> (default 40): the most observation runs per instance per day.</summary>
     public int BackchannelDailyRuns { get; init; } = 40;
 
+    /// <summary><c>MARGO_LISTEN_MINUTES</c> (default 15; 0 turns it off): how often Margo reads the rooms she is a member
+    /// of (<see cref="RoomListener"/>). Needs the backchannel on and the instance kept running.</summary>
+    public int ListenMinutes { get; init; } = 15;
+
     /// <summary><c>MARGO_EXTRA_SERVICE_HOSTS</c>: hosts Margo may reply to besides Microsoft's own (the SDK's built-in
     /// list), separated by spaces. Empty by default.</summary>
     public IReadOnlyList<string> ExtraServiceHosts { get; init; } = [];
@@ -252,6 +256,13 @@ public sealed record HostSettings
             throw new HostStartupException("MARGO_BACKCHANNEL_DAILY_RUNS is not a number: " + runs);
         }
 
+        var listenMinutes = 15;
+        if (Get("MARGO_LISTEN_MINUTES") is { Length: > 0 } listen
+            && !int.TryParse(listen, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out listenMinutes))
+        {
+            throw new HostStartupException("MARGO_LISTEN_MINUTES is not a number of minutes: " + listen);
+        }
+
         var dailyRetention = 30;
         if (Get("MARGO_STATE_DAILY_RETENTION_DAYS") is { Length: > 0 } days
             && !int.TryParse(days, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out dailyRetention))
@@ -292,6 +303,7 @@ public sealed record HostSettings
             DailyRetentionDays = dailyRetention,
             Backchannel = backchannel,
             BackchannelDailyRuns = backchannelRuns,
+            ListenMinutes = listenMinutes,
             MaxOutputTokens = maxOutputTokens,
             SharePointHosts = SplitList(Get("MARGO_SHAREPOINT_HOSTS")),
             ApplicationInsights = Get("APPLICATIONINSIGHTS_CONNECTION_STRING") is { Length: > 0 } insights ? insights : null,

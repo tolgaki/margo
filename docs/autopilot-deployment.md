@@ -412,15 +412,26 @@ something owed, a change to their plans). If it may matter, she investigates wit
 conversation, related mail, meetings, documents) and sends one short note with what she found. Otherwise she sends
 nothing. When the manager emails her, she answers them by email the same way.
 
+**In the room.** Margo also learns from conversations she is part of, not only from messages addressed to her: every
+`MARGO_LISTEN_MINUTES` she reads, through Work IQ with her own token, what was said since the last pass in the group
+chats, meeting chats and Teams channels she is a member of (up to 8 rooms and 6 channels a pass, the newest messages
+of each). If anything is new, one observation run looks at all of it, may investigate further, and sends the manager
+at most two notes. A quiet pass runs no model. One-to-one chats, her own messages and older messages are left out.
+Listening needs the instance kept running (`azd env set MARGO_INSTANCE_MIN_REPLICAS 1`), since a container scaled to
+zero runs no timer; it then costs one always-on container per Margo.
+
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| `MARGO_BACKCHANNEL` | `on` | `off`: messages from others are only queued |
-| `MARGO_BACKCHANNEL_DAILY_RUNS` | `40` | Observation runs per instance per day; later messages are only queued |
+| `MARGO_BACKCHANNEL` | `on` | `off`: messages from others are only queued, and Margo does not listen in rooms |
+| `MARGO_BACKCHANNEL_DAILY_RUNS` | `40` | Observation runs per instance per day, listening passes included; later ones are skipped |
+| `MARGO_LISTEN_MINUTES` | `15` | How often she reads her rooms; `0` turns listening off |
+| `MARGO_INSTANCE_MIN_REPLICAS` | `0` | Set `1` for listening |
 
-Limits: one observation run per conversation every ten minutes (later messages are read by the next run). An
+Limits: one observation run per conversation every ten minutes (later messages are read by the next run); a listening
+pass that fails is read again next time, looking back at most six hours. An
 observation run reads only with Margo's own token, so in `obo` mode it can't read the manager's data; in `delegation`
-mode it reads the manager's mail and calendar as usual. Margo hears only what the platform delivers to her: in Teams,
-usually messages that @mention her, and chats she is in. Each run is a model run, billed like a turn. Not verified in a
+mode it reads the manager's mail and calendar as usual. Messages addressed to her arrive as the platform delivers them (in
+Teams, usually @mentions); everything else in her rooms she reads when listening. Each run is a model run, billed like a turn. Not verified in a
 tenant.
 
 ## Voice (optional)

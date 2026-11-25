@@ -13,6 +13,9 @@
   someone else messages, emails or copies her, she may look into it with read-only tools and send the manager a note
   (the backchannel; `MARGO_BACKCHANNEL`, a daily cap and a per-conversation cooldown). When the manager emails her, she
   answers by email. Observation runs read only with Margo's own token and never answer the sender.
+- Margo Cloud listens in the rooms she is a member of: every `MARGO_LISTEN_MINUTES` (15) she reads, through Work IQ
+  with her own token, what was said in her group chats, meeting chats and channels since the last pass, and one
+  observation run may tell her manager what matters (at most two notes). Needs the instance kept running.
 - Learn Work IQ here: `docs/work-iq/` covers how to load it (harness or custom agent), identity and consent, a
   capability map, patterns, errors and recovery, and the approved-writes pattern. `samples/harness/` and
   `cloud/samples/WorkIQHello` are the two quickstarts. The README leads with the Work IQ reference framing, Getting

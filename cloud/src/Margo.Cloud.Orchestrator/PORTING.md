@@ -396,3 +396,12 @@ lookup finds none), so the host can decide before a turn whether to sign the man
   and the manager channel; no state commands or office queue. It reads with Margo's own token only. The manager's own
   emails get a run that answers by email. `Backchannel`, `BackchannelDailyRuns` (40) and `BackchannelCooldown` (10
   minutes per conversation) bound it. Tests: `BackchannelTests`.
+
+## Listening in rooms (Nov 25, 2026)
+
+`ListenAsync(getToken, since)` (per-instance hosting, backchannel on): looks up the manager, reads with `RoomReader`
+through Work IQ `fetch` with Margo's token (`/me/chats` ordered by last message, then each new group or meeting
+chat's newest messages; `/me/joinedTeams`, their channels and each channel's newest messages; at most 8 rooms, 6
+channels and 30 calls), keeps messages newer than `since` that are not hers, as plain text, and runs one unattended
+observation with the manager channel over all of them (counted against the daily limit). Returns a `RoomPass` with
+counts. Tests: `RoomListeningTests`.

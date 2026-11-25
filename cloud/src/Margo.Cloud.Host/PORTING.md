@@ -325,3 +325,7 @@ the configured behavior (the image turns auto sign-in off) and only Margo's hand
 
 `MARGO_BACKCHANNEL` (`on`/`off`, default on) and `MARGO_BACKCHANNEL_DAILY_RUNS` (default 40) set the orchestrator's
 backchannel options; infra passes `backchannel` to every instance.
+
+`RoomListener` (a hosted service, per-instance hosting with the backchannel on and `MARGO_LISTEN_MINUTES` > 0) calls
+`ListenAsync` on a timer with Margo's agentic token, moving its watermark after each pass that did not fail (at most
+six hours back). `IVoiceTokens` is now registered whether or not voice is on.
