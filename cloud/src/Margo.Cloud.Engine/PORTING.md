@@ -215,6 +215,11 @@ failure of a write as `unknown`, and receipts are all as in Python.
 19. **Documents (Nov 25, 2026).** In an attended turn that has an `IDocuments`, the engine offers `create_document`
     (`app`: Word, Excel or PowerPoint; `outline`; optional `request`) and appends `DocumentAddendum` (write the complete
     content, call once, `unknown` is never retried, sharing beyond the manager needs a card).
+20. **Work IQ describes its own tools (Nov 25, 2026).** `RunAsync` (and the voice session) ask the guard for Work IQ's
+    `tools/list` and build each read tool from the server's description and argument schemas, limited to the
+    arguments the guard accepts, with `on_data_of` added (described, and required) and the server's required
+    arguments kept. A tool the server does not offer is left out; write tools never reach the model. When the list is
+    empty the recorded Python definitions are used unchanged (`BuiltInWorkIQTool`). Tests: `ServerToolDefinitionTests`.
 
 ## Delegation-mode instructions (Nov 21, 2026)
 

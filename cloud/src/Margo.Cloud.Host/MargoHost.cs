@@ -181,7 +181,7 @@ public static class MargoHost
             : new DefaultAzureCredential());
         services.TryAddSingleton<IModelClient>(provider => new AzureOpenAIModelClient(AzureOpenAIModelClient.CreateHttpClient(), settings.ModelEndpoint,
             provider.GetRequiredService<TokenCredential>()));
-        services.TryAddSingleton<IWorkIQTransport>(_ => new McpHttpTransport());
+        services.TryAddSingleton<IWorkIQTransport>(_ => new WorkIQMcpTransport());
         services.TryAddSingleton(provider => new LeaseStoreFactory(
             AzureBlobLeaseStore.Factory(new Uri(settings.StateBlobUrl), provider.GetRequiredService<TokenCredential>())));
         services.TryAddSingleton(provider => BuildOrchestrator(provider, settings));

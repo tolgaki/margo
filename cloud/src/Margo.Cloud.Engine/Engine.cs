@@ -199,7 +199,8 @@ public sealed class Engine
         approvals = mode == RunModes.Attended ? approvals : null;
         documents = mode == RunModes.Attended ? documents : null;
         var instructions = EngineTools.StableInstructions(RepoRoot, TimeZone, library, guard.PrincipalAccess, approvals is not null, documents is not null);
-        var tools = EngineTools.FunctionTools(mode);
+        // Work IQ describes its own tools (tools/list); the guard limits them to what it allows.
+        var tools = EngineTools.FunctionTools(mode, await guard.ServerToolsAsync(cancellationToken).ConfigureAwait(false));
         if (approvals is not null)
         {
             tools.Add(EngineTools.ApprovalToolDefinition());

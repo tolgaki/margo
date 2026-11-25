@@ -7,6 +7,8 @@
     <PackageVersion Include="Microsoft.Agents.Builder" Version="1.9.205" />
     <PackageVersion Include="Microsoft.Agents.A365.Notifications" Version="2.0.0" />
     <PackageVersion Include="Microsoft.Agents.A365.Runtime" Version="2.0.0" />
+    <!-- Model Context Protocol: the official C# SDK, the client Margo Cloud loads Work IQ with -->
+    <PackageVersion Include="ModelContextProtocol.Core" Version="2.4.0" />
     <!-- Azure -->
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.30.1" />

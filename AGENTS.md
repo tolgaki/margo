@@ -61,6 +61,9 @@ Margo is a Work IQ reference implementation, not a standalone hosted assistant. 
   project (`PORTING.md` records mappings and deliberate deviations). The hosted modules' recorded
   Python answers and frozen fixtures are regression baselines: change them only for a reviewed,
   deliberate behavior change, never to make a failing test pass.
+- Margo Cloud loads Work IQ as an MCP server through the official MCP C# SDK (`Margo.Cloud.WorkIQ`).
+  That client is idiomatic C#, not a Python port: keep it close to the SDK and do not reintroduce
+  Python-compatibility code there. Parity applies to the state commands only.
 - Release builds never contain the contract probes (`Margo.Cloud.State.Probes`).
 - Make one complete vertical slice. Update its feature catalog entry, user guide, router
   and executable scenario together. Explain limitations and recovery, not just syntax.

@@ -8,6 +8,11 @@
   open.
 - Margo Cloud delegation mode reads the manager's mail and calendar directly through the delegation and searches only
   what is shared with Margo; Copilot search of the manager's whole data reports "unavailable".
+- Margo Cloud loads Work IQ with the official MCP C# SDK (`ModelContextProtocol.Core`) instead of a hand-written MCP
+  client ported from Python. The model now gets Work IQ's own tool descriptions and argument schemas from
+  `tools/list` (limited by the guard), with the built-in definitions as a fallback. When Work IQ rejects a call, the
+  model is told why, without the server's text reaching logs. Writes still get a session of their own and are never
+  resent. The protocol revision is pinned to 2025-06-18.
 - Approval cards are written for the person deciding: plain words about what happens, to whom, with what text and
   when, and which email, meeting, chat or file it affects. They no longer show the Work IQ request, IDs or JSON.
   Outcomes are plain too ("Done: the meeting is updated.", "Nothing went out: your organization's settings don't allow

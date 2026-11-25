@@ -336,3 +336,10 @@ port; the C# code is now the implementation of record, and the desktop state hel
   `Fixture_is_current_with_guard_py` were removed with `guard.py`. The 1709 replayed scenarios remain the guard's
   regression baseline; a deliberate change to the guard's behavior now edits the fixture by hand, with review
   (never by re-serializing the file: one case per line, edit only the lines that change).
+
+## Work IQ through the MCP SDK (Nov 25, 2026)
+
+`ServerToolsAsync` asks the transport for Work IQ's own tool list with Margo's own token (never the manager's), not
+charged to the call budget, and returns an empty list when it cannot. A read that fails with a JSON-RPC error returns
+the server's text to the model as `data.error`; the receipt keeps the fixed reason "Work IQ error", because the text
+may echo the request. Tests: `ServerToolsTests`.

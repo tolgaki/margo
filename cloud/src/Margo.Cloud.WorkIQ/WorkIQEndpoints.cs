@@ -1,6 +1,6 @@
 namespace Margo.Cloud.WorkIQ;
 
-/// <summary>The one Work IQ MCP endpoint a hosted Margo may reach (<c>guard.py</c> <c>WORKIQ_MCP_URL</c>).</summary>
+/// <summary>The one Work IQ MCP endpoint a hosted Margo may reach .</summary>
 /// <remarks>
 /// It lives here rather than in the guard because the transport's default endpoint is this URL and
 /// the guard project references this one, not the other way round. The guard refuses any transport

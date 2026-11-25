@@ -169,6 +169,32 @@ public sealed class WorkIQGuard
     /// Cancelled while Work IQ is being called: the request may have been sent, so a claim is settled
     /// <c>outcome_unknown</c> and an <c>unknown</c> receipt is recorded before the
     /// <see cref="OperationCanceledException"/> is rethrown.</param>
+    /// <summary>
+    /// Work IQ's own description of its tools (<c>tools/list</c>), asked as Margo with her own token. Empty when it cannot
+    /// be listed; the caller then uses its built-in definitions. Not charged to the call budget: it reads no one's data.
+    /// </summary>
+    public async Task<IReadOnlyList<WorkIQTool>> ServerToolsAsync(CancellationToken cancellationToken = default)
+    {
+        string bearer;
+        try
+        {
+            bearer = _tokens.TokenFor(Subjects.Margo);
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+
+        try
+        {
+            return await Transport.ListToolsAsync(bearer, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            return [];
+        }
+    }
+
     public async Task<GuardResult> CallAsync(string? tool, JsonNode? arguments, string? mode, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -286,7 +312,9 @@ public sealed class WorkIQGuard
             }
 
             Settle(receipt, claim, "failed", code);
-            return Finish(receipt, GuardStatuses.Error, "Work IQ error");
+            // The server's own words help the model correct its arguments; they go to the model only, never the receipt.
+            return Finish(receipt, GuardStatuses.Error, "Work IQ error",
+                          exc.ServerMessage is { Length: > 0 } said ? new JsonObject { ["error"] = said } : null);
         }
         catch (Exception) // connection reset, TLS, decoding: the request may have landed
         {

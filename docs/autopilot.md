@@ -209,6 +209,10 @@ listed.
 - **No web search or code interpreter.**
 - **No Microsoft Graph client.** The local large-file bridge (`m365_files.py`) is not part of the
   hosted runtime.
+- **Loaded as an MCP server, with the official MCP C# SDK.** `Margo.Cloud.WorkIQ` opens one MCP session per
+  identity (Margo's token, or the manager's), lists Work IQ's tools with `tools/list`, and gives the model the
+  server's own descriptions and argument schemas for the read tools the guard allows. Every call still goes through
+  the guard (4.2.1); the SDK carries it.
 - The blueprint's tool configuration declares exactly one remote MCP endpoint. The guard
   (4.2.1) refuses to connect to any other host, so a later edit can't add a second server
   quietly. Adding one is a reviewed blueprint version.

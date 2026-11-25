@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Margo.Cloud.Guard;
 using Margo.Cloud.State.Core;
+using Margo.Cloud.WorkIQ;
 
 namespace Margo.Cloud.Engine;
 
@@ -228,6 +229,75 @@ public static class EngineTools
         ["search_paths"] = "Find resource paths for a natural-language description.",
     };
 
+    /// <summary>A Work IQ read tool as Margo describes it, for when the server's own list is not available (unchanged
+    /// from the recorded Python definitions).</summary>
+    public static JsonObject BuiltInWorkIQTool(string name)
+    {
+        var properties = new JsonObject
+        {
+            ["on_data_of"] = new JsonObject { ["type"] = "string", ["enum"] = new JsonArray(Subjects.Principal, Subjects.Self) },
+        };
+        foreach (var arg in PyText.Sorted(GuardPolicy.ToolArgs[name].Where(arg => arg is not "agentId" and not "backend")))
+        {
+            properties[arg] = ToolArgSchemas.TryGetValue((name, arg), out var specific) ? Json(specific)
+                : ArgSchemas.TryGetValue(arg, out var shared) ? Json(shared)
+                : new JsonObject { ["type"] = "string" };
+        }
+
+        return new JsonObject
+        {
+            ["type"] = "function",
+            ["name"] = Prefix + name,
+            ["description"] = Descriptions[name],
+            ["parameters"] = new JsonObject { ["type"] = "object", ["properties"] = properties, ["required"] = new JsonArray("on_data_of") },
+        };
+    }
+
+    /// <summary>
+    /// A Work IQ read tool as the server describes it: its description and the schemas of the arguments the guard
+    /// accepts (others would be refused, so the model never sees them), its required arguments among those, and
+    /// <c>on_data_of</c>. An argument the guard accepts but the server's schema does not mention is left out.
+    /// </summary>
+    public static JsonObject ServerWorkIQTool(string name, WorkIQTool server)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+        var allowed = GuardPolicy.ToolArgs[name].Where(arg => arg is not "agentId" and not "backend").ToHashSet(StringComparer.Ordinal);
+        var given = server.InputSchema["properties"] as JsonObject ?? [];
+        var properties = new JsonObject { ["on_data_of"] = OnDataOf() };
+        foreach (var (arg, schema) in given.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            if (allowed.Contains(arg) && schema is JsonObject)
+            {
+                properties[arg] = schema.DeepClone();
+            }
+        }
+
+        var required = new JsonArray("on_data_of");
+        foreach (var arg in (server.InputSchema["required"] as JsonArray ?? []).Select(item => item is JsonValue value && value.TryGetValue<string>(out var text) ? text : null))
+        {
+            if (arg is not null && properties.ContainsKey(arg) && arg != "on_data_of")
+            {
+                required.Add(arg);
+            }
+        }
+
+        var description = string.IsNullOrWhiteSpace(server.Description) ? Descriptions[name] : server.Description.Trim();
+        return new JsonObject
+        {
+            ["type"] = "function",
+            ["name"] = Prefix + name,
+            ["description"] = description.Length > MaxServerDescription ? description[..MaxServerDescription] : description,
+            ["parameters"] = new JsonObject { ["type"] = "object", ["properties"] = properties, ["required"] = required },
+        };
+    }
+
+    private static JsonObject OnDataOf() => new()
+    {
+        ["type"] = "string",
+        ["enum"] = new JsonArray(Subjects.Principal, Subjects.Self),
+        ["description"] = OnDataOfDescription,
+    };
+
     /// <summary><c>ARG_SCHEMAS</c>: argument schemas other than a plain string (as JSON text).</summary>
     public static IReadOnlyDictionary<string, string> ArgSchemas { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
     {
@@ -354,33 +424,37 @@ public static class EngineTools
         };
     }
 
+    /// <summary>The longest tool description passed on from the server.</summary>
+    public const int MaxServerDescription = 2000;
+
+    /// <summary>The <c>on_data_of</c> argument Margo adds to every Work IQ tool: whose data (and token) the call uses.</summary>
+    public const string OnDataOfDescription =
+        "Whose data this reads: \"principal\" for your manager's, \"self\" for your own and what is shared with you.";
+
     /// <summary>
-    /// <c>function_tools(mode)</c>: the Work IQ read tools (sorted, with <c>on_data_of</c> required), the skill tools,
+    /// The model's tools: the Work IQ read tools (sorted, with <c>on_data_of</c> required), the skill tools,
     /// <c>margo-state</c> in attended and unattended runs, and <c>office_requests</c> in attended runs.
     /// </summary>
-    public static JsonArray FunctionTools(string? mode)
+    /// <param name="mode">One of <see cref="RunModes"/>.</param>
+    /// <param name="serverTools">
+    /// Work IQ's own tools from <c>tools/list</c>. When given, each read tool the guard allows and the server offers is
+    /// described with the server's description and argument schema, limited to the arguments the guard accepts; a tool
+    /// the server does not offer is left out. When empty or null, Margo's built-in definitions are used.
+    /// </param>
+    public static JsonArray FunctionTools(string? mode, IReadOnlyList<WorkIQTool>? serverTools = null)
     {
         var tools = new JsonArray();
+        var offered = (serverTools ?? []).GroupBy(tool => tool.Name, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         foreach (var name in PyText.Sorted(GuardPolicy.ToolArgs.Keys.Where(tool => !GuardPolicy.WriteTools.Contains(tool))))
         {
-            var properties = new JsonObject
+            if (offered.Count == 0)
             {
-                ["on_data_of"] = new JsonObject { ["type"] = "string", ["enum"] = new JsonArray(Subjects.Principal, Subjects.Self) },
-            };
-            foreach (var arg in PyText.Sorted(GuardPolicy.ToolArgs[name].Where(arg => arg is not "agentId" and not "backend")))
-            {
-                properties[arg] = ToolArgSchemas.TryGetValue((name, arg), out var specific) ? Json(specific)
-                    : ArgSchemas.TryGetValue(arg, out var shared) ? Json(shared)
-                    : new JsonObject { ["type"] = "string" };
+                tools.Add(BuiltInWorkIQTool(name));
             }
-
-            tools.Add(new JsonObject
+            else if (offered.TryGetValue(name, out var server))
             {
-                ["type"] = "function",
-                ["name"] = Prefix + name,
-                ["description"] = Descriptions[name],
-                ["parameters"] = new JsonObject { ["type"] = "object", ["properties"] = properties, ["required"] = new JsonArray("on_data_of") },
-            });
+                tools.Add(ServerWorkIQTool(name, server));
+            }
         }
 
         foreach (var tool in SkillTools().ToArray())

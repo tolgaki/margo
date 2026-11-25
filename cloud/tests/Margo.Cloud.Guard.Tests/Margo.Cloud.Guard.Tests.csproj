@@ -12,6 +12,8 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Margo.Cloud.Guard/Margo.Cloud.Guard.csproj" />
     <PackageReference Include="xunit.v3" />
+    <!-- The scripted MCP server, for the guard over the real MCP SDK client. -->
+    <Compile Include="../Margo.Cloud.WorkIQ.Tests/ScriptedMcpServer.cs" Link="ScriptedMcpServer.cs" />
   </ItemGroup>
 
   <ItemGroup>

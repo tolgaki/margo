@@ -2,11 +2,7 @@ using System.Collections.Frozen;
 
 namespace Margo.Cloud.WorkIQ;
 
-/// <summary>
-/// Resource bounds and connection handling for <see cref="McpHttpTransport"/>. No Python equivalent: the Python
-/// transport read any body whole, kept every session and opened a connection per request (see PORTING.md,
-/// deviations 10 to 12). The defaults are safe for the hosted container; every value is validated at construction.
-/// </summary>
+/// <summary>Bounds and connection handling for <see cref="WorkIQMcpTransport"/>. Every value is validated at construction.</summary>
 public sealed record McpTransportOptions
 {
     // Declared before Default: its instance initialisers read this.
@@ -17,54 +13,59 @@ public sealed record McpTransportOptions
     /// <summary>The defaults.</summary>
     public static McpTransportOptions Default { get; } = new();
 
-    /// <summary>
-    /// The most bytes one response body may hold, counted after decompression. A larger answer fails the call with
-    /// <see cref="TransportResponseTooLargeException"/> instead of being buffered. Default 8 MiB.
-    /// </summary>
+    /// <summary>The most bytes one response body may hold, after decompression. A larger answer fails the call with
+    /// <see cref="TransportResponseTooLargeException"/> instead of being read on. Default 8 MiB.</summary>
     public long MaxResponseBytes { get; init; } = 8L * 1024 * 1024;
 
-    /// <summary>The most MCP sessions kept (one per bearer token); the least recently used is dropped first. Default 32.</summary>
+    /// <summary>The most MCP sessions kept (one per bearer token); the least recently used is closed first. Default 32.</summary>
     public int MaxSessions { get; init; } = 32;
 
-    /// <summary>
-    /// How long an unused session is kept. Access tokens live about an hour, so a session idle for longer belongs
-    /// to a token that will not come back. Default one hour.
-    /// </summary>
+    /// <summary>How long an unused session is kept. Access tokens live about an hour. Default one hour.</summary>
     public TimeSpan SessionIdleTimeout { get; init; } = TimeSpan.FromHours(1);
 
     /// <summary>
-    /// Let calls of <see cref="PooledTools"/> share pooled connections, HTTP/2 when the server negotiates it. When
-    /// false every request opens its own HTTP/1.1 connection with <c>Connection: close</c>, as Python's urllib did.
-    /// Default true. An injected handler pools as it was built; the request version and <c>Connection</c> header
-    /// still follow this.
+    /// The MCP protocol revision requested in <c>initialize</c>. Pinned rather than left to the SDK, whose default first
+    /// probes for the newest revision and, against a server that predates it, waits for that probe to time out on every
+    /// new session (and every write opens one). Default <c>2025-06-18</c>, the revision Work IQ was verified with.
     /// </summary>
-    public bool ReuseConnections { get; init; } = true;
+    public string ProtocolVersion { get; init; } = "2025-06-18";
+
+    /// <summary>How long one call, session set-up included, may take before it is reported as a timeout. Default 60 s.</summary>
+    public TimeSpan CallTimeout { get; init; } = TimeSpan.FromSeconds(60);
 
     /// <summary>
-    /// The tools whose calls may use a pooled connection: Work IQ's read tools, where a request that fails on a
-    /// connection the server had already closed costs one failed read. Any other tool (the write tools, and any
-    /// name not listed) is sent on a fresh connection of its own, session handshake included, exactly as before.
+    /// The tools whose calls share the session's pooled connections. Any other tool (the write tools, and any name not
+    /// listed) gets an MCP session and a connection of its own, closed after the call, so the HTTP stack can never resend
+    /// a write that a reused connection may already have delivered.
     /// </summary>
     public IReadOnlySet<string> PooledTools { get; init; } = ReadTools;
 
     /// <summary>How long a pooled connection may live, so DNS and load-balancer changes are picked up. Default 2 minutes.</summary>
     public TimeSpan PooledConnectionLifetime { get; init; } = TimeSpan.FromMinutes(2);
 
-    /// <summary>How long an idle pooled connection is kept: shorter than common server and proxy idle limits. Default 1 minute.</summary>
+    /// <summary>How long an idle pooled connection is kept. Default 1 minute.</summary>
     public TimeSpan PooledConnectionIdleTimeout { get; init; } = TimeSpan.FromMinutes(1);
 
     /// <summary>The clock for <see cref="SessionIdleTimeout"/> (tests).</summary>
     public TimeProvider TimeProvider { get; init; } = TimeProvider.System;
+
+    /// <summary>
+    /// Builds the HTTP handler under each MCP session (tests). <c>pooled</c> is false for a write's own session. Null
+    /// uses a <see cref="SocketsHttpHandler"/> that never follows redirects (they would carry the token elsewhere).
+    /// </summary>
+    public Func<bool, HttpMessageHandler>? HandlerFactory { get; init; }
 
     internal McpTransportOptions Validated()
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(MaxResponseBytes, 1, nameof(MaxResponseBytes));
         ArgumentOutOfRangeException.ThrowIfLessThan(MaxSessions, 1, nameof(MaxSessions));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(SessionIdleTimeout, TimeSpan.Zero, nameof(SessionIdleTimeout));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(CallTimeout, TimeSpan.Zero, nameof(CallTimeout));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(PooledConnectionLifetime, TimeSpan.Zero, nameof(PooledConnectionLifetime));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(PooledConnectionIdleTimeout, TimeSpan.Zero, nameof(PooledConnectionIdleTimeout));
         ArgumentNullException.ThrowIfNull(TimeProvider);
         ArgumentNullException.ThrowIfNull(PooledTools);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ProtocolVersion);
         return this;
     }
 }

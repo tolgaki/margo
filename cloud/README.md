@@ -11,8 +11,10 @@ Margo has two implementations that share the persona (`agents/`) and the skills 
 
 - **Margo desktop**: GitHub Copilot with Margo's persona, skills and the Python state helpers in
   `skills/chief-of-staff/scripts/`. Maintenance mode.
-- **Margo Cloud**: this folder. Its state commands
-  (`margo-state`) must stay byte-compatible with the desktop helpers; `tools/state_parity.py` is the judge.
+- **Margo Cloud**: this folder. It loads Work IQ as an MCP server with the official MCP C# SDK
+  (`Margo.Cloud.WorkIQ`), and gives the model Work IQ's own tool descriptions from `tools/list`, behind the guard.
+  Its state commands (`margo-state`) must stay byte-compatible with the desktop helpers; `tools/state_parity.py` is
+  the judge.
 
 ## Build, test, publish
 
@@ -74,7 +76,7 @@ and quiet hours need), running as the non-root user the .NET images provide; `ag
 | `Margo.Cloud.State.Probes` | `cloud/contracts/state/probes/*_probe.py` | Contract probes for the parity judge only: in `margo-state` only when built with `MargoStateProbes=true` (Debug default, never Release) and run only with `MARGO_STATE_PROBES=1` |
 | `Margo.Cloud.StateCli` (`margo-state`) | the script entry points | `margo-state SCRIPT.py --account A --state-dir D ARGS...` |
 | `Margo.Cloud.Core` | `instances.py`, `activity.py`, `instance.py` | Names, route table, lifecycle, activity helpers, instance binding |
-| `Margo.Cloud.WorkIQ` | `transport.py` | Work IQ MCP client |
+| `Margo.Cloud.WorkIQ` | (none: built on the MCP C# SDK) | Work IQ loaded as an MCP server: one session per identity, tool list, writes never resent |
 | `Margo.Cloud.Guard` | `guard.py`, `claims.py` | The only path from the model to Work IQ |
 | `Margo.Cloud.Engine` | `engine.py`, `skills.py`, `parity.py`, `statecmd.py` | Model turn loop and the `margo-state` tool |
 | `Margo.Cloud.Orchestrator` | `orchestrator.py`, `office.py`, `replies.py`, `statesync.py` | |
@@ -120,7 +122,8 @@ These hold for every project.
 
 1. **Behavior is specified, not invented.** The state commands are specified by the desktop helpers (and judged by
    `tools/state_parity.py`); the hosted modules were specified by the removed Python runtime, whose recorded answers
-   and fixtures the tests keep. Port or change behavior deliberately, including error cases, limits, exit codes and
+   and fixtures the tests keep. The Work IQ client is the exception: it is built on the MCP C# SDK and tested on its
+   own terms, not against the Python transport. Port or change behavior deliberately, including error cases, limits, exit codes and
    messages, and note every deviation in the project's `PORTING.md`.
 2. **State commands must be indistinguishable from the Python helpers.** Same subcommands and options, same exit
    codes, same stdout bytes (JSON key order, spacing, `ensure_ascii` escaping, number formatting, text views), same

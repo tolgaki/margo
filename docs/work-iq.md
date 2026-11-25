@@ -18,6 +18,20 @@ reference for the [developer journey](development/README.md) and
 > registered MCP server, not the skill folder. Discover the tool and its current schema before
 > calling it; do not assume another host exposes the same spelling or arguments.
 
+## How Work IQ is loaded
+
+Work IQ is an MCP server (`https://workiq.svc.cloud.microsoft/mcp`), and both Margos load it as one:
+
+- **Desktop**: the agent harness (GitHub Copilot CLI) registers the server and signs in; Margo's skills call its
+  tools by their registered names (`workiq-fetch`, `workiq-ask`, ...). No Margo code talks to Work IQ.
+- **Margo Cloud**: a custom agent, so it is its own MCP client, built on the official MCP C# SDK
+  ([`cloud/src/Margo.Cloud.WorkIQ`](../cloud/src/Margo.Cloud.WorkIQ/WorkIQMcpTransport.cs)). It keeps one MCP session
+  per identity, because Work IQ answers as the subject of the token. It reads the server's own tool list
+  (`tools/list`) and gives the model those descriptions and argument schemas, limited by
+  [the guard](../cloud/src/Margo.Cloud.Guard/WorkIQGuard.cs) to the read tools and arguments it allows. Writes never
+  reach the model as tools: they go through approval cards. A write gets an MCP session of its own and is never sent
+  twice.
+
 ---
 
 ## The three retrieval tools
