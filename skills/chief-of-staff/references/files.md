@@ -145,8 +145,8 @@ python3 scripts/m365_files.py put --drive <driveId> --item <itemId> --file <path
 ```
 
 Create the target item first (the MCP allowlist rejects the colon path form
-`/items/{parent}:/{name}:/createUploadSession`). Run `workiq-get_schema` for
-`/drives/{driveId}/items/{folderId}/children` with the create operation before building the body:
+`/items/{parent}:/{name}:/createUploadSession`). If you aren't sure of the body, run
+`workiq-get_schema` for `/drives/{driveId}/items/{folderId}/children` with the create operation:
 
 ```
 workiq-create_entity  /drives/{driveId}/items/{folderId}/children
@@ -180,8 +180,8 @@ which works correctly under 4 MB.
 ## Sharing
 
 **Never** done by the script. Sharing is visible to other people and needs explicit per-action
-approval every time. Run `workiq-get_schema` for `/drives/{driveId}/items/{itemId}/invite` (action)
-before building the body below; the example shows typical fields, not the schema. To check who
+approval every time. The example below shows typical fields, not the schema; if you aren't sure of
+one, run `workiq-get_schema` for `/drives/{driveId}/items/{itemId}/invite` (action). To check who
 already has access before sharing, use `sharepoint.md` § Who has access.
 
 ```

@@ -15,8 +15,8 @@ on-behalf-of)? See the [glossary](margo-cloud.md#glossary), and Microsoft Learn 
 | | |
 | --- | --- |
 | **Verified in a test tenant** | Provisioning; the router-to-instance path and agentic sign-in; reading the manager's mailbox and calendar through delegation; a reply in Teams |
-| **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; the on-behalf-of sign-in handler settings; voice; **Create instance** from the admin center; the state lease under concurrent turns |
-| **Not built** | Live meeting transcripts; scheduled routines; the in-chat sign-in prompt for on-behalf-of access |
+| **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; on-behalf-of access and the manager's sign-in; voice; **Create instance** from the admin center; the state lease under concurrent turns |
+| **Not built** | Live meeting transcripts; scheduled routines |
 
 [Known limits](#known-limits) has the details. Optional: the
 [live verification checklist](../cloud/src/Margo.Cloud.Host/VERIFY.md) walks a test deployment step by step.
@@ -143,20 +143,22 @@ in Azure Container Registry. To build and test Margo Cloud yourself, see [cloud/
 | Mode | Set | Reaches | Requires |
 | --- | --- | --- | --- |
 | `delegation` | `azd env set MARGO_PRINCIPAL_ACCESS delegation` | The manager's mail and calendar (direct reads through the delegation), plus everything shared with Margo herself: mail she receives, chats and channels she is in, files and sites shared with her (her own Copilot search included). Copilot search of the manager's whole data reports "unavailable" | The manager makes Margo a calendar delegate (or an Exchange admin grants mailbox access) and shares chats, channels and files with her |
-| `obo` (on-behalf-of; **experimental**) | `azd env set MARGO_PRINCIPAL_ACCESS obo`, plus the handler below | What the manager can see through Work IQ, including Copilot `ask` and `retrieve` over their own data, once they have signed in through the handler | The handler settings below, and a sign-in the manager completes outside Margo (see the note) |
+| `obo` (on-behalf-of; **not verified in a tenant**) | `azd env set MARGO_PRINCIPAL_ACCESS obo`, plus the handler below | What the manager can see through Work IQ, including Copilot `ask` and `retrieve` over their own data, once they have signed in | The handler settings below, an OAuth connection on the agent's Azure Bot, and the manager's sign-in when Margo asks for it |
 
-**Use `delegation`** (the default). `obo` gives Margo the manager's own Work IQ access, which is what makes Copilot
-reasoning and search over their mail, meetings and files possible, but it is not finished:
+**Use `delegation`** (the default) unless you are ready to test `obo`. `obo` gives Margo the manager's own Work IQ
+access, which is what makes Copilot reasoning and search over their mail, meetings and files possible:
 
-- **What is built:** the handler settings. `azd env set PRINCIPAL_AUTH_HANDLER PRINCIPAL` and
+- **Settings:** `azd env set PRINCIPAL_AUTH_HANDLER PRINCIPAL` and
   `azd env set MARGO_PRINCIPAL_OAUTH_CONNECTION <name>` define, in every instance, an Agents SDK sign-in handler of
   type `AzureBotUserAuthorization` that uses that OAuth connection on the agent's Azure Bot (single sign-on in Teams)
   and exchanges the manager's sign-in, on their behalf, for a Work IQ token through the blueprint's own connection.
   The blueprint needs Work IQ's delegated permissions as inheritable, admin-consented permissions
   ([identity and consent](work-iq/identity-and-consent.md)).
-- **What is not built:** Margo does not show the manager a sign-in card. Until the manager has signed in through that
-  connection, every principal source reports `blocked`, and Margo never falls back to her own token. Nothing here has
-  been verified in a tenant.
+- **Sign-in:** only the manager is asked, only in their 1:1 chat with Margo, and only once Margo has looked them up
+  (from their second message on). The Agents SDK runs that handler's sign-in before the turn: single sign-on in Teams
+  where it is set up, otherwise a sign-in card. Nobody else who messages Margo is asked. Until the manager has signed
+  in, every principal source reports `blocked`, and Margo never falls back to her own token.
+- **Not verified in a tenant:** the sign-in, the token exchange, and Work IQ accepting the manager's token.
 
 Set the mode in step 1. Set the mode, and the managers' time zone
 (`azd env set MARGO_TIMEZONE Europe/Berlin`; default `America/Los_Angeles`), before provisioning;
@@ -480,7 +482,7 @@ successful one: rerun `azd provision`, then redeploy all instances.
 | Margo says she can't find her manager | The directory answered that her account has no manager | Set the manager on Margo's account in the directory |
 | "I couldn't check who I work for just now" | The `/me/manager` lookup failed: outage, throttling, or a Copilot Credits denial for Margo's account. It is not a missing manager | Retry. If it persists, check the `workiq` traces for the lookup's status code and Margo's licenses |
 | "Something failed on my side before I could finish" | The model call or the turn failed (throttling, content filter, bad `MARGO_TIMEZONE` or `MARGO_PRINCIPAL_ACCESS`) | Check the `turn failed` log entry; fix configuration and retry |
-| Every principal source is `blocked` | `obo` mode, and the manager has not signed in through the on-behalf-of handler (or it is not configured) | Switch to `delegation`; `obo` needs a sign-in Margo does not prompt for yet |
+| Every principal source is `blocked` | `obo` mode, and the manager has not signed in through the on-behalf-of handler (or it is not configured) | Have the manager message Margo again in their 1:1 chat and complete the sign-in; check `PRINCIPAL_AUTH_HANDLER` and `MARGO_PRINCIPAL_OAUTH_CONNECTION`; or switch to `delegation` |
 | Mail and calendar are `error` in delegation mode | Mailbox permissions missing or not yet propagated | Recheck the two Exchange commands; allow time to propagate |
 | "I couldn't load my records safely" | The state lease was busy for two minutes, or a bundle failed its checks | Retry. If it persists, check the storage account and the instance's role on its container |
 | Approval spins on the security-policy step | An admin center issue, not the deployment | Open a support request with the page's correlation ID |

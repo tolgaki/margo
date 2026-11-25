@@ -67,8 +67,8 @@ Everything is billed to your organization. No estimate is made here
 | Status | What |
 | --- | --- |
 | **Verified in a test tenant** | Provisioning; the router-to-instance path and agentic sign-in; reading the manager's mailbox and calendar through delegation; a reply in Teams |
-| **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; the on-behalf-of sign-in handler settings; voice; **Create instance** from the admin center; the state lease under concurrent turns |
-| **Not built** | Live meeting transcripts; scheduled routines (briefs she sends unprompted); the in-chat sign-in prompt for on-behalf-of access |
+| **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; on-behalf-of access and the manager's sign-in; voice; **Create instance** from the admin center; the state lease under concurrent turns |
+| **Not built** | Live meeting transcripts; scheduled routines (briefs she sends unprompted) |
 
 ## Reading order
 

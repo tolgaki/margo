@@ -102,7 +102,7 @@ An agent acting as itself cannot read the principal's data. Options:
 
 | Option | Verdict |
 | --- | --- |
-| **A. On-behalf-of (OBO) the principal** | **Partly built:** the sign-in handler can be configured (`MARGO_PRINCIPAL_ACCESS=obo`; see the [deployment guide](autopilot-deployment.md#choose-how-margo-reads-her-managers-work)), but Margo does not yet prompt the manager to sign in, and nothing is verified in a tenant. Entra Agent ID supports OBO for agent identities: Work IQ sees the principal as the subject and Margo as the actor. Covers everything the principal can see through Work IQ, including Teams chats and `retrieve`/`ask` over their own data. Refresh tokens for background runs are not built. |
+| **A. On-behalf-of (OBO) the principal** | **Built, not verified in a tenant** (`MARGO_PRINCIPAL_ACCESS=obo` with the sign-in handler in the [deployment guide](autopilot-deployment.md#choose-how-margo-reads-her-managers-work); only the manager is asked to sign in, in their 1:1 chat). Entra Agent ID supports OBO for agent identities: Work IQ sees the principal as the subject and Margo as the actor. Covers everything the principal can see through Work IQ, including Teams chats and `retrieve`/`ask` over their own data. Refresh tokens for background runs are not built. |
 | **B. Exchange delegate access** granted to Margo's agent user | **What ships as the recommended mode** (`delegation`), verified in a test tenant for mail and calendar reads. Covers the principal's mail and calendar, plus what is shared with Margo's own account; Copilot search over the principal's data is unavailable. |
 | **C. App-only permissions** | **Rejected.** Tenant-wide scope for a personal assistant. |
 
@@ -259,15 +259,16 @@ one extra argument, `on_data_of: "principal" | "self"`. The guard picks the matc
    `https://workiq.svc.cloud.microsoft/mcp`. Agent 365 tooling servers are not used.
 1. **Token follows intent, never the model's wording.** The model declares `on_data_of`; the
    guard asks the token provider for `principal` or `margo` and never exposes the token.
-2. **Path policy.** Relative Graph paths only; no absolute URLs, traversal, encoded separators
-   or blocked segments (`authentication`, `servicePrincipals`). Allowed roots: `me`, `users`,
-   `sites`, `drives`, `chats`, `teams`, `planner` for the principal; `me`, `users`, `chats` for
-   Margo herself. `/users/{id}` allows only directory reads (profile, `manager`,
+2. **Path policy.** Relative paths only (a Graph paging or delta link is followed as the relative
+   path it names); no other absolute URLs, traversal, encoded separators or blocked segments
+   (`authentication`, `servicePrincipals`, `$batch`). There is no fixed list of roots: any path
+   Work IQ serves to the token can be read, including its own families (`/pages`, `/engage`,
+   `/sharepoint`, `/copilot`, `/office-agent-mcp`). `/users/{id}` allows only directory reads (profile, `manager`,
    `directReports`, which the relationship procedure uses), so colleagues' mail, calendars,
    chats and files are unreachable. Under delegation the guard's own rewrite reaches
    `/users/{principal}` mail and calendar, and the path check itself confirms the ID is the bound
-   principal's. `agentId`/`backend` routing, unknown arguments and shared-mailbox retrieval are
-   refused. `retrieve` takes `query` as a list of strings, as the playbooks write it, or a
+   principal's. `backend` routing, `agentId` on any tool but `ask` (which may name a Copilot agent),
+   unknown arguments and shared-mailbox retrieval are refused. `retrieve` takes `query` as a list of strings, as the playbooks write it, or a
    single string.
 3. **Run modes.** `attended` (the authenticated principal is present), `unattended`
    (schedules, the principal's own source notifications) and `third_party` (triggered by

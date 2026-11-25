@@ -25,12 +25,18 @@ namespace Margo.Cloud.Host;
 public sealed class MargoAgent : AgentApplication
 {
     public MargoAgent(AgentApplicationOptions options, MargoTurns turns)
-        : base(options)
+        : base(WithPrincipalSignIn(options, turns))
     {
         ArgumentNullException.ThrowIfNull(turns);
         string[] handlers = [turns.Settings.AgenticHandler];
-        OnActivity(ActivityTypes.Message, (context, state, token) => turns.OnMessageAsync(this, context, token),
-                   autoSignInHandlers: handlers, isAgenticOnly: true);
+        // The manager's messages in their 1:1 chat, in on-behalf-of mode, also sign them in through the principal
+        // handler (MargoTurns.SignInHandlers); everyone else's use only Margo's own.
+        AddRoute(MessageRouteBuilder.Create()
+                                    .WithHandler((context, state, token) => turns.OnMessageAsync(this, context, token))
+                                    .WithOAuthHandlers(turns.SignInHandlers)
+                                    .AsAgentic(true)
+                                    .WithOrderRank(RouteRank.First) // ahead of the notification routes, as OnActivity was
+                                    .Build());
         // Only mail notifications become requests to the office. Lifecycle events and document comments are not
         // messages to Margo and are never queued.
         // The selector of the notification extension's OnAgenticEmailNotification (channel "agents", sub-channel "email",
@@ -44,6 +50,25 @@ public sealed class MargoAgent : AgentApplication
         this.OnLifecycleNotification((context, state, notification, token) => turns.OnLifecycleAsync(context));
         OnActivity(ActivityTypes.Message, (context, state, token) => turns.OnMessageAsync(this, context, token), autoSignInHandlers: handlers);
         OnActivity(ActivityTypes.InstallationUpdate, (context, state, token) => turns.OnInstallationAsync(context));
+    }
+
+    /// <summary>
+    /// Sign-in before a turn runs only where <see cref="MargoTurns.SignsInPrincipal"/> says so: the manager's own
+    /// message in on-behalf-of mode. Every other activity keeps the configured behavior (the image turns it off).
+    /// </summary>
+    private static AgentApplicationOptions WithPrincipalSignIn(AgentApplicationOptions options, MargoTurns turns)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(turns);
+        if (options.UserAuthorization is { } authorization && turns.PrincipalSignInConfigured)
+        {
+            var configured = authorization.AutoSignIn;
+            authorization.AutoSignIn = (context, token) =>
+                turns.SignsInPrincipal(context) ? Task.FromResult(true)
+                : configured is null ? Task.FromResult(false) : configured(context, token);
+        }
+
+        return options;
     }
 
     /// <summary>
@@ -94,6 +119,32 @@ public sealed class MargoTurns : IDisposable
     }
 
     public void Dispose() => _drained.Dispose();
+
+    /// <summary>On-behalf-of mode with the principal's sign-in handler configured.</summary>
+    public bool PrincipalSignInConfigured =>
+        Settings.PrincipalAccess == "obo" && !string.IsNullOrEmpty(Settings.PrincipalHandler) && _configuredHandlers.Contains(Settings.PrincipalHandler);
+
+    /// <summary>
+    /// Whether this activity is the manager's own message in their 1:1 chat with Margo, in on-behalf-of mode: only then
+    /// is the manager asked to sign in. The manager is the one the last turn's directory lookup named; before the first
+    /// lookup nobody is asked, and the turn itself still decides who the manager is.
+    /// </summary>
+    public bool SignsInPrincipal(ITurnContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (!PrincipalSignInConfigured || context.Activity.Type != ActivityTypes.Message)
+        {
+            return false;
+        }
+
+        var inbound = ActivityEvents.Message(context.Activity, out var email);
+        return inbound is { ConversationType: "personal", SenderId: { Length: > 0 } sender } && !email
+               && string.Equals(sender, _orchestrator.KnownManager(inbound.AgentUserId), StringComparison.Ordinal);
+    }
+
+    /// <summary>The sign-in handlers for a message: Margo's own, and the manager's in on-behalf-of mode (<see cref="SignsInPrincipal"/>).</summary>
+    public string[] SignInHandlers(ITurnContext context) =>
+        SignsInPrincipal(context) ? [Settings.AgenticHandler, Settings.PrincipalHandler] : [Settings.AgenticHandler];
 
     /// <summary>The host's settings.</summary>
     public HostSettings Settings { get; }

@@ -106,8 +106,8 @@ for durable candidates and resolution proposals. No record means pending/unknown
    never in the assistant's voice. Include recipient, channel, subject, and the exact text. Ask for
    approval before any write.
 
-   Before building the payload, run `workiq-get_schema` for the exact path and operation (and
-   `workiq-search_paths` first if the path is not verified). After explicit approval only, use
+   If you aren't sure of the path or its fields, run `workiq-search_paths` and `workiq-get_schema`
+   before building the payload. After explicit approval only, use
    the matching Work IQ write:
 
    ```text

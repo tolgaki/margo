@@ -312,3 +312,13 @@ port; the C# code is now the implementation of record, and the desktop state hel
   answered `/`, `/liveness` and `/readiness`, the provisioner printed its usage and failed on the missing
   `AZURE_SUBSCRIPTION_ID` as designed, and `margo-state` created its SQLite databases (musl `e_sqlite3`). Never run in
   a tenant.
+
+## The manager's on-behalf-of sign-in (Nov 25, 2026)
+
+The agentic message route is built with `MessageRouteBuilder` and `WithOAuthHandlers(MargoTurns.SignInHandlers)`, ranked
+first as `OnActivity` was. In `obo` mode with the principal handler configured, a message from the manager (the one the
+orchestrator last looked up) in their 1:1 chat gets the agentic and principal handlers, and the application's
+`AutoSignIn` selector returns true for it, so the SDK signs the manager in before the turn; every other activity keeps
+the configured behavior (the image turns auto sign-in off) and only Margo's handler. Infra defines the handler
+(`AzureBotUserAuthorization`, OBO through `SERVICE_CONNECTION` to Work IQ) when `PRINCIPAL_AUTH_HANDLER` and
+`MARGO_PRINCIPAL_OAUTH_CONNECTION` are set. Not verified in a tenant. Tests: `PrincipalSignInTests`.

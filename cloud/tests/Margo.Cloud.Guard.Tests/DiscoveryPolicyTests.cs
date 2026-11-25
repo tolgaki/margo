@@ -78,7 +78,7 @@ public sealed class DiscoveryPolicyTests
     [Theory]
     [InlineData("https://graph.microsoft.com/v1.0/users/someone@example.com/messages")] // still a colleague's mailbox
     [InlineData("https://evil.example.com/v1.0/me/messages")]                            // not Graph
-    [InlineData("https://graph.microsoft.com/v1.0/servicePrincipals")]                  // not an allowed root
+    [InlineData("https://graph.microsoft.com/v1.0/servicePrincipals")]                  // a blocked resource
     public async Task A_link_still_meets_every_path_rule(string link)
     {
         var result = await Guard().CallAsync("fetch", new JsonObject { ["on_data_of"] = "self", ["entityUrls"] = new JsonArray(link) }, RunModes.Attended, Cancel);

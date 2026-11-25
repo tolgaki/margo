@@ -380,3 +380,6 @@ port; the C# code is now the implementation of record, and the desktop state hel
 `TurnTokens` takes a refresh delegate (the host's token getter) and implements `IRefreshingTokenProvider`; manager
 turns and decisions pass it. `CardContext.KindOf` recognizes Pages, Viva Engage, SharePoint and live-transcript
 subscriptions, and `CardDecisions.Done` words their outcomes.
+
+`KnownManager(agentUserId)` returns the manager the last directory lookup named for an agent user (cleared when the
+lookup finds none), so the host can decide before a turn whether to sign the manager in.

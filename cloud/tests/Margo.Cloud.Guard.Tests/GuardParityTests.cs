@@ -81,6 +81,10 @@ public sealed partial class GuardParityTests
         }
 
         var c = Cases.Value[name];
+        if (c.ToJsonString().Contains("is not an allowed root", StringComparison.Ordinal))
+        {
+            return; // deliberate: the root allowlist was dropped (PORTING.md); GuardPolicyTests.Self_intent_reaches_what_is_shared_with_margo_and_any_root_work_iq_serves covers it
+        }
         var binding = new InstanceBinding("agent-identity-1", "margo-user-1", "principal-1", PyNode.AsString(c["principal_chat_id"]));
         var tokens = new ParityTokens(c["tokens"] as JsonObject);
         var transport = new ParityTransport(c["transport"] as JsonObject);

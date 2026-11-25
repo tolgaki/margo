@@ -172,8 +172,8 @@ public static class EngineTools
            `target.on_data_of` is `principal` for their mail and calendar and `self` for a Teams message you
            post; add the recipients or IDs it affects. `arguments` are exact and leave out `on_data_of`.
            `target_fingerprint` is the main recipient or ID.
-           Before you build `arguments`, call `workiq-get_schema` for that exact path and operation (and
-           `workiq-search_paths` first when you don't know the path), and build the body from the schema.
+           If you don't know the path, find it with `workiq-search_paths`; if you aren't sure of its
+           fields, check them with `workiq-get_schema`. Never guess a field.
         2. Call `request_approval` with the `id` it returned. Your manager gets a card showing exactly what
            will be sent, with Approve and Reject. Tell them the card is waiting; never say it was sent.
         3. When they tap Approve, the service runs exactly that call and tells them the result. Approval

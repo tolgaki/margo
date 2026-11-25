@@ -252,7 +252,7 @@ public sealed class HardeningTests
         Assert.Equal(received, receipts);
         Assert.Equal(["/users/{user}/manager", "/me/messages/{id}", "/me/drive/root:/{path}:/content"], receipts[0].Paths);
         Assert.Equal(["/me/drive/root/search(...)"], receipts[1].Paths);
-        Assert.Equal("'/{id}' is not an allowed root for on_data_of=self", receipts[2].Reason);
+        Assert.Equal(["/{id}/messages"], receipts[2].Paths); // any root may be read; the receipt still names no one
         Assert.Equal("unexpected arguments: format, 2 other names", receipts[3].Reason);
         Assert.Equal((ReceiptText.Other, "on_data_of must be 'principal' or 'self'"), (receipts[4].OnDataOf, receipts[4].Reason));
         Assert.Null(receipts[4].ReadAs);
@@ -325,7 +325,7 @@ public sealed class HardeningTests
             start.Wait(TestContext.Current.CancellationToken);
             var subject = i % 2 == 0 ? "self" : "principal";
             // One in eight is refused before the budget; the rest reach it.
-            var path = i % 8 == 7 ? "/groups/g-" + i : "/me/messages/m-" + i;
+            var path = i % 8 == 7 ? "/$batch/g-" + i : "/me/messages/m-" + i;
             return await guard.CallAsync("fetch", Fetch(subject, path), RunModes.Attended, TestContext.Current.CancellationToken);
         })).ToArray();
         start.Set();
@@ -350,7 +350,7 @@ public sealed class HardeningTests
             if (receipt.Status == GuardStatuses.Refused)
             {
                 Assert.Empty(receipt.Paths);
-                Assert.Equal("'/groups' is not an allowed root for on_data_of=" + receipt.OnDataOf, receipt.Reason);
+                Assert.Equal("path reaches a blocked resource", receipt.Reason);
             }
             else
             {

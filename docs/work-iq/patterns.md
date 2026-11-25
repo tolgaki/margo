@@ -50,7 +50,7 @@ service. Recheck capabilities rather than treating a previously observed limitat
 |---|---|
 | `call_function` | **Delta** endpoints — "what changed since…". Delta is `call_function` only, never `fetch`. |
 | `do_action` · `create_entity` · `update_entity` · `delete_entity` | Sending, replying, scheduling, RSVPing, marking read. **Only after explicit approval.** |
-| `get_schema` · `search_paths` | Discover required fields and valid paths *before* any create or update. |
+| `get_schema` · `search_paths` | Discover a path you don't know, or the fields of one you aren't sure of, before a create or update. Well-known writes (send mail, create an event) don't need it. |
 | `fetch_blob` | Binary content up to 4 MB. Larger files go through `scripts/m365_files.py` — see [large files](#large-files). |
 | `list_agents` · `ask` with `agentId` | Find the Copilot agents available to the signed-in user, then ask one of them by ID. |
 

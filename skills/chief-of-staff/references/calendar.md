@@ -27,7 +27,7 @@ acting. A remembered time zone or availability is not fresh scheduling evidence.
      `$select=id,subject,start,end,showAs,isAllDay,organizer`.
    - Others' availability: use the Graph scheduling helpers (`/me/findMeetingTimes`,
      `/me/calendar/getSchedule`). Both are POST actions, so they go through `workiq-do_action`;
-     run `workiq-get_schema` for the path first for the exact body. They read free/busy and
+     run `workiq-get_schema` for the path first if you aren't sure of the exact body. They read free/busy and
      change nothing; the host may still ask the user to allow the tool call. If availability
      for someone isn't visible, say so; propose times that at least work for the user and note
      the assumption.
@@ -44,6 +44,9 @@ acting. A remembered time zone or availability is not fresh scheduling evidence.
    Confirm what was created, with the event's `webLink`.
 
 #### Worked example: discover, then create an event
+
+Creating an event is a well-known write, so steps 1 and 2 are optional; this shows the discovery
+pattern for a path or field you aren't sure of.
 
 ```text
 1. workiq-search_paths  query: "create calendar event"        → confirms /me/events, create
@@ -69,7 +72,8 @@ and tell the user what changes, rather than guessing a different field name.
    whether the user is the organizer (organizer moves the event; an attendee proposes a new time
    or replies instead).
 3. **On approval**, `workiq-update_entity` the event (or `workiq-do_action` to cancel), after
-   `workiq-get_schema` for `/me/events/{id}` (update) or `/me/events/{id}/cancel` (action).
+   `workiq-get_schema` for `/me/events/{id}` (update) or `/me/events/{id}/cancel` (action) if you
+   aren't sure of the fields.
    Send only the changed fields. If a note to attendees is warranted, draft it for approval like
    any other message.
 
@@ -85,9 +89,9 @@ and tell the user what changes, rather than guessing a different field name.
    - ❌ **Decline** — matches the user's decline rules; draft a polite decline note if one is due.
 3. **Present the list** with a one-line rationale per invite and the recommended response.
 4. **On approval only**, respond via `workiq-do_action` (accept/decline/tentativelyAccept) —
-   batch is fine, but re-confirm the batch exactly ("accept these 3, decline these 2?"). Run
-   `workiq-get_schema` for `/me/events/{id}/accept` (or the decline/tentative action) once per
-   action type before building the bodies.
+   batch is fine, but re-confirm the batch exactly ("accept these 3, decline these 2?"). If you
+   aren't sure of a response body, run `workiq-get_schema` for `/me/events/{id}/accept` (or the
+   decline/tentative action) once per action type.
 
 ### D. Hygiene ("how's my calendar looking", "what can I cut", weekly ambient scan)
 

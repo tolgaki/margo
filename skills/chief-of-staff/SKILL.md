@@ -78,17 +78,20 @@ Re-resolve and retry — never report the data as unavailable because the first 
 | `workiq-fetch_blob` | A file's bytes, base64 in the result, up to 4 MB. Larger files use `scripts/m365_files.py` (`references/files.md`). | Size-bound |
 | `workiq-list_agents` | The Copilot agents available to ask. | Fast |
 | `workiq-do_action` / `workiq-create_entity` / `workiq-update_entity` / `workiq-delete_entity` | Sending, replying, scheduling, marking read, publishing. **Only after explicit approval.** (The free/busy helpers in `references/calendar.md` are reads that use `do_action`; scheduled runs cannot call them.) | — |
-| `workiq-get_schema` / `workiq-search_paths` | Discover valid paths (`search_paths`) and the exact fields of one path and operation (`get_schema`). **Required before every write**, and before the first read of a path you have not verified. | Fast |
+| `workiq-get_schema` / `workiq-search_paths` | Discover valid paths (`search_paths`) and the exact fields of one path and operation (`get_schema`). Use them when you don't know the path or aren't sure of its fields; not needed for well-known writes. | Fast |
 
 Prefer `workiq-fetch` to enumerate concrete items (so nothing is missed) and `workiq-ask` to
 synthesize meaning and priority across them. When you need a person's, event's, or thread's exact
 ID before acting, resolve it with `workiq-fetch` — never with `workiq-ask`.
 
-**Discover before every write.** Before building any write payload, run `workiq-search_paths` when
-the path is not already verified, then `workiq-get_schema` for that exact path and operation. Build
-the payload from the schema's required and allowed fields, never from memory or an example in
-these references. A path or field the schema does not offer is unavailable: say so rather than
-trying a sibling path. Newer path families (`/pages`, `/engage`, `/sharepoint`, `/copilot`,
+**Discover when you're not sure.** Use `workiq-search_paths` when you don't know the path, and
+`workiq-get_schema` when you aren't sure of the exact fields for that path and operation: an
+unfamiliar operation, a field you'd otherwise guess, or after Work IQ rejected a payload. For
+well-known Microsoft Graph writes (sending mail, replying, creating or updating an event,
+posting a chat message) build the payload directly. Never guess a field; the examples in these
+references show typical fields, not the schema. A path or field Work IQ does not offer is
+unavailable: say so rather than trying a sibling path. The approval shows the exact action
+before anything runs, whichever way the payload was built. Newer path families (`/pages`, `/engage`, `/sharepoint`, `/copilot`,
 `/office-agent-mcp`) are found the same way and may be missing, read-only, or blocked by tenant
 Work IQ policy for a given user.
 

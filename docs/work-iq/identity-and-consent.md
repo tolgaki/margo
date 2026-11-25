@@ -47,7 +47,7 @@ manager's work, chosen per deployment with `MARGO_PRINCIPAL_ACCESS`:
 | Token | Margo's own | The manager's own token, with Margo as the actor |
 | How | Exchange: the manager makes Margo a calendar delegate, or an admin grants Full Access; chats, channels and files are shared with her the usual way | An on-behalf-of exchange of the manager's sign-in for a Work IQ token |
 | Reaches | The manager's mail and calendar through `/users/{manager}/...`, plus whatever is shared with Margo | What the manager can see, including Copilot `ask` and `retrieve` over the manager's own data |
-| Requires | Exchange permissions; Send on Behalf and calendar Editor rights for approved sends | The sign-in handler configured in the [deployment guide](../autopilot-deployment.md#choose-how-margo-reads-her-managers-work), and a sign-in by the manager (Margo does not prompt for it yet) |
+| Requires | Exchange permissions; Send on Behalf and calendar Editor rights for approved sends | The sign-in handler configured in the [deployment guide](../autopilot-deployment.md#choose-how-margo-reads-her-managers-work), and the manager's sign-in, which Margo asks for in their 1:1 chat |
 | Status | Verified in a test tenant for mail and calendar reads | Built, not verified in a tenant |
 
 Either way, the [guard](../../cloud/src/Margo.Cloud.Guard/WorkIQGuard.cs) picks the token from

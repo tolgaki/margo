@@ -161,8 +161,8 @@ destination, text and revision, in the user's voice (`preferences.md`), never th
 The bar is higher, not lower: a community can be company-wide.
 
 1. Draft the reply and show it with the resolved community, conversation title and link.
-2. Run `workiq-search_paths` (filter `engage`) for the write and `workiq-get_schema` for its exact
-   path and operation. Build the payload from the schema only.
+2. Find the write with `workiq-search_paths` (filter `engage`); Engage paths vary, so check its
+   fields with `workiq-get_schema` unless you already know them from this session.
 3. Record it as a proposal and get approval through the approval flow in `work-products.md`
    (desktop: action desk; Margo Cloud: a proposal and an approval card). Use a descriptive kind
    such as `engage.reply`.

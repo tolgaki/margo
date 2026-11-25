@@ -221,8 +221,8 @@ failure of a write as `unknown`, and receipts are all as in Python.
     arguments kept. A tool the server does not offer is left out; write tools never reach the model. When the list is
     empty the recorded Python definitions are used unchanged (`BuiltInWorkIQTool`). Tests: `ServerToolDefinitionTests`.
 21. **Copilot agents and schema-first proposals (Nov 25, 2026).** A server-described `ask` keeps its `agentId`
-    argument (the guard allows it for `ask` only). The approval addendum tells the model to call `get_schema` (and
-    `search_paths` when the path is unknown) before building a proposal's arguments.
+    argument (the guard allows it for `ask` only). The approval addendum tells the model to find an unknown path with
+    `search_paths` and check uncertain fields with `get_schema`, never guessing a field.
 
 ## Delegation-mode instructions (Nov 21, 2026)
 

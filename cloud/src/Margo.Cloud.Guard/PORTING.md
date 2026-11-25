@@ -346,9 +346,8 @@ may echo the request. Tests: `ServerToolsTests`.
 
 ## Discovery, paging, Copilot agents and token refresh (Nov 25, 2026)
 
-- `WorkIQFamilies` (`office-agent-mcp`, `pages`, `engage`, `sharepoint`, `copilot`) are allowed roots for both
-  subjects, so what `search_paths` finds can be read. Every write under them still needs a live claim. Under
-  delegation, the principal's reads there are reported unavailable, as for any path delegation does not cover.
+- Work IQ's own path families (`office-agent-mcp`, `pages`, `engage`, `sharepoint`, `copilot`) can be read; see
+  "No fixed list of roots" below.
 - A Microsoft Graph paging or delta link (`https://graph.microsoft.com/v1.0/...` or `/beta/...`) in `fetch`'s
   `entityUrls` or `call_function`'s path is sent as the relative path it names, after meeting every path rule.
 - `ask` may name a Copilot agent (`agentId`, as `list_agents` gives it: 1-128 letters, digits and `._:-`). Every other
@@ -356,3 +355,12 @@ may echo the request. Tests: `ServerToolsTests`.
 - `IRefreshingTokenProvider`: when a read gets HTTP 401, the guard asks once for a fresh token for the same subject and
   sends the read once more (never a write; never the same token; a principal token must still be the bound principal's).
 - Receipt words gained the Work IQ families' path words. Tests: `DiscoveryPolicyTests`, `ServerToolsTests`.
+
+## No fixed list of roots (Nov 25, 2026)
+
+Deliberate deviation from Python's `ROOTS`: any first path segment Work IQ serves may be read, for either subject, so
+whatever `search_paths` finds can be used. What still holds: the token decides whose data it is; `/users/{id}` reaches
+only profile, manager and direct reports; blocked segments (`authentication`, `servicePrincipals`, and `$batch`, whose
+body carries requests no path rule would see), encoded separators and traversal are refused; delegation reaches only
+the manager's own mail and calendar; every write needs a live claim. The frozen Python cases that expected a root
+refusal are skipped as deliberate deviations (`GuardParityTests`).

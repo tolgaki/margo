@@ -70,33 +70,19 @@ public static class GuardPolicy
     /// <summary><c>CONTROL_ARGS</c>: the guard's own arguments, never sent to Work IQ.</summary>
     public static IReadOnlySet<string> ControlArgs { get; } = Set("on_data_of", "action_id", "attempt_id");
 
-    /// <summary>
-    /// Work IQ's own path families beyond Microsoft Graph, found with <c>search_paths</c>: Office documents, Copilot
-    /// Pages, Viva Engage, SharePoint, and Copilot (meeting transcripts). Reads are allowed for either subject; every
-    /// write still needs a live claim of the manager's approval of that exact call, as for any other path.
-    /// </summary>
-    public static IReadOnlyList<string> WorkIQFamilies { get; } = ["office-agent-mcp", "pages", "engage", "sharepoint", "copilot"];
-
     /// <summary>The Graph hosts whose paging and delta links are accepted and sent as relative paths.</summary>
     public static IReadOnlyList<string> GraphLinkPrefixes { get; } = ["https://graph.microsoft.com/v1.0/", "https://graph.microsoft.com/beta/"];
 
     /// <summary>The longest Copilot agent ID <c>ask</c> may name.</summary>
     public const int MaxAgentId = 128;
 
-    /// <summary><c>ROOTS</c>: the allowed first path segment (lower-cased) per <c>on_data_of</c>.</summary>
-    public static IReadOnlyDictionary<string, IReadOnlySet<string>> Roots { get; } = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal)
-    {
-        [Subjects.Principal] = Set([.. (string[])["me", "users", "sites", "drives", "chats", "teams", "planner"], .. WorkIQFamilies]),
-        // Margo's own token reaches only what is hers or shared with her: her mail, her chats (including group chats she
-        // is in), channels of teams she belongs to, and files and sites shared with her. Writes still need a live claim.
-        [Subjects.Self] = Set([.. (string[])["me", "users", "chats", "teams", "sites", "drives", "shares"], .. WorkIQFamilies]),
-    }.ToFrozenDictionary(StringComparer.Ordinal);
-
     /// <summary><c>USER_DIRECTORY_READS</c>: what <c>/users/{id}/...</c> may read.</summary>
     public static IReadOnlySet<string> UserDirectoryReads { get; } = Set("manager", "directreports");
 
     /// <summary><c>BLOCKED_SEGMENTS</c>: never reachable, at any depth.</summary>
-    public static IReadOnlySet<string> BlockedSegments { get; } = Set("authentication", "serviceprincipals");
+    /// <remarks><c>$batch</c> is blocked because a batch carries other requests inside its body, which no path rule
+    /// would see.</remarks>
+    public static IReadOnlySet<string> BlockedSegments { get; } = Set("authentication", "serviceprincipals", "$batch");
 
     /// <summary><c>RETRIEVE_CAPABILITIES</c>.</summary>
     public static IReadOnlySet<string> RetrieveCapabilities { get; } =
@@ -278,11 +264,10 @@ public static class GuardPolicy
         // Every list below is matched against the segment as the server will read it: decoded once. What is still
         // encoded after that can no longer spell a listed word (see CheckPercentEncoding).
         var names = segments.Select(segment => LowerAscii(DecodeSegment(segment))).ToArray();
-        if (!Roots[intent].Contains(names[0]))
-        {
-            throw new RefusedException("'/" + ReceiptText.Root(segments[0]) + "' is not an allowed root for on_data_of=" + intent);
-        }
-
+        // Any root Work IQ serves may be read (deliberate deviation: Python allowed a fixed list of roots per subject).
+        // What still holds: the token decides whose data it is; blocked resources, encoded separators and colleagues'
+        // /users data below stay refused; delegation reaches only the manager's own mail and calendar; and every write
+        // needs a live claim of the manager's approval of that exact call.
         if (names.Any(BlockedSegments.Contains))
         {
             throw new RefusedException("path reaches a blocked resource");

@@ -67,7 +67,7 @@ public sealed class GuardPolicyTests
             "/users/colleague-1/messages", "/users/colleague-1/calendar/events", "/users",
             "/me/../users/colleague-1/messages", "/me/%2e%2e/users/x/messages", "/me//messages",
             "https://graph.example.com/v1.0/me/messages", "/servicePrincipals", "/me/authentication/methods",
-            "/groups/team-1/conversations", "me/messages", "/me/mess ages",
+            "/$batch", "me/messages", "/me/mess ages",
         ];
         foreach (var path in refused)
         {
@@ -85,12 +85,14 @@ public sealed class GuardPolicyTests
     }
 
     [Fact]
-    public async Task Self_intent_reaches_what_is_shared_with_margo_but_not_planner()
+    public async Task Self_intent_reaches_what_is_shared_with_margo_and_any_root_work_iq_serves()
     {
         // Files and sites shared with her, and channels of teams she is in, are hers to read with her own token.
         var shared = """["/sites/site-1/drive/root/children", "/drives/drive-1/items/item-1", "/teams/team-1/channels/channel-1/messages"]""";
         Assert.Equal("ok", await Status(Guard(), "fetch", """{"on_data_of": "self", "entityUrls": """ + shared + "}", RunModes.Attended));
-        Assert.Equal("refused", await Status(Guard(), "fetch", """{"on_data_of": "self", "entityUrls": ["/planner/plans"]}""", RunModes.Attended));
+        // No fixed list of roots: what Work IQ serves to her token can be read (the token decides whose data it is).
+        Assert.Equal("ok", await Status(Guard(), "fetch", """{"on_data_of": "self", "entityUrls": ["/planner/plans", "/groups/team-1/conversations"]}""", RunModes.Attended));
+        Assert.Equal("refused", await Status(Guard(), "fetch", """{"on_data_of": "self", "entityUrls": ["/$batch"]}""", RunModes.Attended));
     }
 
     [Fact]

@@ -65,10 +65,9 @@ never archive, mark-read, reply, or delete without explicit approval.**
    ```
 
 7. **On approval only**, execute batched actions via Work IQ (`workiq-update_entity` to mark read,
-   `workiq-do_action` / `workiq-create_entity` to reply/forward). Before building each payload,
-   run `workiq-get_schema` for the exact path and operation (for example
-   `/me/messages/{id}` with update, or `/me/messages/{id}/reply` with action) and use only the
-   fields it lists. Confirm what was done and what remains.
+   `workiq-do_action` / `workiq-create_entity` to reply/forward). Marking read
+   (`/me/messages/{id}` with `{"isRead": true}`) and replying are well known; run
+   `workiq-get_schema` only for a path or field you aren't sure of. Confirm what was done and what remains.
 
 ## Guardrails
 - Re-confirm before any **bulk** action (e.g. "archive these 14?") — list or count them first.

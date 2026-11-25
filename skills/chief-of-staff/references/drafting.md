@@ -56,9 +56,9 @@ routine name nor the draft-purpose filter is approval to send.
 5. **Iterate** on feedback until approved. Persist each changed revision, invalidate any prior
    approval, and record corrections only under the explicit learning rules in `feedback.md`.
 
-6. **Before building the write payload**, run `workiq-search_paths` if the path is not verified
-   and `workiq-get_schema` for the exact path and operation (for example `/me/sendMail`,
-   `/me/messages/{id}/reply`, `/chats/{id}/messages`). Use only the fields it lists.
+6. **Build the write payload** from fields you know (`/me/sendMail`, `/me/messages/{id}/reply` and
+   `/chats/{id}/messages` are well known). If you aren't sure of the path or a field, run
+   `workiq-search_paths` and `workiq-get_schema` first and use only the fields it lists.
    **On explicit approval**, send/reply via Work IQ:
    - Reply/forward/send → `workiq-do_action` (or `workiq-create_entity` for a draft +
      `workiq-do_action` to send) on the resolved message/thread.

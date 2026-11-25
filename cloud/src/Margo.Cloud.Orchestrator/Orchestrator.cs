@@ -264,6 +264,7 @@ public sealed class Orchestrator
     private readonly RecentActivities _recent;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _gates = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, bool> _initialised = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, string> _knownManagers = new(StringComparer.Ordinal);
     private readonly ILogger _logger;
 
     /// <param name="engine">The model turn loop.</param>
@@ -320,6 +321,14 @@ public sealed class Orchestrator
     /// <param name="inbound">The activity.</param>
     /// <param name="getToken">Returns the token of a kind (<c>margo</c>, <c>principal</c>), or null; an exception counts as null.</param>
     /// <param name="cancellationToken">Cancels the turn.</param>
+    /// <summary>
+    /// The manager the directory last named for this agent user, or null before the first lookup. The host uses it to
+    /// decide, before a turn, whether a message is the manager's (on-behalf-of sign-in); each turn still looks the
+    /// manager up and decides from that.
+    /// </summary>
+    public string? KnownManager(string? agentUserId) =>
+        agentUserId is not null && _knownManagers.TryGetValue(agentUserId, out var id) ? id : null;
+
     public async Task<TurnReply> HandleAsync(InboundEvent inbound, Func<string, Task<string?>> getToken, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(inbound);
@@ -357,8 +366,11 @@ public sealed class Orchestrator
 
         if (manager is null)
         {
+            _knownManagers.TryRemove(inbound.AgentUserId!, out _);
             return new TurnReply(oneToOne && !string.IsNullOrEmpty(sender) ? NoManager : null, TurnStatuses.NoManager);
         }
+
+        _knownManagers[inbound.AgentUserId!] = manager.Id;
 
         // Mail is never a conversation turn in this version, even from the manager: it is queued.
         var isManager = sender is not null && string.Equals(sender, manager.Id, StringComparison.Ordinal) && inbound.Channel != "mail";

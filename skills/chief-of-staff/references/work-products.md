@@ -70,9 +70,10 @@ question to one of the user's Copilot agents while preparing the work, use `copi
 Every write that is not the standing document permission above follows the same flow. The
 procedures for Engage, Pages, SharePoint and calendar point here.
 
-1. **Discover.** `workiq-search_paths` when the path is not already verified, then
-   `workiq-get_schema` for that exact path and operation. Build the payload only from the
-   fields the schema lists. If the path is not offered, stop and say the action is unavailable.
+1. **Discover what you don't know.** `workiq-search_paths` when you don't know the path (always,
+   for the newer families: Pages, Engage, SharePoint, Office documents), and `workiq-get_schema`
+   when you aren't sure of its fields. If the path is not offered, stop and say the action is
+   unavailable.
 2. **Propose.** Show the user the exact target (path, item, recipients or audience), the exact
    payload, and what other people will see.
    - **Desktop:** record it in the action desk (`action-desk.md`) with `work_state.py propose`,
