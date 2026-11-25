@@ -117,7 +117,10 @@ enforced in code, not left to the model:
 
 - The model can only *propose*: it records the exact Work IQ call in the work ledger and asks for a card. It is never
   offered a write tool.
-- The card is drawn from the ledger, not from the model's text, and shows the exact request.
+- The card is drawn from the ledger, not from the model's text, and says in plain words what will happen: recipients,
+  subject, the full text, meeting times, and which existing email, meeting, chat or file it affects, read from
+  Microsoft 365. It shows no tool names, paths or JSON. An action it can't describe carries a warning to reject it and
+  ask.
 - A tap counts only if it comes from the instance's manager, in their one-to-one chat, through the platform's
   authenticated channel, for the revision and hash the ledger currently holds. Anything else runs nothing.
 - The approval is recorded against that exact account, action, revision and hash, and the guard runs the stored call

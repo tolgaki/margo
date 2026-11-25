@@ -311,7 +311,10 @@ Margo can send email, reply, set up, move or cancel meetings and post Teams mess
 **Approve** on a card that shows that exact action:
 
 1. The manager asks in their one-to-one chat ("email Rafa that the review moved to Thursday"). Margo drafts it,
-   records the exact Work IQ call, and posts a card: recipients, subject, text or meeting times, and the exact request.
+   records the exact Work IQ call, and posts a card in plain words: who it goes to, the subject, the text, the meeting
+   time, and for a reply or a meeting change which email or meeting it is (Margo looks it up). The card shows no
+   technical details. If Margo can't describe an action or look up its email or meeting, the card says so: reject it
+   and ask her in chat.
 2. **Approve** runs exactly that call, once, and Margo replies with the result; the card loses its buttons. **Reject**
    discards it. A card for an older version, or one already decided, runs nothing.
 3. Only the manager's tap in their one-to-one chat counts. A "yes" typed in chat or said in a voice call is not an

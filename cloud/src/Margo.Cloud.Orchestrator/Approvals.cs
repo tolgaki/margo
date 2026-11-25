@@ -14,6 +14,12 @@ namespace Margo.Cloud.Orchestrator;
 /// <param name="ActionHash">The hash of that revision, as the card showed it.</param>
 public sealed record CardDecision(string Verb, string ActionId, long Revision, string ActionHash)
 {
+    /// <summary>
+    /// The context the card showed (which email, meeting or chat), carried back by the button so the card's last version
+    /// still shows it. Display only: the decision is bound to the action, revision and hash.
+    /// </summary>
+    public IReadOnlyList<CardFact> Context { get; init; } = [];
+
     public const string Approve = "approve";
     public const string Reject = "reject";
 }
@@ -33,6 +39,12 @@ public sealed record CardDecision(string Verb, string ActionId, long Revision, s
 public sealed record ApprovalCard(string ActionId, long Revision, string ActionHash, string Kind, string OnDataOf, string Tool,
                                   JsonObject Arguments, string? Why)
 {
+    /// <summary>Which existing email, meeting, chat or file the action affects, read from Microsoft 365 (see <see cref="CardContext"/>).</summary>
+    public IReadOnlyList<CardFact> Context { get; init; } = [];
+
+    /// <summary>What kind of action this is, in the manager's terms.</summary>
+    public ApprovalKind ApprovalKind => CardContext.KindOf(Tool, Arguments);
+
     /// <summary>After a decision: what happened, for the card's last version (no buttons).</summary>
     public string? Outcome { get; init; }
 
@@ -70,17 +82,17 @@ internal sealed class TurnApprovals(InstanceBinding binding, string stateRoot, W
 
     public IReadOnlyList<ApprovalCard> Cards => _cards;
 
-    public Task<JsonObject> RequestAsync(string actionId, CancellationToken cancellationToken = default)
+    public async Task<JsonObject> RequestAsync(string actionId, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(actionId);
         if (_cards.Count >= MaxCards)
         {
-            return Task.FromResult(Refused("at most " + MaxCards + " approval cards in one reply; ask for the rest after these are decided"));
+            return (Refused("at most " + MaxCards + " approval cards in one reply; ask for the rest after these are decided"));
         }
 
         if (_cards.Any(card => card.ActionId == actionId))
         {
-            return Task.FromResult(new JsonObject { ["status"] = "ok", ["card"] = "already queued for this reply" });
+            return new JsonObject { ["status"] = "ok", ["card"] = "already queued for this reply" };
         }
 
         JsonObject action;
@@ -91,33 +103,35 @@ internal sealed class TurnApprovals(InstanceBinding binding, string stateRoot, W
         }
         catch (StateError)
         {
-            return Task.FromResult(Refused("no such action; propose it with work_state.py propose first"));
+            return Refused("no such action; propose it with work_state.py propose first");
         }
 
         if (!PyNode.Is(PyNode.Get(action, "type"), "action") || !PyNode.Is(PyNode.Get(action, "state"), "ready"))
         {
-            return Task.FromResult(Refused("the action is not ready for approval (state " + (PyNode.AsString(PyNode.Get(action, "state")) ?? "?")
-                                           + "); propose it again"));
+            return Refused("the action is not ready for approval (state " + (PyNode.AsString(PyNode.Get(action, "state")) ?? "?")
+                           + "); propose it again");
         }
 
         if (ApprovalCard.FromAction(action) is not { } card)
         {
-            return Task.FromResult(Refused("the action carries no exact Work IQ call: payload.workiq {tool, arguments} and target.on_data_of are required"));
+            return Refused("the action carries no exact Work IQ call: payload.workiq {tool, arguments} and target.on_data_of are required");
         }
 
         var arguments = PyNode.CopyObject(card.Arguments);
         arguments["on_data_of"] = card.OnDataOf;
         if (guard.WriteProblem(card.Tool, arguments) is { } problem)
         {
-            return Task.FromResult(Refused("this call would be refused if approved: " + problem));
+            return Refused("this call would be refused if approved: " + problem);
         }
 
-        _cards.Add(card);
-        return Task.FromResult(new JsonObject
+        // The card says which email, meeting, chat or file this is, read from Microsoft 365 rather than from the model.
+        var context = await CardContext.DescribeAsync(guard, card.Tool, card.Arguments, card.OnDataOf, cancellationToken).ConfigureAwait(false);
+        _cards.Add(card with { Context = context });
+        return new JsonObject
         {
             ["status"] = "ok",
             ["card"] = "your manager will see an approval card for this exact action after your reply; nothing is sent until they approve it",
-        });
+        };
     }
 
     private static JsonObject Refused(string reason) => new() { ["status"] = GuardStatuses.Refused, ["reason"] = reason };
@@ -129,12 +143,26 @@ internal static class CardDecisions
     /// <summary>How long an approval made on a card stays usable: it is used at once.</summary>
     public static readonly TimeSpan ApprovalLifetime = TimeSpan.FromMinutes(10);
 
-    public const string Sent = "Done: what the card showed has gone out.";
+    public const string Sent = "Done.";
+
+    /// <summary>What a successful approval did, in plain words.</summary>
+    public static string Done(ApprovalKind kind) => kind switch
+    {
+        ApprovalKind.Email or ApprovalKind.Reply or ApprovalKind.Forward => "Done: the email has gone out.",
+        ApprovalKind.MeetingNew => "Done: the meeting is on your calendar and the invitations are on their way.",
+        ApprovalKind.MeetingChange => "Done: the meeting is updated.",
+        ApprovalKind.MeetingCancel => "Done: the meeting is canceled and the attendees are being told.",
+        ApprovalKind.Chat or ApprovalKind.Channel => "Done: the message is posted.",
+        ApprovalKind.DocumentChange => "Done: the document is changed.",
+        ApprovalKind.Share => "Done: the file is shared.",
+        ApprovalKind.Delete => "Done: it's deleted.",
+        _ => Sent,
+    };
     public const string Rejected = "Rejected. Nothing was sent.";
     public const string Unknown = "I sent it but got no clear answer back, so I don't know whether it went through. I won't send it again: "
                                   + "check your Sent Items or calendar.";
     public const string OutOfDate = "This card is out of date ({0}). Nothing was sent. Ask me again if you still want it.";
-    public const string NotSent = "Not sent: {0}.";
+    public const string NotSent = "Nothing went out: {0}.";
 
     private static readonly HashSet<string> BeforeDispatch = new(StringComparer.Ordinal)
     {
@@ -156,7 +184,7 @@ internal static class CardDecisions
             return (Finished(OutOfDate, "I have no record of this action"), null);
         }
 
-        var card = ApprovalCard.FromAction(action);
+        var card = ApprovalCard.FromAction(action) is { } shown ? shown with { Context = decision.Context } : null;
         var state = PyNode.AsString(PyNode.Get(action, "state"));
         if (card is null || card.Revision != decision.Revision || !string.Equals(card.ActionHash, decision.ActionHash, StringComparison.Ordinal)
             || state != "ready")
@@ -180,9 +208,9 @@ internal static class CardDecisions
         var guard = newGuard(new LedgerClaimJournal(ledger));
         var arguments = PyNode.CopyObject(card.Arguments);
         arguments["on_data_of"] = card.OnDataOf;
-        if (guard.WriteProblem(card.Tool, arguments) is { } problem)
+        if (guard.WriteProblem(card.Tool, arguments) is not null)
         {
-            return NotSentResult(card, problem);
+            return NotSentResult(card, GuardStatuses.Refused);
         }
 
         string attemptId;
@@ -211,9 +239,9 @@ internal static class CardDecisions
             });
             attemptId = PyNode.AsString(started["attempt_id"])!;
         }
-        catch (StateError exc)
+        catch (StateError)
         {
-            return NotSentResult(card, exc.Message);
+            return NotSentResult(card, "not_recorded");
         }
 
         arguments["action_id"] = card.ActionId;
@@ -221,7 +249,8 @@ internal static class CardDecisions
         var result = await guard.CallAsync(card.Tool, arguments, RunModes.Attended, cancellationToken).ConfigureAwait(false);
         if (result.Status == GuardStatuses.Ok)
         {
-            return (Sent, card with { Outcome = Sent, OutcomeStatus = "sent" });
+            var done = Done(card.ApprovalKind);
+            return (done, card with { Outcome = done, OutcomeStatus = "sent" });
         }
 
         if (result.Status == GuardStatuses.Unknown)
@@ -242,12 +271,23 @@ internal static class CardDecisions
             });
         }
 
-        return NotSentResult(card, result.Reason ?? result.Status);
+        return NotSentResult(card, result.Status);
     }
 
-    private static (string, ApprovalCard?) NotSentResult(ApprovalCard card, string reason)
+    /// <summary>Why nothing went out, in plain words; the technical reason is in the guard's record of the call.</summary>
+    public static string PlainReason(string status) => status switch
     {
-        var text = Finished(NotSent, reason.TrimEnd('.'));
+        GuardStatuses.Refused => "this isn't something I'm allowed to do for you",
+        GuardStatuses.Blocked => "your organization's settings don't allow it",
+        GuardStatuses.Unavailable => "I couldn't reach Microsoft 365. Ask me again for a new card",
+        GuardStatuses.BudgetExhausted => "I've reached my limit for now. Ask me again later",
+        "not_recorded" => "I couldn't record your approval, so I stopped. Ask me again for a new card",
+        _ => "Microsoft 365 turned it down",
+    };
+
+    private static (string, ApprovalCard?) NotSentResult(ApprovalCard card, string status)
+    {
+        var text = Finished(NotSent, PlainReason(status));
         return (text, card with { Outcome = text, OutcomeStatus = "not_sent" });
     }
 

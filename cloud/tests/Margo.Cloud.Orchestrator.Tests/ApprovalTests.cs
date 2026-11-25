@@ -69,10 +69,10 @@ public sealed partial class ApprovalTests
 
     /// <summary>A model that proposes <see cref="Input"/>, asks for its approval with the ID the state tool returned,
     /// then answers.</summary>
-    private static object?[] ProposeAndAsk() =>
+    private static object?[] ProposeAndAsk(string input = Input) =>
     [
         FakeModel.Response("r1", FakeModel.Call("margo-state",
-            PyJson.Dumps(new JsonObject { ["script"] = "work_state.py", ["args"] = new JsonArray("propose", "--input", "-"), ["input"] = PyJson.Loads(Input) }))),
+            PyJson.Dumps(new JsonObject { ["script"] = "work_state.py", ["args"] = new JsonArray("propose", "--input", "-"), ["input"] = PyJson.Loads(input) }))),
         (Func<JsonObject, JsonNode?>)(request =>
         {
             var id = ActionId().Matches(request.ToJsonString()).Last().Value;
@@ -82,6 +82,55 @@ public sealed partial class ApprovalTests
     ];
 
     private bool Sent() => _transport.Calls.Any(call => call.Tool == "do_action");
+
+    private const string ReplyInput = """
+        {"kind": "mail.reply", "target": {"on_data_of": "principal", "message": "msg-1"},
+         "payload": {"workiq": {"tool": "do_action", "arguments": {"actionUrl": "/me/messages/msg-1/reply",
+           "jsonBody": "{\"comment\": \"Thursday works.\"}"}}},
+         "why": "Rafa asked when the review is.", "source_refs": [], "target_fingerprint": "msg-1", "work_item_id": null}
+        """;
+
+    [Fact]
+    public async Task A_card_for_a_reply_says_which_email_it_answers()
+    {
+        // The call names the email only by its ID: the card reads it from the mailbox and says which one it is.
+        using var state = new TempState();
+        var orchestrator = Create(state, ProposeAndAsk(ReplyInput));
+        _transport.Answer = (tool, arguments) => tool == "fetch" && PyNode.AsString(arguments["entityUrls"]?[0])!.Contains("/messages/msg-1?$select=", StringComparison.Ordinal)
+            ? Task.FromResult(Fixtures.Obj("""{"results": [{"statusCode": 200, "data": {"subject": "Q3 numbers", "from": {"emailAddress": {"name": "Rafa", "address": "rafa@example.com"}}, "receivedDateTime": "2026-11-24T09:15:00Z"}}]}"""))
+            : null;
+        var card = Assert.Single((await Handle(orchestrator, Event("a-1", "Tell Rafa Thursday works."))).Cards);
+        Assert.Equal(ApprovalKind.Reply, card.ApprovalKind);
+        Assert.Equal([new CardFact("Replying to", "\u201cQ3 numbers\u201d from Rafa (rafa@example.com), November 24")], card.Context);
+        Assert.False(Sent());
+
+        // The tap carries the context back, so the card's last version still says which email it was.
+        var decision = new CardDecision(CardDecision.Approve, card.ActionId, card.Revision, card.ActionHash) { Context = card.Context };
+        var approved = await Handle(orchestrator, Event("a-2", decision: decision));
+        Assert.Equal("Done: the email has gone out.", approved.Reply);
+        Assert.Equal(card.Context, approved.Decided!.Context);
+    }
+
+    [Fact]
+    public async Task A_card_says_so_when_it_cannot_look_up_the_email()
+    {
+        using var state = new TempState();
+        var orchestrator = Create(state, ProposeAndAsk(ReplyInput));
+        _transport.Answer = (tool, arguments) => tool == "fetch" && PyNode.AsString(arguments["entityUrls"]?[0])!.Contains("/messages/msg-1", StringComparison.Ordinal)
+            ? Task.FromResult(Fixtures.Obj("""{"results": [{"statusCode": 404, "error": {"code": "ErrorItemNotFound"}}]}"""))
+            : null;
+        var card = Assert.Single((await Handle(orchestrator, Event("a-1", "Tell Rafa Thursday works."))).Cards);
+        Assert.Equal([new CardFact("Which one", CardContext.NotFound)], card.Context);
+    }
+
+    [Theory]
+    [InlineData("refused", "Nothing went out: this isn't something I'm allowed to do for you.")]
+    [InlineData("blocked", "Nothing went out: your organization's settings don't allow it.")]
+    [InlineData("error", "Nothing went out: Microsoft 365 turned it down.")]
+    public void Failure_reasons_are_plain(string status, string expected)
+    {
+        Assert.Equal(expected, CardDecisions.NotSent.Replace("{0}", CardDecisions.PlainReason(status), StringComparison.Ordinal));
+    }
 
     [Fact]
     public async Task An_approved_card_runs_exactly_that_call_once()
@@ -96,7 +145,7 @@ public sealed partial class ApprovalTests
 
         var decision = new CardDecision(CardDecision.Approve, card.ActionId, card.Revision, card.ActionHash);
         var approved = await Handle(orchestrator, Event("a-2", decision: decision));
-        Assert.Equal((TurnStatuses.Decided, "Done: what the card showed has gone out."), (approved.Status, approved.Reply));
+        Assert.Equal((TurnStatuses.Decided, "Done: the email has gone out."), (approved.Status, approved.Reply));
         Assert.Equal("sent", approved.Decided!.OutcomeStatus);
         var (tool, arguments, bearer) = Assert.Single(_transport.Calls, call => call.Tool == "do_action");
         Assert.Equal(("/users/principal-1/sendMail", "margo-token"), (PyNode.AsString(arguments["actionUrl"]), bearer));

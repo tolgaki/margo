@@ -8,6 +8,10 @@
   open.
 - Margo Cloud delegation mode reads the manager's mail and calendar directly through the delegation and searches only
   what is shared with Margo; Copilot search of the manager's whole data reports "unavailable".
+- Approval cards are written for the person deciding: plain words about what happens, to whom, with what text and
+  when, and which email, meeting, chat or file it affects. They no longer show the Work IQ request, IDs or JSON.
+  Outcomes are plain too ("Done: the meeting is updated.", "Nothing went out: your organization's settings don't allow
+  it.").
 - Office documents: ask for a Word document, Excel workbook or PowerPoint presentation and Margo writes the
   content and has Work IQ's Office document tools build it. Desktop creates it in your OneDrive; Margo Cloud creates
   it in Margo's OneDrive and shares it with you alone. Creating a document you asked for is a standing permission

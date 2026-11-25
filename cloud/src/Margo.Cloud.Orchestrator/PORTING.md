@@ -279,6 +279,14 @@ New, no Python equivalent (Python's hosted runtime never executed approved write
 sent). At most three documents a turn. An unclear creation, or one without a returned link, is `unknown` and nothing
 else runs; a failed lookup or share is `partial` with the link. Never retried. Tests: `DocumentTests`.
 
+## Card context (Nov 25, 2026)
+
+`TurnApprovals` reads the existing item a proposed call names only by ID (the email being answered or forwarded, the
+meeting being changed, canceled or deleted, the chat or channel, the shared file) with one `fetch` on the turn's guard,
+and attaches it to the card as `CardFact`s (`CardContext`). A failed read attaches `CardContext.NotFound` rather than
+blocking the card. `CardDecisions` reports outcomes in plain words (`Done(kind)`, `PlainReason(status)`); the technical
+reason stays in the guard's record. Tests: `ApprovalTests`.
+
 ## Tests and evidence
 
 `cloud/tests/Margo.Cloud.Orchestrator.Tests` (119 test cases), a fake model, a fake Work IQ directory transport

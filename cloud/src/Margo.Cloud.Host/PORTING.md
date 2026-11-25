@@ -254,6 +254,15 @@ request in full. Values the model wrote are `RichTextBlock` text runs, which ren
 reads it into `InboundEvent.Decision` (the text is then null, so the model never sees it). After a decision the tapped
 card (`replyToId`) is replaced by its last version without buttons, best effort.
 
+## Plain approval cards (Nov 25, 2026)
+
+`ApprovalCards` writes for a non-technical reader: a question ("Change this meeting?"), whose account it uses, the
+context `CardContext` looked up (which email, meeting, chat or file), the recipients, subject, full text (HTML shown as
+plain text), meeting times as people read them, attachments, what changes, and why. It no longer shows the Work IQ call,
+the action ID, revision or JSON. An action it cannot describe carries `Undescribed`. The buttons carry the context back
+(`about`, display only, bounded), so the card's last version still says which email or meeting it was; the decision
+stays bound to action, revision and hash. Tests: `ApprovalCardTests`.
+
 ## Tests and evidence
 
 `cloud/tests/Margo.Cloud.Host.Tests` (75 test cases after the review below), no network:

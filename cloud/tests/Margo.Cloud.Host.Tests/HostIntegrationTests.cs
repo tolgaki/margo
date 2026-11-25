@@ -370,7 +370,7 @@ public sealed class HostIntegrationTests
         Assert.Equal(("message", TurnStatuses.Decided), await host.NextTurnAsync());
         var (_, sent, bearer) = Assert.Single(host.WorkIQ.Calls, call => call.Tool == "do_action");
         Assert.Equal(("/users/principal-1/sendMail", "margo-workiq-token"), ((string?)sent["actionUrl"], bearer));
-        Assert.Contains("Done: what the card showed has gone out.", host.Connector.Messages.Select(message => (string?)message["text"]));
+        Assert.Contains("Done: the email has gone out.", host.Connector.Messages.Select(message => (string?)message["text"]));
         // The tapped card is replaced by its last version, without buttons.
         var update = Assert.Single(host.Connector.Sent, item => item.Url.Contains("/activities/card-activity-1", StringComparison.Ordinal));
         Assert.Empty(update.Activity["attachments"]![0]!["content"]!["actions"]!.AsArray());

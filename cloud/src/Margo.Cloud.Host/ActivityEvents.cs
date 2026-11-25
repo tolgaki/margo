@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Margo.Cloud.Core;
 using Margo.Cloud.Orchestrator;
+using Margo.Cloud.State.Core;
 using Microsoft.Agents.A365.Notifications.Models;
 using Microsoft.Agents.Core.Models;
 using Microsoft.Agents.Core.Serialization;
@@ -101,7 +102,8 @@ public static class ActivityEvents
 
     /// <summary>
     /// The decision an approval card's button carries (<see cref="ApprovalCards"/>), or null when the activity's value is
-    /// not one: <c>{"margo": "approve"|"reject", "action_id", "revision", "action_hash"}</c>. Who tapped it, and whether
+    /// not one: <c>{"margo": "approve"|"reject", "action_id", "revision", "action_hash", "about"}</c> (<c>about</c>: the
+    /// card's context, shown again on its last version and nothing else). Who tapped it, and whether
     /// it matches the ledger, is checked by the orchestrator.
     /// </summary>
     public static CardDecision? Decision(object? value)
@@ -130,7 +132,14 @@ public static class ActivityEvents
             return null;
         }
 
-        return new CardDecision(verb, actionId, revision, actionHash);
+        var context = data["about"] is JsonArray about
+            ? CardContext.Bounded(about.OfType<JsonArray>()
+                                       .Where(pair => pair.Count == 2 && pair[0] is JsonValue && pair[1] is JsonValue)
+                                       .Select(pair => (Label: PyNode.AsString(pair[0]), Value: PyNode.AsString(pair[1])))
+                                       .Where(pair => pair.Label is { Length: > 0 } && pair.Value is { Length: > 0 })
+                                       .Select(pair => new CardFact(pair.Label!, pair.Value!)))
+            : [];
+        return new CardDecision(verb, actionId, revision, actionHash) { Context = context };
     }
 
     private static bool TryLong(JsonValue value, out long result)
