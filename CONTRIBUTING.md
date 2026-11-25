@@ -14,6 +14,17 @@ Coding agents start with [AGENTS.md](AGENTS.md), the
 [bounded change workflow](docs/development/agent-workflow.md). Use the agent-task issue form to
 make ownership, acceptance, documentation and stop conditions explicit.
 
+### Working with an AI coding agent
+
+GitHub Copilot reads [`.github/copilot-instructions.md`](.github/copilot-instructions.md), which points
+at [AGENTS.md](AGENTS.md), plus `.github/instructions/cloud.instructions.md` for `cloud/` and the
+prompt files in [`.github/prompts/`](.github/prompts/) (`new-routine`, `change-persona`,
+`add-work-iq-source`, `cloud-change`). Claude Code reads [CLAUDE.md](CLAUDE.md), which imports
+`AGENTS.md` and lists which checks to run for which change, and
+[`.claude/settings.json`](.claude/settings.json), which allows the read-only checks and asks before
+commits and pushes. For recipes (files, checks and a starting prompt for each common change), see
+[customize Margo with an AI coding agent](docs/how-to/customize-with-ai-agents.md).
+
 ---
 
 ## The one hard rule

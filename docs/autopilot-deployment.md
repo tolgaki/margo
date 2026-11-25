@@ -91,6 +91,24 @@ messaging endpoint. The post-provision hook (`scripts/postprovision.sh`) does th
 
 ## Before you start
 
+### How long it takes
+
+Plan on **one to three weeks** from start to a first conversation, most of it waiting: Frontier
+enrollment, licenses, the admin consent for Work IQ, Margo's approval in the admin center and
+mailbox delegation each need someone else. The hands-on work (provisioning, the blueprint,
+publishing, hiring) is **one to two days**. Line up the people in the next table before you begin.
+
+### Known problem: Create instance can refuse
+
+In the test tenant, **Create instance** (step 5) could not finish: the admin center's instance
+policy showed an empty list of recognized Agent 365 licenses, although the tenant's Agent 365
+subscription and all its service plans were active. If it happens to you, the instance can be
+created without that page, through the Microsoft Graph (beta) Entra Agent ID APIs: create an agent
+identity from the blueprint, create its agent user, set the agent user's manager and usage location,
+and assign its licenses. Agent 365 then delivered the instance's Teams messages to the router as
+usual. Treat this as a workaround for a preview issue, not the supported path, and budget time for
+it or for a support request.
+
 ### People and roles
 
 | Step | Who | Role |
@@ -138,9 +156,16 @@ calculator with your expected number of managers and turns.
 
 macOS, Linux or WSL: the `azd` hooks are POSIX shell scripts and there are no Windows versions.
 
-`az` (Azure CLI), `azd` 1.27.1 or later, the **Agent 365 CLI** (`a365`, a .NET tool), `git`
-and `python3` (the hook scripts use it to read JSON). Docker and the .NET SDK are not needed: the image is built
-in Azure Container Registry. To build and test Margo Cloud yourself, see [cloud/README.md](../cloud/README.md).
+| Tool | Why | How to get it |
+| --- | --- | --- |
+| `az` (Azure CLI) | Sign-in, role grants, the image build, Graph calls in `blueprint.sh` | Microsoft's Azure CLI install page |
+| `azd` 1.27.1 or later | `azd provision` and its hooks | Microsoft's Azure Developer CLI install page |
+| Agent 365 CLI (`a365`) | Creates the blueprint, registers the endpoint, publishes Margo | A .NET global tool, so installing it needs the **.NET SDK** on your machine. Follow Microsoft's current instructions: search Microsoft Learn for "Agent 365 CLI". Then check `a365 --help` |
+| `git`, `python3` | The checkout; the hook scripts read JSON with Python | Your platform's packages |
+
+Docker is not needed, and **the image build does not need .NET on your machine**: the image is built in Azure
+Container Registry. The .NET SDK is needed only to install the `a365` tool (and to build and test Margo Cloud
+yourself; see [cloud/README.md](../cloud/README.md)).
 
 ### Choose how Margo reads her manager's work
 
@@ -150,7 +175,11 @@ in Azure Container Registry. To build and test Margo Cloud yourself, see [cloud/
 | `obo` (on-behalf-of; **not verified in a tenant**) | `azd env set MARGO_PRINCIPAL_ACCESS obo`, plus the handler below | What the manager can see through Work IQ, including Copilot `ask` and `retrieve` over their own data, once they have signed in | The handler settings below, an OAuth connection on the agent's Azure Bot, and the manager's sign-in when Margo asks for it |
 
 **Use `delegation`** (the default) unless you are ready to test `obo`. `obo` gives Margo the manager's own Work IQ
-access, which is what makes Copilot reasoning and search over their mail, meetings and files possible:
+access, which is what makes Copilot reasoning and search over their mail, meetings and files possible.
+
+**This deployment does not create an Azure Bot or its OAuth connection.** For `obo`, an administrator must create
+and configure them (an Azure Bot resource for the agent, with an OAuth connection that signs the manager in, set up
+for Teams single sign-on) before setting the handler below. If you can't, use `delegation`.
 
 - **Settings:** `azd env set PRINCIPAL_AUTH_HANDLER PRINCIPAL` and
   `azd env set MARGO_PRINCIPAL_OAUTH_CONNECTION <name>` define, in every instance, an Agents SDK sign-in handler of
@@ -202,14 +231,20 @@ Keep the CLI's files **outside this repository**: they hold tenant identifiers a
 client secret. Margo never uses that secret; her containers sign in through a federated
 credential.
 
+Run every `a365` command from one folder outside the repository. `a365 config init` writes
+`a365.config.json` there; it must exist before `a365 setup blueprint --endpoint-only` below, which refuses to run
+without it. The simplest order is to run `a365 config init` first; the first `setup blueprint` command takes its name
+and tenant from its flags.
+
 ```sh
 mkdir -p ~/margo-a365 && cd ~/margo-a365
+a365 config init          # interactive; answers below
 a365 setup blueprint -n Margo --tenant-id {tenant-id} --no-endpoint
 ```
 
-Then register the messaging endpoint. `--endpoint-only` reads `a365.config.json` in the current folder; with CLI 2.0.1
-that file must name the tenant, the messaging endpoint, `needDeployment: false` (Margo is self-hosted) and
-`agentIdentityDisplayName`, or the command refuses to run (`a365 config init` writes it interactively):
+With CLI 2.0.1, `a365.config.json` must name the tenant, the messaging endpoint (`https://<router>/api/messages`
+from step 1), `needDeployment: false` (Margo is self-hosted) and `agentIdentityDisplayName`. Then register the
+messaging endpoint:
 
 ```sh
 a365 setup blueprint --endpoint-only
@@ -223,7 +258,14 @@ The CLI writes the blueprint's ID to `a365.generated.config.json` as `agentBluep
 blueprint's client secret, delete it in the Entra admin center (**App registrations › Margo › Certificates &
 secrets**) unless you use it for something else: Margo never needs it.
 
-Work IQ's scopes can also be added with the CLI instead of `blueprint.sh`:
+Work IQ's scopes can also be added with the CLI instead of `blueprint.sh`. `{work-iq-app-id}` is the application
+(client) ID of Work IQ's service principal in your tenant, the one `blueprint.sh` looks up:
+
+```sh
+az ad sp show --id api://workiq.svc.cloud.microsoft --query appId -o tsv
+```
+
+If that finds nothing, Work IQ is not enabled in the tenant. Then:
 
 ```sh
 a365 setup permissions custom --resource-app-id {work-iq-app-id} --scopes WorkIQAgent.Ask,WorkIQ.Read,WorkIQ.Act
@@ -237,8 +279,11 @@ your Entra admin before production.
 
 ## 3. Connect the blueprint and finish
 
+Go back to the `cloud/` folder of your checkout (you left it for `~/margo-a365` in step 2; replace
+`~/src/margo` with wherever you cloned the repository):
+
 ```sh
-cd path/to/margo/cloud
+cd ~/src/margo/cloud
 sh scripts/connect-blueprint.sh ~/margo-a365/a365.generated.config.json
 azd provision
 ```
@@ -290,12 +335,8 @@ and cannot read anything without the consent. Every step is idempotent; check ag
    container (about two minutes). Margo messages nobody first; once she is running and her manager
    has chatted with her once, she may send them notes ([backchannel](#the-backchannel)).
 
-**If Create instance refuses for a missing license.** In the test tenant the admin center's instance policy showed an
-empty list of recognized Agent 365 licenses, even though the tenant's Agent 365 subscription and all its service plans
-were active, so **Create instance** could not finish. The instance can be created without that page, through the
-Microsoft Graph (beta) Entra Agent ID APIs: create an agent identity from the blueprint, create its agent user, set the
-agent user's manager and usage location, and assign its licenses. Agent 365 then delivered the instance's Teams
-messages to the router as usual. Treat this as a workaround for a preview issue, not the supported path.
+**If Create instance refuses for a missing license,** see
+[known problem: Create instance can refuse](#known-problem-create-instance-can-refuse).
 
 You can also create a container ahead of time, from `cloud/`:
 

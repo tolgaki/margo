@@ -34,7 +34,8 @@ Preview surfaces change; recheck them before you depend on a detail here.
 | Quickstart | [Register Work IQ in a harness](../../samples/harness/README.md) | [`cloud/samples/WorkIQHello`](../../cloud/samples/WorkIQHello/): a token, `initialize`, `tools/list`, one `fetch`, one `retrieve` |
 
 In a harness, no Margo code talks to Work IQ: the skills call its tools by their registered names
-(`workiq-fetch`, `workiq-ask`, ...). In Margo Cloud, `Margo.Cloud.WorkIQ` keeps one MCP session per
+(`workiq-fetch`, `workiq-ask`, ...; in Claude Code, `mcp__workiq__fetch` and so on, see
+[run Margo in Claude Code](../how-to/run-in-claude-code.md)). In Margo Cloud, `Margo.Cloud.WorkIQ` keeps one MCP session per
 identity, reads the server's own `tools/list` and gives the model those descriptions and argument
 schemas, filtered by [the guard](../../cloud/src/Margo.Cloud.Guard/WorkIQGuard.cs) to the read tools
 and arguments it allows. Writes never reach the model as tools, get an MCP session of their own and

@@ -6,7 +6,8 @@ This page covers installation and connection. Continue through the
 only want to explore or contribute should use the [synthetic-only developer setup](development/README.md)
 instead of connecting their normal profile.
 
-Check [what you need](#what-you-need), then follow sections 1-4 in order. Optional integrations and schedules can wait until the first
+Check [what you need](#what-you-need), then follow sections 1-4 in order: install Margo, connect
+Work IQ, fill in your preferences, then configure the ledger and run your first brief. Optional integrations and schedules can wait until the first
 interactive run is useful. Existing users should review
 [setup and migration](how-to/setup-and-migration.md) before updating private state.
 
@@ -15,7 +16,7 @@ interactive run is useful. Existing users should review
 | | | Notes |
 |---|---|---|
 | **GitHub Copilot plan** | Any plan that includes [GitHub Copilot CLI](https://github.com/github/copilot-cli) | Each brief and reply uses your plan's model requests |
-| **GitHub Copilot CLI** | The host that loads Margo's agent and skills | |
+| **GitHub Copilot CLI** | The host that loads Margo's agent and skills. Install it with [GitHub's Copilot CLI instructions](https://docs.github.com/copilot/how-tos/use-copilot-agents/use-copilot-cli) | Needs a recent Node.js LTS; GitHub's install page gives the exact version. On a Copilot Business or Enterprise seat, an organization admin may need to enable Copilot CLI in the Copilot policies first |
 | **A Microsoft 365 work account** | With mail, calendar and Teams | Personal Microsoft accounts don't work |
 | **Microsoft 365 Copilot license and Work IQ** | Work IQ must be enabled in your tenant | Where your tenant meters Work IQ through Copilot Credits, your usage counts against its spending policy |
 | **Admin consent** | Your tenant may require an administrator to consent to the Work IQ application before your first sign-in | Work IQ writes (send, RSVP, move) also need your tenant's Work IQ policy to allow them; reads work without it |
@@ -35,8 +36,11 @@ Optional, for specific routines:
 
 ### The installers
 
-> **The installers are release 1.0.0.** Features added after it (see the
-> [changelog](../CHANGELOG.md)) need the terminal or clone install below.
+> **Which version you get.** The macOS and Windows installers are release 1.0.0. The terminal
+> and clone installs below take the current `main` branch and report the version in its
+> [`VERSION`](../VERSION) file (1.3.0 at the time of writing, not yet released as an installer).
+> Features added after 1.0.0 (see the [changelog](../CHANGELOG.md)) need the terminal or clone
+> install.
 
 | | |
 |---|---|
@@ -143,6 +147,18 @@ It never changes your branch or working tree for you.
 The PowerShell equivalents are `.\install.ps1 update -Check` and
 `.\install.ps1 update`; safe same-revision refresh is `.\install.ps1 update -Reinstall`.
 
+**Installed with `curl … | bash`?** There is no clone to run `./install.sh` from. Pass the
+command through the same one-liner instead:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/install.sh | bash -s -- update --check
+curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/install.sh | bash -s -- update
+curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/install.sh | bash -s -- status
+```
+
+Re-running the install command with the same options (for example `… | bash -s -- --all`) also
+works and keeps your personal files.
+
 File installation does **not** migrate private state, change capture policy, synchronize saved
 app workflow prompts, or reload running sessions/extensions. Back up and pause writers before an
 explicit memory migration; memory schema v1 requires `memory_state.py migrate`. Restore only
@@ -164,7 +180,9 @@ uninstall through **Settings → Apps** as usual.
 ## 2. Connect Work IQ
 
 Installing Margo does not install or sign in to Work IQ; the host does that. The
-[harness quickstart](../samples/harness/README.md) has the details and other hosts.
+[harness quickstart](../samples/harness/README.md) has the details and other hosts. To run Margo's
+skills in Claude Code instead of Copilot CLI (not officially supported), see
+[run in Claude Code](how-to/run-in-claude-code.md).
 
 1. **Register the server.** Follow Microsoft's
    [Connect GitHub Copilot CLI to the Work IQ MCP server](https://learn.microsoft.com/microsoft-365/copilot/extensibility/work-iq/mcp/quickstart/github-copilot-cli).
@@ -228,9 +246,19 @@ python3 ~/.copilot/skills/chief-of-staff/scripts/margo_doctor.py
 ```
 
 **What you'll see:** `init` prints one JSON line ending in `"status":"configured"`. The doctor prints
-a JSON health report. On a fresh install its top-level `"status"` is `"attention-needed"` or
-`"setup-needed"`, and `configuration.preferences` lists the fields still `missing` until you finish
-step 3; `limitations` says what the report cannot check. Nothing in it signs in or reads Microsoft 365.
+a JSON health report. Nothing in it signs in or reads Microsoft 365. On a fresh install:
+
+| Field | What it says | When it changes |
+| --- | --- | --- |
+| `status` (top level) | `"setup-needed"` before `init`; `"attention-needed"` after it | `"healthy"` only when everything below is complete, which a new install is not; that is expected |
+| `configuration.preferences.fields` | Each required field (name, role, time zone and hours, focus blocks, priorities) shows `"placeholder"`, and `status` is `"incomplete"` | Each turns to filled when you finish [step 3](#3-teach-her-who-you-are) |
+| `configuration.decision_log` | The same, for the decision-log `config.md`, if you installed that skill | When you fill that file in |
+| `state.status` | `"setup-needed"` before `init`; `"not-initialized"` after it | `"ok"` once Margo first uses the ledger, for example on your first brief |
+| `memory.status`, `tasks.status` | `"not-initialized"` | When you first use memory or a tracked task; both are fine to leave |
+| `limitations` | What the report cannot check | Never; read it once |
+
+If `init` prints `ERROR: state/config root has a group/world-writable ancestor` instead, see
+[troubleshooting](#troubleshooting).
 
 On Windows, use `python` and the scripts beneath
 `$HOME\.copilot\skills\chief-of-staff\scripts`. A custom installation needs the matching
@@ -373,6 +401,7 @@ Details: [documents and files](how-to/documents-and-files.md).
 | Windows SmartScreen warning | Build may be unsigned or unrecognized | Confirm the release source and follow your organization's software policy rather than treating the warning as a setup step |
 | Reinstall didn't pick up a change | Preserved personal file or customized prompt | Review and reconcile the diff. `--force` also replaces personal files; do not use it merely to update a prompt |
 | State commands say setup required | No explicit account configured | Initialize the confirmed owner with `margo_store.py init`; this is separate from OAuth |
+| `ERROR: state/config root has a group/world-writable ancestor` from `margo_store.py init` | A folder above Margo's private state, often `~/.copilot` or your home folder, is writable by your group or everyone (common under `umask 002`). Margo refuses to keep private state there | `chmod go-w ~/.copilot ~` (and any other folder above it that `ls -ld` shows as group- or world-writable), then re-run `init`. Reinstalling with the current installer also fixes `~/.copilot`. Do not set `MARGO_ALLOW_UNSAFE_STATE_DIR`; it is for tests |
 | App prompts did not change after copying | Workflow store is separate from installed files | Ask to sync the reviewed automation files to existing workflows |
 | Canvas edits fail after a source changed | Revision or fingerprint is stale | Reload, revalidate sources, and prepare a new proposal; do not reuse old approval |
 

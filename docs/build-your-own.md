@@ -191,7 +191,9 @@ rather than letting an agent claim success from a fixture it wrote to match its 
    that contract is not a general host-tool sandbox.
 
 If your fork adds a capability, deliver the router entry, focused procedure, existing-owner API
-integration, user guide and synthetic scenario together. Add an optional UI only after the CLI
+integration, user guide and synthetic scenario together. To have a coding agent do it,
+[customize Margo with an AI coding agent](how-to/customize-with-ai-agents.md) gives the files,
+checks and a starting prompt for each common change. Add an optional UI only after the CLI
 path works. Keep its unavailable and recovery states visible. A separate identity or hosted
 service is a different trust design, not an installer flag; [Margo Cloud](margo-cloud.md) is that
 design, deployed separately, not an installer option.

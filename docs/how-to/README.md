@@ -41,6 +41,13 @@ features. You do not need schedules, a canvas, or local embeddings for your firs
 | Reflect on selected opted-in session checkpoints | [Dream](dream.md) |
 | Know where a task stopped and continue safely | [Task progress and recovery](task-progress-and-recovery.md) |
 
+## Change Margo or run her elsewhere
+
+| I want to... | Start here |
+| --- | --- |
+| Change the persona, the morning brief, add a routine or a Work IQ source with a coding agent | [Customize with an AI coding agent](customize-with-ai-agents.md) |
+| Use Margo's skills in Claude Code instead of Copilot CLI | [Run in Claude Code](run-in-claude-code.md) |
+
 Use the conversational recipes first. The CLI recipes are for inspecting records, troubleshooting,
 or operating with Margo in the foreground. They are not scripts for unattended approval.
 

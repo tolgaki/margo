@@ -10,6 +10,10 @@ It is a **preview**: its core path has run in one test tenant with fictional use
 production use. This page is for the IT admin or developer deciding whether to try it; the
 [deployment guide](autopilot-deployment.md) has the steps.
 
+Pages whose file names start with `autopilot` (the deployment guide, the design record, voice and
+instance containers) are Margo Cloud pages: "autopilot" was Margo Cloud's earlier name, and Agent
+365 still calls this kind of agent an autopilot. New to the terms? See the [glossary](glossary.md).
+
 ## How it fits together
 
 ```text
@@ -93,6 +97,8 @@ Everything is billed to your organization. No estimate is made here
    [design and decision record](autopilot.md).
 
 ## Glossary
+
+The Margo Cloud terms in detail. The [main glossary](glossary.md) covers desktop and Work IQ terms too.
 
 | Term | Meaning |
 | --- | --- |

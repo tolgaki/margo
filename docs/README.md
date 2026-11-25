@@ -18,6 +18,7 @@ You do not need to understand the Python core to use Margo, or connect a real ma
 | **[How-to guides](how-to/README.md)** | Complete a specific task without reading the entire manual |
 | **[Learn Work IQ](work-iq/README.md)** | Load Work IQ in a harness or a custom agent; identity, capabilities, patterns, errors, and the approval pattern for writes |
 | **[Margo Cloud overview](margo-cloud.md)** | Decide whether to deploy Margo into your tenant: architecture, who sees what, costs, maturity |
+| **[Glossary](glossary.md)** | Plain meanings of Work IQ, MCP, ledger, coverage, blueprint, agent user and the other terms these docs use |
 
 ## Follow the user journey
 
@@ -50,7 +51,7 @@ the deeper questions along the way.
 | --- | --- |
 | What owns each part of the system? | [Architecture and state ownership](development/architecture.md) |
 | How do I change one feature completely? | [Agent-owned change workflow](development/agent-workflow.md) |
-| How do I adapt the persona or procedures? | [Build your own](build-your-own.md) |
+| How do I adapt the persona or procedures? | [Build your own](build-your-own.md) and [customize Margo with an AI coding agent](how-to/customize-with-ai-agents.md) |
 | Which procedure handles a user request? | [Chief-of-staff playbook](chief-of-staff.md) and the [live skill router](../skills/chief-of-staff/SKILL.md#core-routines) |
 | How do reads, synthesis, discovery, and writes use Work IQ? | [Learn Work IQ](work-iq/README.md), then [patterns](work-iq/patterns.md) and the [capability map](work-iq/capability-map.md) |
 | What is deterministic, and what still needs model evidence? | [Journey fixtures](../tests/fixtures/journeys/README.md) and [evaluation guide](../evals/README.md) |
@@ -98,17 +99,9 @@ Read these after the current implementation, not as extra setup requirements for
 
 ## Glossary
 
-| Term | Meaning |
-| --- | --- |
-| Action desk | The list of actions Margo has proposed, each with its exact content, waiting for your decision. In the conversation, or as an optional panel |
-| Anchor | A scheduled run at a fixed time (morning brief, end-of-day wrap-up) that makes a brief available, as opposed to a frequent sweep ([proactive](proactive.md)) |
-| Candidate | Something Margo suspects (a commitment, a memory) but you have not confirmed. Candidates never count as confirmed work |
-| Canvas, panels | Optional review screens in the Copilot app, served by the [action-desk extension](../.github/extensions/margo-action-desk/README.md). The CLI does everything without them |
-| Copilot app | The desktop app that hosts Copilot agents, extension canvases and scheduled workflows; distinct from the Copilot CLI terminal |
-| Coverage | Which sources a run actually read, and over which window. A missing source is a gap, not an empty inbox |
-| Dream | Opt-in, manual reflection over selected Margo sessions into sourced episodes and reviewable ideas ([Dream](how-to/dream.md)) |
-| Ledger | Margo's private local database of work items, proposed actions, approvals and results ([closed loop](closed-loop.md)) |
-| Margo Cloud terms | Agent 365, blueprint, agent user, delegation, on-behalf-of: see the [Margo Cloud glossary](margo-cloud.md#glossary) |
+New words (Work IQ, MCP, ledger, candidate, coverage, agent blueprint, agent user, delegation,
+backchannel and more) are explained in one or two plain lines each in the [glossary](glossary.md).
+Files named `autopilot*.md` are Margo Cloud pages; "autopilot" was its earlier name.
 
 ## Help and documentation maintenance
 

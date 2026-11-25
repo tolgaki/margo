@@ -90,6 +90,12 @@ Roots must not be in a repository, shared directory, or cloud-sync folder. State
 cannot be symlinked. On POSIX, directories must be private (0700), files private (0600), owned by
 the current user, with no group/world-writable ancestors. Do not disable these checks.
 
+If `init` stops with `ERROR: state/config root has a group/world-writable ancestor`, a folder above
+the state, often `~/.copilot` or your home folder, is writable by your group or everyone (common
+under `umask 002`). Run `chmod go-w ~/.copilot ~` (and on any other folder above it that `ls -ld`
+shows as group- or world-writable), then re-run `init`. Reinstalling with the current installer also
+removes group/world write from `~/.copilot`. See [troubleshooting](../getting-started.md#troubleshooting).
+
 For a custom install, pass `--dest` to the installer and set the matching `COPILOT_HOME` for
 runtime processes. The installer does not select its destination from `COPILOT_HOME` alone.
 

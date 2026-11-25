@@ -28,6 +28,16 @@ Read the [user journey](../user-guide.md) next. Choose one concrete outcome from
 [feature inventory](../features.md), follow its guide and inspect the linked procedure. This
 establishes what the person should see before you decide which module to change.
 
+### Working with an AI coding agent
+
+GitHub Copilot reads [`.github/copilot-instructions.md`](../../.github/copilot-instructions.md),
+which points at [AGENTS.md](../../AGENTS.md), plus `.github/instructions/cloud.instructions.md` for
+`cloud/` and the prompt files in [`.github/prompts/`](../../.github/prompts/). Claude Code reads
+[CLAUDE.md](../../CLAUDE.md), which imports `AGENTS.md`, and
+[`.claude/settings.json`](../../.claude/settings.json). Either way the agent follows the same rules
+and checks as you. [Customize Margo with an AI coding agent](../how-to/customize-with-ai-agents.md)
+has a recipe, with files, checks and a starting prompt, for each common change.
+
 ### The mental model
 
 ```text

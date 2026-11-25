@@ -41,7 +41,9 @@ claude mcp add --transport http workiq https://workiq.svc.cloud.microsoft/mcp
 ```
 
 Margo's persona and skills are written for Copilot CLI; another host needs its own agent and skill
-loading.
+loading. For Claude Code, [run Margo in Claude Code](../../docs/how-to/run-in-claude-code.md) covers
+installing the skills, loading the persona, the different tool names and why scheduled runs need
+the write tools removed.
 
 ## 2. Sign in and consent
 

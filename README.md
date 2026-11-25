@@ -11,13 +11,25 @@ affected. She waits for your approval before making those changes.
 
 | | What it is | Status | Start here |
 | --- | --- | --- | --- |
-| **Margo desktop** | GitHub Copilot CLI on your machine, with Margo's persona, skills and private local state | Stable and supported for individual use (installers: 1.0.0) | [Getting started](docs/getting-started.md) |
+| **Margo desktop** | GitHub Copilot CLI on your machine, with Margo's persona, skills and private local state | Stable and supported for individual use (installers: 1.0.0; the `main` branch: 1.3.0, unreleased) | [Getting started](docs/getting-started.md) |
 | **Margo Cloud** | Self-hosted in your own Azure subscription as an Agent 365 agent with her own identity. She works for one manager, listens in the chats and channels she is in, and tells her manager what matters | Preview, not for production: the core chat-and-read path is verified in one test tenant; approval cards, documents and on-behalf-of access are built but not verified there ([maturity](docs/margo-cloud.md#maturity)) | [Margo Cloud overview](docs/margo-cloud.md) |
 | **Learn Work IQ** | How to load Work IQ in a harness or a custom agent, its tools, identity, errors and writes, with Margo's code as the example | Guide | [Learn Work IQ](docs/work-iq/README.md) |
 
-**Needs:** a Microsoft 365 work account with a Microsoft 365 Copilot license and Work IQ enabled in
-your tenant (possibly with admin consent). Desktop also needs a GitHub Copilot plan; Margo Cloud
-needs an Azure subscription and Agent 365.
+**Needs:**
+
+- **Both:** a Microsoft 365 work account with a Microsoft 365 Copilot license, and Work IQ enabled
+  in your tenant ([can you get it?](#before-you-start-can-you-get-work-iq)).
+- **Desktop:** a GitHub Copilot plan and [GitHub Copilot CLI](https://docs.github.com/copilot/how-tos/use-copilot-agents/use-copilot-cli)
+  (which needs a recent Node.js LTS; on a Business or Enterprise seat an organization admin may need to
+  enable Copilot CLI), and Python 3.9+.
+- **Margo Cloud:** an Azure subscription where you are **Owner** (or **Contributor** plus **Role Based
+  Access Control Administrator**); **Frontier** enrollment and an **Agent 365** (or Microsoft 365 E7)
+  license for the tenant; a **Global Administrator** or **Privileged Role Administrator** to consent
+  to Work IQ for Margo; a Microsoft 365 license and a Microsoft 365 Copilot license for each hired
+  Margo; and an **Exchange admin** to grant mailbox delegation. Expect days to weeks, mostly
+  waiting for approvals; the hands-on part is a day or two. See the [Margo Cloud overview](docs/margo-cloud.md).
+
+New to these terms? See the [glossary](docs/glossary.md).
 
 Margo is not a service anyone runs for you: you run it on your machine, or deploy it into your own
 tenant. Desktop is stable and supported for individual use; new work goes into Margo Cloud. Choose
@@ -30,6 +42,24 @@ the skills (`skills/`).
 "Draft the reply."             → in your voice, grounded in the thread, waiting for a yes
 "What am I waiting on?"        → the commitments nobody logged, aged and cited
 ```
+
+## Before you start: can you get Work IQ?
+
+Margo does nothing without Work IQ, and Work IQ is a tenant decision, not something you install
+alone. Check these before installing:
+
+- **Your tenant has Microsoft 365 Copilot and Work IQ enabled**, and your account has a Microsoft 365
+  Copilot license. Your IT team can tell you; personal Microsoft accounts don't work.
+- **Someone may need to consent.** The first Work IQ sign-in can show "Need admin approval". Then a
+  tenant administrator must consent to Work IQ's permissions; nothing in Margo can bypass that
+  ([identity and consent](docs/work-iq/identity-and-consent.md)).
+- **Writes are a separate permission.** Work IQ writes, such as sending mail or accepting a meeting,
+  are blocked by default by tenant policy until an admin allows them. Margo still reads, briefs and
+  drafts without them; she just can't send what you approve.
+
+If you can't get Work IQ yet, you can still read these docs, study the persona and skills, and run
+the offline checks in the [developer journey](docs/development/README.md): they use fictional data
+and need no account.
 
 ---
 
@@ -77,6 +107,7 @@ capability, its availability, and where its detailed guide lives.
 | **[Proactive & scheduled](docs/proactive.md)** | Unattended briefs, sweeps, and the state ledger |
 | **[Closed-loop productivity](docs/closed-loop.md)** | How the ledger, actions, evidence and connected routines fit together |
 | **[FAQ](docs/faq.md)** | Data, approvals, costs, desktop versus Margo Cloud, uninstalling |
+| **[Glossary](docs/glossary.md)** | Work IQ, MCP, ledger, coverage, blueprint, agent user and the other terms, in plain words |
 | **[Changelog](CHANGELOG.md)** | Release-level feature and deployment changes |
 
 ### Build with Margo
@@ -89,6 +120,8 @@ the synthetic core without connecting a real mailbox or installing into your nor
 | **[Developer journey](docs/development/README.md)** | Local exploration, extension points, a feature traced end-to-end, and a first contribution |
 | **[Architecture and state ownership](docs/development/architecture.md)** | Which layer owns evidence, work, approval, memory, task progress, and the optional UI |
 | **[Build your own](docs/build-your-own.md)** | The agent/skill split, and how to fork this |
+| **[Customize with an AI coding agent](docs/how-to/customize-with-ai-agents.md)** | Recipes for changing the persona, the morning brief, adding a routine or a Work IQ source, with the files, checks and prompt for each |
+| **[Run in Claude Code](docs/how-to/run-in-claude-code.md)** | Margo's skills in Claude Code instead of Copilot CLI: what works and what doesn't |
 | **[Learn Work IQ](docs/work-iq/README.md)** | Loading Work IQ, identity and consent, capability map, patterns, errors, writes and approvals |
 | **[The chief-of-staff playbook](docs/chief-of-staff.md)** | The routines and when each fires |
 | **[Running in a container](docs/container.md)** | Run scheduled briefs in a container (separate Copilot and Work IQ sign-ins) |
@@ -128,19 +161,19 @@ treated as data rather than instructions.
 
 This is desktop Margo. For Margo Cloud, start at the [overview](docs/margo-cloud.md).
 
-**What you need:** [GitHub Copilot CLI](https://github.com/github/copilot-cli) and a GitHub Copilot
-plan; the Work IQ MCP server registered in it and signed in with your work account
-([how](samples/harness/README.md)); Python 3.9+. macOS, Linux and Windows are supported. Each brief
-uses your Copilot plan's model requests, and Work IQ usage where your tenant meters it. The full
-table is in [getting started](docs/getting-started.md#what-you-need).
+**What you need:** [GitHub Copilot CLI](https://docs.github.com/copilot/how-tos/use-copilot-agents/use-copilot-cli)
+and a GitHub Copilot plan; a Microsoft 365 work account that can use Work IQ
+([check](#before-you-start-can-you-get-work-iq)); Python 3.9+. macOS, Linux and Windows are
+supported. Each brief uses your Copilot plan's model requests, and Work IQ usage where your tenant
+meters it. The full table is in [getting started](docs/getting-started.md#what-you-need).
 
-> **Installers are 1.0.0.** The packaged installers are release 1.0.0. For the features in the
-> [changelog](CHANGELOG.md) after 1.0.0, install from the terminal or a clone, below.
+The order is: install, connect Work IQ, tell Margo about you, configure the ledger, run.
 
-**Download an installer:** [macOS `.pkg` or Windows `.exe`](https://github.com/tolgaki/margo/releases).
-Both run a short wizard, install per-user, and let you pick the optional skills.
-
-Or from a terminal:
+**1. Install.** Download an installer, [macOS `.pkg` or Windows `.exe`](https://github.com/tolgaki/margo/releases).
+Both run a short wizard, install per-user, and let you pick the optional skills. The installers are
+release 1.0.0; for the features added since (see the [changelog](CHANGELOG.md)), install from a
+terminal or a clone instead. Those take the current `main` branch and report its
+[`VERSION`](VERSION) (1.3.0, unreleased).
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/install.sh | bash
@@ -158,17 +191,27 @@ cd margo
 ./install.sh --all          # or: .\install.ps1 -All
 ```
 
-This copies the installation outside the checkout. For synthetic-only contributor setups and
-link mode, follow the [developer journey](docs/development/README.md); never personalize tracked
-files with real workplace data.
+This copies the installation outside the checkout (to `~/.copilot` by default). For synthetic-only
+contributor setups and link mode, follow the [developer journey](docs/development/README.md); never
+personalize tracked files with real workplace data.
 
-Then teach her who you are — this is the step that matters:
+**2. Connect Work IQ in Copilot CLI.** Start `copilot`, then:
+
+```text
+/plugin marketplace add microsoft/work-iq
+/plugin install workiq@work-iq
+```
+
+Restart Copilot CLI, sign in with your work account when the browser opens, and check that `/mcp`
+lists `workiq` as connected ([details](samples/harness/README.md)).
+
+**3. Teach her who you are.** This is the step that matters:
 
 ```bash
 $EDITOR ~/.copilot/skills/chief-of-staff/preferences.md
 ```
 
-Configure the private ledger with the account you have confirmed through Work IQ. Replace the
+**4. Configure the private ledger** with the account you confirmed through Work IQ. Replace the
 fictional address below; this command configures storage and does not sign in:
 
 ```bash
@@ -176,9 +219,15 @@ python3 ~/.copilot/skills/chief-of-staff/scripts/margo_store.py init --account y
 python3 ~/.copilot/skills/chief-of-staff/scripts/margo_doctor.py
 ```
 
-`init` answers `"status":"configured"`; the doctor prints a JSON health report whose `status` names
-anything still missing, such as unfilled preferences. An existing installation also needs the explicit
-[state migration](docs/how-to/setup-and-migration.md), with its schedules paused. Start Margo:
+`init` answers `"status":"configured"`. The doctor prints a JSON health report: on a new install
+its `status` is `"attention-needed"`, your preference fields show `"placeholder"` until you fill
+them, and `state.status` says `"not-initialized"` until your first brief creates the ledger
+([what each field means](docs/getting-started.md#4-first-run)). If `init` reports a
+"group/world-writable ancestor", see [troubleshooting](docs/getting-started.md#troubleshooting).
+An existing installation also needs the explicit
+[state migration](docs/how-to/setup-and-migration.md), with its schedules paused.
+
+**5. Start Margo:**
 
 ```bash
 copilot --agent margo
@@ -190,6 +239,8 @@ Then ask:
 > Margo, brief me.
 ```
 
+Scheduled briefs come later; see [proactive and scheduled](docs/proactive.md).
+
 Updating preserves `preferences.md`, `commitments.md`, `config.md`, and runtime state by default.
 Do not use `--force` unless you intend to replace personal files from their templates:
 
@@ -199,7 +250,9 @@ Do not use `--force` unless you intend to replace personal files from their temp
 ./install.sh update --reinstall # refresh code safely even at the same revision
 ```
 
-`./install.sh status` shows the installed version; `./install.sh uninstall`
+Installed with `curl … | bash`? Run the same commands through it:
+`curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/install.sh | bash -s -- update`
+(or `-- status`). `./install.sh status` shows the installed version; `./install.sh uninstall`
 removes managed components and backs up legacy personal files. The private `margo/` runtime
 directory is retained. Updates compare version and revision and download the exact remote commit
 checked, not an older local checkout. Remote failures stop without changing the installation.
