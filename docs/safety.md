@@ -102,10 +102,17 @@ Private drafts may be prepared and held for later review. They are never deliver
 or written to Outlook/shared storage unattended. An anchor (a scheduled run at a fixed time) may make its brief available locally;
 availability is not proof that a human has read it.
 
-**Margo Cloud: unattended messages to the manager.** Not available yet. The
-[design](autopilot.md#62-outward-action-tiers) allows one exception, a message to her own manager in
-their one-to-one chat (a target fixed at hire, never usable by a run someone else's message started);
-Margo Cloud answers only within a conversation. Desktop Margo has no exception.
+**Margo Cloud: the manager channel and the backchannel.** The one exception: Margo may send her own
+manager, and only her manager, a note with no card: a Teams message in their one-to-one chat, an email
+from her mailbox to them alone (no copies), or a file shared with them alone. The guard checks that the
+manager is the only recipient; anything for anyone else still needs a card. She uses it in chats with
+the manager (an email they ask for) and in **observation runs**: when someone else messages her, emails
+her or copies her, she may look into it with read-only tools and tell the manager what matters. An
+observation run reads only with her own token (the platform's user token in that turn would be the
+sender's, never the manager's), never answers the sender, and treats what it read as data. Prompt
+injection in someone's message can at most shape a note that only the manager receives. It is on by
+default (`MARGO_BACKCHANNEL=off` turns it off) and bounded: a daily cap and one run per conversation
+every ten minutes. This was the owner's decision (Nov 25, 2026); desktop Margo has no exception.
 
 ### Margo Cloud approval cards
 

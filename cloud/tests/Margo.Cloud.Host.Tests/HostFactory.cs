@@ -58,6 +58,7 @@ internal sealed class HostFactory : WebApplicationFactory<Program>
     {
         // cloud/infra/instance.bicep
         ["MARGO_HOSTING"] = "instance",
+        ["MARGO_BACKCHANNEL"] = "off", // BackchannelHostTests turn it on
         ["MARGO_INSTANCE_KEY"] = "instance-key-1",
         ["MARGO_INSTANCE_AGENT_ID"] = Activities.AgentIdentity,
         ["MARGO_INSTANCE_USER_ID"] = Activities.AgentUser,

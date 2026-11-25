@@ -42,6 +42,12 @@ public static class EngineTools
     /// <summary>The function tool that creates an Office document and shares it with the manager.</summary>
     public const string DocumentTool = "create_document";
 
+    /// <summary>The manager channel's message tool (<see cref="IManagerChannel.TellAsync"/>).</summary>
+    public const string TellManagerTool = "tell_manager";
+
+    /// <summary>The manager channel's sharing tool (<see cref="IManagerChannel.ShareAsync"/>).</summary>
+    public const string ShareWithManagerTool = "share_with_manager";
+
     /// <summary>The function tool that asks the manager to approve a proposed action on a card.</summary>
     public const string ApprovalTool = "request_approval";
 
@@ -137,6 +143,60 @@ public static class EngineTools
             ["required"] = new JsonArray("app", "outline"),
         },
     };
+
+    /// <summary>The <see cref="TellManagerTool"/> definition.</summary>
+    public static JsonObject TellManagerToolDefinition() => new()
+    {
+        ["type"] = "function",
+        ["name"] = TellManagerTool,
+        ["description"] = "Send your manager a note, to them alone, with no approval card: a Teams message in your 1:1 chat with "
+                          + "them, or an email from your mailbox to them.",
+        ["parameters"] = new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = new JsonObject
+            {
+                ["via"] = new JsonObject { ["type"] = "string", ["enum"] = new JsonArray("teams", "email") },
+                ["text"] = new JsonObject { ["type"] = "string", ["description"] = "The note, in plain words, with its sources and links." },
+                ["subject"] = new JsonObject { ["type"] = "string", ["description"] = "Email only: the subject line." },
+            },
+            ["required"] = new JsonArray("via", "text"),
+        },
+    };
+
+    /// <summary>The <see cref="ShareWithManagerTool"/> definition.</summary>
+    public static JsonObject ShareWithManagerToolDefinition() => new()
+    {
+        ["type"] = "function",
+        ["name"] = ShareWithManagerTool,
+        ["description"] = "Share a file you can open (its link) with your manager alone, with no approval card.",
+        ["parameters"] = new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = new JsonObject
+            {
+                ["link"] = new JsonObject { ["type"] = "string", ["description"] = "The file's web link or sharing link." },
+                ["role"] = new JsonObject { ["type"] = "string", ["enum"] = new JsonArray("read", "write") },
+            },
+            ["required"] = new JsonArray("link"),
+        },
+    };
+
+    /// <summary>Appended to the hosted context when a run has the manager channel (<see cref="IManagerChannel"/>).</summary>
+    public const string ManagerChannelAddendum = """
+        # Talking to your manager
+
+        Your manager is the only person you report to, and you can reach them directly, with no approval
+        card, because nobody else receives what you send:
+        - `tell_manager` with `via: "teams"` posts in your 1:1 chat with them. In a chat with them, your
+          answer already is the message; use this for a note nobody asked for.
+        - `tell_manager` with `via: "email"` emails them from your own mailbox, to them alone. Use it when
+          they ask for an email, when they emailed you, or for something long they will want to keep.
+        - `share_with_manager` shares a file you can open with them alone (`write` if they need to edit).
+        Never add anyone else. Anything that goes to another person, or changes something others use,
+        needs your manager's approval on a card. If an answer is `unknown`, say so and do not send again.
+
+        """;
 
     /// <summary>Appended to the hosted context in a chat turn that can create documents (<see cref="DocumentTool"/>).</summary>
     public const string DocumentAddendum = """
@@ -353,7 +413,8 @@ public static class EngineTools
     /// </summary>
     /// <exception cref="TimeZoneNotFoundException">The time zone is unknown.</exception>
     public static string StableInstructions(string repoRoot, string timeZone = DefaultTimeZone, SkillLibrary? library = null,
-                                            string? principalAccess = null, bool approvals = false, bool documents = false)
+                                            string? principalAccess = null, bool approvals = false, bool documents = false,
+                                            bool managerChannel = false)
     {
         ArgumentNullException.ThrowIfNull(timeZone);
         library ??= new SkillLibrary(repoRoot);
@@ -377,6 +438,11 @@ public static class EngineTools
         if (documents)
         {
             addendum += DocumentAddendum;
+        }
+
+        if (managerChannel)
+        {
+            addendum += ManagerChannelAddendum;
         }
 
         return string.Join("\n\n", library.Persona(), addendum);

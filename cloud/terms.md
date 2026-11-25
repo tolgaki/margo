@@ -29,12 +29,15 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
   approval on a card.
 - **Takes instructions only from its manager**, and only in their one-to-one chat. Messages and
   mail from anyone else are kept as requests for the manager to review, not acted on.
+- **Reports to its manager.** Margo may message, email or share a file with its manager alone,
+  without a card. When someone else messages, emails or copies Margo, it may look into the matter
+  and send its manager a note about it. The deploying organization can turn this off.
 - **Two fixed notices are sent without per-message approval.** In a group chat or channel Margo
   answers with one fixed note that she works only one-to-one. If the manager turns it on
   (`/replies acknowledge`), a colleague who writes to Margo gets one fixed "passed this on" note per
   conversation. Neither contains the manager's data. By default colleagues get no reply.
-- **Does not message first.** This version answers; it does not run on a schedule or start
-  conversations.
+- **Messages only its manager first.** It does not run on a schedule; it may send its manager a
+  note about something it was sent, as above, but never starts a conversation with anyone else.
 
 ## Your responsibilities
 
@@ -54,7 +57,10 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
 - **What Margo reads.** In delegation mode: her manager's mail and calendar, through the access
   the manager or an administrator delegated to her, and whatever is shared with Margo's own
   account (mail sent to her, chats and channels she is in, files and sites shared with her). She
-  reads through Work IQ, and only for her manager's requests.
+  reads through Work IQ, for her manager's requests and to look into what other people send her.
+- **What Margo tells her manager.** If you message, email or copy Margo, she may tell her manager
+  what you wrote and what she found when she looked into it. Write to her as you would write to the
+  person she works for.
 - **The AI model.** What Margo reads for a request, and the conversation so far, is sent to the
   organization's Azure AI model deployment to produce the answer. Margo asks the service not to
   store it. Microsoft's own abuse monitoring may retain prompts for a limited time unless the

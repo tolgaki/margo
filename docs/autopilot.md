@@ -509,7 +509,7 @@ procedure describes when she consults them.
 | --- | --- | --- |
 | Read principal's data (OBO) | Allowed, bounded, attended or unattended | Same authority as local Margo; new mechanism |
 | Write to Margo's private local state (ledger, memory) | Allowed | Same |
-| **Message the manager in their 1:1 chat with Margo** (briefs, questions, approval cards) | Allowed at any time, including unattended | **Approved policy change; designed, not built** (needs the chat ID recorded at hire). Fixed target; nobody else |
+| **Message the manager directly** (their 1:1 chat, an email to them alone, a file shared with them alone) | Allowed at any time, including unattended and in an observation run started by someone else's message | **Built, not verified in a tenant** (owner decision, Nov 25, 2026; the guard checks the manager is the only recipient; observation runs read only with Margo's own token). Nobody else |
 | **Send mail on the manager's behalf, or from Margo's own mailbox** | Per-action approval by the manager | Decided: both allowed. The approval must be recorded with the manager's object ID; the guard refuses any other approver |
 | Any other Microsoft 365 write: drafts, replies, RSVP, meeting moves, deletes, posts, work items, files | Per-action approval via Adaptive Card, attended only | Same rule, stronger evidence |
 | Replies to other people | Governed by the manager's setting (6.1) | New, default off |

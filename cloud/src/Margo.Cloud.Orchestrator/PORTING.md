@@ -383,3 +383,16 @@ subscriptions, and `CardDecisions.Done` words their outcomes.
 
 `KnownManager(agentUserId)` returns the manager the last directory lookup named for an agent user (cleared when the
 lookup finds none), so the host can decide before a turn whether to sign the manager in.
+
+## The manager channel and observation runs (Nov 25, 2026)
+
+- `TurnManagerChannel` implements the engine's `IManagerChannel`: Teams notes posted in the manager's 1:1 chat (found
+  once through `/me/chats` filtered on the manager as a member, then remembered), emails from Margo's mailbox to the
+  manager's directory address (`/me/manager` now selects `mail` and `userPrincipalName`), and files shared with the
+  manager alone. At most 3 notes, 3 emails and 5 shares a run; never retried. In a chat turn a Teams note is refused
+  (the answer is the message).
+- Observation runs: after someone else's message is queued and saved (outside the lease and the account gate, so a
+  retried save never repeats a note), `ObserveAsync` runs the engine unattended with the message as data, read tools,
+  and the manager channel; no state commands or office queue. It reads with Margo's own token only. The manager's own
+  emails get a run that answers by email. `Backchannel`, `BackchannelDailyRuns` (40) and `BackchannelCooldown` (10
+  minutes per conversation) bound it. Tests: `BackchannelTests`.

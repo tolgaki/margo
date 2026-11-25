@@ -8,6 +8,11 @@
   open.
 - Margo Cloud delegation mode reads the manager's mail and calendar directly through the delegation and searches only
   what is shared with Margo; Copilot search of the manager's whole data reports "unavailable".
+- Margo Cloud reports to her manager directly: a Teams message in their 1:1 chat, an email from her mailbox to them
+  alone, or a file shared with them alone, with no card (the guard checks the manager is the only recipient). When
+  someone else messages, emails or copies her, she may look into it with read-only tools and send the manager a note
+  (the backchannel; `MARGO_BACKCHANNEL`, a daily cap and a per-conversation cooldown). When the manager emails her, she
+  answers by email. Observation runs read only with Margo's own token and never answer the sender.
 - Learn Work IQ here: `docs/work-iq/` covers how to load it (harness or custom agent), identity and consent, a
   capability map, patterns, errors and recovery, and the approved-writes pattern. `samples/harness/` and
   `cloud/samples/WorkIQHello` are the two quickstarts. The README leads with the Work IQ reference framing, Getting

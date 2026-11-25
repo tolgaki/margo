@@ -97,13 +97,17 @@ public sealed class ManagerLookupFailedException : Exception
 /// <param name="Id">The manager's directory object ID.</param>
 /// <param name="DisplayName">The display name, <c>your manager</c> when the directory gave none, or null when it gave a
 /// value that is not text (Python keeps that value, which the reply gate then refuses to name).</param>
-public sealed record Manager(string Id, string? DisplayName);
+/// <param name="Id">The manager's directory object ID.</param>
+/// <param name="DisplayName">Their name, or "your manager".</param>
+/// <param name="Mail">Their email address (mail, else user principal name), for the manager channel; null when the
+/// directory gives none.</param>
+public sealed record Manager(string Id, string? DisplayName, string? Mail = null);
 
 /// <summary>Reads Margo's manager from a Work IQ fetch of <c>/me/manager</c> (<c>orchestrator.py</c> <c>_manager_from</c>).</summary>
 public static class ManagerDirectory
 {
     /// <summary>The fetch the orchestrator makes on every turn, with Margo's own token.</summary>
-    public const string ManagerUrl = "/me/manager?$select=id,displayName";
+    public const string ManagerUrl = "/me/manager?$select=id,displayName,mail,userPrincipalName";
 
     /// <summary>
     /// <c>_manager_from(result)</c>: the manager, or null when the directory answered that there is none (404 only).
@@ -151,7 +155,10 @@ public static class ManagerDirectory
             if (candidate is JsonObject found && PyNode.AsString(PyNode.Get(found, "id")) is { Length: > 0 } id)
             {
                 var name = PyNode.Get(found, "displayName");
-                return new Manager(id, !PyJson.Truthy(name) ? "your manager" : PyNode.AsString(name));
+                var mail = PyNode.AsString(PyNode.Get(found, "mail")) is { Length: > 0 } address ? address
+                    : PyNode.AsString(PyNode.Get(found, "userPrincipalName")) is { Length: > 0 } upn && upn.Contains('@', StringComparison.Ordinal) ? upn
+                    : null;
+                return new Manager(id, !PyJson.Truthy(name) ? "your manager" : PyNode.AsString(name), mail);
             }
         }
 

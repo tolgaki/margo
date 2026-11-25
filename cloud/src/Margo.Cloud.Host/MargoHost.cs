@@ -271,6 +271,8 @@ public static class MargoHost
                 VoiceUrl = settings.VoiceUrl,
                 Logger = logger,
                 DailyRetentionDays = settings.DailyRetentionDays,
+                Backchannel = settings.Backchannel,
+                BackchannelDailyRuns = settings.BackchannelDailyRuns,
                 FileHosts = settings.SharePointHosts.Count == 0 ? null : new HashSet<string>(settings.SharePointHosts, StringComparer.OrdinalIgnoreCase),
             });
     }

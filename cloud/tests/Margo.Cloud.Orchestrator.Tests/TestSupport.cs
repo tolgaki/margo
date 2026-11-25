@@ -219,6 +219,9 @@ internal sealed class DirectoryTransport : IWorkIQTransport
 
     public object? LookupFailure { get; set; }
 
+    /// <summary>The manager's email address in the directory; null for none.</summary>
+    public string? ManagerMail { get; set; } = "dana@example.com";
+
     /// <summary>Answers a call before the defaults (a task's result, or a faulted task); null falls through.</summary>
     public Func<string, JsonObject, Task<JsonObject>?>? Answer { get; set; }
 
@@ -267,7 +270,7 @@ internal sealed class DirectoryTransport : IWorkIQTransport
                 ["results"] = new JsonArray(new JsonObject
                 {
                     ["statusCode"] = 200,
-                    ["data"] = new JsonObject { ["id"] = manager.Id, ["displayName"] = manager.Name },
+                    ["data"] = new JsonObject { ["id"] = manager.Id, ["displayName"] = manager.Name, ["mail"] = ManagerMail },
                 }),
             });
         }

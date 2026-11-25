@@ -31,6 +31,7 @@ public sealed class OrchestratorHardeningTests
         var engine = new Margo.Cloud.Engine.Engine(model ?? _model, "fictional-model", Fixtures.Root);
         options = (options ?? new OrchestratorOptions { IntakeRetryDelays = [] }) with
         {
+            Backchannel = false, // BackchannelTests cover observation runs
             StateCliCommand = StateCli.Command,
             Logger = _logger,
             StateRecorder = receipt =>

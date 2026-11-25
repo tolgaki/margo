@@ -223,6 +223,9 @@ failure of a write as `unknown`, and receipts are all as in Python.
 21. **Copilot agents and schema-first proposals (Nov 25, 2026).** A server-described `ask` keeps its `agentId`
     argument (the guard allows it for `ask` only). The approval addendum tells the model to find an unknown path with
     `search_paths` and check uncertain fields with `get_schema`, never guessing a field.
+22. **The manager channel (Nov 25, 2026).** With an `IManagerChannel`, attended and unattended runs get `tell_manager`
+    (`via` teams or email, `text`, optional `subject`) and `share_with_manager` (`link`, `role` read or write), and
+    `ManagerChannelAddendum` explains them.
 
 ## Delegation-mode instructions (Nov 21, 2026)
 

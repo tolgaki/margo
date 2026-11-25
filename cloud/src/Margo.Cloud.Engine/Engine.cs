@@ -35,6 +35,21 @@ public interface IDocuments
     Task<JsonObject> CreateAsync(string app, string outline, string? request, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Margo's channel to her manager alone (no Python equivalent): a Teams message in their 1:1 chat, an email from her
+/// own mailbox to them alone, or a file shared with them alone. It needs no card because nobody else receives it. The
+/// engine offers <c>tell_manager</c> and <c>share_with_manager</c> only when a run has one.
+/// </summary>
+public interface IManagerChannel
+{
+    /// <summary>Sends a note to the manager <paramref name="via"/> <c>teams</c> or <c>email</c>. Returns the tool's
+    /// answer; a failure is an answer, not an exception. Never retried.</summary>
+    Task<JsonObject> TellAsync(string via, string text, string? subject, CancellationToken cancellationToken = default);
+
+    /// <summary>Shares the file at <paramref name="link"/> with the manager alone (<c>read</c> or <c>write</c>).</summary>
+    Task<JsonObject> ShareAsync(string link, string role, CancellationToken cancellationToken = default);
+}
+
 /// <summary>Token use of one turn, summed over its model requests (the Responses API's <c>usage</c>). No content.</summary>
 /// <param name="InputTokens">Input tokens of every request of the turn.</param>
 /// <param name="CachedInputTokens">The part of them served from the provider's prompt cache.</param>
@@ -191,14 +206,16 @@ public sealed class Engine
                                              IStateCommands? state = null, JsonArray? history = null,
                                              DateTimeOffset? now = null, string? preferencesPath = null, string? cacheKey = null,
                                              IApprovalRequests? approvals = null, IDocuments? documents = null,
-                                             CancellationToken cancellationToken = default)
+                                             IManagerChannel? channel = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(guard);
         var library = new SkillLibrary(RepoRoot, preferencesPath ?? PreferencesPath);
         approvals = mode == RunModes.Attended ? approvals : null;
         documents = mode == RunModes.Attended ? documents : null;
-        var instructions = EngineTools.StableInstructions(RepoRoot, TimeZone, library, guard.PrincipalAccess, approvals is not null, documents is not null);
+        channel = mode is RunModes.Attended or RunModes.Unattended ? channel : null;
+        var instructions = EngineTools.StableInstructions(RepoRoot, TimeZone, library, guard.PrincipalAccess, approvals is not null, documents is not null,
+                                                          channel is not null);
         // Work IQ describes its own tools (tools/list); the guard limits them to what it allows.
         var tools = EngineTools.FunctionTools(mode, await guard.ServerToolsAsync(cancellationToken).ConfigureAwait(false));
         if (approvals is not null)
@@ -209,6 +226,12 @@ public sealed class Engine
         if (documents is not null)
         {
             tools.Add(EngineTools.DocumentToolDefinition());
+        }
+
+        if (channel is not null)
+        {
+            tools.Add(EngineTools.TellManagerToolDefinition());
+            tools.Add(EngineTools.ShareWithManagerToolDefinition());
         }
         var earlier = history is null ? [] : (JsonArray)PyNode.Copy(history)!;
         var message = new JsonObject { ["role"] = "user", ["content"] = EngineTools.TimeLine(TimeZone, now) + "\n\n" + text };
@@ -265,7 +288,7 @@ public sealed class Engine
                 items.Add(PyNode.Copy(item));
             }
 
-            var results = await DispatchAllAsync(calls, mode, guard, office, library, state, approvals, documents, cancellationToken).ConfigureAwait(false);
+            var results = await DispatchAllAsync(calls, mode, guard, office, library, state, approvals, documents, channel, cancellationToken).ConfigureAwait(false);
             usage = usage with { ToolCalls = usage.ToolCalls + calls.Count };
             for (var index = 0; index < calls.Count; index++)
             {
@@ -324,12 +347,13 @@ public sealed class Engine
     /// </summary>
     private async Task<JsonNode?[]> DispatchAllAsync(List<JsonNode?> calls, string? mode, WorkIQGuard guard, IOfficeRequests? office,
                                                      SkillLibrary library, IStateCommands? state, IApprovalRequests? approvals,
-                                                     IDocuments? documents, CancellationToken cancellationToken)
+                                                     IDocuments? documents, IManagerChannel? channel, CancellationToken cancellationToken)
     {
         var results = new JsonNode?[calls.Count];
         bool Read(int at) => PyNode.AsString(Get(calls[at], "name"))?.StartsWith(EngineTools.Prefix, StringComparison.Ordinal) == true;
         Task<JsonNode?> One(int at) =>
-            DispatchAsync(Get(calls[at], "name"), Get(calls[at], "arguments"), mode, guard, office, library, state, approvals, documents, cancellationToken);
+            DispatchAsync(Get(calls[at], "name"), Get(calls[at], "arguments"), mode, guard, office, library, state, approvals, documents, channel,
+                          cancellationToken);
 
         var index = 0;
         while (index < calls.Count)
@@ -404,7 +428,7 @@ public sealed class Engine
     public static async Task<JsonNode?> DispatchAsync(JsonNode? name, JsonNode? rawArguments, string? mode, WorkIQGuard guard,
                                                       IOfficeRequests? office, SkillLibrary library, IStateCommands? state = null,
                                                       IApprovalRequests? approvals = null, IDocuments? documents = null,
-                                                      CancellationToken cancellationToken = default)
+                                                      IManagerChannel? channel = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(guard);
         ArgumentNullException.ThrowIfNull(library);
@@ -471,6 +495,30 @@ public sealed class Engine
             }
 
             return await documents.CreateAsync(app, outline, PyNode.AsString(PyNode.Get(given, "request")), cancellationToken).ConfigureAwait(false);
+        }
+
+        if (function == EngineTools.TellManagerTool && mode is RunModes.Attended or RunModes.Unattended && channel is not null)
+        {
+            var via = PyNode.AsString(PyNode.Get(given, "via"));
+            var note = PyNode.AsString(PyNode.Get(given, "text"));
+            if (via is not ("teams" or "email") || string.IsNullOrWhiteSpace(note))
+            {
+                return Refused("tell_manager needs via (teams or email) and the text");
+            }
+
+            return await channel.TellAsync(via, note, PyNode.AsString(PyNode.Get(given, "subject")), cancellationToken).ConfigureAwait(false);
+        }
+
+        if (function == EngineTools.ShareWithManagerTool && mode is RunModes.Attended or RunModes.Unattended && channel is not null)
+        {
+            var link = PyNode.AsString(PyNode.Get(given, "link"));
+            var role = PyNode.AsString(PyNode.Get(given, "role")) ?? "read";
+            if (string.IsNullOrWhiteSpace(link) || role is not ("read" or "write"))
+            {
+                return Refused("share_with_manager needs the file's link and a role of read or write");
+            }
+
+            return await channel.ShareAsync(link, role, cancellationToken).ConfigureAwait(false);
         }
 
         if (function == EngineTools.ApprovalTool && mode == RunModes.Attended && approvals is not null)

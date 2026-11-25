@@ -22,6 +22,7 @@
     "principalAccess": { "value": "${MARGO_PRINCIPAL_ACCESS=delegation}" },
     "principalAuthHandler": { "value": "${PRINCIPAL_AUTH_HANDLER=}" },
     "principalOAuthConnection": { "value": "${MARGO_PRINCIPAL_OAUTH_CONNECTION=}" },
+    "backchannel": { "value": "${MARGO_BACKCHANNEL=on}" },
     "timezone": { "value": "${MARGO_TIMEZONE=America/Los_Angeles}" },
     "voiceLiveModel": { "value": "${MARGO_VOICE_LIVE_MODEL=}" },
     "voiceName": { "value": "${MARGO_VOICE_NAME=}" },

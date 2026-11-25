@@ -322,3 +322,6 @@ orchestrator last looked up) in their 1:1 chat gets the agentic and principal ha
 the configured behavior (the image turns auto sign-in off) and only Margo's handler. Infra defines the handler
 (`AzureBotUserAuthorization`, OBO through `SERVICE_CONNECTION` to Work IQ) when `PRINCIPAL_AUTH_HANDLER` and
 `MARGO_PRINCIPAL_OAUTH_CONNECTION` are set. Not verified in a tenant. Tests: `PrincipalSignInTests`.
+
+`MARGO_BACKCHANNEL` (`on`/`off`, default on) and `MARGO_BACKCHANNEL_DAILY_RUNS` (default 40) set the orchestrator's
+backchannel options; infra passes `backchannel` to every instance.

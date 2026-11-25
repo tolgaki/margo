@@ -364,3 +364,12 @@ only profile, manager and direct reports; blocked segments (`authentication`, `s
 body carries requests no path rule would see), encoded separators and traversal are refused; delegation reaches only
 the manager's own mail and calendar; every write needs a live claim. The frozen Python cases that expected a root
 refusal are skipped as deliberate deviations (`GuardParityTests`).
+
+## The manager channel (Nov 25, 2026)
+
+`AllowsManagerChannel` (set only on the manager channel's guards) lets attended and unattended runs, never third-party
+ones, make two writes without a claim, as Margo: `/me/sendMail` with exactly one `toRecipients` entry equal to
+`ManagerMail` (case-insensitive), no copies, attachments or reply-to, a text or HTML body of at most 20,000 characters;
+and an `invite` to the manager alone (the same rule as the documents grant, factored into `IsManagerInvite`). Posts to
+the manager's 1:1 chat use the existing principal-chat rule, with the chat ID the channel resolves. The owner decided
+this standing permission (Nov 25, 2026). Tests: `ManagerChannelTests`.

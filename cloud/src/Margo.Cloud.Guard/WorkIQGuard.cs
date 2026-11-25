@@ -554,6 +554,13 @@ public sealed class WorkIQGuard
             return new Authorisation(sendArgs, null, paths);
         }
 
+        // The manager's standing permission for what only they receive: an email from Margo to them alone, or a file
+        // shared with them alone. Attended or unattended (a note about something Margo observed); never third-party.
+        if (!claimed && mode is RunModes.Attended or RunModes.Unattended && AllowsManagerChannel && IsManagerChannelCall(tool, intent, args))
+        {
+            return new Authorisation(sendArgs, null, paths);
+        }
+
         if (!claimed && IsPrincipalChatPost(tool, intent, paths))
         {
             if (PyNode.AsString(PyNode.Get(args, "jsonBody")) is not { } body || PyJson.Loads(body) is not JsonObject)
@@ -715,29 +722,26 @@ public sealed class WorkIQGuard
     /// </summary>
     public bool AllowsOwnDocuments { get; init; }
 
+    /// <summary>
+    /// The manager's standing permission for what only they receive, without a card: an email from Margo to
+    /// <see cref="ManagerMail"/> alone, and a file shared with the manager alone. Posts to the manager's 1:1 chat
+    /// (<see cref="InstanceBinding.PrincipalChatId"/>) are allowed without it. Set only on the guard of the manager
+    /// channel (the orchestrator's <c>TurnManagerChannel</c>), never on the model's own guard.
+    /// </summary>
+    public bool AllowsManagerChannel { get; init; }
+
+    /// <summary>The manager's email address, from the directory; an email may go to this address alone.</summary>
+    public string? ManagerMail { get; init; }
+
+    /// <summary>The longest email body the manager channel sends.</summary>
+    public const int MaxManagerMailChars = 20_000;
+
     /// <summary>The Office applications a document can be created for.</summary>
     public static readonly IReadOnlySet<string> OfficeApps = new HashSet<string>(StringComparer.Ordinal) { "Word", "Excel", "PowerPoint" };
 
     private bool IsOwnDocumentCall(string tool, string intent, JsonObject args)
     {
-        if (tool != "do_action" || intent != Subjects.Self || args.Any(pair => pair.Key is not ("actionUrl" or "jsonBody"))
-            || PyNode.AsString(args["actionUrl"]) is not { } url || url.Contains('?', StringComparison.Ordinal)
-            || PyNode.AsString(args["jsonBody"]) is not { } text)
-        {
-            return false;
-        }
-
-        JsonObject body;
-        try
-        {
-            if (PyJson.Loads(text) is not JsonObject parsed)
-            {
-                return false;
-            }
-
-            body = parsed;
-        }
-        catch (Exception exc) when (exc is PyJsonDecodeError or System.Text.Json.JsonException)
+        if (SelfAction(tool, intent, args) is not var (url, body))
         {
             return false;
         }
@@ -750,6 +754,65 @@ public sealed class WorkIQGuard
                    && (!body.ContainsKey("userRequest") || PyNode.AsString(body["userRequest"]) is not null);
         }
 
+        return IsManagerInvite(url, body);
+    }
+
+    /// <summary>
+    /// The manager channel: <c>/me/sendMail</c> from Margo's own mailbox to the manager's address alone (no copies,
+    /// no other recipients, no attachments), or a file shared with the manager alone (<see cref="IsManagerInvite"/>).
+    /// </summary>
+    private bool IsManagerChannelCall(string tool, string intent, JsonObject args)
+    {
+        if (SelfAction(tool, intent, args) is not var (url, body))
+        {
+            return false;
+        }
+
+        if (IsManagerInvite(url, body))
+        {
+            return true;
+        }
+
+        return string.Equals(url, "/me/sendMail", StringComparison.OrdinalIgnoreCase)
+               && !string.IsNullOrEmpty(ManagerMail)
+               && body.All(pair => pair.Key is "message" or "saveToSentItems")
+               && (body["saveToSentItems"] is null || (body["saveToSentItems"] is JsonValue save && save.TryGetValue<bool>(out _)))
+               && body["message"] is JsonObject message
+               && message.All(pair => pair.Key is "subject" or "body" or "toRecipients" or "importance")
+               && (message["subject"] is null || PyNode.AsString(message["subject"]) is { Length: <= 255 })
+               && (message["importance"] is null || PyNode.AsString(message["importance"]) is "low" or "normal" or "high")
+               && message["body"] is JsonObject content && content.All(pair => pair.Key is "contentType" or "content")
+               && PyNode.AsString(content["contentType"]) is { } type
+               && (type.Equals("text", StringComparison.OrdinalIgnoreCase) || type.Equals("html", StringComparison.OrdinalIgnoreCase))
+               && PyNode.AsString(content["content"]) is { Length: > 0 and <= MaxManagerMailChars }
+               && message["toRecipients"] is JsonArray { Count: 1 } to && to[0] is JsonObject recipient && recipient.Count == 1
+               && recipient["emailAddress"] is JsonObject address && address.All(pair => pair.Key is "address" or "name")
+               && string.Equals(PyNode.AsString(address["address"]), ManagerMail, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>A <c>do_action</c> as Margo with only a path and a JSON object body, parsed; null for anything else.</summary>
+    private static (string Url, JsonObject Body)? SelfAction(string tool, string intent, JsonObject args)
+    {
+        if (tool != "do_action" || intent != Subjects.Self || args.Any(pair => pair.Key is not ("actionUrl" or "jsonBody"))
+            || PyNode.AsString(args["actionUrl"]) is not { } url || url.Contains('?', StringComparison.Ordinal)
+            || PyNode.AsString(args["jsonBody"]) is not { } text)
+        {
+            return null;
+        }
+
+        try
+        {
+            return PyJson.Loads(text) is JsonObject body ? (url, body) : null;
+        }
+        catch (Exception exc) when (exc is PyJsonDecodeError or System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>A drive item shared with the manager alone, by their object ID, read or write, sign-in required.</summary>
+    private bool IsManagerInvite(string url, JsonObject body)
+    {
         var segments = url.Split('/');
         var invite = (segments is ["", "drives", { Length: > 0 }, "items", { Length: > 0 }, "invite"])
                      || (segments is ["", "me", "drive", "items", { Length: > 0 }, "invite"]);

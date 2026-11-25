@@ -129,6 +129,13 @@ public sealed record HostSettings
     /// <summary><c>MARGO_STATE_DAILY_RETENTION_DAYS</c> (default 30): how long daily state copies are kept; 0 keeps all.</summary>
     public int DailyRetentionDays { get; init; } = 30;
 
+    /// <summary><c>MARGO_BACKCHANNEL</c> (<c>on</c> by default, <c>off</c>): whether Margo looks into what other people send
+    /// her and tells her manager when it matters.</summary>
+    public bool Backchannel { get; init; } = true;
+
+    /// <summary><c>MARGO_BACKCHANNEL_DAILY_RUNS</c> (default 40): the most observation runs per instance per day.</summary>
+    public int BackchannelDailyRuns { get; init; } = 40;
+
     /// <summary><c>MARGO_EXTRA_SERVICE_HOSTS</c>: hosts Margo may reply to besides Microsoft's own (the SDK's built-in
     /// list), separated by spaces. Empty by default.</summary>
     public IReadOnlyList<string> ExtraServiceHosts { get; init; } = [];
@@ -232,6 +239,19 @@ public sealed record HostSettings
             throw new HostStartupException("MARGO_MODEL_MAX_OUTPUT_TOKENS is not a number of at least 256: " + limit);
         }
 
+        var backchannel = (Get("MARGO_BACKCHANNEL") ?? "on").Trim().ToLowerInvariant() switch
+        {
+            "on" or "true" or "1" => true,
+            "off" or "false" or "0" => false,
+            var other => throw new HostStartupException("MARGO_BACKCHANNEL must be on or off: " + other),
+        };
+        var backchannelRuns = 40;
+        if (Get("MARGO_BACKCHANNEL_DAILY_RUNS") is { Length: > 0 } runs
+            && !int.TryParse(runs, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out backchannelRuns))
+        {
+            throw new HostStartupException("MARGO_BACKCHANNEL_DAILY_RUNS is not a number: " + runs);
+        }
+
         var dailyRetention = 30;
         if (Get("MARGO_STATE_DAILY_RETENTION_DAYS") is { Length: > 0 } days
             && !int.TryParse(days, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out dailyRetention))
@@ -270,6 +290,8 @@ public sealed record HostSettings
             ExtraServiceHosts = SplitList(Get("MARGO_EXTRA_SERVICE_HOSTS")),
             ReasoningEffort = effort,
             DailyRetentionDays = dailyRetention,
+            Backchannel = backchannel,
+            BackchannelDailyRuns = backchannelRuns,
             MaxOutputTokens = maxOutputTokens,
             SharePointHosts = SplitList(Get("MARGO_SHAREPOINT_HOSTS")),
             ApplicationInsights = Get("APPLICATIONINSIGHTS_CONNECTION_STRING") is { Length: > 0 } insights ? insights : null,

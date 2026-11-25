@@ -33,6 +33,7 @@ public sealed class OrchestratorTests
         options ??= new OrchestratorOptions { IntakeRetryDelays = [] };
         options = options with
         {
+            Backchannel = false, // BackchannelTests cover observation runs
             StateCliCommand = options.StateCliCommand ?? StateCli.Command,
             Logger = _logger,
         };

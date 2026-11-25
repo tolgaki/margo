@@ -122,10 +122,10 @@ internal sealed class TurnDocuments(WorkIQGuard guard, string principalId) : IDo
     public static string ShareId(string url) =>
         "u!" + Convert.ToBase64String(Encoding.UTF8.GetBytes(url)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-    private static JsonNode? FirstData(JsonNode? data) =>
+    internal static JsonNode? FirstData(JsonNode? data) =>
         At(data, "results") is JsonArray { Count: > 0 } results ? At(results[0], "data") : data;
 
-    private static JsonNode? At(JsonNode? node, string key) => (node as JsonObject)?[key];
+    internal static JsonNode? At(JsonNode? node, string key) => (node as JsonObject)?[key];
 
     private static JsonObject Partial(string link, string? name, string reason)
     {

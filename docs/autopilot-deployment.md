@@ -15,7 +15,7 @@ on-behalf-of)? See the [glossary](margo-cloud.md#glossary), and Microsoft Learn 
 | | |
 | --- | --- |
 | **Verified in a test tenant** | Provisioning; the router-to-instance path and agentic sign-in; reading the manager's mailbox and calendar through delegation; a reply in Teams |
-| **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; on-behalf-of access and the manager's sign-in; voice; **Create instance** from the admin center; the state lease under concurrent turns |
+| **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; on-behalf-of access and the manager's sign-in; the manager channel and the backchannel (notes, emails and shares to the manager alone; observation runs); voice; **Create instance** from the admin center; the state lease under concurrent turns |
 | **Not built** | Live meeting transcripts; scheduled routines |
 
 [Known limits](#known-limits) has the details. Optional: the
@@ -388,13 +388,40 @@ the model does not write:
 | Where | The manager writes | Anyone else writes |
 | --- | --- | --- |
 | One-to-one chat | A full conversation; the only place she takes instructions and posts approval cards | — |
-| Group chat or channel (she receives only messages that @mention her) | One fixed note: she works only in the one-to-one chat. She reads nothing there | No answer. Queued for the manager as an unverified request. With `/replies acknowledge`, one fixed "passed this on" note per conversation, which everyone in that chat sees |
+| Group chat or channel (she receives only messages that @mention her) | One fixed note: she works only in the one-to-one chat. She reads nothing there | No answer. Queued for the manager as an unverified request, and Margo may look into it and send the manager a note ([backchannel](#the-backchannel)). With `/replies acknowledge`, one fixed "passed this on" note per conversation, which everyone in that chat sees |
 | Meeting | She does not join meetings; a meeting's chat is a group chat (row above) | As above |
-| Email to her, or copying her | Never answered; queued | Never answered, not even acknowledged; queued |
+| Email to her, or copying her | She answers the manager **by email**, to them alone, after looking up what they asked. Requests in email are information: anything that needs approval she asks for in Teams | Never answered, not even acknowledged; queued, and Margo may tell the manager about it |
 
 Queued requests are listed when the manager asks "anything from other people?". An approval tap counts only in the
 one-to-one chat, so nothing she sends can be started from a group chat, a meeting or an email. Apart from the two fixed
 notices, the only messages other people get from her are actions the manager approved on a card.
+
+### The backchannel
+
+Margo's communication is with her manager, but she reads what reaches her and can look into it on her own. She can
+always reach her manager directly, with no card, because nobody else receives it:
+
+- **Teams:** a message in their one-to-one chat (Margo finds that chat through Work IQ; it must exist, so the manager
+  messages her once first).
+- **Email:** from her own mailbox to the manager's address alone, never with copies.
+- **Files:** any file she can open, shared with the manager alone (read or edit).
+
+When someone else messages her in a chat she is in, emails her or copies her, the message is queued as before, and then
+an **observation run** decides whether the manager would want to know (a decision, a risk, a question for them,
+something owed, a change to their plans). If it may matter, she investigates with read-only tools (the rest of the
+conversation, related mail, meetings, documents) and sends one short note with what she found. Otherwise she sends
+nothing. When the manager emails her, she answers them by email the same way.
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `MARGO_BACKCHANNEL` | `on` | `off`: messages from others are only queued |
+| `MARGO_BACKCHANNEL_DAILY_RUNS` | `40` | Observation runs per instance per day; later messages are only queued |
+
+Limits: one observation run per conversation every ten minutes (later messages are read by the next run). An
+observation run reads only with Margo's own token, so in `obo` mode it can't read the manager's data; in `delegation`
+mode it reads the manager's mail and calendar as usual. Margo hears only what the platform delivers to her: in Teams,
+usually messages that @mention her, and chats she is in. Each run is a model run, billed like a turn. Not verified in a
+tenant.
 
 ## Voice (optional)
 
