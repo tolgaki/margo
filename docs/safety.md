@@ -140,7 +140,8 @@ Besides approved actions, Margo Cloud sends two fixed notices over the Teams cha
 and the guard does not see them (the reply gate in `Margo.Cloud.Orchestrator` controls them):
 
 - **The group-chat refusal.** When her manager @mentions her in a group chat, channel or meeting chat, Margo answers
-  with one fixed sentence saying she works only in their one-to-one chat. She reads nothing there.
+  with one fixed sentence saying she works only in their one-to-one chat. She takes no instructions there
+  (when listening, she reads the room like any other).
 - **The "passed this on" acknowledgment**, off by default. With `/replies acknowledge`, a colleague who messages Margo
   in Teams gets one fixed note per conversation saying their message was passed to her manager; in a group chat,
   everyone in it sees the note. It is the manager's standing setting, triggered by the colleague's message, and names

@@ -36,8 +36,9 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
   answers with one fixed note that she works only one-to-one. If the manager turns it on
   (`/replies acknowledge`), a colleague who writes to Margo gets one fixed "passed this on" note per
   conversation. Neither contains the manager's data. By default colleagues get no reply.
-- **Messages only its manager first.** It does not run on a schedule; it may send its manager a
-  note about something it was sent, as above, but never starts a conversation with anyone else.
+- **Messages only its manager first.** Every few minutes it reads the chats and channels it is a
+  member of and may send its manager a note, as above; it never starts a conversation with anyone else
+  and sends no scheduled briefs.
 
 ## Your responsibilities
 

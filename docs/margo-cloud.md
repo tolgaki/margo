@@ -35,8 +35,8 @@ production use. This page is for the IT admin or developer deciding whether to t
 | Who | Sees |
 | --- | --- |
 | The manager | Margo's answers in their one-to-one chat, and what she knows about them ("what do you know about me", "forget that") |
-| Margo | In `delegation` mode: the manager's mail and calendar, and what is shared with her own account. With on-behalf-of: what the manager can see through Work IQ ([identity](work-iq/identity-and-consent.md)) |
-| Colleagues | Nothing of the manager's. Their messages to Margo are queued for the manager as untrusted requests; at most a fixed "passed this on" note, if the manager turns it on |
+| Margo | In `delegation` mode: the manager's mail and calendar, and what is shared with her own account, including the chats and channels she is a member of. With on-behalf-of: what the manager can see through Work IQ ([identity](work-iq/identity-and-consent.md)) |
+| Colleagues | Nothing of the manager's. What they send Margo, and what they say in chats and channels she is a member of, she reads and may report to the manager; their messages to her are queued as untrusted requests, and they get at most a fixed "passed this on" note, if the manager turns it on |
 | Your Azure administrators | Everyone's stored state: anyone with data access to the storage account can read every manager's records ([terms](../cloud/terms.md#privacy)) |
 | Microsoft 365 audit and your monitoring | Which operations ran, on what kind of resource, and their outcome; never message content |
 
@@ -45,9 +45,18 @@ production use. This page is for the IT admin or developer deciding whether to t
 Every action another person can see: sending or replying to mail, setting up, moving or canceling
 meetings, posting in Teams, sharing or editing a document others use. Margo posts a card in the
 manager's one-to-one chat showing the exact action, and runs it once, only after the manager taps
-**Approve** ([writes and approvals](work-iq/writes-and-approvals.md)). Without a card: a document the
-manager asked for, shared with the manager alone, and two fixed notices
+**Approve** ([writes and approvals](work-iq/writes-and-approvals.md)). Without a card: anything that reaches the manager alone (a
+Teams note in their one-to-one chat, an email to them, a file or a document shared with them, see
+[the backchannel](autopilot-deployment.md#the-backchannel)), and two fixed notices
 ([safety](safety.md#margo-cloud-fixed-notices)).
+
+## What she does without being asked
+
+Margo's communication is with her manager, but she hears what happens around her. When someone
+messages, emails or copies her, and every 15 minutes in the group chats, meeting chats and channels
+she is a member of, she reads what is new through Work IQ, looks into what might matter, and sends
+the manager a short note when it does. She never answers those people, and their words never become
+her instructions ([the backchannel](autopilot-deployment.md#the-backchannel)).
 
 ## Licenses and costs
 
@@ -57,7 +66,8 @@ manager asked for, shared with the manager alone, and two fixed notices
   and a Microsoft 365 Copilot license. Copilot Credits where your tenant meters Work IQ.
 - **Azure:** the router (always on, 0.25 vCPU), a Basic container registry, Log Analytics (capped at
   1 GB a day by default), storage, the chat model's tokens, Voice Live minutes if voice is on, and
-  each instance's container while it runs (scaled to zero when idle).
+  each instance's container while it runs (scaled to zero when idle; kept running when she listens
+  in rooms).
 
 Everything is billed to your organization. No estimate is made here
 ([costs](autopilot-deployment.md#what-it-costs)).
@@ -68,7 +78,7 @@ Everything is billed to your organization. No estimate is made here
 | --- | --- |
 | **Verified in a test tenant** | Provisioning; the router-to-instance path and agentic sign-in; reading the manager's mailbox and calendar through delegation; a reply in Teams |
 | **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; on-behalf-of access and the manager's sign-in; the manager channel and the backchannel (notes, emails and shares to the manager alone; observation runs); voice; **Create instance** from the admin center; the state lease under concurrent turns |
-| **Not built** | Live meeting transcripts; scheduled routines (briefs she sends unprompted) |
+| **Not built** | Live meeting transcripts; scheduled briefs (morning brief, end of day) |
 
 ## Reading order
 

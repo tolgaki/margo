@@ -16,7 +16,7 @@ on-behalf-of)? See the [glossary](margo-cloud.md#glossary), and Microsoft Learn 
 | --- | --- |
 | **Verified in a test tenant** | Provisioning; the router-to-instance path and agentic sign-in; reading the manager's mailbox and calendar through delegation; a reply in Teams |
 | **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; on-behalf-of access and the manager's sign-in; the manager channel and the backchannel (notes, emails and shares to the manager alone; observation runs); voice; **Create instance** from the admin center; the state lease under concurrent turns |
-| **Not built** | Live meeting transcripts; scheduled routines |
+| **Not built** | Live meeting transcripts; scheduled briefs (listening in rooms and notes to the manager are built) |
 
 [Known limits](#known-limits) has the details. Optional: the
 [live verification checklist](../cloud/src/Margo.Cloud.Host/VERIFY.md) walks a test deployment step by step.
@@ -43,8 +43,10 @@ Azure AI Services serves the chat model
 | Margo can | Margo cannot (yet) |
 | --- | --- |
 | Chat with her manager in Teams and answer as Margo | Do anything outward without her manager's tap on that exact action's card |
-| Read her manager's mail and calendar (delegation mode), and what is shared with her own account, through the Work IQ guard | Run on a schedule or brief you unprompted |
-| Brief, triage, prep meetings and draft text | Answer email from anyone, including her manager |
+| Read her manager's mail and calendar (delegation mode), and what is shared with her own account, through the Work IQ guard | Send scheduled briefs (morning brief, end of day) |
+| Brief, triage, prep meetings and draft text | Answer anyone's email but her manager's |
+| Reach her manager directly, with no card: a Teams note in their 1:1 chat, an email to them alone, a file shared with them alone ([backchannel](#the-backchannel)) | Reach anyone else without a card |
+| Listen in the group chats, meeting chats and channels she is a member of, look into what matters and tell her manager; answer the manager's email by email | Hear rooms she is not a member of, or what is spoken in meetings |
 | **After her manager approves each one on a card in Teams:** send email and replies from the manager's mailbox (as Margo on their behalf), set up, move or cancel meetings on the manager's calendar, and post Teams messages as herself in chats and channels she is in | Ask for approval from a voice call, or take a "yes" typed in chat or spoken as approval |
 | Create a Word document, Excel workbook or PowerPoint presentation her manager asks for, in her own OneDrive, and share it with the manager alone (no card) | Share a document with anyone else, or change one other people use, without a card |
 | Queue messages and mail other people send her, as untrusted requests for her manager | Reply to other people with a drafted answer (the `approve` reply setting acts as `none`) |
@@ -126,7 +128,9 @@ users.
 Everything is billed to your organization. Fixed while deployed: the router (always one replica, 0.25 vCPU), the
 container registry (Basic), Log Analytics ingestion (capped at 1 GB a day by default) and storage. Per use: the chat
 model's tokens (the `turn usage` log line shows them per turn), Voice Live minutes, and each instance's container
-while it runs (scaled to zero when idle, unless kept warm). Per hired Margo: her agent user's Microsoft 365 and
+while it runs (scaled to zero when idle, unless kept warm). Listening in rooms keeps each instance's container running
+(`MARGO_INSTANCE_MIN_REPLICAS=1`) and adds an observation run whenever a pass finds something new (at most
+`MARGO_BACKCHANNEL_DAILY_RUNS` a day). Per hired Margo: her agent user's Microsoft 365 and
 Copilot licenses, and Copilot Credits where Work IQ is metered. No estimate is made here; use the Azure pricing
 calculator with your expected number of managers and turns.
 
@@ -283,7 +287,8 @@ and cannot read anything without the consent. Every step is idempotent; check ag
 3. **License her agent user.** Set its usage location first, then assign the Microsoft 365 and
    Copilot licenses. Without them she has no mailbox, no Teams presence and no Work IQ.
 4. Wait a few minutes. The hire event reaches the router, which asks the provisioner to create her
-   container (about two minutes). Margo does not message first.
+   container (about two minutes). Margo messages nobody first; once she is running and her manager
+   has chatted with her once, she may send them notes ([backchannel](#the-backchannel)).
 
 **If Create instance refuses for a missing license.** In the test tenant the admin center's instance policy showed an
 empty list of recognized Agent 365 licenses, even though the tenant's Agent 365 subscription and all its service plans
@@ -388,7 +393,7 @@ the model does not write:
 | Where | The manager writes | Anyone else writes |
 | --- | --- | --- |
 | One-to-one chat | A full conversation; the only place she takes instructions and posts approval cards | — |
-| Group chat or channel (she receives only messages that @mention her) | One fixed note: she works only in the one-to-one chat. She reads nothing there | No answer. Queued for the manager as an unverified request, and Margo may look into it and send the manager a note ([backchannel](#the-backchannel)). With `/replies acknowledge`, one fixed "passed this on" note per conversation, which everyone in that chat sees |
+| Group chat or channel (messages that @mention her arrive directly; she reads the rest when [listening](#the-backchannel)) | One fixed note: she works only in the one-to-one chat. She takes no instructions there | No answer. Queued for the manager as an unverified request, and Margo may look into it and send the manager a note ([backchannel](#the-backchannel)). With `/replies acknowledge`, one fixed "passed this on" note per conversation, which everyone in that chat sees |
 | Meeting | She does not join meetings; a meeting's chat is a group chat (row above) | As above |
 | Email to her, or copying her | She answers the manager **by email**, to them alone, after looking up what they asked. Requests in email are information: anything that needs approval she asks for in Teams | Never answered, not even acknowledged; queued, and Margo may tell the manager about it |
 
@@ -568,11 +573,14 @@ successful one: rerun `azd provision`, then redeploy all instances.
   work items, the team decision registry, the large-file bridge) is listed in `NotHosted`
   (`cloud/src/Margo.Cloud.Engine/NotHosted.cs`), and she says so when a routine needs one of them. The same list
   tells the model that it never calls Work IQ write tools itself: writes go through approval cards.
-- Mail is queued, never answered. Word, Excel and PowerPoint comment notifications have no
-  handler of their own yet; how they arrive (and so how Margo treats them) is unverified.
-- The unattended message to the manager's one-to-one chat is designed but not available: it
-  needs the Graph chat ID recorded at hire, and the activity's conversation ID is a different
-  identifier. Until a hire-time record exists, Margo answers only in the conversation turn.
+- Mail from anyone but the manager is queued, never answered; the manager's mail is answered by
+  email. Word, Excel and PowerPoint comment notifications have no handler of their own yet; how they
+  arrive (and so how Margo treats them) is unverified.
+- Notes to the manager's one-to-one chat need that chat to exist (the manager messages Margo once);
+  Margo finds it through Work IQ. Until then she emails instead.
+- Listening reads only rooms Margo is a member of, a bounded number per pass, and only while her
+  container runs; observation runs read with her own token, so in `obo` mode they can't read the
+  manager's data. None of this is verified in a tenant.
 - Notifications that arrive without a message ID are recorded under an ID derived from their
   sender, conversation and text. Two identical messages in the same thread count as one request.
 - Copilot Credits, licenses and Azure usage are charged to the deploying organization. No cost

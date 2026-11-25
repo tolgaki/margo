@@ -14,8 +14,9 @@ You can grant a standing instruction only for reversible actions nobody else see
 read. See [trust and safety](safety.md#1-propose-never-act-unilaterally).
 
 **Can a scheduled run send something while I'm asleep?**
-No. Unattended runs prepare privately and never send, post, RSVP or delete. See
-[proactive runs](safety.md#3-proactive-runs-never-act-on-the-outside-world).
+Desktop: no. Unattended runs prepare privately and never send, post, RSVP or delete. Margo Cloud
+has one exception: a note to her own manager alone (their Teams chat or an email to them), never to
+anyone else. See [proactive runs](safety.md#3-proactive-runs-never-act-on-the-outside-world).
 
 **What if an email tells Margo to do something?**
 She treats it as data, flags it as suspicious and keeps summarizing. See
@@ -30,6 +31,16 @@ IQ usage. See [what you need](getting-started.md#what-you-need).
 Desktop is stable and supported for individual use, and needs nothing deployed to your tenant.
 Margo Cloud is a preview that an IT admin deploys into your own Azure subscription; new work goes
 there. See the [Margo Cloud overview](margo-cloud.md).
+
+**Does Margo Cloud read our group chats and tell her manager?**
+Yes, for chats, meeting chats and channels she is a member of, and anything you send, email or copy
+to her. She reads them through Work IQ, looks into what might matter to her manager, and may send
+them a note. She never answers you there, and nothing you write becomes her instructions. Her
+deployer can turn it off. See [the backchannel](autopilot-deployment.md#the-backchannel).
+
+**Can Margo Cloud email me, or share a file with me, without a card?**
+Yes, if you are her manager: anything that reaches you alone needs no card. Anything that reaches
+someone else does. See [what needs approval](margo-cloud.md#what-needs-approval).
 
 **In Margo Cloud, who can see my records?**
 You, through Margo, and your organization's administrators with data access to the storage

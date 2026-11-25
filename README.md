@@ -12,7 +12,7 @@ affected. She waits for your approval before making those changes.
 | | What it is | Status | Start here |
 | --- | --- | --- | --- |
 | **Margo desktop** | GitHub Copilot CLI on your machine, with Margo's persona, skills and private local state | Stable and supported for individual use (installers: 1.0.0) | [Getting started](docs/getting-started.md) |
-| **Margo Cloud** | Self-hosted in your own Azure subscription as an Agent 365 agent with her own identity | Preview, not for production: the core chat-and-read path is verified in one test tenant; approval cards, documents and on-behalf-of access are built but not verified there ([maturity](docs/margo-cloud.md#maturity)) | [Margo Cloud overview](docs/margo-cloud.md) |
+| **Margo Cloud** | Self-hosted in your own Azure subscription as an Agent 365 agent with her own identity. She works for one manager, listens in the chats and channels she is in, and tells her manager what matters | Preview, not for production: the core chat-and-read path is verified in one test tenant; approval cards, documents and on-behalf-of access are built but not verified there ([maturity](docs/margo-cloud.md#maturity)) | [Margo Cloud overview](docs/margo-cloud.md) |
 | **Learn Work IQ** | How to load Work IQ in a harness or a custom agent, its tools, identity, errors and writes, with Margo's code as the example | Guide | [Learn Work IQ](docs/work-iq/README.md) |
 
 **Needs:** a Microsoft 365 work account with a Microsoft 365 Copilot license and Work IQ enabled in

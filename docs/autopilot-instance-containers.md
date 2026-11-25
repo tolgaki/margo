@@ -125,7 +125,7 @@ the instance's Blob container (private endpoint) and Application Insights.
 
 | Event | What happens |
 | --- | --- |
-| Instance hired (lifecycle notification or admin action) | The provisioner creates identity, storage, app and route; until it is ready the router answers activities for it with 503 and `Retry-After: 30`, so the platform retries; Margo does not message first |
+| Instance hired (lifecycle notification or admin action) | The provisioner creates identity, storage, app and route; until it is ready the router answers activities for it with 503 and `Retry-After: 30`, so the platform retries; Margo messages nobody first (later she may send her manager notes) |
 | Manager changes | Same container; the account key changes (already true today), so the new manager starts with fresh state. The previous manager's data follows the retention rule |
 | Instance retired | The route is removed and the app and identity are deleted; storage is kept for the retention period, then deleted |
 | Image update | Staged by blueprint version: a new revision per instance, canary first; the lease prevents two writers during a swap |

@@ -79,6 +79,9 @@ An agent identity **cannot show a consent prompt**: a token request that would n
   consent, or prints the step for an administrator (Global Administrator or Privileged Role
   Administrator).
 - `a365 query-entra inheritance` must show the Work IQ entry with kind `allAllowed`.
+- A run started by someone else's message (Margo Cloud's backchannel and listening) reads only with
+  the agent's own token. The platform's user token in that turn belongs to the sender, never to the
+  manager, so it is never used as the manager's.
 - On-behalf-of also requires the manager's incoming token to be audienced to the blueprint; a token
   for another audience fails with `AADSTS50013`.
 
