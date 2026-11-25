@@ -14,7 +14,7 @@ assignees: ''
 
 ## What you'd like
 
-<!-- Describe the behaviour. For a new routine: what triggers it, and what the output looks like. -->
+<!-- Describe the behavior. For a new routine: what triggers it, and what the output looks like. -->
 
 ## What it touches
 

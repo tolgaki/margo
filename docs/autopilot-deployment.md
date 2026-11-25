@@ -1,12 +1,25 @@
-# Deploy Margo as an Agent 365 agent
+# Deploy Margo Cloud
 
-[Design](autopilot.md) · [One container per instance](autopilot-instance-containers.md) ·
+[Overview](margo-cloud.md) · [Design record](autopilot.md) · [One container per instance](autopilot-instance-containers.md) ·
 [Voice](autopilot-voice.md) · [Margo Cloud code](../cloud/README.md) · [Trust and safety](safety.md)
 
-Margo Cloud is a C# (.NET 10) service in [`cloud/`](../cloud/README.md). Deploy it first to a **test tenant with
-fictional users** and work through the live checklist in [Margo.Cloud.Host/VERIFY.md](../cloud/src/Margo.Cloud.Host/VERIFY.md);
-[Known limits](#known-limits) lists what has not been verified in a tenant. Agent 365 and its CLI are in preview: the
-commands below were checked against Agent 365 CLI 2.0.1, so compare them with `a365 --help` for the version you install.
+Margo Cloud is a C# (.NET 10) service in [`cloud/`](../cloud/README.md) that you deploy into your own Azure
+subscription and publish as a Microsoft Agent 365 agent. Deploy it first to a **test tenant with fictional users**.
+Agent 365 and its CLI are in preview: the commands below were checked against Agent 365 CLI 2.0.1, so compare them with
+`a365 --help` for the version you install. New to the terms (blueprint, instance, agent user, delegation,
+on-behalf-of)? See the [glossary](margo-cloud.md#glossary), and Microsoft Learn for
+[Agent 365 and the Frontier program](https://learn.microsoft.com/).
+
+## Status
+
+| | |
+| --- | --- |
+| **Verified in a test tenant** | Provisioning; the router-to-instance path and agentic sign-in; reading the manager's mailbox and calendar through delegation; a reply in Teams |
+| **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; the on-behalf-of sign-in handler settings; voice; **Create instance** from the admin center; the state lease under concurrent turns |
+| **Not built** | Live meeting transcripts; scheduled routines; the in-chat sign-in prompt for on-behalf-of access |
+
+[Known limits](#known-limits) has the details. Optional: the
+[live verification checklist](../cloud/src/Margo.Cloud.Host/VERIFY.md) walks a test deployment step by step.
 
 ## How it fits together
 
@@ -101,6 +114,13 @@ messaging endpoint. The post-provision hook (`scripts/postprovision.sh`) does th
 - **One tenant.** The Azure subscription must be in the same Entra tenant as Microsoft 365: the router and instances
   trust tokens from the subscription's tenant only.
 
+### Who can read the stored state
+
+Each hired Margo's records (her work ledger, memory of her manager, requests from colleagues) are stored in your
+storage account. **Anyone with data access to that storage account can read every manager's stored records.** Limit
+that access, and tell managers who has it: the [terms](../cloud/terms.md#privacy) say so, and you publish them to your
+users.
+
 ### What it costs
 
 Everything is billed to your organization. Fixed while deployed: the router (always one replica, 0.25 vCPU), the
@@ -123,11 +143,22 @@ in Azure Container Registry. To build and test Margo Cloud yourself, see [cloud/
 | Mode | Set | Reaches | Requires |
 | --- | --- | --- | --- |
 | `delegation` | `azd env set MARGO_PRINCIPAL_ACCESS delegation` | The manager's mail and calendar (direct reads through the delegation), plus everything shared with Margo herself: mail she receives, chats and channels she is in, files and sites shared with her (her own Copilot search included). Copilot search of the manager's whole data reports "unavailable" | The manager makes Margo a calendar delegate (or an Exchange admin grants mailbox access) and shares chats, channels and files with her |
-| `obo` (the parameter's default; **not functional in this version**) | `azd env set MARGO_PRINCIPAL_ACCESS obo` | Nothing of the manager's: every principal source reports `blocked` | An on-behalf-of handler, which the image does not configure |
+| `obo` (on-behalf-of; **experimental**) | `azd env set MARGO_PRINCIPAL_ACCESS obo`, plus the handler below | What the manager can see through Work IQ, including Copilot `ask` and `retrieve` over their own data, once they have signed in through the handler | The handler settings below, and a sign-in the manager completes outside Margo (see the note) |
 
-**Use `delegation`.** `obo` is the parameter's default for historical reasons, but the image configures only Margo's
-own (agentic) sign-in, so in `obo` mode every principal source reports `blocked`; Margo never falls back to her own
-token. That is safe, but not useful. Set `delegation` explicitly in step 1. Set the mode, and the managers' time zone
+**Use `delegation`** (the default). `obo` gives Margo the manager's own Work IQ access, which is what makes Copilot
+reasoning and search over their mail, meetings and files possible, but it is not finished:
+
+- **What is built:** the handler settings. `azd env set PRINCIPAL_AUTH_HANDLER PRINCIPAL` and
+  `azd env set MARGO_PRINCIPAL_OAUTH_CONNECTION <name>` define, in every instance, an Agents SDK sign-in handler of
+  type `AzureBotUserAuthorization` that uses that OAuth connection on the agent's Azure Bot (single sign-on in Teams)
+  and exchanges the manager's sign-in, on their behalf, for a Work IQ token through the blueprint's own connection.
+  The blueprint needs Work IQ's delegated permissions as inheritable, admin-consented permissions
+  ([identity and consent](work-iq/identity-and-consent.md)).
+- **What is not built:** Margo does not show the manager a sign-in card. Until the manager has signed in through that
+  connection, every principal source reports `blocked`, and Margo never falls back to her own token. Nothing here has
+  been verified in a tenant.
+
+Set the mode in step 1. Set the mode, and the managers' time zone
 (`azd env set MARGO_TIMEZONE Europe/Berlin`; default `America/Los_Angeles`), before provisioning;
 both reach every instance container. After a change, provision and then redeploy all instances.
 
@@ -194,8 +225,8 @@ a365 query-entra inheritance        # the Work IQ entry must show kind allAllowe
 ```
 
 The CLI's own permission steps also consent Microsoft Graph scopes, including send scopes such as `Mail.Send`, and
-make them inheritable. This version of Margo does not use Graph directly (all its reads go through Work IQ, and the
-guard refuses writes), so remove the Graph grant and its inheritable entry once the instance works, or review them with
+make them inheritable. Margo does not use Graph directly (all its reads and writes go through Work IQ, and the guard
+runs only writes the manager approved on a card), so remove the Graph grant and its inheritable entry once the instance works, or review them with
 your Entra admin before production.
 
 ## 3. Connect the blueprint and finish
@@ -413,12 +444,18 @@ Details, the custom voice and limits: [Voice](autopilot-voice.md).
 | Ship a change | Commit, then `azd provision` (it builds and pins a new image for the router and the provisioner), then redeploy all |
 | Redeploy all | From `cloud/`: `sh scripts/provisioner.sh redeploy-all`. It queues one redeploy per ready instance; the queue then starts the job again, which redeploys them (`az containerapp job execution list -n $(azd env get-value PROVISIONER_NAME) -g $(azd env get-value RESOURCE_GROUP) -o table` shows both runs). For one instance: `sh scripts/provisioner.sh enqueue ensure <agent-identity-id> <agent-user-id> --redeploy` |
 | Keep instances warm | `azd env set MARGO_INSTANCE_MIN_REPLICAS 1`, provision, then redeploy all. For one instance: `az containerapp update -n margo-<key> -g <group> --min-replicas 1`. Optional: a cold instance still answers, but its first answer is slow (see Known limits) |
-| Retire one instance | Delete it in the admin center: the lifecycle event retires it (app and identity go; state stays). Or `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll enqueue retire <agent-identity-id> <agent-user-id>`. Remove any mailbox permissions |
+| Retire one instance | Delete it in the admin center: the lifecycle event retires it (app and identity go; state stays). Or, from `cloud/`: `sh scripts/provisioner.sh enqueue retire <agent-identity-id> <agent-user-id>`. Remove any mailbox permissions |
 | Delete a retired instance's or a former manager's state | Nothing deletes it automatically. Delete the instance's `margo-i-…` container (or, for a former manager, their prefix inside it). A deleted container is recoverable for 14 days |
 | Change retention | `MARGO_STATE_VERSION_RETENTION_DAYS` (replaced versions of the state bundle, default 30), `MARGO_STATE_DAILY_RETENTION_DAYS` (daily copies, default 30; 0 keeps all), `MARGO_LOG_RETENTION_DAYS` (30), `MARGO_LOG_DAILY_QUOTA_GB` (1). What a manager had Margo forget is gone from every copy after the state retention at the latest |
 | Model settings | `MARGO_MODEL_CAPACITY` (thousand tokens a minute, default 100, shared by every instance), `MARGO_MODEL_SKU` (`GlobalStandard` by default: prompts may be processed outside your region; `DataZoneStandard` or `Standard` keep them closer), `MARGO_MODEL_REASONING_EFFORT` (default `low`; `none` for a model that is not a reasoning model), `MARGO_MAX_INSTANCES` (default 50) |
 | Stop everyone's Margo | Block Margo in the admin center |
 | Remove everything | Retire instances in the admin center; remove mailbox and calendar delegate permissions and the agent users' licenses; remove the blueprint with the Agent 365 CLI (`a365 cleanup`) and the Work IQ consent grant; delete the "Margo voice page" app registration if you made one; then `azd down --purge` (without `--purge` the AI Services account stays soft-deleted and its name reserved) |
+
+### Upgrading an existing deployment
+
+The first provision after upgrading from a version whose provisioner job ran on a schedule deletes and recreates the
+job, which the provisioning queue starts. If that provision fails midway there is no job until the next
+successful one: rerun `azd provision`, then redeploy all instances.
 
 ## Troubleshooting
 
@@ -443,11 +480,11 @@ Details, the custom voice and limits: [Voice](autopilot-voice.md).
 | Margo says she can't find her manager | The directory answered that her account has no manager | Set the manager on Margo's account in the directory |
 | "I couldn't check who I work for just now" | The `/me/manager` lookup failed: outage, throttling, or a Copilot Credits denial for Margo's account. It is not a missing manager | Retry. If it persists, check the `workiq` traces for the lookup's status code and Margo's licenses |
 | "Something failed on my side before I could finish" | The model call or the turn failed (throttling, content filter, bad `MARGO_TIMEZONE` or `MARGO_PRINCIPAL_ACCESS`) | Check the `turn failed` log entry; fix configuration and retry |
-| Every principal source is `blocked` | `obo` mode without a working on-behalf-of handler | Switch to `delegation`, or complete the handler setup |
+| Every principal source is `blocked` | `obo` mode, and the manager has not signed in through the on-behalf-of handler (or it is not configured) | Switch to `delegation`; `obo` needs a sign-in Margo does not prompt for yet |
 | Mail and calendar are `error` in delegation mode | Mailbox permissions missing or not yet propagated | Recheck the two Exchange commands; allow time to propagate |
 | "I couldn't load my records safely" | The state lease was busy for two minutes, or a bundle failed its checks | Retry. If it persists, check the storage account and the instance's role on its container |
 | Approval spins on the security-policy step | An admin center issue, not the deployment | Open a support request with the page's correlation ID |
-| Voice: "Your sign-in can't be used to talk to this Margo" | Wrong tenant, missing `Voice.Talk` scope, or not this Margo's manager | Sign in as the manager; check the `Voice.Talk` scope on the blueprint, the voice sign-in app's redirect URI and consent, and `MARGO_VOICE_CLIENT_ID` |
+| Voice: "Your sign-in can't be used to talk to this Margo" | Wrong tenant, missing `Voice.Talk` scope, or not this Margo's manager | Sign in as the manager; check the `Voice.Talk` scope on the voice page's own app registration (`MARGO_VOICE_CLIENT_ID`), its SPA redirect URI and admin consent. The scope must not be on the blueprint |
 
 ## Known limits
 
@@ -460,11 +497,10 @@ Details, the custom voice and limits: [Voice](autopilot-voice.md).
   `MARGO_EXTRA_SERVICE_HOSTS` admit it (Troubleshooting). Until `MARGO_PLATFORM_APP_IDS` is set, any application
   registered in your tenant that can obtain its own token for the blueprint is accepted as the platform; a signed-in
   person's token never is. Tokens issued by Bot Framework are accepted without further binding.
-- The model request now stores nothing at the service and resends the conversation each turn. This shape has only
-  run against fakes.
-- The first provision after upgrading deletes and recreates the provisioner job (its trigger changed from a schedule to
-  the provisioning queue). If that provision fails midway there is no job until the next successful one. Whether the
-  queue trigger fires with the job's managed identity is unverified; `az containerapp job start` runs it by hand.
+- The model request stores nothing at the service and resends the conversation each turn. This shape has only run
+  against fakes.
+- Whether the provisioner job's queue trigger fires with the job's managed identity is unverified;
+  `az containerapp job start` runs it by hand.
 - A scaled-to-zero instance takes longer to start than Agent 365 waits. The router keeps forwarding after Agent 365
   gives up, so the message is answered, just late. A repeated delivery of the same activity is dropped, but only by the
   container that saw the first one and only until it restarts.
@@ -488,10 +524,10 @@ Details, the custom voice and limits: [Voice](autopilot-voice.md).
 - Agent identities and agent users can carry an expiration date (Entra Agent ID lifecycle, reported
   to default to 180 days; **verify** in your tenant). Check `lifecycle.expirationDateTime` on each
   agent identity and agent user, and extend it before it passes, or the instance stops working.
-- She has the same persona and skills as desktop Margo. What she cannot do here yet (GitHub
-  review load, Azure DevOps work items, the team decision registry, the large-file bridge,
-  approvals and sends) is listed in `NotHosted` (`cloud/src/Margo.Cloud.Engine/NotHosted.cs`), and she says so
-  when a routine needs one of them.
+- She has the same persona and skills as desktop Margo. What she cannot do here (GitHub review load, Azure DevOps
+  work items, the team decision registry, the large-file bridge) is listed in `NotHosted`
+  (`cloud/src/Margo.Cloud.Engine/NotHosted.cs`), and she says so when a routine needs one of them. The same list
+  tells the model that it never calls Work IQ write tools itself: writes go through approval cards.
 - Mail is queued, never answered. Word, Excel and PowerPoint comment notifications have no
   handler of their own yet; how they arrive (and so how Margo treats them) is unverified.
 - The unattended message to the manager's one-to-one chat is designed but not available: it
@@ -501,10 +537,6 @@ Details, the custom voice and limits: [Voice](autopilot-voice.md).
   sender, conversation and text. Two identical messages in the same thread count as one request.
 - Copilot Credits, licenses and Azure usage are charged to the deploying organization. No cost
   estimate is made here.
-- The image is ASP.NET Core 10 on Alpine plus the `tzdata` package, which the persona's clock and Margo's time zone
-  (`MARGO_TIMEZONE`) need; an image without IANA zone files fails every turn with an unknown time zone. Check
-  `ls /usr/share/zoneinfo/America/Los_Angeles` in a running container (VERIFY.md, step 0). The image has been
-  built with Docker outside Azure, with one substitution: the Alpine package mirror was unreachable there, so the
-  zone files were copied in instead of `apk add tzdata`, which therefore remains unverified. In that image the host,
-  the router and the provisioner started as the non-root user, the host and router answered their health and probe
-  paths, and `margo-state` created its SQLite databases. It has since been built with `az acr build` and run in a test tenant.
+- The image needs IANA zone files (Alpine's `tzdata`) for the persona's clock and `MARGO_TIMEZONE`; without them every
+  turn fails with an unknown time zone. `ls /usr/share/zoneinfo/America/Los_Angeles` in a running container must
+  succeed.

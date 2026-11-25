@@ -112,9 +112,9 @@ message: zero hits).
 ## 6. The manager's on-behalf-of token (`MARGO_PRINCIPAL_ACCESS=obo`)
 
 With `PRINCIPAL_AUTH_HANDLER` set to the configured on-behalf-of handler, as the manager ask
-`Summarise my unread mail.` Record whether the turn's receipts show `"read_as": "principal"` with `"status": "ok"`, or
+`Summarize my unread mail.` Record whether the turn's receipts show `"read_as": "principal"` with `"status": "ok"`, or
 `token exchange failed for principal` / the principal reads reported unavailable. PORTING.md, open question 1, predicts
-the latter (the route signs in only the agentic handler, as Python did); the result decides the fix.
+the latter (the route signs in only the agentic handler); the result decides the fix.
 
 With `MARGO_PRINCIPAL_ACCESS=delegation`, no principal token is requested: no `token exchange failed for principal`
 line, and Teams/files reads report unavailable.

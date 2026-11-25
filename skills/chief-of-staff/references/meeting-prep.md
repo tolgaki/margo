@@ -39,9 +39,17 @@ old similar episodes as present facts.
      summarize the parts the user needs.
 
 3. **Know the room.** For key attendees, note role/relationship (VIP? external? your report?) and
-   anything they're likely to raise. Use people/org lookups via `workiq-fetch` when useful.
+   anything they're likely to raise. Use the org reads in `people.md`: title and department,
+   each person's manager, and whether they are the user's manager, skip-level, direct report,
+   peer or external. Flag the most senior person present and anyone whose manager is also in the
+   room. A lookup that fails or a guest with no directory entry is shown as unknown.
 
-4. **Render the prep card:**
+4. **Apply the sensitivity-label rule** from SKILL.md. Show the label on any context line or doc
+   that carries one; keep Confidential and Highly Confidential material to title, the point the
+   user needs, and the link. Facts taken from `workiq-ask` have no label: cite the underlying
+   source found with `workiq-retrieve` or `workiq-fetch`, or present them as unsourced.
+
+5. **Render the prep card:**
    ```
    📋 Meeting Prep — {title}
    🕐 {time} ({duration}) · {location/online} · Organizer: {who}
@@ -49,13 +57,13 @@ old similar episodes as present facts.
 
    🎯 Purpose: {1–2 lines}
    📌 Context / where things stand: {bullets, grounded + cited}
-   📎 Docs: {title — 1-line relevance}
+   📎 Docs: {title — 1-line relevance} [{label, if any}]
    🗣️ Talking points / your goals: {what to raise, decisions to push}
    ❓ Likely questions & suggested answers:
    ✅ Prep to-dos before the meeting: {if any}
    ```
 
-5. **Offer follow-ons:** draft a pre-read/agenda, a message to an attendee, or a
+6. **Offer follow-ons:** draft a pre-read/agenda, a message to an attendee, or a
    post-meeting follow-up (Draft Studio) — proposed, not sent.
 
 ## Notes

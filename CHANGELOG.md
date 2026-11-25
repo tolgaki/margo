@@ -8,6 +8,24 @@
   open.
 - Margo Cloud delegation mode reads the manager's mail and calendar directly through the delegation and searches only
   what is shared with Margo; Copilot search of the manager's whole data reports "unavailable".
+- Learn Work IQ here: `docs/work-iq/` covers how to load it (harness or custom agent), identity and consent, a
+  capability map, patterns, errors and recovery, and the approved-writes pattern. `samples/harness/` and
+  `cloud/samples/WorkIQHello` are the two quickstarts. The README leads with the Work IQ reference framing, Getting
+  started has a "Connect Work IQ" step and a requirements table, and there is a Margo Cloud overview and an FAQ.
+- "What changed since…" uses Microsoft Graph delta per source (stored and replayed change links, restarted when a link
+  expires), then asks Copilot only about the changed items.
+- New procedures, each discovering its paths first and routing every write through approval: Viva Engage structured
+  reads, meeting transcripts read directly after the meeting, people and org lookups, publishing to Copilot Pages or
+  SharePoint, SharePoint approvals, access and version restore, and asking a Copilot agent.
+- Every write procedure checks the path's schema before building a payload; collections follow paging links within a
+  page budget and report partial results; briefs and meeting prep show sensitivity labels. Scheduled runs report
+  other people's availability as not checked instead of attempting it.
+- Margo Cloud: the guard allows reads under Work IQ's own path families (writes still need approval), follows Graph
+  paging and delta links, and lets `ask` name a Copilot agent. Throttled reads honor a short `Retry-After` once; an
+  expired token is refreshed once for reads; Work IQ calls are traced and measured. Approval cards cover Pages,
+  Viva Engage and SharePoint. The on-behalf-of sign-in handler can be configured (the in-chat sign-in prompt is not
+  built), and the default access mode is `delegation`.
+- Tools map Work IQ calls onto the eval vocabulary and summarize Margo Cloud's guard receipts.
 - Margo Cloud loads Work IQ with the official MCP C# SDK (`ModelContextProtocol.Core`) instead of a hand-written MCP
   client ported from Python. The model now gets Work IQ's own tool descriptions and argument schemas from
   `tools/list` (limited by the guard), with the built-in definitions as a fallback. When Work IQ rejects a call, the

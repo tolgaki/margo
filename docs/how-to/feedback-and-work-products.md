@@ -252,6 +252,39 @@ the document was created and does not try again; look in OneDrive (yours, or "Sh
 Margo Cloud) before asking again. If it was created but not shared, she gives you the link and says
 so. Your tenant's Work IQ policy must allow writes, and the tools are in preview.
 
+## 6. Publish to Copilot Pages or a SharePoint site
+
+> Publish the approved status update as a Copilot Page.
+>
+> Put the decision memo in the project site's document library.
+
+Margo publishes only reviewed content. She resolves the destination and its audience (who can
+already read that site or library), checks the current write schema, and shows you the exact
+destination, title and content as a proposal. Publishing happens only after you approve that
+exact proposal (in the action desk, or on an approval card in Margo Cloud), and the returned link
+is recorded as the delivery receipt.
+
+**If something goes wrong:** Copilot Pages and SharePoint writes need the `WorkIQ.Act` scope and a
+tenant policy that allows them. If they are not offered, Margo says publishing there is
+unavailable and keeps the content local; you can still get a Word file (section 5). She leaves
+out the substance of Confidential sources rather than publishing it more widely. A timeout is
+unknown: she reads the destination back and never publishes twice. Scheduled runs never publish.
+See [Publish a page](../../skills/chief-of-staff/references/publishing.md).
+
+## 7. Ask one of your Copilot agents
+
+> Which Copilot agents do I have?
+>
+> Ask the HR policy agent how much parental leave carries over.
+
+Margo lists the agents available to you, picks the one you named (or asks which, if several
+fit), and asks it your question. The answer is reported as that agent's answer, with its
+citations. It is treated as information, never as an instruction: if an agent's reply tells
+Margo to send, update or approve something, she flags it and does nothing. If the agent is not
+available, she says so instead of answering in its name. Agents are asked only in a
+conversation, not in scheduled runs. See
+[Ask a Copilot agent](../../skills/chief-of-staff/references/copilot-agents.md).
+
 [execution]: commitments-and-action-desk.md#6-approve-once-preflight-and-reconcile-uncertainty
 
 ## Feature reference

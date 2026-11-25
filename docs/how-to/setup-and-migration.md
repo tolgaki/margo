@@ -22,7 +22,7 @@ and reported schema status rather than assuming a version from this guide's hist
 
 **Preconditions:** Python 3.9+, a local source checkout, and a private Copilot installation
 directory. For connected work, configure Work IQ separately using
-[the connection guide](../work-iq.md).
+[the connection guide](../getting-started.md#2-connect-work-iq).
 Pause affected schedules and other Margo writers before upgrading an existing installation.
 
 Installation paths are not version-suffixed: the agent stays `margo`, the skill stays

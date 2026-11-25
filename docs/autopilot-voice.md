@@ -9,12 +9,10 @@ Microsoft's documentation, and voice has not been tested against a live Voice Li
 
 | Part | Where | Tested |
 | --- | --- | --- |
-| Session config, event bridge, tool calls, claim checks | [`Margo.Cloud.Voice`](../cloud/src/Margo.Cloud.Voice/PORTING.md) (`VoiceSession`) | Offline (`Margo.Cloud.Voice.Tests`) |
+| Session config, event bridge, tool calls, claim checks | [`Margo.Cloud.Voice`](../cloud/src/Margo.Cloud.Voice/) (`VoiceSession`) | Offline (`Margo.Cloud.Voice.Tests`) |
 | Endpoint: page, sign-in config, WebSocket, token verification, manager check, Voice Live | `Margo.Cloud.Voice` (`VoiceEndpoints`, `VoiceService`) | A full session with real token verification and a fake Voice Live |
 | Browser page: sign-in (PKCE, no library), microphone, playback, barge-in, captions | [`wwwroot/`](../cloud/src/Margo.Cloud.Voice/wwwroot/README.md) | 35 `node --test` tests and a stubbed-browser run; no real browser or microphone |
 | Router voice proxy (HTTP and WebSocket) | `Margo.Cloud.Router` | Against a fake instance |
-
-Voice was first built in Python and ported to C# with the rest of Margo Cloud; the page moved unchanged.
 
 **Transport change: WebSocket to Margo, not WebRTC.** Azure Container Apps accepts only HTTP and
 TCP, with no UDP, and WebRTC media needs UDP or a TURN relay. So the page sends 20 ms PCM frames
@@ -24,7 +22,7 @@ cancellation, noise suppression, gain control), and Voice Live adds its own.
 
 WebRTC remains possible two ways:
 
-- **Voice Live's own WebRTC,** once it is GA and verification item 2 holds. Audio would go from
+- **Voice Live's own WebRTC,** once it is GA and item 2 of the [verification list](#verification-list) holds. Audio would go from
   the browser straight to Microsoft while the server keeps control.
 - **A TURN relay,** on a host that accepts UDP.
 

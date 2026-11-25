@@ -14,8 +14,9 @@ to [the how-to guides](how-to/README.md). For every capability and its availabil
 
 ## 1. Set up a small, private starting point
 
-You need Copilot CLI, a connected Work IQ MCP server, a Microsoft 365 work account, and Python
-3.9+. Begin with the normal **copy installation**. Keep real preferences and account state
+You need GitHub Copilot CLI, a Microsoft 365 work account with a Microsoft 365 Copilot license, the
+Work IQ MCP server registered and signed in ([what you need](getting-started.md#what-you-need) and
+[Connect Work IQ](getting-started.md#2-connect-work-iq)), and Python 3.9+. Begin with the normal **copy installation**. Keep real preferences and account state
 outside the repository; a contributor's linked checkout is not the place for your mailbox data.
 
 Follow [Getting started](getting-started.md) to complete three distinct steps:
@@ -173,7 +174,7 @@ For the launch review, an outcome might be "agree the rollout decision by Friday
 definition of done, owner, and effort estimate you confirm. Missing effort or calendar coverage
 makes feasibility unknown; an empty-looking calendar is not automatically available capacity.
 
-If this rhythm is useful, add **one scheduled anchor first**, usually the morning brief.
+If this rhythm is useful, add **one scheduled anchor first** (a run at a fixed time that makes a brief ready for you), usually the morning brief.
 Review its prompt, cadence, time zone, host availability, and output location before enabling
 it. Adding an installer or editing preferences does not itself create a schedule.
 

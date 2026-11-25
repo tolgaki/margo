@@ -17,6 +17,11 @@ never archive, mark-read, reply, or delete without explicit approval.**
      the flagged items locally from the `flag` field you already selected.
    - Prefer items where the user is a direct (To) recipient over CC.
    - Pull full message bodies only for the items you'll actually draft against.
+   - **Page within a budget.** Follow `@odata.nextLink` until the unread set is complete or the
+     budget (default 5 pages) runs out. If a `nextLink` remains, say the triage covers the newest
+     {n} items only and how far back it reaches; never report the bucket counts as complete.
+   - For "since yesterday" or "since my last triage", replay the inbox delta link instead of
+     re-reading the folder (`delta.md`), and classify only the changed items.
 
 3. **Sweep Teams** — this is half the triage, not an optional extra. There is no unread feed, so
    build an attention queue from recency instead, and say that is what you did:
@@ -24,7 +29,8 @@ never archive, mark-read, reply, or delete without explicit approval.**
    - For chats that look live (or involve a VIP from `preferences.md`), fetch
      `/chats/{id}/messages?$top=20` — batch several URLs into one `workiq-fetch` call.
    - `workiq-retrieve` for @mentions and anything addressed to the user by name.
-   - For a precise "since yesterday" sweep use chat-message delta via `workiq-call_function`.
+   - For a precise "since yesterday" sweep, use a chat delta path only if `delta.md` discovery
+     finds one on this binding; otherwise this recency queue is a snapshot, and you say so.
 
    Load the `workiq` skill (call the `skill` tool with `workiq`) and follow its Teams triage
    reference for the exact shapes — it carries the full attention-queue procedure. **Never claim
@@ -59,8 +65,10 @@ never archive, mark-read, reply, or delete without explicit approval.**
    ```
 
 7. **On approval only**, execute batched actions via Work IQ (`workiq-update_entity` to mark read,
-   `workiq-do_action` / `workiq-create_entity` to reply/forward). Confirm what was done and what
-   remains.
+   `workiq-do_action` / `workiq-create_entity` to reply/forward). Before building each payload,
+   run `workiq-get_schema` for the exact path and operation (for example
+   `/me/messages/{id}` with update, or `/me/messages/{id}/reply` with action) and use only the
+   fields it lists. Confirm what was done and what remains.
 
 ## Guardrails
 - Re-confirm before any **bulk** action (e.g. "archive these 14?") — list or count them first.

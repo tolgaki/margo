@@ -298,7 +298,8 @@
         "anchor": "daily-brief"
       },
       "sources": [
-        "skills/chief-of-staff/references/daily-brief.md"
+        "skills/chief-of-staff/references/daily-brief.md",
+        "skills/chief-of-staff/references/delta.md"
       ],
       "router_refs": [
         {
@@ -316,7 +317,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "A source that fails to load is a visible gap, never a false all-clear"
+        "A source that fails to load is a visible gap, never a false all-clear",
+        "Lines built from Copilot synthesis carry no sensitivity label until the underlying source is cited"
       ]
     },
     {
@@ -339,7 +341,8 @@
         "anchor": "catch-up"
       },
       "sources": [
-        "skills/chief-of-staff/references/daily-brief.md"
+        "skills/chief-of-staff/references/daily-brief.md",
+        "skills/chief-of-staff/references/delta.md"
       ],
       "router_refs": [
         {
@@ -357,7 +360,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Delta coverage is per source; one source's freshness does not establish another's"
+        "Delta coverage is per source; one source's freshness does not establish another's",
+        "Changes come from stored Graph delta links per source; a first run or an expired link (410) starts a new bounded baseline, and sources without a delta path are labeled snapshots"
       ]
     },
     {
@@ -629,7 +633,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Availability for people outside your visibility is stated as an assumption, not fact"
+        "Availability for people outside your visibility is stated as an assumption, not fact",
+        "Unattended runs cannot check other people's availability (an action call the scheduled wrapper denies) and report it as a coverage gap"
       ]
     },
     {
@@ -768,7 +773,8 @@
         "anchor": "meeting-prep"
       },
       "sources": [
-        "skills/chief-of-staff/references/meeting-prep.md"
+        "skills/chief-of-staff/references/meeting-prep.md",
+        "skills/chief-of-staff/references/people.md"
       ],
       "router_refs": [
         {
@@ -822,7 +828,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "No recap available means pending/unknown, never zero decisions or actions"
+        "No recap available means pending/unknown, never zero decisions or actions",
+        "Transcripts are read directly after the meeting only when transcription was on and the user can read them; live transcripts are not supported on desktop"
       ]
     },
     {
@@ -935,12 +942,17 @@
         "anchor": "relationships"
       },
       "sources": [
-        "skills/chief-of-staff/references/relationships.md"
+        "skills/chief-of-staff/references/relationships.md",
+        "skills/chief-of-staff/references/people.md"
       ],
       "router_refs": [
         {
           "path": "skills/chief-of-staff/SKILL.md",
           "label": "Relationships"
+        },
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "People and org"
         }
       ],
       "automation_refs": [
@@ -953,7 +965,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "No contact on record is not proof no contact happened outside a tracked surface"
+        "No contact on record is not proof no contact happened outside a tracked surface",
+        "Org reads (manager, direct reports, people relevance) reflect the directory, which can be stale; relevance is not a relationship score"
       ]
     },
     {
@@ -976,7 +989,8 @@
         "anchor": "document-queue"
       },
       "sources": [
-        "skills/chief-of-staff/references/doc-queue.md"
+        "skills/chief-of-staff/references/doc-queue.md",
+        "skills/chief-of-staff/references/sharepoint.md"
       ],
       "router_refs": [
         {
@@ -1162,12 +1176,17 @@
         "anchor": "file-sharing"
       },
       "sources": [
-        "skills/chief-of-staff/references/files.md"
+        "skills/chief-of-staff/references/files.md",
+        "skills/chief-of-staff/references/sharepoint.md"
       ],
       "router_refs": [
         {
           "path": "skills/chief-of-staff/SKILL.md",
           "label": "Large files"
+        },
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "SharePoint"
         }
       ],
       "automation_refs": [],
@@ -1178,7 +1197,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Uses the standard approved Work IQ write path, separate from the blocked local-bridge copy/upload commands"
+        "Uses the standard approved Work IQ write path, separate from the blocked local-bridge copy/upload commands",
+        "SharePoint approvals, access, versions and restore use discovered /sharepoint or Graph paths; reads are free, every change needs approval, and the family is hidden with WorkIQAgent.Ask only"
       ]
     },
     {
@@ -1258,7 +1278,8 @@
         "anchor": "follow-through"
       },
       "sources": [
-        "skills/chief-of-staff/references/follow-through.md"
+        "skills/chief-of-staff/references/follow-through.md",
+        "skills/chief-of-staff/references/people.md"
       ],
       "router_refs": [
         {
@@ -1661,12 +1682,18 @@
       },
       "sources": [
         "skills/chief-of-staff/references/work-products.md",
-        "skills/chief-of-staff/scripts/work_state.py"
+        "skills/chief-of-staff/scripts/work_state.py",
+        "skills/chief-of-staff/references/copilot-agents.md",
+        "skills/chief-of-staff/references/publishing.md"
       ],
       "router_refs": [
         {
           "path": "skills/chief-of-staff/SKILL.md",
           "label": "Prepare the work"
+        },
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Ask a Copilot agent"
         }
       ],
       "automation_refs": [],
@@ -1687,7 +1714,8 @@
       "maintainer_role": "Margo maintainers",
       "limitations": [
         "Unattended preparation is local only and bounded to the single highest-priority item",
-        "Office documents use Work IQ's preview Office document tools, need the tenant's Work IQ policy to allow writes, and are never re-created after an unclear answer"
+        "Office documents use Work IQ's preview Office document tools, need the tenant's Work IQ policy to allow writes, and are never re-created after an unclear answer",
+        "Copilot agent answers are reported as that agent's answer and treated as data; agents are asked only in a conversation"
       ]
     },
     {
@@ -1710,12 +1738,17 @@
       },
       "sources": [
         "skills/chief-of-staff/references/work-products.md",
-        "skills/chief-of-staff/scripts/work_state.py"
+        "skills/chief-of-staff/scripts/work_state.py",
+        "skills/chief-of-staff/references/publishing.md"
       ],
       "router_refs": [
         {
           "path": "skills/chief-of-staff/SKILL.md",
           "label": "Prepare the work"
+        },
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Publish a page"
         }
       ],
       "automation_refs": [],
@@ -1733,7 +1766,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Content approval for a memo is not approval to publish or send it"
+        "Content approval for a memo is not approval to publish or send it",
+        "Publishing to Copilot Pages or SharePoint uses discovered /pages or /sharepoint writes, needs WorkIQ.Act and tenant policy, and is unavailable when not offered"
       ]
     },
     {
@@ -1825,7 +1859,8 @@
       "implementation_kind": "procedure",
       "since_version": "1.0.0",
       "prerequisites": [
-        "Community name and GroupId recorded in preferences.md"
+        "Community name and GroupId recorded in preferences.md",
+        "Work IQ /engage reads (WorkIQ.Read); posting also needs WorkIQ.Act and a tenant Work IQ policy that allows Engage writes"
       ],
       "surfaces": [
         "cli"
@@ -1853,8 +1888,9 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "The verified Work IQ binding exposed grounded retrieval, not structured Engage paths or usable reply/upvote counts; re-check current host capabilities",
-        "The bundled parser has no dedicated automated test in this repository"
+        "Structured /engage paths are discovered at run time; when they are unavailable the read-out falls back to grounded retrieval, labeled search-based, with no reliable reply counts",
+        "Engage writes are blocked by default by tenant Work IQ policy; a blocked post is reported, never sent another way",
+        "The bundled fallback parser has no dedicated automated test in this repository"
       ]
     },
     {
@@ -2281,7 +2317,8 @@
       },
       "sources": [
         "automations/hourly-sweep.md",
-        "skills/chief-of-staff/references/proactive.md"
+        "skills/chief-of-staff/references/proactive.md",
+        "skills/chief-of-staff/references/delta.md"
       ],
       "router_refs": [
         {
@@ -2366,7 +2403,8 @@
       },
       "sources": [
         "skills/chief-of-staff/references/state-operations.md",
-        "skills/chief-of-staff/scripts/proactive_state.py"
+        "skills/chief-of-staff/scripts/proactive_state.py",
+        "skills/chief-of-staff/references/delta.md"
       ],
       "router_refs": [
         {
@@ -2399,7 +2437,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "One source succeeding never advances another source's checkpoint"
+        "One source succeeding never advances another source's checkpoint",
+        "Delta links are bound to the recorded capability, query version and kind; changing any of them forces a resynchronization"
       ]
     },
     {

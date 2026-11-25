@@ -17,15 +17,15 @@ features. You do not need schedules, a canvas, or local embeddings for your firs
 | Draft a reply or an executive follow-up | [Drafting and follow-ups](drafting-and-follow-ups.md) |
 | Schedule, reschedule, RSVP, or clean up my calendar | [Calendar management](calendar-management.md) |
 | Plan a week, prepare a meeting, and follow it through | [Outcomes and meetings](outcomes-and-meetings.md) |
-| Keep up with people and 1:1s | [Relationships and one-on-ones](relationships-and-one-on-ones.md) |
+| Keep up with people and 1:1s; look up someone's manager or reports | [Relationships and one-on-ones](relationships-and-one-on-ones.md) |
 
 ## Carry work forward
 
 | I want to... | Start here |
 | --- | --- |
 | Track an ask, chase a reply, or review an action | [Commitments and action desk](commitments-and-action-desk.md) |
-| Prepare a memo, comparison, agenda, status update or delegation brief | [Feedback and work products](feedback-and-work-products.md) |
-| Read, download, copy, upload or share a file | [Documents and files](documents-and-files.md) |
+| Prepare a memo, comparison, agenda, status update or delegation brief; publish it; ask a Copilot agent | [Feedback and work products](feedback-and-work-products.md) |
+| Read, download, copy, upload or share a file; check SharePoint approvals, access or versions | [Documents and files](documents-and-files.md) |
 | Review GitHub PRs or an Azure DevOps backlog | [GitHub and work items](github-and-work-items.md) |
 | Watch a community or feedback channel | [Community and feedback](community-and-feedback.md) |
 | Keep a durable team decision log | [Decision log](decision-log.md) |

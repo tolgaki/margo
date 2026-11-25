@@ -64,7 +64,9 @@ they approved a topic string, not a destination.
 3. Present in the Draft Studio block (see `drafting.md` §4), naming the resolved
    **chat topic, its members, and the chat `id`** you will post to. The user is approving
    that destination as much as the text.
-4. Iterate on feedback. **On explicit approval**, post with `workiq-create_entity` on
+4. Iterate on feedback. Run `workiq-get_schema` for `/chats/{id}/messages` (create) before
+   building the body, and use only its fields. **On explicit approval**, post with
+   `workiq-create_entity` on
    `/chats/{id}/messages` — using the id you already showed them — with an **HTML** body
    (`body.contentType = "html"`) so bold headers, bullets, and italic credits render.
 5. Confirm posted (with timestamp/sender) and offer the natural next step (shiproom

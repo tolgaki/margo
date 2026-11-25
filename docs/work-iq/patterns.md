@@ -1,36 +1,19 @@
-# How Margo uses Work IQ
+# Work IQ patterns: tool choice, payloads, citations and writes
 
-Work IQ is the Microsoft 365 surface Margo runs on: an MCP server that exposes mail, calendar,
-Teams chats and channels, OneDrive/SharePoint documents, meeting recaps and the people directory
-to an agent — for reading *and* for writing.
+Work IQ is the Microsoft 365 surface Margo runs on: one MCP server that exposes mail, calendar,
+Teams chats and channels, OneDrive and SharePoint documents, meeting recaps and the people
+directory to an agent, for reading *and* for writing. [What Work IQ is and how to load it](README.md)
+covers the server itself; this page covers the part that isn't obvious from the tool list:
+**which tool to reach for, how to keep payloads small enough that judgment survives, and how to
+treat citations and writes.** Failures have their own page: [errors and recovery](errors.md).
 
-This document is about the part that isn't obvious from the tool list: **which tool to reach for,
-how to keep payloads small enough that judgment survives, and what to do when a call fails.**
-Those three things are the difference between a brief that arrives in twenty seconds with a
+Those choices are the difference between a brief that arrives in twenty seconds with a
 recommendation on every line, and one that arrives in three minutes having spent its whole context
 window on JSON.
-
-For first-time use, start with [Getting started](getting-started.md). This page is the integration
-reference for the [developer journey](development/README.md) and
-[worked request flows](walkthroughs.md).
 
 > This repository uses names such as `workiq-fetch`. The callable name comes from the host's
 > registered MCP server, not the skill folder. Discover the tool and its current schema before
 > calling it; do not assume another host exposes the same spelling or arguments.
-
-## How Work IQ is loaded
-
-Work IQ is an MCP server (`https://workiq.svc.cloud.microsoft/mcp`), and both Margos load it as one:
-
-- **Desktop**: the agent harness (GitHub Copilot CLI) registers the server and signs in; Margo's skills call its
-  tools by their registered names (`workiq-fetch`, `workiq-ask`, ...). No Margo code talks to Work IQ.
-- **Margo Cloud**: a custom agent, so it is its own MCP client, built on the official MCP C# SDK
-  ([`cloud/src/Margo.Cloud.WorkIQ`](../cloud/src/Margo.Cloud.WorkIQ/WorkIQMcpTransport.cs)). It keeps one MCP session
-  per identity, because Work IQ answers as the subject of the token. It reads the server's own tool list
-  (`tools/list`) and gives the model those descriptions and argument schemas, limited by
-  [the guard](../cloud/src/Margo.Cloud.Guard/WorkIQGuard.cs) to the read tools and arguments it allows. Writes never
-  reach the model as tools: they go through approval cards. A write gets an MCP session of its own and is never sent
-  twice.
 
 ---
 
@@ -69,6 +52,10 @@ service. Recheck capabilities rather than treating a previously observed limitat
 | `do_action` · `create_entity` · `update_entity` · `delete_entity` | Sending, replying, scheduling, RSVPing, marking read. **Only after explicit approval.** |
 | `get_schema` · `search_paths` | Discover required fields and valid paths *before* any create or update. |
 | `fetch_blob` | Binary content up to 4 MB. Larger files go through `scripts/m365_files.py` — see [large files](#large-files). |
+| `list_agents` · `ask` with `agentId` | Find the Copilot agents available to the signed-in user, then ask one of them by ID. |
+
+The [capability map](capability-map.md) lists every tool and path family with the Margo file that
+uses it and what it requires.
 
 ---
 
@@ -165,28 +152,17 @@ Two notes specific to Work IQ that shape how Margo drafts:
   bounded task run is not a substitute for creating that requested external task. Link the
   canonical ID rather than creating another competing tracker; report a denied path as blocked.
 
-See **[Trust & safety](safety.md)** for the full approval model, including which actions can be
+See **[writes and approvals](writes-and-approvals.md)** for the reusable pattern and
+**[Trust & safety](../safety.md)** for the full approval model, including which actions can be
 covered by a standing instruction and which never can.
 
 ---
 
 ## When Work IQ says no
 
-Failures here are mostly *informative*, and treating them as transient is the mistake.
-
-| Symptom | Meaning | Do |
-|---|---|---|
-| `400 InefficientFilter` | No index backs that filter+sort pair | Drop the `$filter`, keep `$orderby`, narrow locally |
-| `Access denied for path: X` | The tenant has disabled that path family server-side | **Don't retry, don't reroute, don't fall back to `ask`.** Tell the user the path is not available in their tenant |
-| `400` on `calendarView` | Missing `startDateTime` / `endDateTime` | They're mandatory — supply both |
-| Empty tree from a CLI query | Often a tool limitation, not an empty result | Verify by another route before reporting zero |
-| `tool does not exist` | Incorrect callable name or unavailable tool | Discover the host's full registered tool name and schema |
-
-`/me/todo/*`, `/me/contacts` and `/me/outlook/masterCategories` writes are commonly denied at the
-tenant level. Also worth knowing: directory users and personal contacts are **separate stores with
-incompatible IDs** — a person found via people search cannot be updated as `/me/contacts/{id}`.
-
-For deeper troubleshooting, load the `workiq` skill and read its `references/troubleshooting.md`.
+Failures here are mostly *informative*, and treating them as transient is the mistake. A denied
+path is a tenant decision, not a cue to retry, reroute or fall back to `ask`. Every observed error,
+with its request shape and recovery, is in **[errors and recovery](errors.md)**.
 
 ---
 
@@ -199,7 +175,7 @@ a transfer route. For larger files, this repo ships
 It can discover the client ID from the Work IQ MCP OAuth configuration, but performs its own
 interactive sign-in; it does not reuse the MCP connection's token or prove the same user signed in.
 
-The bridge currently requires **macOS Keychain** for its refresh-token store. From a default
+The bridge requires **macOS Keychain** for its refresh-token store. From a default
 copy installation on macOS, replace the fictional account and provider IDs:
 
 ```bash
@@ -212,16 +188,16 @@ python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py --account you@exa
 `--account` is a global option before the subcommand. Its environment fallback is
 `MARGO_M365_ACCOUNT`, not the work ledger's `MARGO_ACCOUNT`. Confirm status's returned `upn`
 matches the intended principal; the account label is only a login hint and credential key.
-Status may refresh a token. Client discovery currently uses `~/.copilot/mcp-oauth-config`
+Status may refresh a token. Client discovery uses `~/.copilot/mcp-oauth-config`
 even when `COPILOT_HOME` points at another installation.
 
-Download works today. Server-side copy and upload are written and waiting on one thing: the
+Download works. Server-side copy and upload are written and waiting on one thing: the
 documented client's consented Graph scopes lack file-write permission. `status` reports
 `can_write_files` so you can check rather than guess. Scope availability alone does not prove
 a completed transfer; the large upload-session path also has a documented token-audience
 limitation. Full detail in
-[documents and files](how-to/documents-and-files.md) and the
-[file procedure](../skills/chief-of-staff/references/files.md). A scope or policy denial is a
+[documents and files](../how-to/documents-and-files.md) and the
+[file procedure](../../skills/chief-of-staff/references/files.md). A scope or policy denial is a
 blocked result, not permission to reroute through another credential or tool. This bridge is
 not covered by the scheduled wrappers' Work IQ tool denials.
 
@@ -229,8 +205,8 @@ not covered by the scheduled wrappers' Work IQ tool denials.
 
 ## Where to look next
 
-- **[Walkthroughs](walkthroughs.md)** — the tools above in sequence, from finding a slot to
+- **[Walkthroughs](../walkthroughs.md)** — the tools above in sequence, from finding a slot to
   sending the email.
-- **[The chief-of-staff playbook](chief-of-staff.md)** — which routine uses which tools.
-- **[Proactive & scheduled](proactive.md)** — how unattended runs use delta cursors so they don't
+- **[The chief-of-staff playbook](../chief-of-staff.md)** — which routine uses which tools.
+- **[Proactive & scheduled](../proactive.md)** — how unattended runs use delta cursors so they don't
   repeat themselves.

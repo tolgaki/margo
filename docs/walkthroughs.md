@@ -59,7 +59,7 @@ uses a standalone publication, not a fabricated queue item.
 ### What comes back
 
 ```
-☀️ Daily Brief — Thursday, 28 August
+☀️ Daily Brief — Thursday, August 28
 
 🎯 Top priorities today
   1. Reply to Dana on the parity numbers — she's blocked, asked Tuesday → draft ready

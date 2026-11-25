@@ -17,7 +17,10 @@ what matters, what's coming, and what needs them.
    named by their `section` field. Publish the actual output and receipt before acknowledging
    only its included IDs. Source coverage and publication are separate state transitions.
 
-2. **Enumerate the skeleton (use `workiq-fetch`, in parallel, always with `$select` + `$top`):**
+2. **Enumerate the skeleton (use `workiq-fetch`, in parallel, always with `$select` + `$top`).**
+   State a page budget for each collection (default 5 pages). Follow `@odata.nextLink` until the
+   collection is complete or the budget runs out; a source that still has a `nextLink` is
+   **partial** and is reported as such in the brief, never counted as complete.
    - **Calendar:** today's `/me/calendarView` between start/end of day
      (`$select=id,subject,start,end,organizer,attendees,isAllDay,onlineMeeting,location,webLink`).
      Note back-to-backs and missing prep time.
@@ -29,20 +32,27 @@ what matters, what's coming, and what needs them.
      flagged items out locally from the `flag` field. Prioritize items where the user is the
      sole/primary recipient (higher signal than CC).
    - **Teams:** there is no reliable `workiq-fetch` path that enumerates *unread* Teams messages —
-     don't burn calls looking for one. Cover Teams via `workiq-ask` in step 3 ("what needs my
-     attention in Teams — DMs, @mentions, active chats?") or via chat-message delta
-     (`workiq-call_function`) for a precise since-yesterday sweep.
+     don't burn calls looking for one. Use a chat delta path if `delta.md` discovery finds one;
+     otherwise build the recency queue in `triage.md` step 3 and label it a snapshot. Then ask
+     about those chats in step 3.
    - **Commitments/tasks:** Planner tasks due soon (`/planner/...`), and follow-ups.
    - **GitHub:** review requests, stale PRs, and assigned issues — see `github.md`. These are
      commitments with the same standing as email; a review request sitting three days is exactly
      as overdue as an unanswered ask, and belongs in the same sections of the brief.
 
-3. **Synthesize with `workiq-ask` (1–3 focused questions, not one giant prompt; pass `timeZone`):**
-   - "What's changed or is new across my inbox, meetings, and Teams since yesterday evening?"
-   - "Across my unread mail and Teams messages, what actually needs a response from me today,
-     and what's the ask in each?"
-   - "For today's meetings {list titles}, what's the purpose and what do I need to prepare?"
-   Use delta endpoints (`workiq-call_function`) for precise "since yesterday" changes.
+3. **Read what changed, then synthesize over it.**
+   - **Delta first.** Follow `delta.md` for mail and calendar (and chats when a delta path is
+     discovered): replay each source's stored delta link with `workiq-call_function`, record
+     pages and coverage with `proactive_state.py`, and do a bounded full sync on first use or
+     after a 410. This is the "changed since yesterday" set; do not ask `workiq-ask` to
+     reconstruct it.
+   - **Then `workiq-ask` over the diff** (1–3 focused questions, not one giant prompt; pass
+     `timeZone`). Name the changed and unread items in the question:
+     - "These items changed since {checkpoint}: {one line each with link}. Which need a response
+       from me today, and what's the ask in each?"
+     - "For today's meetings {list titles}, what's the purpose and what do I need to prepare?"
+   - Report each source's coverage (complete, new baseline, partial, unavailable) in the brief.
+     A partial delta is not "nothing else changed".
 
 4. **Prioritize.** Rank by hard deadline, consequence, what is unblocked, agreed outcome impact,
    and effort, respecting the user's explicit VIP overrides. Use `outcomes.md` for the capacity
@@ -51,6 +61,10 @@ what matters, what's coming, and what needs them.
 
 5. **Render** in the Standard Daily Brief format (see SKILL.md). Trim empty sections. Every
    actionable line ends in a recommended action (reply / delegate / decline / schedule / read).
+   Apply the sensitivity-label rule from SKILL.md: show the label of any labeled item a line
+   quotes or summarizes, keep Confidential and Highly Confidential items to title, ask and link,
+   and cite the underlying source (via `workiq-retrieve` or `workiq-fetch`) for anything taken
+   from `workiq-ask`, which carries no label.
    Render confirmed work separately from new candidates; recheck resolution before recommending
    a nudge. Include material coverage gaps and execution problems, not just the host run status.
 
@@ -76,8 +90,10 @@ and the machine awake at the scheduled time.
 ## § Catch-up ("what did I miss")
 Same data pull, scoped to a window (since last login / yesterday / while I was out N days). Lead
 with: decisions made, things that now need the user, threads that moved, and anything that went
-stale waiting on them. Use delta endpoints for accuracy. End with a short "here's what I'd tackle
-first" recommendation.
+stale waiting on them. Read the window with `delta.md` (replay the stored link, or a bounded full
+sync from the window's start when none exists), then `workiq-ask` only over the changed items.
+Name any source whose coverage does not reach back to the window's start. End with a short
+"here's what I'd tackle first" recommendation.
 
 ## § End-of-day wrap-up
 - What got resolved vs. what's still open.
@@ -103,7 +119,8 @@ coverage remain explicit gaps; do not report a feasible allocation from incomple
    coming Monday; honor an explicit window if the user gives one.
    - `/me/calendarView?startDateTime={ISO}&endDateTime={ISO}` with
      `$select=id,subject,start,end,organizer,attendees,isAllDay,onlineMeeting,location,responseStatus,webLink,hasAttachments`,
-     `$top=50`.
+     `$top=50`. Follow `@odata.nextLink` until the window is complete (budget 10 pages); a
+     truncated week is reported as partial, because it understates the load.
    - Pending invites in that window (`responseStatus` not responded) — these are the cheapest
      thing to fix early and the most annoying to fix late.
    - Planner tasks and follow-ups due inside the window.

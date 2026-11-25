@@ -66,11 +66,13 @@ Action input:
 }
 ```
 
-Use the **discovered** Work IQ API's exact fields, not this illustrative payload as a guessed
-send schema. Store any recipients, IDs, body, dates, attachment references, diff and other
-write-relevant fields in target/payload. Optional `affected_people`, `dependencies` (work IDs),
-`artifact_id` and exact `artifact_revision` are included in the approved snapshot. A linked
-artifact must be current and not stale. Resolve dependencies before execution.
+Use the **discovered** Work IQ API's exact fields, not this illustrative payload as a guessed send
+schema: run `workiq-search_paths` when the path is not verified and `workiq-get_schema` for the
+exact path and operation before writing the proposal's payload. A proposal whose payload was not
+built from the schema is not ready for approval. Store any recipients, IDs, body, dates, attachment
+references, diff and other write-relevant fields in target/payload. Optional `affected_people`,
+`dependencies` (work IDs), `artifact_id` and exact `artifact_revision` are included in the approved
+snapshot. A linked artifact must be current and not stale. Resolve dependencies before execution.
 
 The source command computes fingerprints from recorded minimal evidence/link/sensitivity.
 For target fingerprints, deterministically hash all externally observed fields relevant to the

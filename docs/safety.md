@@ -99,16 +99,13 @@ Scheduled, unattended runs **never** send, post, RSVP, delete or change a work i
 of any standing authorization you've granted.
 
 Private drafts may be prepared and held for later review. They are never delivered to recipients
-or written to Outlook/shared storage unattended. An anchor may make its brief available locally;
+or written to Outlook/shared storage unattended. An anchor (a scheduled run at a fixed time) may make its brief available locally;
 availability is not proof that a human has read it.
 
-**The hosted autopilot design has one approved exception.** If Margo runs as an Agent 365
-autopilot with her own identity (Margo Cloud; see [autopilot](autopilot.md)),
-she may message her own manager in their one-to-one chat at any time, including unattended. The
-target is fixed at hire and enforced in code, and a run started by anyone else's message cannot
-use it; every other outbound action keeps the rules above. This exception is designed but **not built** in the
-current version: Margo Cloud answers only within a conversation.
-The local assistant in this repository is unchanged.
+**Margo Cloud: unattended messages to the manager.** Not available yet. The
+[design](autopilot.md#62-outward-action-tiers) allows one exception, a message to her own manager in
+their one-to-one chat (a target fixed at hire, never usable by a run someone else's message started);
+Margo Cloud answers only within a conversation. Desktop Margo has no exception.
 
 ### Margo Cloud approval cards
 
@@ -215,8 +212,9 @@ their text in front of *you* — into your inbox, a thread you're in, a document
 with her own mailbox can be emailed directly by anyone in the tenant, by people who never had a
 reason to reach you at all. This rule stops being a secondary defense and becomes the primary one,
 at exactly the moment the approval gate in §1 loses its footing, because "she sends under her own
-name" is what that gate was built to prevent. If you are considering it, read
-**[Margo as an autopilot](autopilot.md)** before you provision anything.
+name" is what that gate was built to prevent. In Margo Cloud, Margo has her own mailbox and can be
+messaged by anyone in the tenant; see
+[Who Margo answers](autopilot-deployment.md#who-margo-answers) in the deployment guide.
 
 ---
 
@@ -296,6 +294,21 @@ Before publication, inspect the exact proposed commit tree as well as running th
 The checker is a heuristic, not a proof: it cannot identify every personal name, project codename,
 or sensitive sentence, and build output/session artifacts must not be staged. Repository URLs,
 license attribution, and Git commit authorship are public project metadata, not runtime profiles.
+
+### What Margo Cloud stores and where
+
+Margo Cloud keeps nothing on your machine. Each hired Margo's records live in your organization's
+Azure storage account, in that instance's own container:
+
+| What | Where | Kept |
+| --- | --- | --- |
+| Work ledger, approvals, memory of the manager, her own notes, the manager's `preferences.md` | The instance's `state.zip`, with daily copies under `daily/` | Until an administrator deletes them; replaced versions and daily copies expire after the retention period (30 days by default) |
+| Requests from colleagues (sender, conversation, short excerpt) | The same state | No automatic expiry |
+| Operational logs (operation, kind of resource, outcome; no message content) | Application Insights and Log Analytics | 30 days by default |
+
+Administrators with data access to the storage account can read every manager's records. See the
+[terms](../cloud/terms.md#privacy) and the deployment guide's [Operate](autopilot-deployment.md#operate) rows on
+state and retention.
 
 ---
 

@@ -27,7 +27,11 @@ JSON, because the user should be able to correct a cadence without a tool.
 - **Last 1:1**: an actual scheduled conversation. Tracked separately because a flurry of email
   is not a relationship.
 
-Seed it from `preferences.md` → People (VIPs, management chain, directs) with default cadences:
+Seed it from `preferences.md` → People (VIPs, management chain, directs) with default cadences.
+Fill the Relationship column from the org reads in `people.md` (`/me/manager`, its manager,
+`/me/directReports`) rather than asking the user to type the chain, and confirm the roster with
+them before measuring against it. `/me/people` can suggest frequent collaborators to add; it is
+a relevance ranking, not a relationship score:
 
 | Relationship | Default cadence |
 |---|---|

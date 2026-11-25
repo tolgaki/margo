@@ -25,15 +25,41 @@ acting. A remembered time zone or availability is not fresh scheduling evidence.
 3. **Check availability:**
    - The user's own calendar: `workiq-fetch` `/me/calendarView` over the candidate window with
      `$select=id,subject,start,end,showAs,isAllDay,organizer`.
-   - Others' availability: use the Graph scheduling helpers (`findMeetingTimes` /
-     `getSchedule`) via `workiq-do_action` / `workiq-call_function` — see the workiq skill's
-     references for exact shapes. If availability for someone isn't visible, say so; propose
-     times that at least work for the user and note the assumption.
+   - Others' availability: use the Graph scheduling helpers (`/me/findMeetingTimes`,
+     `/me/calendar/getSchedule`). Both are POST actions, so they go through `workiq-do_action`;
+     run `workiq-get_schema` for the path first for the exact body. They read free/busy and
+     change nothing; the host may still ask the user to allow the tool call. If availability
+     for someone isn't visible, say so; propose times that at least work for the user and note
+     the assumption.
+   - **Unattended runs do not call them.** The scheduled wrapper denies `workiq-do_action`
+     entirely, and the read-only boundary is not widened for this. In a scheduled run, do not
+     attempt either helper or a substitute. Report
+     "availability not checked (needs an attended run)" as a coverage gap, and leave slot
+     proposals for the next conversation.
 4. **Propose 2–3 concrete slots**, honoring working hours and protected focus blocks (theirs
    too, when visible). Flag any trade-off (e.g. "only slot is inside your 2–4pm heads-down").
 5. **On approval**, create the event via `workiq-create_entity` on `/me/events` (subject,
    attendees, Teams link if requested, agenda in the body — offer to draft the agenda via Draft
-   Studio). Confirm what was created, with the event's `webLink`.
+   Studio). Build the payload from the schema (see the worked example below), not from memory.
+   Confirm what was created, with the event's `webLink`.
+
+#### Worked example: discover, then create an event
+
+```text
+1. workiq-search_paths  query: "create calendar event"        → confirms /me/events, create
+2. workiq-get_schema    path: "/me/events", operation: create → required/allowed fields
+3. Build the payload from those fields only, show it in the approval block, wait for "yes".
+4. workiq-create_entity parentUrl: "/me/events"
+   jsonBody: {"subject": "Q3 planning follow-up",
+              "start": {"dateTime": "2026-12-02T15:00:00", "timeZone": "Pacific Standard Time"},
+              "end":   {"dateTime": "2026-12-02T15:30:00", "timeZone": "Pacific Standard Time"},
+              "attendees": [{"emailAddress": {"address": "dana@example.com"}, "type": "required"}],
+              "isOnlineMeeting": true, "onlineMeetingProvider": "teamsForBusiness",
+              "body": {"contentType": "Text", "content": "{the approved agenda}"}}
+```
+
+If the schema lacks a field you planned to send (for example `onlineMeetingProvider`), drop it
+and tell the user what changes, rather than guessing a different field name.
 
 ### B. Reschedule / cancel ("move my 2pm", "cancel the sync")
 
@@ -42,8 +68,10 @@ acting. A remembered time zone or availability is not fresh scheduling evidence.
 2. For a reschedule, find a new slot as in mode A; present old → new, who's affected, and
    whether the user is the organizer (organizer moves the event; an attendee proposes a new time
    or replies instead).
-3. **On approval**, `workiq-update_entity` the event (or `workiq-do_action` to cancel). If a note
-   to attendees is warranted, draft it for approval like any other message.
+3. **On approval**, `workiq-update_entity` the event (or `workiq-do_action` to cancel), after
+   `workiq-get_schema` for `/me/events/{id}` (update) or `/me/events/{id}/cancel` (action).
+   Send only the changed fields. If a note to attendees is warranted, draft it for approval like
+   any other message.
 
 ### C. Invite triage ("should I accept these?", pending RSVPs)
 
@@ -57,7 +85,9 @@ acting. A remembered time zone or availability is not fresh scheduling evidence.
    - ❌ **Decline** — matches the user's decline rules; draft a polite decline note if one is due.
 3. **Present the list** with a one-line rationale per invite and the recommended response.
 4. **On approval only**, respond via `workiq-do_action` (accept/decline/tentativelyAccept) —
-   batch is fine, but re-confirm the batch exactly ("accept these 3, decline these 2?").
+   batch is fine, but re-confirm the batch exactly ("accept these 3, decline these 2?"). Run
+   `workiq-get_schema` for `/me/events/{id}/accept` (or the decline/tentative action) once per
+   action type before building the bodies.
 
 ### D. Hygiene ("how's my calendar looking", "what can I cut", weekly ambient scan)
 
@@ -68,8 +98,10 @@ the user what it costs them. Quantify — "nine hours last week where you were o
 1. **Pull a real window**, not today: last week and the next two, via `/me/calendarView`
    (mandatory `startDateTime`/`endDateTime` — it 400s without them),
    `$select=id,subject,start,end,organizer,attendees,isAllDay,isCancelled,responseStatus,recurrence,seriesMasterId,body,webLink`,
-   `$top=250`. Page until the window is genuinely complete; a truncated pull understates the
-   problem, and understating it is the one failure mode that makes this section pointless.
+   `$top=250`. Follow `@odata.nextLink` until the window is genuinely complete, within a stated
+   budget (default 10 pages); a truncated pull understates the problem, and understating it is
+   the one failure mode that makes this section pointless. If the budget runs out, report the
+   window as partial and do not compute percentages from it.
 
 2. **Compute, don't impress.** Report hours, not adjectives:
    - **Optional hours** — meetings where the user's `responseStatus`/attendee type is optional, or

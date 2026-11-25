@@ -15,8 +15,11 @@ agent selection, and unrelated coding or general questions do not require this p
 Loading it does not select, rename, or impersonate an agent. Keep the caller's existing identity
 and voice; agent selection belongs to the host.
 
-**Requires** the Work IQ MCP server (the Microsoft 365 surface). No local package is needed — all
-data access is MCP tool calls. Composes with the `workiq`, `docx`, and `pptx` skills.
+**Requires** the Work IQ MCP server (the Microsoft 365 surface). Workplace data access is through
+its MCP tools. The bundled Python helpers in `scripts/` keep local state (ledger, coverage, memory)
+and parse large results; one of them, `scripts/m365_files.py`, is a separate Microsoft Graph client
+for files over 4 MB with its own sign-in (`references/files.md`). Composes with the `workiq`,
+`docx`, and `pptx` skills.
 
 ## 🛑 Non-negotiable operating rules
 
@@ -33,7 +36,8 @@ data access is MCP tool calls. Composes with the `workiq`, `docx`, and `pptx` sk
    These **always** require approval of the specific action, no matter what standing
    instruction exists, because they are visible to other people or cannot be undone:
    send / reply / forward, Teams or Engage posts and reactions, meeting accept / decline /
-   tentative / cancel, delete, and Azure DevOps create or update. If the user asks for a
+   tentative / cancel, delete, publishing to Copilot Pages or SharePoint, SharePoint approvals,
+   restores and permission changes, and Azure DevOps create or update. If the user asks for a
    standing grant over one of these, say plainly that this one stays per-action and offer
    the bounded version instead.
 2. **Ground everything in real data.** Never invent meetings, senders, quotes, or commitments.
@@ -69,14 +73,31 @@ Re-resolve and retry — never report the data as unavailable because the first 
 |---|---|---|
 | `workiq-fetch` | Literal structured reads: today's `calendarView`, unread `messages`, chat lists, a known event/message by ID. Use to enumerate and to resolve exact IDs. | Sub-second |
 | `workiq-retrieve` | Grounded search returning raw hits **with `webLink` and sensitivity labels**. Best when you need citable sources fast, or need to know whether content is labeled before quoting it. | Seconds |
-| `workiq-ask` | Semantic synthesis: "what's top of mind", "summarize the thread", "what was decided", "what's the status of X". Reasons across sources. Pass `timeZone`. | Slow (10-60s) |
-| `workiq-call_function` | **delta** endpoints for "what changed / what's new since …". | Fast |
-| `workiq-do_action` / `workiq-create_entity` / `workiq-update_entity` / `workiq-delete_entity` | Sending, replying, scheduling, marking read. **Only after explicit approval.** | — |
-| `workiq-get_schema` / `workiq-search_paths` | Discover required fields and valid paths before any create/update. | Fast |
+| `workiq-ask` | Semantic synthesis: "what's top of mind", "summarize the thread", "what was decided", "what's the status of X". Reasons across sources. Pass `timeZone`. With `agentId`, directs the question to one Copilot agent (`references/copilot-agents.md`). Output carries no sensitivity label. | Slow (10–30 s) |
+| `workiq-call_function` | Graph functions, including **delta** for "what changed / what's new since …". Follow `references/delta.md`: store and replay the delta link, then `workiq-ask` over the changed items only. | Fast |
+| `workiq-fetch_blob` | A file's bytes, base64 in the result, up to 4 MB. Larger files use `scripts/m365_files.py` (`references/files.md`). | Size-bound |
+| `workiq-list_agents` | The Copilot agents available to ask. | Fast |
+| `workiq-do_action` / `workiq-create_entity` / `workiq-update_entity` / `workiq-delete_entity` | Sending, replying, scheduling, marking read, publishing. **Only after explicit approval.** (The free/busy helpers in `references/calendar.md` are reads that use `do_action`; scheduled runs cannot call them.) | — |
+| `workiq-get_schema` / `workiq-search_paths` | Discover valid paths (`search_paths`) and the exact fields of one path and operation (`get_schema`). **Required before every write**, and before the first read of a path you have not verified. | Fast |
 
 Prefer `workiq-fetch` to enumerate concrete items (so nothing is missed) and `workiq-ask` to
 synthesize meaning and priority across them. When you need a person's, event's, or thread's exact
 ID before acting, resolve it with `workiq-fetch` — never with `workiq-ask`.
+
+**Discover before every write.** Before building any write payload, run `workiq-search_paths` when
+the path is not already verified, then `workiq-get_schema` for that exact path and operation. Build
+the payload from the schema's required and allowed fields, never from memory or an example in
+these references. A path or field the schema does not offer is unavailable: say so rather than
+trying a sibling path. Newer path families (`/pages`, `/engage`, `/sharepoint`, `/copilot`,
+`/office-agent-mcp`) are found the same way and may be missing, read-only, or blocked by tenant
+Work IQ policy for a given user.
+
+**Margo Cloud** has no write tools: every write is a proposal plus an approval card (see
+`references/work-products.md`). In its recommended `delegation` mode, only the manager's mail and
+calendar are readable; `workiq-ask`, `workiq-retrieve` and every other read of the manager's own
+data (Teams, files, people relevance, the newer path families) report unavailable. Margo's own
+token reaches only what is hers or shared with her. Say which applies rather than implying a
+complete answer.
 
 ### Payload discipline (required)
 
@@ -98,6 +119,12 @@ the synthesis you actually need. On **every** `workiq-fetch` against a collectio
   ISO datetimes before they reach a `$filter`.
 - A few collections reject `$select` outright (see `references/teams-feedback.md` § Getting
   the data). Where a reference file documents an exception, the exception wins.
+- **Follow `@odata.nextLink` within a stated page budget.** A collection with more results returns
+  `@odata.nextLink`; pass it (as given, or the part after `/v1.0`) as the next `workiq-fetch` path
+  or `workiq-call_function` `functionUrl`. Decide the budget before you start (for example 5 pages
+  for a brief, 10 for hygiene). If the budget runs out while a `nextLink` remains, the result is
+  **partial**: say so, with what was covered, and never present its counts as complete. Where a
+  reference file documents a collection whose `nextLink` cannot be followed, use its procedure.
 - Fetch full bodies only for the handful of items you're actually drafting against.
 - Issue independent fetches **in parallel in a single tool block**; keep `workiq-ask` calls to
   1–3 focused questions rather than one giant prompt or a long serial chain.
@@ -158,13 +185,14 @@ Pick the routine that matches the request; combine as needed. Full procedures ar
 | **Catch-up / EOD** | "what did I miss", "end of day wrap-up", "what's still open" | `references/daily-brief.md` (§ Catch-up) |
 | **Week ahead** | "prepare me for next week", "what's my week look like", "plan my week" | `references/daily-brief.md` (§ Week ahead) |
 | **Work items (ADO)** | "review the backlog", "how do bugs look", "add a bug", "update that work item" | `references/work-items.md` |
-| **Engage community** | "what's the community saying", "any unanswered questions in Engage", "top topics in my community" | `references/engage.md` |
+| **Engage community** | "what's the community saying", "any unanswered questions in Engage", "top topics in my community", "what's new in my Engage feed" | `references/engage.md` |
 | **Feedback channel** | "what's in the feedback channel", "what are people reporting", "any bugs raised in Teams" | `references/teams-feedback.md` |
 | **Proactive / scheduled** | runs unattended on a schedule; "run my sweep", "what's changed since lunch" | `references/proactive.md` |
 | **Follow-through** | "what am I waiting on", "what needs chasing", "chase {name}", "what have I promised" | `references/follow-through.md` |
 | **GitHub** | "what PRs need me", "what's waiting on my review", "any stale PRs" | `references/github.md` |
 | **Large files** | "download that file", "put this in my OneDrive", "share that recording" — anything over 4 MB | `references/files.md` |
-| **Meeting debrief** | "debrief that meeting", "what did I commit to in the sync", "what came out of it" | `references/meeting-debrief.md` |
+| **Meeting debrief** | "debrief that meeting", "what did I commit to in the sync", "what came out of it", "get the transcript of that meeting", "what did the recap say" | `references/meeting-debrief.md` |
+| **People and org** | "who is in this room", "who does Dana report to", "who are my skip's directs", "who do I work with most on X" | `references/people.md` |
 | **Relationships** | "who haven't I spoken to", "am I neglecting anyone", "when did I last talk to X" | `references/relationships.md` |
 | **Calendar hygiene** | "how's my calendar looking", "what can I cut", "how much time am I losing" | `references/calendar.md` (§ D. Hygiene) |
 | **Unread documents** | "what should I be reading", "what's been shared with me" | `references/doc-queue.md` |
@@ -175,6 +203,9 @@ Pick the routine that matches the request; combine as needed. Full procedures ar
 | **Meeting lifecycle** | "carry this into the next meeting", "watch for the recap", "close out that meeting" | `references/meeting-lifecycle.md` |
 | **Learn from corrections** | "remember that preference", "don't learn from this", "undo that rule" | `references/feedback.md` |
 | **Prepare the work** | "prepare the decision memo", "compare these documents", "write the delegation brief", "make it a Word document", "build a deck on…" | `references/work-products.md` |
+| **Publish a page** | "publish this as a Copilot Page", "put this on the team SharePoint site", "post the status page" | `references/publishing.md` |
+| **SharePoint** | "what's waiting for my approval in SharePoint", "who has access to this file", "restore last week's version", "what changed in that library" | `references/sharepoint.md` |
+| **Ask a Copilot agent** | "ask the HR agent", "which Copilot agents do I have", "ask the {agent} about X" | `references/copilot-agents.md` |
 | **Health and setup** | "is Margo working", "why did the sweep miss this", "set up my ledger", "update my local Margo" | `references/state-operations.md` |
 | **Memory and context** | "what do you remember", "remember this", "forget this", "find related context", "what have you learned" | `references/memory.md` |
 | **Dream reflection** | "Dream about yesterday", "save a session checkpoint", "review Dream", "reflect on our sessions" | `references/dream.md` |
@@ -207,8 +238,9 @@ Three things about it matter enough to state here:
    work is resumable or silently initializing state for a status-only request.
 2. Pull the skeleton with `workiq-fetch` (parallel, with `$select` + `$top`): today's calendar,
    unread/flagged mail, unread Teams mentions/DMs, and anything due.
-3. Synthesize priority and context with `workiq-ask` (what's top of mind, what changed since
-   yesterday, what needs a response today).
+3. Read what changed since the last brief with delta (`references/delta.md`), then synthesize
+   priority and context with `workiq-ask` over the changed items and today's skeleton (what needs
+   a response today, what's top of mind). Report each source's coverage.
 4. Produce the **Daily Brief** in the standard format below, using the existing anchor batch,
    confirmed ledger work and explicit coverage gaps. Persist its output receipt.
 5. Prepare useful local work products in the action desk. In an interactive session, ask for
@@ -245,6 +277,14 @@ Want me to prep any meeting, or draft responses? I'll propose — nothing sends 
 ```
 
 Trim empty sections. Keep each line scannable. Lead with what needs a decision.
+
+**Sensitivity labels.** When a line quotes or summarizes an item that carries a sensitivity label
+(`workiq-retrieve` returns `sensitivityLabel`), show the label on that line, for example
+`[Confidential]`. For Confidential or Highly Confidential items, say only what the user needs to
+act (title, who, the ask, the link) and do not reproduce the content. `workiq-ask` output carries
+no label: before quoting a fact from it, find the underlying source with `workiq-retrieve` or
+`workiq-fetch` and cite that source and its label. If you cannot establish the label, keep the
+line to a pointer and the link.
 
 ## Drafting principle
 

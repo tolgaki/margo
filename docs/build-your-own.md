@@ -156,7 +156,7 @@ human decision, not an authentication mechanism for a generally capable agent.
 
 The Work IQ rules in this repo — `$select` always, `$orderby` never dropped, `ask` never in a loop
 — are each paired with the failure they prevent. A rule with a reason survives; a bare rule gets
-reasoned around the first time it's inconvenient. See [Working with Work IQ](work-iq.md).
+reasoned around the first time it's inconvenient. See [Working with Work IQ](work-iq/patterns.md).
 
 ### Make the repository usable by coding agents
 
@@ -193,8 +193,8 @@ rather than letting an agent claim success from a fixture it wrote to match its 
 If your fork adds a capability, deliver the router entry, focused procedure, existing-owner API
 integration, user guide and synthetic scenario together. Add an optional UI only after the CLI
 path works. Keep its unavailable and recovery states visible. A separate identity or hosted
-service is a different trust design, not an installer flag; [autopilot](autopilot.md) is a
-research note, not a supported setup path.
+service is a different trust design, not an installer flag; [Margo Cloud](margo-cloud.md) is that
+design, deployed separately, not an installer option.
 
 The smaller skill is also worth reading as an example in its own right:
 

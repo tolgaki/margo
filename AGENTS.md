@@ -1,5 +1,7 @@
 # Working on Margo
 
+Instructions for AI coding agents working in this repository. Humans: see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 Margo is a Work IQ reference implementation, not a standalone hosted assistant. Follow
 [CONTRIBUTING.md](CONTRIBUTING.md) and the
 [architecture and state map](docs/development/architecture.md). Use the

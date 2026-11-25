@@ -6,18 +6,21 @@ This page covers installation and connection. Continue through the
 only want to explore or contribute should use the [synthetic-only developer setup](development/README.md)
 instead of connecting their normal profile.
 
-Follow sections 1-4 in order. Optional integrations and schedules can wait until the first
+Check [what you need](#what-you-need), then follow sections 1-4 in order. Optional integrations and schedules can wait until the first
 interactive run is useful. Existing users should review
 [setup and migration](how-to/setup-and-migration.md) before updating private state.
 
-## Prerequisites
+## What you need
 
-| | |
-|---|---|
-| **[GitHub Copilot CLI](https://github.com/github/copilot-cli)** | The host that loads agents and skills |
-| **Work IQ MCP server** | The Microsoft 365 surface. Hosted — no local package needed for tool calls |
-| **A Microsoft 365 work account** | With mail, calendar and Teams |
-| **Python 3.9+** | For the bundled scripts (state ledger, large-file bridge, community parsers) |
+| | | Notes |
+|---|---|---|
+| **GitHub Copilot plan** | Any plan that includes [GitHub Copilot CLI](https://github.com/github/copilot-cli) | Each brief and reply uses your plan's model requests |
+| **GitHub Copilot CLI** | The host that loads Margo's agent and skills | |
+| **A Microsoft 365 work account** | With mail, calendar and Teams | Personal Microsoft accounts don't work |
+| **Microsoft 365 Copilot license and Work IQ** | Work IQ must be enabled in your tenant | Where your tenant meters Work IQ through Copilot Credits, your usage counts against its spending policy |
+| **Admin consent** | Your tenant may require an administrator to consent to the Work IQ application before your first sign-in | Work IQ writes (send, RSVP, move) also need your tenant's Work IQ policy to allow them; reads work without it |
+| **Python 3.9+** | For the bundled scripts (state ledger, diagnostics, parsers) | Standard library only |
+| **Platforms** | macOS, Linux and Windows (installers for macOS and Windows; `install.sh` on Linux) | The optional large-file bridge is macOS-only |
 
 Optional, for specific routines:
 
@@ -31,6 +34,9 @@ Optional, for specific routines:
 ## 1. Install
 
 ### The installers
+
+> **The installers are release 1.0.0.** Features added after it (see the
+> [changelog](../CHANGELOG.md)) need the terminal or clone install below.
 
 | | |
 |---|---|
@@ -111,18 +117,24 @@ behind:
 ./install.sh update --reinstall # refresh even at the same revision, keeping personal files
 ```
 
-`update` re-installs **only the skills you already have** — it won't quietly add
-ones you never chose — and your personal files are preserved exactly as on any
-reinstall. It compares both `VERSION` and the recorded source revision, so a same-version
-commit is not mistaken for an up-to-date installation. Metadata and downloaded code are pinned
-to the same remote commit, even when the command runs from an older local clone or native
-package. `update --check` changes no installed files; `--dry-run` previews the pinned payload.
+What `update` does:
 
-Remote failures or invalid metadata stop without changing the installation; there is no
-success-shaped offline fallback. To install reviewed local changes deliberately, run normal
-`install` from that source. Updates refuse an older remote version. `--reinstall` preserves
-personal files; **do not use `--force` merely to refresh code** because it also replaces
-personal files and customized prompts after backing them up.
+- Re-installs **only the skills you already have**; it won't add ones you never chose.
+- Preserves your personal files, as any reinstall does.
+- Compares both `VERSION` and the recorded source revision, so a new commit at the same version
+  still counts as an update.
+- Downloads code from the same remote commit it checked, even when run from an older clone or the
+  native package.
+- Refuses an older remote version.
+
+What it does not do:
+
+- `update --check` changes nothing; `--dry-run` previews what would be installed.
+- If the download or its metadata fails, it stops and leaves the installation as it was. It never
+  falls back to an offline copy.
+- It does not install your local edits: run a normal `install` from that source for that.
+- `--reinstall` keeps personal files. **`--force` replaces personal files and customized prompts**
+  (after backing them up); don't use it to refresh code.
 
 For a `--link` install there is nothing to copy: `update` tells you to
 update the reviewed clone explicitly instead, which is where the files actually live.
@@ -149,30 +161,40 @@ On macOS the package leaves a copy at `/usr/local/share/margo`, so
 `/usr/local/share/margo/install.sh status` works even without a clone. On Windows,
 uninstall through **Settings → Apps** as usual.
 
-## 2. Check Work IQ is connected
+## 2. Connect Work IQ
 
-Start Copilot CLI with the agent selected (`copilot --agent margo`), or select Margo in the
-host's agent picker. Then confirm the tools are present and prefixed:
+Installing Margo does not install or sign in to Work IQ; the host does that. The
+[harness quickstart](../samples/harness/README.md) has the details and other hosts.
 
-```
-> list my tools
-```
+1. **Register the server.** Follow Microsoft's
+   [Connect GitHub Copilot CLI to the Work IQ MCP server](https://learn.microsoft.com/microsoft-365/copilot/extensibility/work-iq/mcp/quickstart/github-copilot-cli).
+   At the time of writing, in Copilot CLI:
 
-You're looking for the Work IQ `fetch`, `retrieve`, `ask`, and discovery tools. This repository
-uses names such as `workiq-fetch`, but the exact callable spelling comes from the host's registered
-server. Discover the tools in that host rather than guessing a name or argument schema.
-Installing Margo does not install or authenticate the Work IQ connection for you.
+   ```text
+   /plugin marketplace add microsoft/work-iq
+   /plugin install workiq@work-iq
+   ```
 
-A quick live check:
+   Then restart Copilot CLI. The plugin registers the `workiq` MCP server
+   (`https://workiq.svc.cloud.microsoft/mcp`) and adds Microsoft's `workiq` skill.
+2. **Sign in.** A browser opens for your Microsoft 365 work account. Use the account you want Margo
+   to work for.
+3. **Consent.** If the browser asks for admin approval, your tenant administrator must consent to
+   the Work IQ application first. Margo can't work around that.
+4. **Check the tools.** Run `/mcp`: `workiq` should be listed and connected. Then start Margo
+   (`copilot --agent margo`, or select Margo in the host's agent picker) and ask `list my tools`. You
+   are looking for the Work IQ `fetch`, `retrieve`, `ask` and discovery tools, named like
+   `workiq-fetch`; the exact spelling comes from the registered server.
+5. **Make a first call.**
 
-```
-> Margo, confirm which Work IQ account is signed in, then show my calendar today.
-```
+   ```
+   > Margo, confirm which Work IQ account is signed in, then show my calendar today.
+   ```
 
-Confirm that it is the account you intended to connect. A successful, bounded read establishes
-access to that calendar window; it does not prove mail, Teams, documents, or write permissions
-are available. An empty calendar can be a valid result. A denied or failed source is a separate
-limitation, not evidence of an empty day.
+   Confirm it is the account you intended. A bounded read proves access to that calendar window; it
+   does not prove mail, Teams, documents or write permissions. An empty calendar can be a valid
+   result. A denied or failed source is a limitation, not evidence of an empty day: see
+   [Work IQ errors](work-iq/errors.md).
 
 ## 3. Teach her who you are
 
@@ -204,6 +226,11 @@ fictional principal below with that account:
 python3 ~/.copilot/skills/chief-of-staff/scripts/margo_store.py init --account you@example.com
 python3 ~/.copilot/skills/chief-of-staff/scripts/margo_doctor.py
 ```
+
+**What you'll see:** `init` prints one JSON line ending in `"status":"configured"`. The doctor prints
+a JSON health report. On a fresh install its top-level `"status"` is `"attention-needed"` or
+`"setup-needed"`, and `configuration.preferences` lists the fields still `missing` until you finish
+step 3; `limitations` says what the report cannot check. Nothing in it signs in or reads Microsoft 365.
 
 On Windows, use `python` and the scripts beneath
 `$HOME\.copilot\skills\chief-of-staff\scripts`. A custom installation needs the matching
@@ -304,7 +331,7 @@ python3 ~/.copilot/skills/chief-of-staff/scripts/proactive_state.py status
 ### Large files
 
 The separate large-file bridge is only needed beyond the Work IQ binary transport limit.
-Its refresh-token store currently requires **macOS Keychain**; it is not part of the
+Its refresh-token store requires **macOS Keychain**; it is not part of the
 cross-platform core. See [documents and files](how-to/documents-and-files.md) before enabling
 it. Downloads, copy/upload limitations, and sharing have different permission boundaries.
 
@@ -315,16 +342,18 @@ python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py --account you@exa
 python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py --account you@example.com status
 ```
 
-It reuses the client ID from your Work IQ MCP OAuth config. If it can't find one, set
-`MARGO_M365_CLIENT_ID` to your own app registration. Set `MARGO_M365_TENANT` if your tenant
-rejects the default `organizations` authority.
+Before you rely on it:
 
-This is a separate sign-in, not reuse of Work IQ's authenticated token. Confirm the account
-matches the intended source using the returned `upn`, not just the Keychain label. `--account`
-is a global option before the subcommand; the environment fallback is `MARGO_M365_ACCOUNT`,
-not the ledger's `MARGO_ACCOUNT`. Status can refresh a token. OAuth discovery currently reads
-`~/.copilot/mcp-oauth-config` even with a custom installation root. Do not change registrations
-or scopes to bypass a policy denial.
+- It is a separate sign-in, not Work IQ's token. Check that `status` returns the `upn` you intended;
+  the Keychain label is not proof of identity.
+- It finds its client ID in your Work IQ MCP OAuth configuration (`~/.copilot/mcp-oauth-config`,
+  even with a custom `COPILOT_HOME`). If none is found, set `MARGO_M365_CLIENT_ID` to your own app
+  registration; set `MARGO_M365_TENANT` if your tenant rejects the default `organizations` authority.
+- `--account` goes before the subcommand; its environment fallback is `MARGO_M365_ACCOUNT`, not the
+  ledger's `MARGO_ACCOUNT`. `status` can refresh a token.
+- Don't change registrations or scopes to get around a policy denial.
+
+Details: [documents and files](how-to/documents-and-files.md).
 
 ---
 
@@ -332,9 +361,10 @@ or scopes to bypass a policy denial.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `tool does not exist` | Wrong callable name or missing server registration | Discover the host's Work IQ tools and schema; fix the connection if absent |
+| `tool does not exist` | Wrong callable name or missing server registration | Run `/mcp`; if `workiq` is missing, repeat [Connect Work IQ](#2-connect-work-iq) |
+| Browser shows "Need admin approval" at sign-in | Your tenant requires admin consent for Work IQ | Ask your tenant administrator to consent; see [identity and consent](work-iq/identity-and-consent.md) |
 | Margo answers generically, ignores your rules | `preferences.md` not found or unfilled | Check it's next to `SKILL.md` in the installed skill |
-| Brief has stale items | `$filter` without `$orderby` returns oldest-first | See [payload discipline](work-iq.md#payload-discipline) |
+| Brief has stale items | `$filter` without `$orderby` returns oldest-first | See [payload discipline](work-iq/patterns.md#payload-discipline) |
 | `400 InefficientFilter` | No index backs that filter+sort pair | Drop the `$filter`, keep `$orderby`, narrow locally |
 | `Access denied for path: X` | Tenant has disabled that path family | Not retryable — report it |
 | Persona doesn't appear | Agent not loaded | Confirm `~/.copilot/agents/margo.agent.md` exists, then select it with `copilot --agent margo` or the host's agent picker; saying the name is not agent selection |
@@ -346,5 +376,5 @@ or scopes to bypass a policy denial.
 | App prompts did not change after copying | Workflow store is separate from installed files | Ask to sync the reviewed automation files to existing workflows |
 | Canvas edits fail after a source changed | Revision or fingerprint is stale | Reload, revalidate sources, and prepare a new proposal; do not reuse old approval |
 
-For failures specific to Work IQ, load the `workiq` skill and read its
-`references/troubleshooting.md`.
+For failures specific to Work IQ, see [Work IQ errors and recovery](work-iq/errors.md). Microsoft's
+`workiq` skill, installed with the Work IQ plugin in step 2, carries Microsoft's own guidance.

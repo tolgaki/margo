@@ -16,24 +16,24 @@ Margo runs in your own Azure subscription; Agent 365 provides the agent around h
 | Creating and retiring instance containers | **The provisioner** job |
 | The model and Voice Live | **Azure AI Services**, called by each instance with its own identity |
 
-This design extends [Margo as an autopilot](autopilot.md) and keeps decision 10: hosted Margo is desktop Margo, with
-the same persona and skills, and no general shell.
+Margo Cloud uses the same persona and skills as desktop Margo, with no general shell (design decision 10 in the
+[design record](autopilot.md#11-decisions)).
 
 ## What is built
 
 | Part | Where | Tested |
 | --- | --- | --- |
 | Names, route table, lifecycle mapping, plans | [`Margo.Cloud.Core`](../cloud/src/Margo.Cloud.Core/Instances.cs) | Offline (`Margo.Cloud.Core.Tests`) |
-| Router: platform-token check, forwarding, lifecycle to the queue, voice proxy | [`Margo.Cloud.Router`](../cloud/src/Margo.Cloud.Router/PORTING.md) | Decisions offline; the ASP.NET Core app against a fake instance (`Margo.Cloud.Router.Tests`) |
-| Provisioner job: deploy, suspend, retire, route table with ETags | [`Margo.Cloud.Provisioner`](../cloud/src/Margo.Cloud.Provisioner/PORTING.md) | Steps offline with a fake cloud; SDK calls checked against the libraries |
+| Router: platform-token check, forwarding, lifecycle to the queue, voice proxy | [`Margo.Cloud.Router`](../cloud/src/Margo.Cloud.Router/) | Decisions offline; the ASP.NET Core app against a fake instance (`Margo.Cloud.Router.Tests`) |
+| Provisioner job: deploy, suspend, retire, route table with ETags | [`Margo.Cloud.Provisioner`](../cloud/src/Margo.Cloud.Provisioner/) | Steps offline with a fake cloud; SDK calls checked against the libraries |
 | One instance: identity, scoped storage role, Container App | [`infra/instance.bicep`](../cloud/infra/instance.bicep) → `instance.json` | Compiled with the Bicep CLI; a test compares the two |
-| Shared: model, environment, router, provisioner job, queue, route table | [`infra/main.bicep`](../cloud/infra/main.bicep) | Compiled with the Bicep CLI; deployed once to a test tenant before the security review |
-| One image for all three roles | [`cloud/Dockerfile`](../cloud/Dockerfile) | Built with `az acr build` and run in a test tenant before the security review; the ReadyToRun build since then has not been built in Azure |
+| Shared: model, environment, router, provisioner job, queue, route table | [`infra/main.bicep`](../cloud/infra/main.bicep) | Compiled with the Bicep CLI; deployed to a test tenant |
+| One image for all three roles | [`cloud/Dockerfile`](../cloud/Dockerfile) | Built with `az acr build` and run in a test tenant; the ReadyToRun build has not been built in Azure |
 | Roles by name, image, router and job update | [`scripts/postprovision.sh`](../cloud/scripts/postprovision.sh) | Syntax; its required values checked against the Bicep outputs |
 | Blueprint: federated credential, Work IQ scope and consent | [`scripts/blueprint.sh`](../cloud/scripts/blueprint.sh), [`connect-blueprint.sh`](../cloud/scripts/connect-blueprint.sh) | Syntax only |
 | Instance mode in the host and orchestrator | `Margo.Cloud.Host`, `Margo.Cloud.Orchestrator` (`StateSync`) | Offline; the host started in instance mode |
 
-One deployment to a test tenant, in November 2026, proved the core path: the router, provisioning, agentic sign-in, a
+One deployment to a test tenant proved the core path: the router, provisioning, agentic sign-in, a
 Teams chat turn and delegated calendar reads. See the deployment guide's
 [known limits](autopilot-deployment.md#known-limits).
 
@@ -115,7 +115,7 @@ the instance's Blob container (private endpoint) and Application Insights.
   any activity for another instance is refused, as defense in depth behind the router.
 - **Host:** accepts only router-forwarded requests (internal token check), and gets its Blob
   container name and identity from configuration.
-- **New `router` service:** a small ASP.NET Core app (`Margo.Cloud.Router`; first built in Python with aiohttp);
+- **New `router` service:** a small ASP.NET Core app (`Margo.Cloud.Router`);
   stateless; route table from the provisioner.
 - **New `provisioner`:** C# with the Azure management SDKs (`Margo.Cloud.Provisioner`), plus a per-instance Bicep module
   (identity, container, role assignment, Container App from a pinned image digest).

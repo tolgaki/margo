@@ -84,7 +84,8 @@ the automation files, not duplicated here. Only anchors may spend focused `worki
    retain its last capture time and report host coverage unknown rather than silently refreshing it.
 2. Lease one queue batch. The anchor owns it; pass it to the underlying routine rather than
    draining a second time. Active leases belong to their original run until release or expiry.
-3. Fetch needed source changes and durably record their actual coverage per `state-operations.md`.
+3. Fetch needed source changes with `delta.md` (delta, then `workiq-ask` only over the changed
+   items) and durably record their actual coverage per `state-operations.md`.
    Keep query bounds, continuation, and source failure separate from output delivery.
 4. Run the underlying routine. Fold queued items into their named sections, show confirmed work
    separately from candidates, include material health changes, and prepare useful local drafts.
@@ -109,8 +110,9 @@ one decision that matters, using the host's question tool. A generated draft is 
 
 ## Tier 2 - Sweeps
 
-Use `workiq-call_function` for supported delta reads and `workiq-fetch` for bounded structured
-reads. Never use `workiq-ask` in this tier. Check the user's working hours before querying.
+Use `workiq-call_function` for supported delta reads (`delta.md` has the paths, paging, storage
+and 410 recovery) and `workiq-fetch` for bounded structured reads. Never use `workiq-ask` in this
+tier. Check the user's working hours before querying.
 
 1. Load the checkpoint for each source's exact scope. A mail folder and a calendar delta window
    must not share a cursor. Legacy sweep timestamps are unverified hints, not coverage claims.
@@ -131,8 +133,11 @@ reads. Never use `workiq-ask` in this tier. Check the user's working hours befor
 ## Tier 3 - Ambient
 
 Scan known obligations, relationship cadence, stale reviews, calendar hygiene, and document
-follow-up. Batch independent structured reads. No `workiq-ask`; queue deeper synthesis for an
-anchor. `follow-through.md` extraction calls that require synthesis run in an anchor only.
+follow-up. Availability of other people (`findMeetingTimes`, `getSchedule`) is an action call the
+scheduled wrapper denies: do not attempt it unattended; record "availability not checked (needs an
+attended run)" as a coverage gap. Batch independent structured reads. No `workiq-ask`; queue deeper
+synthesis for an anchor. `follow-through.md` extraction calls that require synthesis run in an
+anchor only.
 
 Promote only a newly crossed threshold, using a per-rung/revision identity. Stage suspected
 resolution without silently closing confirmed work. Queue ambient findings for the Friday anchor,

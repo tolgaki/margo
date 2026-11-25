@@ -37,7 +37,9 @@ Nothing else is required; an unfilled preferences file just falls back to sensib
 **What you will see:** the standard Daily Brief — top priorities (capped at five), today's
 calendar with conflicts and no-prep-time flags, mail/Teams needing a response, FYI items, and
 open commitments. Every line cites its source (sender, meeting, or chat) with a link. A source
-that failed to load is named as a gap, never silently dropped from the count.
+that failed to load is named as a gap, never silently dropped from the count. A line about a
+labeled item shows its sensitivity label; Confidential and Highly Confidential items are kept to
+title, ask and link, without their content.
 
 **What needs your decision:** the brief makes no external changes. Private drafting or meeting
 preparation can follow within the request's scope; an actual send or calendar change needs its
@@ -75,8 +77,10 @@ just a busy afternoon — without re-reading everything that happened.
 > I was out for two days. Catch me up — what needs me first?
 
 **What you will see:** decisions made, threads that moved, anything now needing you, and one
-short recommendation for what to tackle first. Margo uses delta/change endpoints where available
-so "since X" is accurate rather than a re-read of everything.
+short recommendation for what to tackle first. Margo reads mail and calendar changes with
+Microsoft Graph delta queries, which return exactly what was added, changed or removed since the
+last complete read, and only then asks Copilot to summarize those changed items. Each source gets
+one coverage line: complete since a time, a new baseline, partial, or unavailable.
 
 **What needs your decision:** nothing by itself — catch-up is a read. Any suggested reply or
 follow-up is a separate draft awaiting your approval.
@@ -88,7 +92,11 @@ coverage; it does not erase a prior output or confirm its suggested obligations.
 
 **If something goes wrong:** a source that can't be checked for the requested window is named as
 a gap. Missing coverage for Teams, for example, is reported as "Teams coverage unavailable," never
-folded silently into "nothing changed."
+folded silently into "nothing changed." Chats often have no delta query; they are then covered by
+a recent-activity snapshot, labeled as such. If a stored change link has expired (Microsoft 365
+returns HTTP 410), Margo restarts tracking for that source from its last reliable point and tells
+you, rather than skipping ahead. The first run for a source sets a baseline and cannot report
+changes from before it.
 
 **Availability:** implemented, procedure. Runs on request for your chosen window. The related
 [EOD wrap-up schedule](automation-health.md#automation-eod) runs a distinct end-of-day variant,
@@ -134,7 +142,10 @@ These three routines have no dedicated CLI of their own — they read Work IQ di
 into the same private state used by [commitments](commitments-and-action-desk.md) and
 [automation health](automation-health.md). Their exact procedures, including the standard brief
 format and the depth/window rules, are in
-[the daily-brief reference](../../skills/chief-of-staff/references/daily-brief.md).
+[the daily-brief reference](../../skills/chief-of-staff/references/daily-brief.md). The change
+reads (delta paths, paging budget, how the change link is stored with `proactive_state.py`
+coverage commands, and 410 recovery) are in
+[the delta reference](../../skills/chief-of-staff/references/delta.md).
 
 For the scheduled variants (cadence, autopilot mode, and what "silence is a successful run"
 means), see [automation health](automation-health.md).

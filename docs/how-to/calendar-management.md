@@ -45,7 +45,11 @@ authoritative for the created event; the local receipt records the observed resu
 
 **If something goes wrong:** availability found earlier in a long conversation may be stale —
 Margo re-checks the current calendar before proposing, and again immediately before creating the
-event.
+event. Other people's free/busy is read with an action call that scheduled runs cannot make, so a
+scheduled brief says "availability not checked (needs an attended run)" instead of proposing
+slots; ask again in a conversation. Margo also checks the calendar write's current schema before
+building the event, so a field your tenant does not offer is dropped and named rather than
+guessed.
 
 **Availability:** implemented, procedure. Since 1.0.0.
 

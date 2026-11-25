@@ -28,21 +28,47 @@ for durable candidates and resolution proposals. No record means pending/unknown
    **An empty calendar search means unknown, not no meeting.** Try the known event ID, a wider
    window, or ask the user which meeting they mean.
 
-2. **Get the record** from meeting recap, transcript, notes, event body, and attachments. First read
-   attached notes with `workiq-fetch` when `hasAttachments` is true:
+2. **Get the record** from meeting recap, transcript, notes, event body, and attachments. Read it
+   directly first; search is the fallback, not the first step.
+
+   **a. Transcript, deterministically.** For an online meeting, resolve it from the event's
+   `onlineMeeting.joinUrl`, then list and read its transcripts. Discover the paths once per
+   binding with `workiq-search_paths` (query "online meeting transcripts", filter
+   `onlineMeetings|transcripts|copilot`) and confirm each with `workiq-get_schema`. In Graph:
+
+   ```
+   /me/onlineMeetings?$filter=JoinWebUrl eq '{joinUrl}'
+   /me/onlineMeetings/{meetingId}/transcripts
+   /me/onlineMeetings/{meetingId}/transcripts/{transcriptId}/content?$format=text/vtt
+   ```
+
+   The transcript exists only after the meeting ends, only if transcription was on, and only if
+   the user can read it (organizer or permitted attendee; the tenant can restrict it). An empty
+   transcript list is "no transcript available", not "nothing was said". A large transcript can
+   be read in parts; say if you read only part of it.
+
+   **b. Copilot recap.** If the discovery found a recap or meeting-insights read (for example
+   under `/copilot`), read it for the same meeting. Otherwise use the recap through
+   `workiq-retrieve` and `workiq-ask` below, and say the recap came from search.
+
+   **c. Notes and attachments.** Read attached notes with `workiq-fetch` when `hasAttachments`
+   is true:
 
    ```
    /me/events/{id}/attachments?$select=id,name,contentType,size&$top=25
    ```
 
-   Search citable sources with `workiq-retrieve`:
+   **d. Search** for anything the direct reads did not find (shared notes, a recap posted to the
+   chat, linked documents) with `workiq-retrieve`:
 
    ```text
    query: ["meeting recap transcript notes for '{meeting title}' on {date}"]
    strategy: "grounding"
    ```
 
-   Synthesize with `workiq-ask` and pass `timeZone`:
+   Synthesize with `workiq-ask` and pass `timeZone`. When you read the transcript directly,
+   ground the extraction in the transcript text you read and cite it by speaker and time; use
+   `workiq-ask` for the cross-source questions:
 
    ```text
    For the meeting '{title}' at {time}, use only the recap, transcript, notes, agenda, and linked documents. What was decided, what actions were assigned to the user, what is the user waiting on from others, and what remains unresolved with no owner? Include source titles, times, and links. If no recap or transcript is available, say no recap available.
@@ -80,7 +106,9 @@ for durable candidates and resolution proposals. No record means pending/unknown
    never in the assistant's voice. Include recipient, channel, subject, and the exact text. Ask for
    approval before any write.
 
-   After explicit approval only, use the matching Work IQ write:
+   Before building the payload, run `workiq-get_schema` for the exact path and operation (and
+   `workiq-search_paths` first if the path is not verified). After explicit approval only, use
+   the matching Work IQ write:
 
    ```text
    workiq-do_action on /me/sendMail
@@ -107,7 +135,7 @@ for durable candidates and resolution proposals. No record means pending/unknown
 
    ```
    📝 Meeting Debrief — {title}
-   🕐 {time} · Organizer: {who} · Source: {recap/transcript/notes/no recap} · {webLink}
+   🕐 {time} · Organizer: {who} · Source: {transcript (direct) / recap / notes / search / no recap} · {webLink}
 
    ✅ Decisions
      • {decision} — source: {meeting title + time / doc title} → log decision / communicate / no action
@@ -136,5 +164,10 @@ for durable candidates and resolution proposals. No record means pending/unknown
   decisions, waiting-on items, or unresolved gaps.
 - If `workiq-retrieve` finds notes but no transcript, say exactly that. Notes are evidence; they are
   not a complete meeting record.
+- Live transcripts during a meeting are not supported on desktop; debrief after the meeting ends
+  from the transcript and recap above.
+- **Margo Cloud:** in `delegation` mode the manager's transcripts and Copilot recap are not
+  reachable. Margo can read a transcript only for a meeting she was in or one shared with her;
+  say "transcript unavailable in delegation mode" otherwise.
 - If the record is partial, stale, or inaccessible, mark the output partial and recommend a retry or
   a memory-based debrief with the attendee list and agenda.

@@ -110,7 +110,7 @@ session's transcript like any other read content.
 **If something goes wrong:** files whose header looks like a protected compound container are
 refused by default (exit code 3). This is a header check, not complete sensitivity-label
 detection or a decryption service; use
-[Work IQ retrieval or synthesis](../work-iq.md) instead, which honors protection labels natively.
+[Work IQ retrieval or synthesis](../work-iq/patterns.md) instead, which honors protection labels natively.
 
 **Availability:** implemented, deterministic code (`m365_files.py`), verified working. Since 1.0.0.
 
@@ -209,8 +209,48 @@ blocked; do not silently substitute an organization-wide or anonymous link.
 
 **Availability:** implemented, procedure. Since 1.0.0.
 
+## SharePoint approvals, access and versions
+
+**What this helps you do:** answer the everyday file questions without opening the site: what is
+waiting for your approval, who has access to a file, and how to get last week's version back.
+
+**Before you start:** Work IQ's SharePoint paths need the `WorkIQ.Read` delegated scope for
+reads and `WorkIQ.Act` plus a tenant policy that allows writes for changes. With only the
+`WorkIQAgent.Ask` scope they are hidden. Margo discovers what your account offers each time.
+
+**Try it:**
+
+> What's waiting for my approval in SharePoint?
+
+> Who has access to the Q3 forecast workbook?
+
+> Restore last week's version of the launch plan.
+
+**What you will see:** a short decision list of pending approvals (oldest and due-soonest first);
+for access, the people, groups and sharing links with their roles, with broad links and external
+guests first; for versions, the candidates around the time you named, and what restoring would
+discard.
+
+**What needs your decision:** reading is free. Approving, rejecting, changing access, restoring a
+version, editing a list, organizing or commenting is visible to other people and needs your
+approval of that exact action, recorded in the
+[action desk](commitments-and-action-desk.md#action-desk) (an approval card in Margo Cloud).
+A restore creates a new current version everyone with access sees.
+
+**Your data:** proposals and receipts are kept in the private ledger like any other action.
+
+**If something goes wrong:** if a read is not offered for your account, Margo says it is
+unavailable rather than reporting zero; a permissions read you are not allowed to make is
+"you can't see who has access," not "nobody else has access." A policy-blocked change stays a
+proposal. A timeout is unknown: Margo reads the file back before saying anything and never
+repeats the change. Scheduled runs only read.
+
+**Availability:** implemented, procedure. Runs on request.
+
 ## Advanced reference
 
+SharePoint approvals, access and versions are described in
+[SharePoint and OneDrive](../../skills/chief-of-staff/references/sharepoint.md).
 The document queue is described in
 [Document Queue](../../skills/chief-of-staff/references/doc-queue.md). File transfer is described
 in [Large files](../../skills/chief-of-staff/references/files.md), including observed binding

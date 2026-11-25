@@ -1,20 +1,25 @@
 # Margo Cloud (C#)
 
-Hosted Margo, in C# on .NET 10: self-hosted for Agent 365 in Azure Container Apps, one container per hired Margo.
-Design: [Margo as an autopilot](../docs/autopilot.md). Deployment: [Deploy Margo as an Agent 365 agent](../docs/autopilot-deployment.md).
+Margo Cloud in C# on .NET 10: self-hosted for Agent 365 in Azure Container Apps, one container per hired Margo.
+This page is for developers building and testing it. Start with the [Margo Cloud overview](../docs/margo-cloud.md);
+deploy with [Deploy Margo Cloud](../docs/autopilot-deployment.md); the reasoning is in the
+[design and decision record](../docs/autopilot.md).
 
-Margo Cloud is not installed by the local installers. Before relying on it, run the live checklist in
-[Margo.Cloud.Host/VERIFY.md](src/Margo.Cloud.Host/VERIFY.md) in a test tenant and read the deployment guide's
-[known limits](../docs/autopilot-deployment.md#known-limits).
+Margo Cloud is not installed by the local installers. Read the deployment guide's
+[known limits](../docs/autopilot-deployment.md#known-limits) before relying on it. Optional: the
+[live verification checklist](src/Margo.Cloud.Host/VERIFY.md) for a test tenant.
 
 Margo has two implementations that share the persona (`agents/`) and the skills (`skills/`):
 
 - **Margo desktop**: GitHub Copilot with Margo's persona, skills and the Python state helpers in
-  `skills/chief-of-staff/scripts/`. Maintenance mode.
+  `skills/chief-of-staff/scripts/`. Stable and supported; new features go into Margo Cloud.
 - **Margo Cloud**: this folder. It loads Work IQ as an MCP server with the official MCP C# SDK
   (`Margo.Cloud.WorkIQ`), and gives the model Work IQ's own tool descriptions from `tools/list`, behind the guard.
   Its state commands (`margo-state`) must stay byte-compatible with the desktop helpers; `tools/state_parity.py` is
   the judge.
+
+New to Work IQ in a custom agent? Read [Learn Work IQ](../docs/work-iq/README.md) and the minimal sample in
+[`samples/WorkIQHello`](samples/WorkIQHello/).
 
 ## Build, test, publish
 
@@ -62,7 +67,7 @@ and quiet hours need), running as the non-root user the .NET images provide; `ag
 
 ## Layout
 
-| Project | Ported from | Notes |
+| Project | Specified by | Notes |
 | --- | --- | --- |
 | `Margo.Cloud.State.Core` | `margo_store.py` | Paths, private files, SQLite connections, transactions, Python-compatible JSON, time and argument parsing, and the Python value semantics every state port shares (`PyNode`, `PyObj`, `PyNumbers`, `PySort`, `PyText`, `PyCall`) |
 | `Margo.Cloud.State.Work` | `work_ledger.py`, `work_productivity.py`, `work_state.py` | Ledger, action desk, approvals |
@@ -75,20 +80,20 @@ and quiet hours need), running as the non-root user the .NET images provide; `ag
 | `Margo.Cloud.State.Helpers` | `capacity.py`, `teams_feedback.py`, `engage_parse.py` | Stateless |
 | `Margo.Cloud.State.Probes` | `cloud/contracts/state/probes/*_probe.py` | Contract probes for the parity judge only: in `margo-state` only when built with `MargoStateProbes=true` (Debug default, never Release) and run only with `MARGO_STATE_PROBES=1` |
 | `Margo.Cloud.StateCli` (`margo-state`) | the script entry points | `margo-state SCRIPT.py --account A --state-dir D ARGS...` |
-| `Margo.Cloud.Core` | `instances.py`, `activity.py`, `instance.py` | Names, route table, lifecycle, activity helpers, instance binding |
-| `Margo.Cloud.WorkIQ` | (none: built on the MCP C# SDK) | Work IQ loaded as an MCP server: one session per identity, tool list, writes never resent |
-| `Margo.Cloud.Guard` | `guard.py`, `claims.py` | The only path from the model to Work IQ |
-| `Margo.Cloud.Engine` | `engine.py`, `skills.py`, `parity.py`, `statecmd.py` | Model turn loop and the `margo-state` tool |
-| `Margo.Cloud.Orchestrator` | `orchestrator.py`, `office.py`, `replies.py`, `statesync.py` | |
-| `Margo.Cloud.Voice` | `voice/session.py`, `voice/server.py` | The browser page is in `wwwroot/` |
-| `Margo.Cloud.Host` | `host/app.py`, `host/azure_store.py` | ASP.NET Core + Microsoft 365 Agents SDK |
-| `Margo.Cloud.Router` | `router/` | Public messaging endpoint |
-| `Margo.Cloud.Provisioner` | `provision/` | Container Apps job |
+| `Margo.Cloud.Core` | Its recorded answers and fixtures | Names, route table, lifecycle, activity helpers, instance binding |
+| `Margo.Cloud.WorkIQ` | The MCP C# SDK and Work IQ's own tool schemas | Work IQ loaded as an MCP server: one session per identity, tool list, writes never resent |
+| `Margo.Cloud.Guard` | Its recorded answers and fixtures | The only path from the model to Work IQ |
+| `Margo.Cloud.Engine` | Its recorded answers and fixtures | Model turn loop and the `margo-state` tool |
+| `Margo.Cloud.Orchestrator` | Its recorded answers and fixtures | |
+| `Margo.Cloud.Voice` | Its recorded answers and fixtures | The browser page is in `wwwroot/` |
+| `Margo.Cloud.Host` | Its recorded answers and fixtures | ASP.NET Core + Microsoft 365 Agents SDK |
+| `Margo.Cloud.Router` | Its recorded answers and fixtures | Public messaging endpoint |
+| `Margo.Cloud.Provisioner` | Its recorded answers and fixtures | Container Apps job |
 
-The state helpers named above live in `skills/chief-of-staff/scripts/` and remain the specification. The hosted
-runtime modules (`engine.py`, `guard.py`, ...) were removed in the cutover; each project's `PORTING.md` records the
-mapping, the deliberate deviations and, under **Cutover**, how its tests keep the Python behavior they were checked
-against (recorded answers and frozen fixtures).
+The state helpers named above live in `skills/chief-of-staff/scripts/` and are the specification for the state
+projects. The other projects are specified by the recorded answers and frozen fixtures their tests keep. Each project's
+`PORTING.md` is a maintainer note: the mapping to its specification and every deliberate deviation. Operators don't
+need them.
 
 ## The hosted action convention
 
@@ -121,9 +126,8 @@ published reference: `search_paths` takes `query`, and `get_schema` accepts `act
 These hold for every project.
 
 1. **Behavior is specified, not invented.** The state commands are specified by the desktop helpers (and judged by
-   `tools/state_parity.py`); the hosted modules were specified by the removed Python runtime, whose recorded answers
-   and fixtures the tests keep. The Work IQ client is the exception: it is built on the MCP C# SDK and tested on its
-   own terms, not against the Python transport. Port or change behavior deliberately, including error cases, limits, exit codes and
+   `tools/state_parity.py`); the other projects by the recorded answers and fixtures their tests keep. The Work IQ client is the exception: it is built on the MCP C# SDK and tested on its
+   own terms. Port or change behavior deliberately, including error cases, limits, exit codes and
    messages, and note every deviation in the project's `PORTING.md`.
 2. **State commands must be indistinguishable from the Python helpers.** Same subcommands and options, same exit
    codes, same stdout bytes (JSON key order, spacing, `ensure_ascii` escaping, number formatting, text views), same
@@ -133,7 +137,7 @@ These hold for every project.
    `JsonNode.DeepClone` (a test enforces it). Every subcommand needs scenarios in `cloud/contracts/state/`, including
    failure paths; contract probes go in `Margo.Cloud.State.Probes`. A change to a desktop helper needs the matching
    C# change in the same commit.
-3. **Nothing reaches the network from state code**, as in Python.
+3. **Nothing reaches the network from state code**, as in the desktop helpers.
 4. **No secrets, tokens, message bodies or real workplace data** in code, tests, fixtures or logs. Fictional data and
    `example.com` only.
 5. **C# style:** file-scoped namespaces, `sealed` by default, records for data, `System.Text.Json` (`JsonNode` for
