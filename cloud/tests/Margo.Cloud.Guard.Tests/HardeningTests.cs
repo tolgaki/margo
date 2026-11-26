@@ -66,6 +66,20 @@ public sealed class HardeningTests
     }
 
     [Fact]
+    public async Task A_users_key_in_parentheses_does_not_slip_past_the_users_rules()
+    {
+        // "/users('id')/messages" names the same mailbox as "/users/id/messages"; as one segment it is not "users".
+        foreach (var path in new[] { "/users('colleague-1')/messages", "/users('dana@example.com')/calendar/events", "/Users('colleague-1')/drive/root",
+                                     "/users(%27colleague-1%27)/messages" })
+        {
+            var result = await Guard().CallAsync("fetch", Fetch(Subjects.Self, path), RunModes.Attended, TestContext.Current.CancellationToken);
+            Assert.True(result.Status == GuardStatuses.Refused, path);
+        }
+
+        Assert.Empty(_transport.Calls);
+    }
+
+    [Fact]
     public async Task The_blocked_segments_stay_blocked_however_they_are_written()
     {
         foreach (var path in new[] { "/me/authentication/methods", "/me/Authentication", "/me/%61uthentication", "/me/authenti%63ation",

@@ -146,6 +146,27 @@ public sealed class BackchannelTests
     }
 
     [Fact]
+    public async Task In_a_room_the_teams_note_reaches_the_manager_in_their_one_to_one_chat()
+    {
+        // Everyone in a room sees the answer, and the room turn is told to send private detail with tell_manager: the
+        // note must therefore work there, and go to the one-to-one chat, never the room.
+        using var state = new TempState();
+        var (orchestrator, transport, model) = Create(state, null,
+            Tell("teams", "The figures are in your inbox; I kept them out of the room."),
+            FakeModel.Final("I've sent you the detail privately."));
+        var reply = await Handle(orchestrator, new InboundEvent
+        {
+            AgentIdentityId = "agent-identity-1", AgentUserId = "margo-user-1", SenderId = "principal-1", SenderName = "Dana",
+            ConversationId = "conv-group", ConversationType = "groupChat", ActivityId = "m-2", Channel = "teams", Text = "What were the Q3 figures?",
+        });
+        Assert.Equal("I've sent you the detail privately.", reply.Reply);
+        var note = Assert.Single(Writes(transport));
+        Assert.Equal("create_entity", note.Tool);
+        Assert.DoesNotContain("conv-group", PyNode.AsString(note.Arguments["parentUrl"]) ?? "", StringComparison.Ordinal);
+        Assert.DoesNotContain("your answer is the message", model.Requests[1].ToJsonString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task In_a_chat_with_the_manager_email_works_and_a_teams_note_is_just_the_answer()
     {
         using var state = new TempState();

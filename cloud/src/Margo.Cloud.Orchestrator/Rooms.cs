@@ -11,11 +11,17 @@ namespace Margo.Cloud.Orchestrator;
 
 /// <summary>What one listening pass found and did (counts only).</summary>
 /// <param name="Status"><c>listened</c>, <c>quiet</c> (nothing new), <c>skipped</c> (off, over the daily limit, or no
-/// manager) or <c>failed</c>.</param>
+/// manager) or <c>failed</c> (no token, an unanswered room read, or the run failed before any note). Only
+/// <c>listened</c> and <c>quiet</c> mean the window was covered (<see cref="Covered"/>).</param>
 /// <param name="Rooms">Rooms with new messages.</param>
 /// <param name="Messages">New messages read.</param>
 /// <param name="Notes">Notes to the manager attempted.</param>
-public sealed record RoomPass(string Status, int Rooms = 0, int Messages = 0, int Notes = 0);
+public sealed record RoomPass(string Status, int Rooms = 0, int Messages = 0, int Notes = 0)
+{
+    /// <summary>True when everything said in the window was read and, if anything was, observed: the next pass may
+    /// start after it. A skipped or failed pass leaves the window to be read again.</summary>
+    public bool Covered => Status is "listened" or "quiet";
+}
 
 /// <summary>One message someone wrote in a room Margo is in, as plain text.</summary>
 internal sealed record RoomMessage(DateTimeOffset At, string Sender, string Text);
@@ -43,6 +49,13 @@ internal sealed partial class RoomReader(WorkIQGuard guard, string agentUserId)
     public const int MaxTeams = 3;
 
     public const int MaxChannels = 6;
+
+    /// <summary>
+    /// True when a read in this pass went unanswered (an error, a timeout, a spent budget), so what
+    /// <see cref="ReadAsync"/> returned is not everything that was said. A room that is closed to her (403) or gone
+    /// (404) is not counted: reading again would not open it.
+    /// </summary>
+    public bool Incomplete { get; private set; }
 
     public async Task<List<Room>> ReadAsync(DateTimeOffset since, CancellationToken cancellationToken)
     {
@@ -140,6 +153,12 @@ internal sealed partial class RoomReader(WorkIQGuard guard, string agentUserId)
                                            RunModes.Unattended, cancellationToken).ConfigureAwait(false);
         if (result.Status != GuardStatuses.Ok)
         {
+            var codes = GuardPolicy.StatusCodes(result.Data);
+            if (result.Status != GuardStatuses.Error || codes.Count == 0 || !codes.All(code => PyJson.AsInt(code) == 403 || PyJson.AsInt(code) == 404))
+            {
+                Incomplete = true;
+            }
+
             return null;
         }
 

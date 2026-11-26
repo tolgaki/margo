@@ -273,6 +273,13 @@ public static class GuardPolicy
             throw new RefusedException("path reaches a blocked resource");
         }
 
+        // "/users('id')/messages" is the same resource as "/users/id/messages" to the server; read as one segment it
+        // would pass every /users rule below.
+        if (names[0].StartsWith("users(", StringComparison.Ordinal))
+        {
+            throw new RefusedException("/users('id') is not allowed; use /users/{id}");
+        }
+
         if (names[0] == "users" && delegatedTo is not null && names.Length >= 3
             && (Delegable.Contains(names[2]) || (write && DelegableWrites.Contains(names[2]))))
         {

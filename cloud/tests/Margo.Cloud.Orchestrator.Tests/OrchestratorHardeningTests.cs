@@ -134,7 +134,12 @@ public sealed class OrchestratorHardeningTests
         await Handle(orchestrator, Event("a-1", "one"));
         _store.FailWrites = true;
         File.AppendAllText(orchestrator.Paths(Fixtures.Binding.Account).Preferences, "- **Replies to other people:** none\n"); // a change to save
-        Assert.Equal(new TurnReply(Orchestrator.StateUnsafe, "state_unsafe"), await Handle(orchestrator, Event("a-2", "write it down")));
+        // The turn ran, so the manager is not told "nothing was sent", and the same activity delivered again does not run again.
+        Assert.Equal(new TurnReply(Orchestrator.StateNotSaved, "state_unsafe"), await Handle(orchestrator, Event("a-2", "write it down")));
+        Assert.DoesNotContain("Nothing was sent", Orchestrator.StateNotSaved, StringComparison.Ordinal);
+        var requests = _model.Requests.Count;
+        await Handle(orchestrator, Event("a-2", "write it down"));
+        Assert.Equal(requests, _model.Requests.Count);
         _store.FailWrites = false;
         Assert.Equal("answered", (await Handle(orchestrator, Event("a-3", "three"))).Status);
         // The model is not told it "wrote that down": that turn's state was never saved, so the turn is not remembered.
@@ -381,6 +386,9 @@ public sealed class OrchestratorHardeningTests
     [InlineData("[![badge](https://attacker.example.com/b.svg)](https://example.com/page)", "[badge](https://example.com/page)")]
     [InlineData("![a![b](https://attacker.example.com/1)](https://attacker.example.com/2)", "ab")]
     [InlineData("<img src=\"https://attacker.example.com/?d=1\" alt=\"chart\">", "chart")]
+    [InlineData("![a[b]c](https://attacker.example.com/?d=1)", "!\\[a[b]c](https://attacker.example.com/?d=1)")]
+    [InlineData("![[]](https://attacker.example.com/?d=1)", "!\\[[]](https://attacker.example.com/?d=1)")]
+    [InlineData("![a\\[b](https://attacker.example.com/?d=1)", "!\\[a\\[b](https://attacker.example.com/?d=1)")]
     [InlineData("<IMG SRC=https://attacker.example.com/x.png>", "(image removed)")]
     [InlineData("x < img src='https://attacker.example.com/a' alt='q'/> y", "x q y")]
     [InlineData("<img src=\"https://attacker.example.com/unclosed", "(image removed)")]

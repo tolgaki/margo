@@ -214,8 +214,9 @@ public sealed record AgentInstance(string AgentIdentityId, string AgentUserId);
 /// every turn. The manager is who she works for; a message never decides that. A failed lookup is reported as a
 /// failure, never as "no manager".</item>
 /// <item>Compare the authenticated sender's object ID with the manager's.</item>
-/// <item>The manager is served only in their one-to-one chat. In a group chat or channel a turn would read their private
-/// data and answer in front of everyone, so it is refused with a fixed note.</item>
+/// <item>The manager is served in their one-to-one chat and, when they address her there, in a group chat or channel
+/// (<see cref="IsRoom"/>). A room turn is told that everyone sees the answer (<see cref="RoomText"/>); that is an
+/// instruction to the model, not a limit in code. Any other conversation type is refused with a fixed note.</item>
 /// <item>Only for the manager, request a principal token. On-behalf-of exchanges the <em>sender's</em> token, so asking
 /// for it on anyone else's message would hand the guard a colleague's token labelled as the manager's.</item>
 /// <item>Run the turn under the instance's state lease (<see cref="StateSync"/>). SQLite work runs off the request thread,
@@ -280,6 +281,16 @@ public sealed class Orchestrator
     public const string StateUnsafe = "I couldn't load my records safely, so I've stopped rather than work from a partial "
                                       + "memory. Nothing was sent. Try again shortly; if it persists, an operator should check "
                                       + "my state storage.";
+
+    /// <summary>
+    /// What the manager is told when the turn ran but its records could not be saved (<see cref="SyncException.NotSaved"/>).
+    /// "Nothing was sent" would be untrue here: an action approved in this turn may have gone out, and the unsaved
+    /// record still shows it waiting, so a second tap could send it twice.
+    /// </summary>
+    public const string StateNotSaved = "I worked on this but couldn't save my records afterwards, so I can't be sure what "
+                                        + "went through. If you had just approved something, check whether it went out (Sent "
+                                        + "Items, your calendar or the chat) before you approve it again. If it keeps "
+                                        + "happening, an operator should check my state storage.";
 
     /// <summary>What the manager is told when the state lease could not be taken: nothing was read, so this is not
     /// <see cref="StateUnsafe"/>.</summary>
@@ -451,7 +462,7 @@ public sealed class Orchestrator
                 _logger.LogError("a message from someone else was not queued: {Status}", status);
             }
 
-            return new TurnReply(isManager ? (exc.LeaseNotAcquired ? StateBusy : StateUnsafe) : null, status);
+            return new TurnReply(isManager ? (exc.LeaseNotAcquired ? StateBusy : exc.NotSaved ? StateNotSaved : StateUnsafe) : null, status);
         }
         catch (Exception exc) when (!IsCancellation(exc, cancellationToken))
         {
@@ -591,11 +602,13 @@ public sealed class Orchestrator
 
             return reply;
         }
-        catch (Exception)
+        catch (Exception exc)
         {
-            if (claimed)
+            // The turn did not complete: a redelivery may run. Not when it ran and only the save failed: what it did
+            // (an approved send) may have happened, and running the same activity again could do it twice.
+            if (claimed && exc is not SyncException { NotSaved: true })
             {
-                _recent.Release(binding.Account, inbound.ActivityId!); // the turn did not complete: a redelivery may run
+                _recent.Release(binding.Account, inbound.ActivityId!);
             }
 
             throw;
@@ -660,7 +673,7 @@ public sealed class Orchestrator
             FileHosts = Options.FileHosts,
             AllowsOwnDocuments = true,
         }, binding.PrincipalId);
-        var channel = NewManagerChannel(binding, tokens, refresh, managerMail, RunModes.Attended);
+        var channel = NewManagerChannel(binding, tokens, refresh, managerMail, RunModes.Attended, inRoom);
         var history = _conversations.Get(key);
         EngineResult result;
         try
@@ -763,7 +776,8 @@ public sealed class Orchestrator
     /// permission for what only they receive; the model's guard never has it.
     /// </summary>
     private TurnManagerChannel NewManagerChannel(InstanceBinding binding, IReadOnlyDictionary<string, string?> tokens,
-                                                 Func<string, CancellationToken, Task<string?>>? refresh, string? managerMail, string mode) =>
+                                                 Func<string, CancellationToken, Task<string?>>? refresh, string? managerMail, string mode,
+                                                 bool inRoom = false) =>
         new(bound => new WorkIQGuard(bound, new TurnTokens(tokens, refresh), Transport, recorder: Options.GuardRecorder,
                                      budget: new CallBudget(4), principalAccess: Options.PrincipalAccess)
             {
@@ -771,7 +785,7 @@ public sealed class Orchestrator
                 AllowsManagerChannel = true,
                 ManagerMail = managerMail,
             },
-            binding, managerMail, mode, _managerChats);
+            binding, managerMail, mode, _managerChats, inRoom);
 
     /// <summary>
     /// An observation run: someone else's message (or an email, the manager's included) was queued, and Margo may look
@@ -816,7 +830,9 @@ public sealed class Orchestrator
     }
 
     /// <summary>The Work IQ calls one listening pass may make to read the rooms.</summary>
-    public const int ListenReadBudget = 30;
+    /// <remarks>Covers the reader's own worst case (the chat list and a page of each of its 20 chats, the team list, a
+    /// channel list per team and a page per channel), so a full pass never ends on the budget.</remarks>
+    public const int ListenReadBudget = 2 + 20 + RoomReader.MaxTeams + RoomReader.MaxChannels;
 
     /// <summary>
     /// One listening pass: reads what was said since <paramref name="since"/> in the rooms Margo is a member of (group
@@ -857,6 +873,14 @@ public sealed class Orchestrator
             }, instance.AgentUserId);
             var rooms = await reader.ReadAsync(since, cancellationToken).ConfigureAwait(false);
             var messages = rooms.Sum(room => room.Messages.Count);
+            if (reader.Incomplete)
+            {
+                // Coverage, not scheduling: an unanswered read is not an empty room. Nothing is observed from a partial
+                // picture; the same window is read again next pass.
+                _logger.LogWarning("listening incomplete: a room read was not answered; the window is read again");
+                return new RoomPass("failed", rooms.Count, messages);
+            }
+
             if (rooms.Count == 0)
             {
                 return new RoomPass("quiet");
@@ -874,9 +898,18 @@ public sealed class Orchestrator
             };
             var channel = NewManagerChannel(binding, tokens, Refresh, manager.Mail, RunModes.Unattended);
             var (_, preferences) = StateSyncFor(binding);
-            await Engine.RunAsync(RoomsText(rooms, since, manager.DisplayName), RunModes.Unattended, guard, office: null, state: null,
-                                  preferencesPath: preferences, cacheKey: PyIds.Sha256Hex(binding.Account)[..32], channel: channel,
-                                  cancellationToken: cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await Engine.RunAsync(RoomsText(rooms, since, manager.DisplayName), RunModes.Unattended, guard, office: null, state: null,
+                                      preferencesPath: preferences, cacheKey: PyIds.Sha256Hex(binding.Account)[..32], channel: channel,
+                                      cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exc) when (channel.Sent > 0 && !IsCancellation(exc, cancellationToken))
+            {
+                // Notes may already be with the manager: running the same window again could send them twice.
+                _logger.LogWarning("listening stopped after notes were attempted: {Type}", exc.GetType().Name);
+            }
+
             return new RoomPass("listened", rooms.Count, messages, channel.Sent);
         }
         catch (Exception exc) when (!IsCancellation(exc, cancellationToken))

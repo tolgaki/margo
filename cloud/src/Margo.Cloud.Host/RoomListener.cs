@@ -33,6 +33,8 @@ public sealed class RoomListener(Margo.Cloud.Orchestrator.Orchestrator orchestra
             var started = time.GetUtcNow();
             if (started - since > MaxLookback)
             {
+                // What was said before this is never read: say so, rather than let a later quiet pass look complete.
+                _logger.LogWarning("listening gave up on rooms before {Hours} hours ago after passes that did not finish", MaxLookback.TotalHours);
                 since = started - MaxLookback;
             }
 
@@ -40,9 +42,9 @@ public sealed class RoomListener(Margo.Cloud.Orchestrator.Orchestrator orchestra
                 ? tokens.GetAgenticUserTokenAsync(settings.TenantId, instance.AgentIdentityId, instance.AgentUserId, [HostSettings.WorkIQScope], stoppingToken)
                 : Task.FromResult<string?>(null);
             var pass = await orchestrator.ListenAsync(Token, since, stoppingToken).ConfigureAwait(false);
-            if (pass.Status != "failed")
+            if (pass.Covered)
             {
-                since = started; // a failed pass is read again next time
+                since = started; // a failed or skipped pass is read again next time
             }
 
             if (_logger.IsEnabled(LogLevel.Information))

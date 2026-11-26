@@ -37,6 +37,10 @@ public static partial class ReplyText
         }
         while (text != before && ++passes < 8);
 
+        // Whatever still opens an image (alternative text with brackets of its own, "![a[b]c](url)", or nesting deeper
+        // than the passes above) is written as text: the pattern can miss a form, so nothing rests on it alone.
+        text = text.Replace("![", "!\\[", StringComparison.Ordinal);
+
         text = ImageTag().Replace(text, match => Shown(AltAttribute().Match(match.Value) is { Success: true } alt
             ? alt.Groups["double"].Value + alt.Groups["single"].Value + alt.Groups["bare"].Value : ""));
         return LoadingTag().Replace(text, "&lt;$1");

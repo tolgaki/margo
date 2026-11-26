@@ -16,7 +16,7 @@ namespace Margo.Cloud.Orchestrator;
 /// </summary>
 internal sealed class TurnManagerChannel(
     Func<InstanceBinding, WorkIQGuard> newGuard, InstanceBinding binding, string? managerMail, string mode,
-    ConcurrentDictionary<string, string> chatIds) : IManagerChannel
+    ConcurrentDictionary<string, string> chatIds, bool inRoom = false) : IManagerChannel
 {
     /// <summary>At most this many Teams messages to the manager in one run.</summary>
     public const int MaxMessages = 3;
@@ -128,7 +128,9 @@ internal sealed class TurnManagerChannel(
 
     private async Task<JsonObject> TeamsAsync(string text, CancellationToken cancellationToken)
     {
-        if (mode == RunModes.Attended)
+        // In their one-to-one chat the answer is the message. In a room everyone sees the answer, so the note in the
+        // one-to-one chat is how private detail reaches the manager alone.
+        if (mode == RunModes.Attended && !inRoom)
         {
             return Answer(GuardStatuses.Refused, "you are in a chat with your manager: your answer is the message");
         }

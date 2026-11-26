@@ -32,6 +32,13 @@ public sealed class SyncException : Exception
     /// not known to be unsafe.
     /// </summary>
     public bool LeaseNotAcquired { get; init; }
+
+    /// <summary>
+    /// The turn ran to its end and then its state could not be saved (the lease was lost, or the upload failed).
+    /// Whatever the turn did outside the state, an approved action included, may have happened; only the record of
+    /// it is gone. Set by <see cref="StateSync.RunAsync{T}"/>. No Python equivalent.
+    /// </summary>
+    public bool NotSaved { get; init; }
 }
 
 /// <summary>What <see cref="StateSync.RunAsync{T}"/> returns: <c>{"result", "restored"}</c>.</summary>
@@ -180,6 +187,7 @@ public sealed class StateSync
         using var renewal = new CancellationTokenSource();
         var renewer = RenewAsync(lease, renewal.Token);
         var saved = false;
+        var ran = false;
         try
         {
             var known = LocalETag();
@@ -203,6 +211,7 @@ public sealed class StateSync
             }
 
             var result = await work(cancellationToken).ConfigureAwait(false);
+            ran = true;
             if (renewer.IsFaulted)
             {
                 throw new SyncException("the state lease could not be renewed; nothing was saved");
@@ -252,6 +261,10 @@ public sealed class StateSync
             }
 
             return new StateSyncOutcome<T>(result, restored);
+        }
+        catch (SyncException exc) when (ran && !saved)
+        {
+            throw new SyncException(exc.Message, exc) { NotSaved = true };
         }
         finally
         {

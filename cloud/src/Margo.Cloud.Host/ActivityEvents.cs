@@ -85,8 +85,8 @@ public static class ActivityEvents
         var reference = email ? EmailReference(activity) : null;
         var ids = ActivityClassifier.StableIds(Or(reference?.Id, activity.Id), Or(reference?.ConversationId, conversation.Id),
                                                inbound.SenderId, activity.Text ?? string.Empty);
-        // conversation_type decides whether this is the manager's one-to-one chat; a group chat or channel never runs
-        // a turn that reads as the manager.
+        // conversation_type decides whether this is the manager's one-to-one chat or a room (a group chat or channel),
+        // where the orchestrator tells the turn that everyone sees its answer.
         var decision = email ? null : Decision(activity.Value);
         return inbound with
         {

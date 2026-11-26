@@ -104,6 +104,72 @@ public sealed class RoomListeningTests
         Assert.Equal("/chats/19:margo-dana-one-on-one/messages", PyNode.AsString(post.Arguments["parentUrl"]));
     }
 
+    private static Task<JsonObject>? RoomsWith(string failingPath, Func<Task<JsonObject>> failure, string tool, JsonObject arguments) =>
+        tool == "fetch" && PyNode.AsString(arguments["entityUrls"]![0])!.StartsWith(failingPath, StringComparison.Ordinal) ? failure() : Rooms(tool, arguments);
+
+    [Fact]
+    public async Task An_unanswered_room_read_fails_the_pass_so_the_window_is_read_again()
+    {
+        // An error is not an empty room: observing the rest and moving on would lose what was said there for good.
+        using var state = new TempState();
+        var (orchestrator, transport, model) = Create(state);
+        transport.Answer = (tool, arguments) => RoomsWith("/chats/19:launch@thread.v2/messages",
+            () => Task.FromException<JsonObject>(new Margo.Cloud.WorkIQ.TransportException("unavailable", 503)), tool, arguments);
+        var pass = await orchestrator.ListenAsync(Token, Since, Cancel);
+        Assert.Equal("failed", pass.Status);
+        Assert.False(pass.Covered);
+        Assert.Empty(model.Requests);
+        Assert.DoesNotContain(transport.Calls, call => call.Tool == "create_entity");
+    }
+
+    [Fact]
+    public async Task A_failed_room_list_is_not_a_quiet_pass()
+    {
+        using var state = new TempState();
+        var (orchestrator, transport, model) = Create(state);
+        transport.Answer = (tool, arguments) => RoomsWith("/me/chats?$expand",
+            () => Task.FromException<JsonObject>(new Margo.Cloud.WorkIQ.TransportException("throttled", 429)), tool, arguments);
+        var pass = await orchestrator.ListenAsync(Token, new DateTimeOffset(2026, 11, 25, 10, 0, 0, TimeSpan.Zero), Cancel);
+        Assert.Equal("failed", pass.Status);
+        Assert.Empty(model.Requests);
+    }
+
+    [Fact]
+    public async Task A_room_that_is_closed_to_her_does_not_hold_up_the_others()
+    {
+        // 403 and 404 will not change by reading again; failing the pass on them would stop listening altogether.
+        using var state = new TempState();
+        var (orchestrator, transport, model) = Create(state, FakeModel.Final("Nothing worth a note."));
+        transport.Answer = (tool, arguments) => RoomsWith("/teams/team-1/channels/channel-1/messages",
+            () => Task.FromResult(Fixtures.Obj("""{"results": [{"statusCode": 403}]}""")), tool, arguments);
+        var pass = await orchestrator.ListenAsync(Token, Since, Cancel);
+        Assert.Equal(new RoomPass("listened", 1, 1), pass);
+        Assert.True(pass.Covered);
+        Assert.Single(model.Requests);
+    }
+
+    [Fact]
+    public async Task A_run_that_fails_after_a_note_is_not_run_again()
+    {
+        // The note may be with the manager: the same window observed again could send it twice.
+        using var state = new TempState();
+        var (orchestrator, transport, _) = Create(state,
+            FakeModel.Response("r1", FakeModel.Call("tell_manager", """{"via": "teams", "text": "Rafa proposed slipping the launch."}""")),
+            new InvalidOperationException("model unavailable"));
+        var pass = await orchestrator.ListenAsync(Token, Since, Cancel);
+        Assert.Equal(new RoomPass("listened", 2, 2, 1), pass);
+        Assert.Single(transport.Calls, call => call.Tool == "create_entity");
+    }
+
+    [Fact]
+    public void Only_a_pass_that_read_everything_moves_the_window()
+    {
+        Assert.True(new RoomPass("listened").Covered);
+        Assert.True(new RoomPass("quiet").Covered);
+        Assert.False(new RoomPass("skipped").Covered);
+        Assert.False(new RoomPass("failed").Covered);
+    }
+
     [Fact]
     public async Task A_quiet_pass_runs_no_model()
     {

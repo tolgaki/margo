@@ -146,7 +146,7 @@ public sealed class TurnSupportTests
     {
         Assert.Equal("I won't reply to anyone else; their messages wait for you.", ReplySetting.ChangedNote("none"));
         Assert.Equal("I'll send one short 'passed this on' note per conversation, nothing more.", ReplySetting.ChangedNote("acknowledge"));
-        Assert.Equal("Noted, but approval cards aren't in this version yet, so until they are I'll treat this as 'none'.", ReplySetting.ChangedNote("approve"));
+        Assert.Equal("Noted, but approving replies to other people isn't built yet, so until it is I'll treat this as 'none'.", ReplySetting.ChangedNote("approve"));
         Assert.Equal(40, Orchestrator.TurnCallBudget);
         Assert.Equal(40, Orchestrator.StateCallBudget);
         Assert.Equal(new JsonObject { ["reply"] = null, ["status"] = "queued" }.ToJsonString(), new TurnReply(null, "queued").ToJsonObject().ToJsonString());

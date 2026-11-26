@@ -287,7 +287,7 @@ public static class ReplySetting
     {
         ReplyModes.None => "I won't reply to anyone else; their messages wait for you.",
         ReplyModes.Acknowledge => "I'll send one short 'passed this on' note per conversation, nothing more.",
-        ReplyModes.Approve => "Noted, but approval cards aren't in this version yet, so until they are I'll treat this as 'none'.",
+        ReplyModes.Approve => "Noted, but approving replies to other people isn't built yet, so until it is I'll treat this as 'none'.",
         _ => throw new PyKeyError(mode),
     };
 }
