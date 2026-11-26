@@ -50,7 +50,7 @@ microsoft/work-iq`, `/plugin install workiq@work-iq`):
 ```
 
 Margo's personal files then live in `~/.copilot/margo/` (or `$COPILOT_HOME/margo/`), outside the
-plugin; see [as a plugin](../getting-started.md#or-as-a-plugin-copilot-cli-or-claude-code).
+plugin; see [as a plugin](../getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex).
 
 Or, from a clone, install into Claude Code's folder instead of `~/.copilot`:
 

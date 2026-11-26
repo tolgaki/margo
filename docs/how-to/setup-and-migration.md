@@ -9,7 +9,7 @@ app workflow prompts.
 | Situation | Follow |
 | --- | --- |
 | First install, no personal state yet | [Getting started](../getting-started.md), then sections 1-2 and the health checks in section 6 |
-| Install or update as a plugin (Copilot CLI or Claude Code) | [As a plugin](../getting-started.md#or-as-a-plugin-copilot-cli-or-claude-code): your personal files live in `~/.copilot/margo/`, and the plugin manager updates and removes it. Sections 2-6 still apply to your records |
+| Install or update as a plugin (Copilot CLI or Claude Code) | [As a plugin](../getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex): your personal files live in `~/.copilot/margo/`, and the plugin manager updates and removes it. Sections 2-6 still apply to your records |
 | Existing copy installation | Inspect status; pause writers; set the same environment; back up in section 3 **before** updating |
 | Legacy JSON queue or handwritten commitments | Back up, then use sections 4-5 only for the legacy data you actually have |
 | Existing memory schema v1 | Back up and explicitly migrate memory in section 6; copying new files is not migration |

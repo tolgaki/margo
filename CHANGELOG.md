@@ -8,7 +8,7 @@
   open.
 - Margo Cloud delegation mode reads the manager's mail and calendar directly through the delegation and searches only
   what is shared with Margo; Copilot search of the manager's whole data reports "unavailable".
-- Margo is a plugin for GitHub Copilot CLI and Claude Code: the repository is its own marketplace
+- Margo is a plugin for GitHub Copilot CLI, Claude Code and OpenAI Codex (skills only in Codex, like Microsoft's own Codex manifest): the repository is its own marketplace
   (`/plugin marketplace add tolgaki/margo`, `/plugin install margo@margo`). Personal files (preferences, decision-log
   configuration) can live outside the plugin in `~/.copilot/margo/`, which Margo and the doctor read first; procedures
   name scripts relative to the skill instead of `~/.copilot/skills`.

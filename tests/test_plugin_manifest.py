@@ -16,11 +16,13 @@ class PluginManifestTest(unittest.TestCase):
         self.version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
         self.claude = load(".claude-plugin/plugin.json")
         self.copilot = load(".github/plugin/plugin.json")
+        self.codex = load(".codex-plugin/plugin.json")
         self.markets = [load(".claude-plugin/marketplace.json"), load("marketplace.json")]
 
     def test_every_manifest_carries_the_repository_version(self):
         self.assertEqual(self.claude["version"], self.version)
         self.assertEqual(self.copilot["version"], self.version)
+        self.assertEqual(self.codex["version"], self.version)
         for market in self.markets:
             self.assertEqual([plugin["version"] for plugin in market["plugins"]], [self.version])
 
@@ -30,6 +32,10 @@ class PluginManifestTest(unittest.TestCase):
             self.assertEqual(manifest["skills"], "./skills/")
             self.assertEqual(manifest["agents"], "./agents/")
         self.assertEqual(self.claude["description"], self.copilot["description"])
+        # Codex: skills only, as Microsoft's own Codex manifest declares (no agent entry).
+        self.assertEqual((self.codex["name"], self.codex["skills"], self.codex["description"]),
+                         ("margo", "./skills/", self.claude["description"]))
+        self.assertNotIn("agents", self.codex)
         self.assertTrue((ROOT / "agents" / "margo.agent.md").is_file())
         for skill in ("chief-of-staff", "decision-log"):
             text = (ROOT / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")

@@ -84,12 +84,19 @@ The PowerShell equivalents are `-Skills`, `-Dest`, `-DryRun`.
 > personal templates after backing them up; do not use it just to refresh code. File copying
 > and private-state migration are separate operations.
 
-### Or as a plugin (Copilot CLI or Claude Code)
+### Or as a plugin (Copilot CLI, Claude Code or Codex)
 
 Margo is also a plugin: the repository is its own marketplace, next to Microsoft's Work IQ
-marketplace. A plugin install gives you the agent and both skills, and updates with the plugin
-manager. It does not install the scheduled-run wrapper (`margo-scheduled.sh`), the automation
-prompts or the action desk; use the installer when you want those.
+marketplace, with a manifest for each host (`.github/plugin/plugin.json` for GitHub Copilot CLI,
+`.claude-plugin/plugin.json` for Claude Code, `.codex-plugin/plugin.json` for OpenAI Codex).
+
+| | Included | Not included |
+| --- | --- | --- |
+| **The plugin** | The `chief-of-staff` skill (procedures, references, the Python state helpers, the preferences template) and the `decision-log` skill; the `margo` agent (persona) in Copilot CLI and Claude Code | Work IQ itself (install Microsoft's `workiq` plugin), the scheduled-run wrapper (`margo-scheduled.sh`) and automation prompts, the action desk, the installer's version manifest (`./install.sh update`), Margo Cloud |
+| **Codex** | The two skills | The persona: Codex's manifest declares skills only, as Microsoft's does |
+
+Use the installer instead when you want scheduled runs or the action desk. The plugin's folder
+holds a copy of the whole repository, but each host loads only what its manifest declares.
 
 In Copilot CLI (`copilot`):
 
@@ -103,6 +110,11 @@ In Copilot CLI (`copilot`):
 Restart, then check `/mcp` (workiq), `/skills` (chief-of-staff, decision-log, workiq) and `/agent`
 (margo). In Claude Code the same `/plugin` commands work; see
 [run Margo in Claude Code](how-to/run-in-claude-code.md) for the differences.
+
+In Codex, install Microsoft's `workiq` plugin and this repository with Codex's own plugin loader:
+each has a `.codex-plugin/plugin.json` at its root (Microsoft's is in `plugins/workiq/`). Codex names
+Work IQ's tools its own way; the skills say to use the host's name for each tool. Not tested in
+Codex.
 
 A plugin update replaces the plugin's folder, so your personal files live outside it, in
 `~/.copilot/margo/` (or `$COPILOT_HOME/margo/`). Margo reads them there first:
