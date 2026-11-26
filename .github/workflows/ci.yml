@@ -20,7 +20,10 @@ jobs:
 
   scripts:
     name: Scripts
-    runs-on: ubuntu-latest
+    # Pinned: this job proves the Python 3.9 floor, and setup-python publishes no 3.9
+    # build for the image ubuntu-latest now resolves to. Move the pin only together
+    # with the documented minimum Python.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 

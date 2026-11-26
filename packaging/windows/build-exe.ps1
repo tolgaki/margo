@@ -94,13 +94,15 @@ if (-not (Test-Path (Join-Path $Repo '.git'))) {
 $tracked = & git -C $Repo ls-files --cached --others --exclude-standard
 if ($LASTEXITCODE -ne 0 -or -not $tracked) { Die "git listed no files to package" }
 
-$excludeDirs = @('.github', 'packaging')
+# Repo infrastructure, and Margo Cloud: a separate, container-built deployment the
+# desktop installer never uses.
+$excludeTop = @('.github', 'packaging', 'cloud')
 $count = 0
 
 foreach ($rel in $tracked) {
-    $parts = $rel -split '[\\/]'
+    $top = ($rel -split '[\\/]')[0]
     $actionDesk = $rel -match '^\.github[\\/]extensions[\\/]margo-action-desk[\\/]'
-    if (-not $actionDesk -and ($parts | Where-Object { $excludeDirs -contains $_ })) { continue }
+    if (-not $actionDesk -and ($excludeTop -contains $top)) { continue }
     # Runtime state holds real mailbox content; never ship it. The whole
     # subtree, any depth and any file type — but keep the tracked .gitignore.
     if ($rel -match '(^|[\\/])state[\\/]' -and $rel -notmatch '[\\/]state[\\/]\.gitignore$') { continue }

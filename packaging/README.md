@@ -47,6 +47,8 @@ The source payload includes the SQLite helpers, doctor, capacity calculator and 
 renderer source. The native skill checkboxes do not automatically enable the renderer; run the
 staged installer with `--action-desk`/`-ActionDesk` to opt in, then reload extensions.
 Copying automation files does not synchronize the app's saved workflow prompts.
+The payload leaves out `cloud/`: Margo Cloud is built as a container from the repository, not
+installed by the desktop packages.
 
 The current source also includes private memory and task-run helpers. The generic skill payload
 copies these modules and their references; no separate background service is installed. The
