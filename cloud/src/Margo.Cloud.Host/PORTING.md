@@ -19,7 +19,7 @@ Agent 365) and `host/azure_store.py` (the Azure Blob lease store), on ASP.NET Co
 | `model_base_url`, `_model_client` | Engine's `AzureOpenAIModelClient` | Entra tokens for `https://cognitiveservices.azure.com/.default`, no keys |
 | `_receipt_logger` | the guard and state recorders of `BuildOrchestrator` | `workiq ` + `json.dumps(receipt, sort_keys=True)` (Core's `PythonJson.Dumps`) at INFO |
 | `_state_root()` | `HostSettings.EnsureStateRoot` | `MARGO_STATE_DIR` or `~/margo/state`; root and parent 0700 |
-| `build_orchestrator()` | `MargoHost.BuildOrchestrator` | Engine (deployment, `MARGO_REPO_ROOT` default `/app`, `MARGO_TIMEZONE` default `America/Los_Angeles`), `WorkIQMcpTransport` (the MCP SDK client), the Blob store factory, `MARGO_PRINCIPAL_ACCESS` (default `obo`), the instance, `MARGO_STATE_CONTAINER`, the voice URL, logger `margo.autopilot` |
+| `build_orchestrator()` | `MargoHost.BuildOrchestrator` | Engine (deployment, `MARGO_REPO_ROOT` default `/app`, `MARGO_TIMEZONE` default `America/Los_Angeles`), `WorkIQMcpTransport` (the MCP SDK client), the Blob store factory, `MARGO_PRINCIPAL_ACCESS` (default `delegation`, matching `cloud/infra`; the Python default was `obo`), the instance, `MARGO_STATE_CONTAINER`, the voice URL, logger `margo.autopilot` |
 | `_identity(activity)` | `ActivityEvents.Identity` | `recipient.agenticAppId`; `recipient.agenticUserId` or `recipient.aadObjectId`; `from.aadObjectId`, `from.name`. Never the text |
 | `_email_reference(activity)` | `ActivityEvents.EmailReference` | `AgentNotificationActivity(activity).EmailNotification` |
 | `activity.is_email`, `stable_ids` | Core's `ActivityClassifier` via `ActivityEvents.IsEmail` | Entities passed as their JSON (`ActivityEntity.FromJson`), so `ProductInfoId` is not needed |

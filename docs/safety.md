@@ -112,8 +112,9 @@ observation run reads only with her own token (the platform's user token in that
 sender's, never the manager's), never answers the sender, and treats what it read as data. Prompt
 injection in someone's message can at most shape a note that only the manager receives. She also listens in the rooms she is a member of (group and meeting chats,
 channels): every `MARGO_LISTEN_MINUTES` she reads what was said there through Work IQ with her own
-token and may send the manager up to two notes. It is on by default (`MARGO_BACKCHANNEL=off` turns
-both off) and bounded: a daily cap and one run per conversation every ten minutes. This was the owner's decision (Nov 25, 2026); desktop Margo has no exception.
+token and may send the manager up to two notes. The backchannel is on by default (`MARGO_BACKCHANNEL=off` turns
+both off); listening also needs one copy kept running (`MARGO_INSTANCE_MIN_REPLICAS=1`). Both are bounded:
+a daily cap and one run per conversation every ten minutes. Desktop Margo has no exception.
 
 ### Margo Cloud approval cards
 

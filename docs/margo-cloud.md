@@ -11,8 +11,7 @@ production use. This page is for the IT admin or developer deciding whether to t
 [deployment guide](autopilot-deployment.md) has the steps.
 
 Pages whose file names start with `autopilot` (the deployment guide, the design record, voice and
-instance containers) are Margo Cloud pages: "autopilot" was Margo Cloud's earlier name, and Agent
-365 still calls this kind of agent an autopilot. New to the terms? See the [glossary](glossary.md).
+instance containers) are Margo Cloud pages: Agent 365 calls this kind of agent an autopilot. New to the terms? See the [glossary](glossary.md).
 
 ## How it fits together
 
@@ -57,8 +56,8 @@ Teams note in their one-to-one chat, an email to them, a file or a document shar
 ## What she does without being asked
 
 Margo's communication is with her manager, but she hears what happens around her. When someone
-messages, emails or copies her, and every 15 minutes in the group chats, meeting chats and channels
-she is a member of, she reads what is new through Work IQ, looks into what might matter, and sends
+messages, emails or copies her, and (when one copy is kept running, `MARGO_INSTANCE_MIN_REPLICAS=1`) every 15 minutes in the
+group chats, meeting chats and channels she is a member of, she reads what is new through Work IQ, looks into what might matter, and sends
 the manager a short note when it does. She never answers those people, and their words never become
 her instructions ([the backchannel](autopilot-deployment.md#the-backchannel)).
 

@@ -15,7 +15,7 @@ Be decent. Assume good faith. Argue with the idea, not the person.
 
 - Harassment, intimidation, or discriminatory language or imagery of any kind.
 - Personal or political attacks; sustained disruption of discussions.
-- Sexualised language or imagery, or unwelcome attention of any kind.
+- Sexualized language or imagery, or unwelcome attention of any kind.
 - Publishing others' private information without explicit permission — including, in this project
   specifically, **real names, email addresses or workplace data** pulled from a live account.
 - Any other conduct that would reasonably be considered inappropriate in a professional setting.

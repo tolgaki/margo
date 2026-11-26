@@ -144,8 +144,8 @@ the synthetic core without connecting a real mailbox or installing into your nor
 
 Margo will never send an email, post to Teams, react, accept or decline a meeting, delete
 anything, or change a work item without your explicit approval **of that specific action**. A
-summary is not consent. Reading is free; writing is not. (Margo Cloud asks on a card in Teams for each action, and
-sends two fixed notices without per-message approval; see [Trust & safety](docs/safety.md#margo-cloud-approval-cards).)
+summary is not consent. Reading is free; writing is not. (Margo Cloud asks on a card in Teams for each action; without a card it only
+writes to its own manager (a note, an email or a file shared with them alone) and sends two fixed notices; see [Trust & safety](docs/safety.md#margo-cloud-approval-cards).)
 
 There is a bounded exception for actions that are reversible *and* invisible to anyone else —
 mark-read, categorize, flag, archive, move between folders — which you can grant as a standing
@@ -353,11 +353,14 @@ Issues and PRs welcome — see **[CONTRIBUTING.md](CONTRIBUTING.md)**. The one h
 **never commit real workplace data.** Every example in this repo is fictional, and PRs are
 checked for names, addresses, tenant identifiers and mailbox content.
 
-Also: [Code of conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md)
+Also: [Code of conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md) · [Getting help](SUPPORT.md)
 
 ## License
 
 [MIT](LICENSE).
+
+Third-party content: Margo Cloud bundles Microsoft's `workiq` skill under its MIT license, in
+[`cloud/vendor/workiq/`](cloud/vendor/workiq/) (license and pinned source alongside).
 
 Not an official Microsoft or GitHub product. Microsoft, Microsoft 365, Microsoft 365 Copilot, Work IQ, Agent 365,
 Azure, Entra, Teams, Outlook, Viva Engage, GitHub and GitHub Copilot are trademarks of their owners, referenced here

@@ -7,6 +7,11 @@ and the host, Work IQ, and other integrations use their configured services. **M
 subscription as an Agent 365 agent; nobody runs a shared Margo service for you. It is designed to
 access a real mailbox, calendar, and file store, so the security surface is real.
 
+## Supported versions
+
+Security fixes go to the `main` branch. The last tagged release of desktop Margo gets them until the next
+release is tagged. Margo Cloud is a preview: fixes land on `main` only. See [SUPPORT.md](SUPPORT.md).
+
 ## Reporting a vulnerability
 
 **Please don't open a public issue for a security problem.**
@@ -37,7 +42,7 @@ disclosing publicly.
   ignore a sensitivity label.
 - **Credential handling** — anything in the scripts that would log, persist or expose a token.
 - **Margo Cloud** — token validation on the router, host and voice endpoints, the Work IQ guard
-  (subjects, paths, and write gating: only calls the manager approved on a card), instance isolation (identity, state container, route table),
+  (subjects, paths, and write gating: only calls the manager approved on a card, plus notes and files for the manager alone), instance isolation (identity, state container, route table),
   and the provisioner's role assignments. Its open hardening items are listed under the deployment
   guide's [known limits](docs/autopilot-deployment.md#known-limits); a report that goes beyond them is welcome.
 - **Real workplace data committed to this repo** — names, addresses, tenant IDs, mailbox content.

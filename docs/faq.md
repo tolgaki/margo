@@ -15,8 +15,8 @@ read. See [trust and safety](safety.md#1-propose-never-act-unilaterally).
 
 **Can a scheduled run send something while I'm asleep?**
 Desktop: no. Unattended runs prepare privately and never send, post, RSVP or delete. Margo Cloud
-has one exception: a note to her own manager alone (their Teams chat or an email to them), never to
-anyone else. See [proactive runs](safety.md#3-proactive-runs-never-act-on-the-outside-world).
+has one exception: a note or file for her own manager alone (their Teams chat, an email to them, or a file
+shared with them), never to anyone else. See [proactive runs](safety.md#3-proactive-runs-never-act-on-the-outside-world).
 
 **What if an email tells Margo to do something?**
 She treats it as data, flags it as suspicious and keeps summarizing. See

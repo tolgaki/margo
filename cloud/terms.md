@@ -23,7 +23,8 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
   replies (from the manager's mailbox, as Margo on their behalf), sets up, moves or cancels meetings
   on the manager's calendar, and posts Teams messages as itself, only after the manager taps Approve
   on a card in Teams showing that exact action. Each approval covers that one action, once. A "yes"
-  in chat or by voice is not an approval. Everything else outward is refused in software.
+  in chat or by voice is not an approval. Apart from the exceptions below (documents shared with you,
+  notes to you, two fixed notices), everything else outward is refused in software.
 - **Documents you ask for.** Margo creates a Word, Excel or PowerPoint file you ask for in its own
   OneDrive and shares it with you alone, without a card. Sharing it with anyone else needs your
   approval on a card.
@@ -36,7 +37,8 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
   answers with one fixed note that she works only one-to-one. If the manager turns it on
   (`/replies acknowledge`), a colleague who writes to Margo gets one fixed "passed this on" note per
   conversation. Neither contains the manager's data. By default colleagues get no reply.
-- **Messages only its manager first.** Every few minutes it reads the chats and channels it is a
+- **Messages only its manager first.** When the deploying organization keeps one copy always running, every
+  few minutes it reads the chats and channels it is a
   member of and may send its manager a note, as above; it never starts a conversation with anyone else
   and sends no scheduled briefs.
 

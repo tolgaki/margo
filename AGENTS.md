@@ -55,8 +55,8 @@ Margo is a Work IQ reference implementation, not a standalone hosted assistant. 
 ## Margo Cloud (C#) and desktop Margo (Python)
 
 - Hosted Margo is **Margo Cloud**, C# on .NET 10 in `cloud/` ([cloud/README.md](cloud/README.md)).
-  Desktop Margo (Copilot, persona, skills, the Python state helpers) stays Python, in maintenance
-  mode. Both share `agents/` and `skills/`; never fork the persona or a procedure per runtime.
+  Desktop Margo (Copilot, persona, skills, the Python state helpers) stays Python: stable and
+  supported for individual use, taking fixes rather than new hosted features. Both share `agents/` and `skills/`; never fork the persona or a procedure per runtime.
 - The C# state commands (`margo-state`) must stay byte-compatible with the desktop helpers in
   `skills/chief-of-staff/scripts/`: same commands, exit codes, stdout bytes, files and SQLite rows.
   `tools/state_parity.py` judges it. A change to a desktop helper ships with the matching C# change

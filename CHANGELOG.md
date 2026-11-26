@@ -1,97 +1,68 @@
 # Changelog
 
+Only 1.0.0 has a release tag; 1.1.0 and 1.2.0 shipped on `main` without one.
+
 ## 1.3.0 (unreleased)
 
-- **Margo Cloud**: hosted Margo rewritten in C# on .NET 10 (`cloud/`), self-hosted for Agent 365 with one
-  container per hired Margo. Its state commands stay byte-compatible with the desktop helpers, judged by
-  `tools/state_parity.py`. See the deployment guide's known limits for what is unverified and the hardening still
-  open.
-- Margo Cloud delegation mode reads the manager's mail and calendar directly through the delegation and searches only
-  what is shared with Margo; Copilot search of the manager's whole data reports "unavailable".
-- Margo is a plugin for GitHub Copilot CLI, Claude Code and OpenAI Codex (skills only in Codex, like Microsoft's own Codex manifest): the repository is its own marketplace
-  (`/plugin marketplace add tolgaki/margo`, `/plugin install margo@margo`). Personal files (preferences, decision-log
-  configuration) can live outside the plugin in `~/.copilot/margo/`, which Margo and the doctor read first; procedures
-  name scripts relative to the skill instead of `~/.copilot/skills`.
-- Margo Cloud carries Microsoft's `workiq` skill (3.0.0, pinned in `cloud/vendor/workiq/source.json`; refresh with
-  `cloud/scripts/update-workiq-skill.sh`), served like Margo's own skills. Where it and Margo's skills differ on what to
-  do, Margo's rules win.
-- Margo Cloud reports to her manager directly: a Teams message in their 1:1 chat, an email from her mailbox to them
-  alone, or a file shared with them alone, with no card (the guard checks the manager is the only recipient). When
-  someone else messages, emails or copies her, she may look into it with read-only tools and send the manager a note
-  (the backchannel; `MARGO_BACKCHANNEL`, a daily cap and a per-conversation cooldown). When the manager emails her, she
-  answers by email. Observation runs read only with Margo's own token and never answer the sender.
-- Margo Cloud listens in the rooms she is a member of: every `MARGO_LISTEN_MINUTES` (15) she reads, through Work IQ
-  with her own token, what was said in her group chats, meeting chats and channels since the last pass, and one
-  observation run may tell her manager what matters (at most two notes). Needs the instance kept running.
-- Learn Work IQ here: `docs/work-iq/` covers how to load it (harness or custom agent), identity and consent, a
-  capability map, patterns, errors and recovery, and the approved-writes pattern. `samples/harness/` and
-  `cloud/samples/WorkIQHello` are the two quickstarts. The README leads with the Work IQ reference framing, Getting
-  started has a "Connect Work IQ" step and a requirements table, and there is a Margo Cloud overview and an FAQ.
-- "What changed since…" uses Microsoft Graph delta per source (stored and replayed change links, restarted when a link
-  expires), then asks Copilot only about the changed items.
-- New procedures, each discovering its paths first and routing every write through approval: Viva Engage structured
-  reads, meeting transcripts read directly after the meeting, people and org lookups, publishing to Copilot Pages or
-  SharePoint, SharePoint approvals, access and version restore, and asking a Copilot agent.
-- Write procedures check a path's schema when the path or its fields aren't known (well-known writes such as sending
-  mail skip it); collections follow paging links within a page budget and report partial results; briefs and meeting prep show sensitivity labels. Scheduled runs report
-  other people's availability as not checked instead of attempting it.
-- Margo Cloud: the guard no longer keeps a fixed list of allowed roots, so any path Work IQ serves can be read
-  (writes still need approval; `$batch`, colleagues' `/users` data and blocked resources stay refused); it follows
-  Graph paging and delta links and lets `ask` name a Copilot agent. In on-behalf-of mode, the manager's own 1:1
-  messages sign them in through the configured handler; nobody else is asked. Throttled reads honor a short `Retry-After` once; an
-  expired token is refreshed once for reads; Work IQ calls are traced and measured. Approval cards cover Pages,
-  Viva Engage and SharePoint. The on-behalf-of sign-in handler can be configured, and the default access mode is `delegation`.
-- Tools map Work IQ calls onto the eval vocabulary and summarize Margo Cloud's guard receipts.
-- Margo Cloud loads Work IQ with the official MCP C# SDK (`ModelContextProtocol.Core`) instead of a hand-written MCP
-  client ported from Python. The model now gets Work IQ's own tool descriptions and argument schemas from
-  `tools/list` (limited by the guard), with the built-in definitions as a fallback. When Work IQ rejects a call, the
-  model is told why, without the server's text reaching logs. Writes still get a session of their own and are never
-  resent. The protocol revision is pinned to 2025-06-18.
-- Approval cards are written for the person deciding: plain words about what happens, to whom, with what text and
-  when, and which email, meeting, chat or file it affects. They no longer show the Work IQ request, IDs or JSON.
-  Outcomes are plain too ("Done: the meeting is updated.", "Nothing went out: your organization's settings don't allow
-  it.").
-- Office documents: ask for a Word document, Excel workbook or PowerPoint presentation and Margo writes the
-  content and has Work IQ's Office document tools build it. Desktop creates it in your OneDrive; Margo Cloud creates
-  it in Margo's OneDrive and shares it with you alone. Creating a document you asked for is a standing permission
-  (no card); sharing it with anyone else still needs approval. Unclear creations are never retried.
-- Margo Cloud approval cards: Margo sends email and replies from the manager's mailbox (on their behalf), sets up,
-  moves or cancels meetings, and posts Teams messages as herself, each only after the manager taps Approve on a card
-  in Teams showing that exact action. The tap runs the stored call once through the guard; typed or spoken "yes" is not
-  an approval. Needs Send on Behalf and calendar Editor delegation for the agent user.
-- Margo Cloud security review (November 23, 2026). Platform tokens are accepted only from the platform, never a
-  signed-in person (`MARGO_PLATFORM_APP_IDS` pins the application); replies go only to Microsoft hosts; the voice page
-  signs in for its own app's scope, not the blueprint's; the guard refuses disguised path segments and limits file
-  links to SharePoint hosts; logs carry path templates, not identifiers.
-- Margo Cloud privacy: the model service stores nothing (`store: false`; the conversation is carried in memory,
-  bounded); replaced state versions and daily copies expire after 30 days; `cloud/terms.md` rewritten to match what
-  this version does and keeps.
-- Margo Cloud reliability: per-instance router pools; no routing before the route table has loaded; turns in flight
-  finish when a container is stopped; duplicate deliveries are dropped; a second message waits for a long turn instead
-  of failing; `azd provision` no longer breaks the provisioner job; a failed retirement cannot bring an agent back;
-  an instance cap; the provisioner job is queue-triggered.
-- Margo Cloud cost: instructions are cacheable (the time moved to the message), reasoning effort and output limits are
-  set, per-turn token usage is logged, Work IQ reads reuse connections, unchanged state is neither downloaded nor
-  uploaded, the image is compiled ahead of time, health probes are not traced.
-- Margo Cloud hardening: the router and instances accept tokens only from Bot Framework and the tenant's own Entra
-  issuers (`MARGO_EXTRA_TOKEN_ISSUERS` admits another); the router finishes forwarding an activity after Agent 365
-  stops waiting, so a cold instance no longer loses the first message; the provisioner may grant an instance's roles
-  only on the resources they apply to and only to service principals other than Margo's own identities.
-- Margo Cloud voice signs in through a separate single-page app (`MARGO_VOICE_CLIENT_ID`), because agent blueprints
-  refuse redirect URIs.
-- Separated Margo agent selection from chief-of-staff skill routing: names and greetings no
-  longer trigger the playbook, which preserves the caller's identity. Installer and setup help
-  now explicitly select the agent; updated instructions require a fresh session, not migration.
-- Connected user and developer documentation journeys, a shared documentation home, and detailed
-  task guides for all 68 catalogued features, with corrected setup, approval and recovery guidance.
-- Opt-in, manual Dream reflection over selected current-session checkpoints: sourced episodes,
-  reviewable candidate interpretations, bounded daily pages and task-scoped recall.
-- Revision-aware shell and PowerShell updates fetch the exact remote commit checked, including
-  same-version changes, instead of reinstalling a stale local checkout.
-- Safe `update --reinstall` / `update -Reinstall` refreshes code without forcing replacement of
-  personal files. Remote failures and downgrades stop without changing the installation.
-- Installation explicitly distinguishes copying files from private-state migration, app workflow
-  synchronization, extension/session reload and capture opt-in.
+### Margo Cloud (new)
+
+- **Hosted Margo in C# on .NET 10** (`cloud/`), self-hosted for Agent 365 with one container per hired Margo. Its
+  state commands stay byte-compatible with the desktop helpers, judged by `tools/state_parity.py`. The deployment
+  guide's known limits list what is not yet verified in a tenant.
+- **Work IQ through the official MCP C# SDK** (`ModelContextProtocol.Core`). The model gets Work IQ's own tool
+  descriptions and schemas from `tools/list`, limited by the guard. Writes run on their own session and are never
+  resent; throttled reads honor a short `Retry-After` once; an expired token is refreshed once for reads; calls are
+  traced and measured. When Work IQ rejects a call, the model is told why, and the server's text stays out of logs.
+- **The guard** sits between the model and every Work IQ call. It has no fixed list of allowed roots: any path Work
+  IQ serves can be read, while `$batch`, colleagues' `/users` data and blocked resources are refused. It follows
+  Graph paging and delta links, lets `ask` name a Copilot agent, refuses disguised path segments and limits file links
+  to SharePoint hosts.
+- **Approval cards.** Margo sends email (from the manager's mailbox, on their behalf), sets up, moves or cancels
+  meetings, posts Teams messages, and writes to Pages, Viva Engage and SharePoint only after the manager taps Approve
+  on a card showing that exact action, in plain words with no request details. A typed or spoken "yes" is not an
+  approval.
+- **Reports to her manager without a card**: a message in their 1:1 chat, an email to them alone, or a file shared
+  with them alone; the guard checks the manager is the only recipient.
+- **The backchannel and listening.** When someone else messages, emails or copies Margo, and every
+  `MARGO_LISTEN_MINUTES` in the chats and channels she belongs to (with one copy kept running), she reads through Work
+  IQ with her own token and may send the manager a note. She never answers those people. `MARGO_BACKCHANNEL`, a daily
+  cap (`MARGO_BACKCHANNEL_DAILY_RUNS`) and a per-conversation cooldown bound it.
+- **Access modes.** Delegation (the default) reads the manager's mail and calendar through Exchange delegation; on-
+  behalf-of mode signs the manager in from their own 1:1 messages through a configured handler.
+- **Microsoft's `workiq` skill** (3.0.0, pinned in `cloud/vendor/workiq/source.json`, refreshed with
+  `cloud/scripts/update-workiq-skill.sh`) is served next to Margo's skills; where they differ, Margo's rules win.
+- **Security, privacy and reliability.** Platform tokens are accepted only from the platform; the model service
+  stores nothing; replaced state versions expire after 30 days; voice signs in through its own single-page app;
+  duplicate deliveries are dropped, turns in flight finish on shutdown, and the provisioner grants only the roles an
+  instance needs. Instructions are cacheable and token use is logged. `cloud/terms.md` describes what this version
+  does and keeps.
+
+### Desktop Margo
+
+- **A plugin** for GitHub Copilot CLI and Claude Code (skills and persona) and OpenAI Codex (skills only; not yet
+  tested): the repository is its own marketplace (`/plugin marketplace add tolgaki/margo`,
+  `/plugin install margo@margo`). Personal files can live in `~/.copilot/margo/`, outside the plugin.
+- **Office documents**: ask for a Word document, Excel workbook or PowerPoint presentation and Work IQ's document
+  tools build it in your OneDrive. Sharing it with anyone else still needs approval.
+- **"What changed since…"** uses Microsoft Graph delta per source, then asks Copilot only about the changed items.
+- **New procedures**, each discovering its paths first and routing every write through approval: Viva Engage reads,
+  meeting transcripts, people and org lookups, publishing to Copilot Pages or SharePoint, SharePoint approvals,
+  access and version restore, and asking a Copilot agent.
+- Write procedures check an unfamiliar path's schema first; collections follow paging links within a budget and
+  report partial results; briefs and meeting prep show sensitivity labels.
+- Margo agent selection is separate from skill routing, so names and greetings no longer trigger the playbook.
+- Opt-in, manual Dream reflection over selected session checkpoints.
+- Updates fetch the exact remote commit checked; `update --reinstall` refreshes code without replacing personal
+  files; remote failures and downgrades stop without changing the installation. The installer no longer fails on a
+  group-writable folder.
+
+### Documentation
+
+- **Learn Work IQ** (`docs/work-iq/`): loading it in a harness or a custom agent, identity and consent, a capability
+  map, patterns, errors and recovery, and approved writes. `samples/harness/` and `cloud/samples/WorkIQHello` are the
+  quickstarts.
+- A Margo Cloud overview, an FAQ, a glossary, task guides for every catalogued feature, and guides for customizing
+  Margo with Claude Code or GitHub Copilot.
 
 ## 1.2.0
 

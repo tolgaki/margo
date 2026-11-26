@@ -83,8 +83,8 @@ public sealed record HostSettings
     /// <summary><c>MARGO_STATE_DIR</c>, else <c>~/margo/state</c>.</summary>
     public required string StateRoot { get; init; }
 
-    /// <summary><c>MARGO_PRINCIPAL_ACCESS</c> (default <c>obo</c>).</summary>
-    public string PrincipalAccess { get; init; } = "obo";
+    /// <summary><c>MARGO_PRINCIPAL_ACCESS</c> (default <c>delegation</c>, as the infrastructure deploys).</summary>
+    public string PrincipalAccess { get; init; } = "delegation";
 
     /// <summary>Per-instance hosting: <c>MARGO_INSTANCE_AGENT_ID</c> and <c>MARGO_INSTANCE_USER_ID</c>.</summary>
     public AgentInstance? Instance { get; init; }
@@ -288,7 +288,7 @@ public sealed record HostSettings
             StateRoot = string.IsNullOrEmpty(stateDir)
                 ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "margo", "state")
                 : stateDir,
-            PrincipalAccess = Get("MARGO_PRINCIPAL_ACCESS") ?? "obo",
+            PrincipalAccess = Get("MARGO_PRINCIPAL_ACCESS") ?? "delegation",
             Instance = instance,
             StateContainer = container,
             VoiceUrl = voiceUrl,

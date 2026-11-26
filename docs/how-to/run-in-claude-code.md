@@ -17,7 +17,7 @@ To change Margo's code with Claude Code as your coding agent, you don't need any
 | Work IQ reads and approved writes | Work, through the Work IQ MCP server under Claude Code's tool names |
 | The private ledger and state helpers | Work, with `COPILOT_HOME` pointing at the install folder |
 | `./install.sh update` and `status` | Work with `--dest ~/.claude` |
-| Microsoft's `workiq` skill | Not installed: it comes with the Copilot CLI plugin. Margo's procedures work without it |
+| Microsoft's `workiq` skill | Comes with Microsoft's Work IQ plugin (the plugin route in section 2); the installer route does not add it. Margo's procedures work without it |
 | Scheduled runs (`tools/margo-scheduled.sh`) | **No.** The wrapper is Copilot-only. See [scheduled runs](#scheduled-runs) |
 | The action desk, memory and task panels | No. They are Copilot app extensions; the conversation does everything without them |
 
@@ -38,6 +38,9 @@ documentation for the current commands and for which scope (this project, or all
 server is added to.
 
 Use the server name `workiq` exactly: Claude Code builds the tool names from it.
+
+If you take the plugin route in section 2 and install Microsoft's Work IQ plugin first, check `/mcp`: when it
+already lists a Work IQ server from that plugin, skip the command above so the server is not registered twice.
 
 ## 2. Install the skills and persona
 

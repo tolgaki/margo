@@ -73,7 +73,7 @@ of done, due date, and effort have been agreed.
 Read [Work ledger](../skills/chief-of-staff/references/work-ledger.md) for candidate review and
 commitment import/export. Migration preserves original files and does not promote old notification
 history into evidence that an obligation was confirmed or completed. `commitments.md` becomes
-a compatibility view after cutover; edits are detected rather than silently discarded.
+a compatibility view after migration; edits are detected rather than silently discarded.
 
 ## The action desk
 

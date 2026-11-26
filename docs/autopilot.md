@@ -203,7 +203,7 @@ listed.
 ### 4.2 Tools: Work IQ MCP only
 
 **Margo's only Microsoft 365 tool server is Work IQ MCP at `https://workiq.svc.cloud.microsoft/mcp`**
-(resource `api://workiq.svc.cloud.microsoft`). This is an owner decision, not a preference.
+(resource `api://workiq.svc.cloud.microsoft`). This is a design decision, not a preference.
 
 - **No Agent 365 MCP servers.** The workload-specific servers (Mail, Calendar, Teams,
   SharePoint, OneDrive, User, Word, Copilot) are excluded. Microsoft also marks them legacy
@@ -509,7 +509,7 @@ procedure describes when she consults them.
 | --- | --- | --- |
 | Read principal's data (OBO) | Allowed, bounded, attended or unattended | Same authority as local Margo; new mechanism |
 | Write to Margo's private local state (ledger, memory) | Allowed | Same |
-| **Message the manager directly** (their 1:1 chat, an email to them alone, a file shared with them alone) | Allowed at any time, including unattended and in an observation run started by someone else's message | **Built, not verified in a tenant** (owner decision, Nov 25, 2026; the guard checks the manager is the only recipient; observation runs read only with Margo's own token). Nobody else |
+| **Message the manager directly** (their 1:1 chat, an email to them alone, a file shared with them alone) | Allowed at any time, including unattended and in an observation run started by someone else's message | **Built, not verified in a tenant** (the guard checks the manager is the only recipient; observation runs read only with Margo's own token). Nobody else |
 | **Send mail on the manager's behalf, or from Margo's own mailbox** | Per-action approval by the manager | Decided: both allowed. The approval must be recorded with the manager's object ID; the guard refuses any other approver |
 | Any other Microsoft 365 write: drafts, replies, RSVP, meeting moves, deletes, posts, work items, files | Per-action approval via Adaptive Card, attended only | Same rule, stronger evidence |
 | Replies to other people | Governed by the manager's setting (6.1) | New, default off |
