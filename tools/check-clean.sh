@@ -79,7 +79,7 @@ printf '%sChecking for real workplace data%s\n\n' "$B" "$N"
 hits=$(scan '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' \
   | grep -viE ':[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]*\.example|example\.(com|org)|users\.noreply\.github\.com|thread\.tacv[0-9]*)$' \
   | grep -viE ':[A-Za-z0-9._%+-]+@(graph\.microsoft\.com|login\.microsoftonline\.com|msrc\.microsoft\.com|timestamp\.digicert\.com)$' \
-  | grep -viE ':[A-Za-z0-9._%+-]+@odata\.[a-z]+$' || true)   # OData annotations (user@odata.bind), not addresses
+  | grep -vE ':[A-Za-z0-9]+@odata\.bind$' || true)   # the OData annotation (user@odata.bind) only; odata.org is an address
 report "no real email addresses" "$hits"
 
 # 2. GUIDs. Three are allowed and documented: the fixed public Azure DevOps

@@ -25,10 +25,10 @@ public sealed class VoiceLiveTests
     /// <summary>Expected values printed by the SDK's own <c>_VoiceLiveConnectionManager._prepare_url()</c> with
     /// <c>model="gpt-realtime model/é"</c>.</summary>
     [Theory]
-    [InlineData("https://margo-voice.cognitiveservices.azure.com/",
-                "wss://margo-voice.cognitiveservices.azure.com/voice-live/realtime?api-version=2026-07-15&model=gpt-realtime+model%2F%C3%A9")]
-    [InlineData("https://margo-voice.services.ai.azure.com",
-                "wss://margo-voice.services.ai.azure.com/voice-live/realtime?api-version=2026-07-15&model=gpt-realtime+model%2F%C3%A9")]
+    [InlineData("https://fictional-voice.cognitiveservices.azure.com/",
+                "wss://fictional-voice.cognitiveservices.azure.com/voice-live/realtime?api-version=2026-07-15&model=gpt-realtime+model%2F%C3%A9")]
+    [InlineData("https://fictional-voice.services.ai.azure.com",
+                "wss://fictional-voice.services.ai.azure.com/voice-live/realtime?api-version=2026-07-15&model=gpt-realtime+model%2F%C3%A9")]
     [InlineData("http://localhost:8080/base/",
                 "ws://localhost:8080/base/voice-live/realtime?api-version=2026-07-15&model=gpt-realtime+model%2F%C3%A9")]
     [InlineData("wss://x.example.com/a?api-version=old&extra=1&blank=&x+y=a%20b+c&dup=1&dup=2#frag",

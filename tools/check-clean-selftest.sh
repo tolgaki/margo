@@ -96,6 +96,7 @@ printf '%sSelf-testing tools/check-clean.sh%s\n\n' "$B" "$N"
 # --- Email: the match must be filtered, never the line -----------------------
 must_flag "plain real address"            "no real email addresses"          leak.md "contact jane.doe@northwind.co"
 must_flag "real address beside allowed"   "no real email addresses"          leak.md "contact jane.doe@acme.co or bob@example.com"
+must_flag "address at an odata domain"    "no real email addresses"          leak.md "contact jane.doe@odata.org"
 must_flag "real address beside thread id" "no real email addresses"          leak.md "owner alice@acme.co in 19:abc123def456@thread.tacv2"
 
 # --- Home paths: no trailing slash, uppercase, Windows -----------------------
@@ -125,6 +126,7 @@ must_flag "noncast name in reply example" "no personal names outside"        lea
 must_flag "bare tenant GUID"              "no tenant/org/channel GUIDs"      leak.md "tenant 7f2a91b4-3c8d-4e15-9a62-1d5f8b3c7e04"
 
 # --- Things that must NOT trip it -------------------------------------------
+must_pass "OData bind annotation"    ok.md '{"user@odata.bind": "https://graph.microsoft.com/v1.0/users/1"}'
 must_pass "example.com addresses"   ok.md "write to someone@example.com"
 must_pass "placeholder home path"   ok.md 'clone at /Users/{you}/src/margo'
 must_pass "documented public ADO id" ok.md "resource 499b84ac-1321-427f-aa17-267ca6975798"

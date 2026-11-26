@@ -64,6 +64,17 @@ class ReceiptStatsTest(unittest.TestCase):
         self.assertEqual(summary["status_codes"], {"200": 1, "429": 1})
         self.assertEqual(summary["top_paths"], {"/me/messages": 2})
 
+    def test_local_state_command_receipts_are_not_work_iq_calls(self):
+        log = "\n".join([
+            'info: margo.autopilot[0] workiq {"tool": "fetch", "status": "ok", "status_codes": [200], "paths": ["/me/messages"]}',
+            'info: margo.autopilot[0] workiq {"at": "2026-01-01T00:00:00.000000+00:00", "tool": "margo-state", '
+            '"script": "work_state.py", "command": "list", "mode": "chat", "status": "ok", "exit_code": 0, "ms": 12}',
+        ])
+        summary = workiq_receipt_stats.summarize(io.StringIO(log))
+        self.assertEqual(summary["calls"], 1)
+        self.assertEqual(summary["state_commands"], 1)
+        self.assertEqual(summary["by_tool"], {"fetch": {"ok": 1}})
+
 
 if __name__ == "__main__":
     unittest.main()

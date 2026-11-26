@@ -88,3 +88,8 @@ cloud/out/
 
 # Claude Code: personal settings stay local
 .claude/settings.local.json
+
+# Work IQ traces and host logs fed to the tools/ evaluators hold call arguments (recipients, bodies, queries).
+/calls.jsonl
+/events.jsonl
+/host.log
