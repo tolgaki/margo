@@ -17,5 +17,5 @@ time guarantee.
 | --- | --- |
 | Desktop Margo on the `main` branch | Supported: fixes and updates |
 | Desktop Margo's last tagged release | Supported until the next release is tagged |
-| Margo Cloud | Preview: built and tested here, not yet verified in a production tenant |
+| Margo Cloud | Preview: running in a test tenant; the [maturity table](docs/margo-cloud.md#maturity) says which features are verified there |
 | Older tags | Not supported; update to `main` |

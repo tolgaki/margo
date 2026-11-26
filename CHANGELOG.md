@@ -7,8 +7,8 @@ Only 1.0.0 has a release tag; 1.1.0 and 1.2.0 shipped on `main` without one.
 ### Margo Cloud (new)
 
 - **Hosted Margo in C# on .NET 10** (`cloud/`), self-hosted for Agent 365 with one container per hired Margo. Its
-  state commands stay byte-compatible with the desktop helpers, judged by `tools/state_parity.py`. The deployment
-  guide's known limits list what is not yet verified in a tenant.
+  state commands stay byte-compatible with the desktop helpers, judged by `tools/state_parity.py`. Running in a test
+  tenant; the Margo Cloud overview's maturity table says which features are verified there.
 - **Work IQ through the official MCP C# SDK** (`ModelContextProtocol.Core`). The model gets Work IQ's own tool
   descriptions and schemas from `tools/list`, limited by the guard. Writes run on their own session and are never
   resent; throttled reads honor a short `Retry-After` once; an expired token is refreshed once for reads; calls are
