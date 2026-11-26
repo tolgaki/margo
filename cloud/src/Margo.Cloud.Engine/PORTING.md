@@ -450,7 +450,7 @@ port; the C# code is now the implementation of record, and the desktop state hel
 
 ## Microsoft's Work IQ skill (Nov 26, 2026)
 
-The image copies `cloud/vendor/workiq/skills/` into `/app/skills/`, so `SkillLibrary` indexes and serves Microsoft's
+The image copies `cloud/vendor/workiq/plugins/workiq/skills/` into `/app/skills/`, so `SkillLibrary` indexes and serves Microsoft's
 `workiq` skill (a pinned copy of `plugins/workiq/skills/workiq` from `microsoft/work-iq`, MIT; `source.json` records the
 commit) like Margo's own. Desktop Margo gets the same skill from the Work IQ plugin. Refresh with
 `cloud/scripts/update-workiq-skill.sh`.

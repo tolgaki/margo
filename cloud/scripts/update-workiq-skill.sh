@@ -23,9 +23,11 @@ SRC="$WORK/work-iq"
 COMMIT="$(git -C "$SRC" rev-parse HEAD)"
 VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["version"])' "$SRC/plugins/workiq/.claude-plugin/plugin.json")"
 
-rm -rf "$DEST/skills"
-mkdir -p "$DEST/skills"
-cp -R "$SRC/plugins/workiq/skills/workiq" "$DEST/skills/workiq"
+# The same layout as Microsoft's repository (plugins/workiq/skills/workiq). Its Markdown links point into the rest of
+# that repository and are not checked here (CI's link check skips cloud/vendor/).
+rm -rf "$DEST/skills" "$DEST/plugins" "$DEST/ADMIN-INSTRUCTIONS.md"
+mkdir -p "$DEST/plugins/workiq/skills"
+cp -R "$SRC/plugins/workiq/skills/workiq" "$DEST/plugins/workiq/skills/workiq"
 cp "$SRC/LICENSE" "$DEST/LICENSE"
 python3 - "$DEST/source.json" "$COMMIT" "$VERSION" "$REF" <<'PY'
 import json, sys, datetime

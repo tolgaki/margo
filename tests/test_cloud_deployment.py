@@ -35,12 +35,12 @@ class Deployment(unittest.TestCase):
         source = json.loads((vendor / "source.json").read_text(encoding="utf-8"))
         self.assertEqual(source["repository"], "https://github.com/microsoft/work-iq")
         self.assertRegex(source["commit"], r"^[0-9a-f]{40}$")
-        self.assertTrue((vendor / "skills" / "workiq" / "SKILL.md").is_file())
+        self.assertTrue((vendor / "plugins" / "workiq" / "skills" / "workiq" / "SKILL.md").is_file())
         self.assertIn("MIT License", (vendor / "LICENSE").read_text(encoding="utf-8"))
-        skill = (vendor / "skills" / "workiq" / "SKILL.md").read_text(encoding="utf-8")
+        skill = (vendor / "plugins" / "workiq" / "skills" / "workiq" / "SKILL.md").read_text(encoding="utf-8")
         self.assertTrue(skill.startswith("---\nname: workiq\n"))
         dockerfile = read("Dockerfile")
-        self.assertIn("COPY cloud/vendor/workiq/skills/ /app/skills/", dockerfile)
+        self.assertIn("COPY cloud/vendor/workiq/plugins/workiq/skills/ /app/skills/", dockerfile)
         self.assertNotIn("vendor", (ROOT / ".dockerignore").read_text(encoding="utf-8"))
 
     def test_no_foundry_hosted_agent_remains(self):

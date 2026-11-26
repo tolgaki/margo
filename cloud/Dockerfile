@@ -52,7 +52,7 @@ COPY agents/ /app/agents/
 COPY skills/ /app/skills/
 # Microsoft's Work IQ skill, which desktop Margo gets from the Work IQ plugin for Copilot CLI. A pinned copy
 # (cloud/vendor/workiq/source.json; refresh with scripts/update-workiq-skill.sh), served like Margo's own skills.
-COPY cloud/vendor/workiq/skills/ /app/skills/
+COPY cloud/vendor/workiq/plugins/workiq/skills/ /app/skills/
 COPY cloud/vendor/workiq/LICENSE /app/skills/workiq/LICENSE
 # The per-instance template the provisioner deploys (one container per hired Margo), also its default path.
 COPY cloud/infra/instance.json /app/provisioner/instance.json

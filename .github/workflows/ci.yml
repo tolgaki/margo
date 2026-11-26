@@ -354,6 +354,8 @@ jobs:
           for f in pathlib.Path('.').rglob('*.md'):
               if any(p in f.parts for p in ('.git', 'build', 'dist')):
                   continue
+              if f.parts[:2] == ('cloud', 'vendor'):
+                  continue  # third-party content copied as-is; its links point into its own repository
               for m in re.finditer(r'\]\(([^)]+)\)', f.read_text()):
                   raw = m.group(1).strip()
                   if raw.startswith(('http', 'mailto:')):
