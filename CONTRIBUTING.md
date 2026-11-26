@@ -77,7 +77,7 @@ that widen what can happen without explicit approval need a strong argument. (Wi
 writes to her manager alone, answers her manager in a room where they spoke to her, and sends one fixed notice; see
 [Trust & safety](docs/safety.md#margo-cloud-fixed-notices). Adding to that list needs the same argument.) Unattended runs
 must never take an **outbound** action — send, reply, post, react, RSVP, delete, or change a work
-item. Private local state can be updated under the routine's documented contract. This repository
+item — except Margo Cloud's notes to her own manager alone (`docs/safety.md` §3). Private local state can be updated under the routine's documented contract. This repository
 does not grant unattended shared-vault writes; see `docs/safety.md` §3.
 
 ### Keep the docs true

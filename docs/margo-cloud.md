@@ -6,8 +6,9 @@ gets their own Margo, with her own account (mailbox, Teams presence, OneDrive), 
 person, her **manager**. She uses the same persona and skills as desktop Margo, and reaches
 Microsoft 365 only through Work IQ.
 
-It is a **preview**: its core path has run in one test tenant with fictional users. It is not for
-production use. This page is for the IT admin or developer deciding whether to try it; the
+It is a **preview** of a community reference implementation, not a Microsoft product and not a
+supported one ([getting help](../SUPPORT.md)): its core path has run in one test tenant with fictional
+users. It is not for production use. This page is for the IT admin or developer deciding whether to try it; the
 [deployment guide](autopilot-deployment.md) has the steps.
 
 Pages whose file names start with `autopilot` (the deployment guide, the design record, voice and
@@ -56,10 +57,11 @@ where they @mention her, and one fixed notice ([safety](safety.md#margo-cloud-fi
 ## What she does without being asked
 
 Margo's communication is with her manager, but she hears what happens around her. When someone
-messages, emails or copies her, and (when one copy is kept running, `MARGO_INSTANCE_MIN_REPLICAS=1`) every 15 minutes in the
+messages, emails or copies her, and (when her container is kept running, `MARGO_INSTANCE_MIN_REPLICAS=1`) every 15 minutes in the
 group chats, meeting chats and channels she is a member of, she reads what is new through Work IQ, looks into what might matter, and sends
-the manager a short note when it does. She never answers those people, and their words never become
-her instructions ([the backchannel](autopilot-deployment.md#the-backchannel)).
+the manager a short note when it does. She never answers those people and does not tell them she is reading;
+their words are treated as data, so at most they shape a note that only the manager receives. Tell
+the people who share chats with her: the [terms](../cloud/terms.md#privacy) say so ([the backchannel](autopilot-deployment.md#the-backchannel)).
 
 ## Licenses and costs
 
@@ -80,7 +82,7 @@ Everything is billed to your organization. No estimate is made here
 | Status | What |
 | --- | --- |
 | **Verified in a test tenant** | Provisioning; the router-to-instance path and agentic sign-in; reading the manager's mailbox and calendar through delegation; a reply in Teams |
-| **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; on-behalf-of access and the manager's sign-in; the manager channel and the backchannel (notes, emails and shares to the manager alone; observation runs); voice; **Create instance** from the admin center; the state lease under concurrent turns |
+| **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; on-behalf-of access and the manager's sign-in; the manager channel and the backchannel (notes, emails and shares to the manager alone; observation runs; listening in rooms); answering the manager in a group chat or channel; queuing other people's messages, with the optional acknowledgment; `margo-state` parity with the desktop helpers (judged offline); voice; **Create instance** from the admin center; the state lease under concurrent turns |
 | **Not built** | Live meeting transcripts; scheduled briefs (morning brief, end of day) |
 
 ## Reading order
@@ -101,7 +103,7 @@ The Margo Cloud terms in detail. The [main glossary](glossary.md) covers desktop
 
 | Term | Meaning |
 | --- | --- |
-| Agent 365 | Microsoft's platform for publishing, approving, hiring and governing agents in a tenant ([Microsoft Learn](https://learn.microsoft.com/)) |
+| Agent 365 | Microsoft's platform for publishing, approving, hiring and governing agents in a tenant (search Microsoft Learn for "Agent 365") |
 | Frontier preview | Microsoft's early-access program that Agent 365's agent features require |
 | Agent blueprint | The Entra app that defines Margo once per tenant; each hire creates an instance from it |
 | Instance, hire | One Margo for one manager; hiring is **Create instance** in Teams or the admin center |

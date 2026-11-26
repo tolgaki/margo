@@ -28,8 +28,8 @@ Margo is a Work IQ reference implementation, not a standalone hosted assistant. 
   target, payload and revision. A goal, task plan, review button or remembered preference is
   not approval. The approval journal records a decision; it does not authenticate the caller.
 - Unattended routines never send, post, RSVP, delete, publish or change external work items.
-  The one exception, Margo Cloud only: a note to her own manager alone (their 1:1 chat or an email
-  to them alone) through the manager channel, which the guard checks recipient by recipient.
+  The one exception, Margo Cloud only: a note to her own manager alone (their 1:1 chat, an email
+  to them alone, or a file shared with them alone) through the manager channel, which the guard checks recipient by recipient.
   Private preparation follows its documented contract. Wrapper denials cover Work IQ write
   tools, not every possible outbound path; app workflows do not inherit those flags.
 - Re-read consequential external state. A timeout is unknown, not proof of no effect.

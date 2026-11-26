@@ -47,6 +47,8 @@ thing in the PR.
 - [ ] Doesn't introduce **outbound** actions (send, reply, post, react, RSVP, delete, work-item
       change) into unattended scheduled runs. Only documented private local preparation is
       allowed; this repository does not grant unattended shared-vault writes.
+      (Margo Cloud's notes to her own manager alone are the documented exception; see
+      `docs/safety.md` §3.)
 
 **Checks**
 

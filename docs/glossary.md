@@ -12,6 +12,7 @@ kind of agent an *autopilot*; the file names were kept so links keep working.
 | --- | --- |
 | Work IQ | Microsoft's service that lets an agent read and, where your tenant allows it, write your Microsoft 365 mail, calendar, Teams, files and people data. Margo reaches Microsoft 365 only through it ([Learn Work IQ](work-iq/README.md)) |
 | MCP | Model Context Protocol: the standard way an agent host loads a tool server. Work IQ is an MCP server; Copilot CLI, Claude Code and Margo Cloud each load it as one |
+| Harness | An agent host, such as GitHub Copilot CLI or Claude Code, that registers the Work IQ MCP server, signs you in and exposes its tools to the model ([Learn Work IQ](work-iq/README.md)) |
 | Copilot CLI | GitHub Copilot CLI, the terminal program (`copilot`) that runs desktop Margo: it supplies the model, loads Margo's agent and skills, and signs in to Work IQ |
 | The Copilot app | The desktop app that hosts Copilot agents, extension canvases and scheduled workflows. It is separate from the Copilot CLI terminal; the optional panels and app workflows need it, the CLI does not |
 | Frontier | Microsoft's early-access program. Agent 365's agent features, and so Margo Cloud, need the tenant to be enrolled |
@@ -41,7 +42,9 @@ kind of agent an *autopilot*; the file names were kept so links keep working.
 | Manager, principal | The one person an instance works for (her agent user's manager in the directory). Both words mean the same person |
 | Delegation | Exchange permissions that let Margo's own account read her manager's mail and calendar. The default way Margo Cloud reads the manager's work |
 | On-behalf-of (OBO) | Margo calling Work IQ with her manager's own token (after the manager signs in), with Margo recorded as the actor. Built, not verified in a tenant |
-| Backchannel | Margo Cloud's direct line to her manager: a note in their one-to-one chat, an email to them alone, or a file shared with them alone, with no approval card because nobody else receives it ([the backchannel](autopilot-deployment.md#the-backchannel)) |
+| Manager channel | Margo Cloud's direct line to her manager: a note in their one-to-one chat, an email to them alone, or a file shared with them alone, with no approval card because nobody else receives it |
+| Backchannel | What Margo Cloud does with what reaches her from other people: when someone else messages, emails or copies her, and, when listening is on, in the group chats, meeting chats and channels she is a member of, she reads with her own token and may send her manager a note through the manager channel. `MARGO_BACKCHANNEL=off` turns this off; the manager channel stays ([the backchannel](autopilot-deployment.md#the-backchannel)) |
+| Approval card | The card Margo Cloud posts in Teams for one exact outward action. Only her manager's tap on **Approve** runs it, once ([approval cards](safety.md#margo-cloud-approval-cards)) |
 
 More Margo Cloud terms (agent identity, agentic sign-in, Copilot Credits, router, provisioner) are
 in the [Margo Cloud glossary](margo-cloud.md#glossary).

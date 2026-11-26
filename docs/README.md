@@ -101,7 +101,8 @@ Read these after the current implementation, not as extra setup requirements for
 
 New words (Work IQ, MCP, ledger, candidate, coverage, agent blueprint, agent user, delegation,
 backchannel and more) are explained in one or two plain lines each in the [glossary](glossary.md).
-Files named `autopilot*.md` are Margo Cloud pages; "autopilot" was its earlier name.
+Files named `autopilot*.md` are Margo Cloud pages; "autopilot" was its earlier name (see the
+[glossary](glossary.md)); it is unrelated to the `mode: autopilot` line in `automations/`.
 
 ## Help and documentation maintenance
 

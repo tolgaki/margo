@@ -1,7 +1,7 @@
 # Register Work IQ in an agent harness
 
 This quickstart connects the Work IQ MCP server to GitHub Copilot CLI, signs you in, lists the tools
-and makes one bounded read. It is the first step of [getting started](../../docs/getting-started.md)
+and makes one bounded read. It is step 2 of [getting started](../../docs/getting-started.md)
 with desktop Margo, and the harness half of [Learn Work IQ](../../docs/work-iq/README.md).
 
 You need a Microsoft 365 work account with a Microsoft 365 Copilot license, a tenant where Work IQ

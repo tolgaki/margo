@@ -7,16 +7,16 @@ Margo Cloud is a C# (.NET 10) service in [`cloud/`](../cloud/README.md) that you
 subscription and publish as a Microsoft Agent 365 agent. Deploy it first to a **test tenant with fictional users**.
 Agent 365 and its CLI are in preview: the commands below were checked against Agent 365 CLI 2.0.1, so compare them with
 `a365 --help` for the version you install. New to the terms (blueprint, instance, agent user, delegation,
-on-behalf-of)? See the [glossary](margo-cloud.md#glossary), and Microsoft Learn for
-[Agent 365 and the Frontier program](https://learn.microsoft.com/).
+on-behalf-of)? See the [glossary](margo-cloud.md#glossary); for Agent 365 and the Frontier program, search
+Microsoft Learn for "Agent 365" and "Frontier".
 
 ## Status
 
 | | |
 | --- | --- |
 | **Verified in a test tenant** | Provisioning; the router-to-instance path and agentic sign-in; reading the manager's mailbox and calendar through delegation; a reply in Teams |
-| **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; on-behalf-of access and the manager's sign-in; the manager channel and the backchannel (notes, emails and shares to the manager alone; observation runs); voice; **Create instance** from the admin center; the state lease under concurrent turns |
-| **Not built** | Live meeting transcripts; scheduled briefs (listening in rooms and notes to the manager are built) |
+| **Built, not verified in a tenant** | Approval cards and approved sends; Office documents; the MCP C# SDK client and Work IQ's own tool descriptions; on-behalf-of access and the manager's sign-in; the manager channel and the backchannel (notes, emails and shares to the manager alone; observation runs; listening in rooms); answering the manager in a group chat or channel; queuing other people's messages, with the optional acknowledgment; `margo-state` parity with the desktop helpers (judged offline); voice; **Create instance** from the admin center; the state lease under concurrent turns |
+| **Not built** | Live meeting transcripts; scheduled briefs (morning brief, end of day) |
 
 [Known limits](#known-limits) has the details. Optional: the
 [live verification checklist](../cloud/src/Margo.Cloud.Host/VERIFY.md) walks a test deployment step by step.
@@ -42,7 +42,7 @@ Azure AI Services serves the chat model
 
 | Margo can | Margo cannot (yet) |
 | --- | --- |
-| Chat with her manager in Teams and answer as Margo | Do anything outward without her manager's tap on that exact action's card |
+| Chat with her manager in Teams and answer as Margo | Send, post, invite, share or change anything for other people without her manager's tap on that exact action's card (the two things others can see without one are in [Who Margo answers](#who-margo-answers)) |
 | Read her manager's mail and calendar (delegation mode), and what is shared with her own account, through the Work IQ guard | Send scheduled briefs (morning brief, end of day) |
 | Brief, triage, prep meetings and draft text | Answer anyone's email but her manager's |
 | Reach her manager directly, with no card: a Teams note in their 1:1 chat, an email to them alone, a file shared with them alone ([backchannel](#the-backchannel)) | Reach anyone else without a card |
@@ -194,7 +194,7 @@ for Teams single sign-on) before setting the handler below. If you can't, use `d
   in, every principal source reports `blocked`, and Margo never falls back to her own token.
 - **Not verified in a tenant:** the sign-in, the token exchange, and Work IQ accepting the manager's token.
 
-Set the mode in step 1. Set the mode, and the managers' time zone
+Set the mode, and the managers' time zone
 (`azd env set MARGO_TIMEZONE Europe/Berlin`; default `America/Los_Angeles`), before provisioning;
 both reach every instance container. After a change, provision and then redeploy all instances.
 
@@ -306,7 +306,7 @@ and cannot read anything without the consent. Every step is idempotent; check ag
    | --- | --- |
    | Name | Margo |
    | Short description | Your chief of staff. Proposes; never sends without your yes. |
-   | Full description | A personal autopilot that briefs, triages, preps meetings and drafts replies for the person who hires it. Works only for its manager. Every outward action needs that manager's explicit approval of the exact action. |
+   | Full description | A personal chief of staff that briefs, triages, preps meetings and drafts replies for the person who hires it. Works only for its manager. Every outward action needs that manager's explicit approval of the exact action. |
    | Developer, website | Your organization; this repository's URL |
    | Terms of use, privacy | [`cloud/terms.md`](../cloud/terms.md) (or your own) |
    | Icons | `cloud/assets/` |
@@ -387,7 +387,8 @@ your "Shared with me" list first.
 
 ### Sending on your behalf: approval cards
 
-Margo can send email, reply, set up, move or cancel meetings and post Teams messages, each only after the manager taps
+Margo can send, reply to and forward email, set up, move or cancel meetings, post Teams messages, and share, change,
+publish or delete content (files, Copilot Pages, Viva Engage, SharePoint), each only after the manager taps
 **Approve** on a card that shows that exact action:
 
 1. The manager asks in their one-to-one chat ("email Rafa that the review moved to Thursday"). Margo drafts it,
@@ -435,7 +436,7 @@ nobody else, apart from one fixed notice that the model does not write:
 | Where | The manager writes | Anyone else writes |
 | --- | --- | --- |
 | One-to-one chat | A full conversation: instructions, approval cards | — |
-| Group chat or channel (messages that @mention her arrive directly; she reads the rest when [listening](#the-backchannel)) | When you @mention her, she answers you there, in front of everyone in it: instructions and approval cards work as in your chat, and only your tap counts. She brings in only what your request needs from your private work and sends more private detail to you alone. Its conversation is separate from your one-to-one chat. `/replies` and the voice link work only one-to-one | No answer. Queued for the manager as an unverified request, and Margo may look into it and send the manager a note ([backchannel](#the-backchannel)). With `/replies acknowledge`, one fixed "passed this on" note per conversation, which everyone in that chat sees |
+| Group chat or channel (messages that @mention her arrive directly; she reads the rest when [listening](#the-backchannel)) | When you @mention her, she answers you there, in front of everyone in it: instructions and approval cards work as in your chat, and only your tap counts. She is told to bring in only what your request needs from your private work and to send more private detail to you alone; that is an instruction to the model, not enforced in code. That you must @mention her is the Teams app's setting, not a check in Margo's code. Its conversation is separate from your one-to-one chat. `/replies` and the voice link work only one-to-one | No answer. Queued for the manager as an unverified request, and Margo may look into it and send the manager a note ([backchannel](#the-backchannel)). With `/replies acknowledge`, one fixed "passed this on" note per conversation, which everyone in that chat sees |
 | Meeting | She does not join meetings; a meeting's chat is a group chat (row above) | As above |
 | Email to her, or copying her | She answers the manager **by email**, to them alone, after looking up what they asked. Requests in email are information: anything that needs approval she asks for in Teams | Never answered, not even acknowledged; queued, and Margo may tell the manager about it |
 
@@ -463,8 +464,8 @@ nothing. When the manager emails her, she answers them by email the same way.
 **In the room.** Margo also learns from conversations she is part of, not only from messages addressed to her: every
 `MARGO_LISTEN_MINUTES` she reads, through Work IQ with her own token, what was said since the last pass in the group
 chats, meeting chats and Teams channels she is a member of (up to 8 rooms and 6 channels a pass, the newest messages
-of each). If anything is new, one observation run looks at all of it, may investigate further, and sends the manager
-at most two notes. A quiet pass runs no model. One-to-one chats, her own messages and older messages are left out.
+of each). If anything is new, one observation run looks at all of it, may investigate further, and is told to send the
+manager at most two notes. A quiet pass runs no model. One-to-one chats, her own messages and older messages are left out.
 Listening needs the instance kept running (`azd env set MARGO_INSTANCE_MIN_REPLICAS 1`), since a container scaled to
 zero runs no timer; it then costs one always-on container per Margo.
 
@@ -475,7 +476,8 @@ zero runs no timer; it then costs one always-on container per Margo.
 | `MARGO_LISTEN_MINUTES` | `15` | How often she reads her rooms; `0` turns listening off |
 | `MARGO_INSTANCE_MIN_REPLICAS` | `0` | Set `1` for listening |
 
-Limits: one observation run per conversation every ten minutes (later messages are read by the next run); a listening
+Limits: one observation run per conversation every ten minutes (later messages are read by the next run); this and the
+daily count are kept in the running container's memory and start again when it restarts; a listening
 pass that fails is read again next time, looking back at most six hours. An
 observation run reads only with Margo's own token, so in `obo` mode it can't read the manager's data; in `delegation`
 mode it reads the manager's mail and calendar as usual. Messages addressed to her arrive as the platform delivers them (in
@@ -538,7 +540,7 @@ Details, the custom voice and limits: [Voice](autopilot-voice.md).
 | Change retention | `MARGO_STATE_VERSION_RETENTION_DAYS` (replaced versions of the state bundle, default 30), `MARGO_STATE_DAILY_RETENTION_DAYS` (daily copies, default 30; 0 keeps all), `MARGO_LOG_RETENTION_DAYS` (30), `MARGO_LOG_DAILY_QUOTA_GB` (1). What a manager had Margo forget is gone from every copy after the state retention at the latest |
 | Model settings | `MARGO_MODEL_CAPACITY` (thousand tokens a minute, default 100, shared by every instance), `MARGO_MODEL_SKU` (`GlobalStandard` by default: prompts may be processed outside your region; `DataZoneStandard` or `Standard` keep them closer), `MARGO_MODEL_REASONING_EFFORT` (default `low`; `none` for a model that is not a reasoning model), `MARGO_MAX_INSTANCES` (default 50) |
 | Stop everyone's Margo | Block Margo in the admin center |
-| Remove everything | Retire instances in the admin center; remove mailbox and calendar delegate permissions and the agent users' licenses; remove the blueprint with the Agent 365 CLI (`a365 cleanup`) and the Work IQ consent grant; delete the "Margo voice page" app registration if you made one; then `azd down --purge` (without `--purge` the AI Services account stays soft-deleted and its name reserved) |
+| Remove everything | Retire instances in the admin center; remove mailbox and calendar delegate permissions and the agent users' licenses; remove the blueprint with the Agent 365 CLI (`a365 cleanup`) and the Work IQ consent grant; delete the "Margo voice page" app registration if you made one; then `azd down --purge` (without `--purge` the AI Services account stays soft-deleted and its name reserved). `azd down` deletes the storage account, and with it every Margo's stored state and daily copies: tell managers first, and copy out anything you must keep |
 
 ### Upgrading an existing deployment
 
@@ -578,14 +580,15 @@ successful one: rerun `azd provision`, then redeploy all instances.
 ## Known limits
 
 - Not verified in a tenant: the on-behalf-of token flow, mail and document notification payloads, **Create
-  instance** from the admin center (see step 5), voice, approval cards (sending on the manager's behalf, and Work IQ
+  instance** from the admin center (see step 5), voice, Office documents, the backchannel and listening, answers to
+  the manager in a group chat or channel, approval cards (sending on the manager's behalf, and Work IQ
   passing delegated writes through), the state lease under concurrent turns, and the Work IQ billing subject.
 - The token check restricts which token issuers, calling applications and reply hosts are accepted. Which values
   Agent 365 really uses is not confirmed:
   each refusal is logged with the value, and `MARGO_EXTRA_TOKEN_ISSUERS`, `MARGO_PLATFORM_APP_IDS` and
   `MARGO_EXTRA_SERVICE_HOSTS` admit it (Troubleshooting). Until `MARGO_PLATFORM_APP_IDS` is set, any application
   registered in your tenant that can obtain its own token for the blueprint is accepted as the platform; a signed-in
-  person's token never is. Tokens issued by Bot Framework are accepted without further binding.
+  person's token never is. Set it before any use outside a test tenant. Tokens issued by Bot Framework are accepted without further binding.
 - The model request stores nothing at the service and resends the conversation each turn. This shape has only run
   against fakes.
 - Whether the provisioner job's queue trigger fires with the job's managed identity is unverified;

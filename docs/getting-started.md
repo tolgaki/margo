@@ -283,6 +283,10 @@ This is the step that decides whether Margo is useful or generic. Open the templ
 $EDITOR ~/.copilot/skills/chief-of-staff/preferences.md
 ```
 
+Plugin install: the file is `~/.copilot/margo/preferences.md`, and in step 4 you ask Margo to set up
+her records instead of running the scripts
+([as a plugin](#or-as-a-plugin-copilot-cli-claude-code-or-codex)).
+
 Unfilled settings produce generic advice, not a personalized plan. Fill these four sections
 first; missing working hours or time zone should be resolved before relying on scheduling
 recommendations:
@@ -452,7 +456,7 @@ Details: [documents and files](how-to/documents-and-files.md).
 |---|---|---|
 | `tool does not exist` | Wrong callable name or missing server registration | Run `/mcp`; if `workiq` is missing, repeat [Connect Work IQ](#2-connect-work-iq) |
 | Browser shows "Need admin approval" at sign-in | Your tenant requires admin consent for Work IQ | Ask your tenant administrator to consent; see [identity and consent](work-iq/identity-and-consent.md) |
-| Margo answers generically, ignores your rules | `preferences.md` not found or unfilled | Check it's next to `SKILL.md` in the installed skill |
+| Margo answers generically, ignores your rules | `preferences.md` not found or unfilled | Check it's next to `SKILL.md` in the installed skill, or in `~/.copilot/margo/` for a plugin install |
 | Brief has stale items | `$filter` without `$orderby` returns oldest-first | See [payload discipline](work-iq/patterns.md#payload-discipline) |
 | `400 InefficientFilter` | No index backs that filter+sort pair | Drop the `$filter`, keep `$orderby`, narrow locally |
 | `Access denied for path: X` | Tenant has disabled that path family | Not retryable — report it |

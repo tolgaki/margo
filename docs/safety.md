@@ -102,19 +102,23 @@ Private drafts may be prepared and held for later review. They are never deliver
 or written to Outlook/shared storage unattended. An anchor (a scheduled run at a fixed time) may make its brief available locally;
 availability is not proof that a human has read it.
 
-**Margo Cloud: the manager channel and the backchannel.** The one exception: Margo may send her own
+**Margo Cloud: the manager channel and the backchannel.** An exception for her manager alone: Margo may send her own
 manager, and only her manager, a note with no card: a Teams message in their one-to-one chat, an email
 from her mailbox to them alone (no copies), or a file shared with them alone. The guard checks that the
 manager is the only recipient; anything for anyone else still needs a card. She uses it in chats with
 the manager (an email they ask for) and in **observation runs**: when someone else messages her, emails
 her or copies her, she may look into it with read-only tools and tell the manager what matters. An
 observation run reads only with her own token (the platform's user token in that turn would be the
-sender's, never the manager's), never answers the sender, and treats what it read as data. Prompt
+sender's, never the manager's), never answers the sender, and treats what it read as data. In the
+default `delegation` mode her own token also reaches her manager's mail and calendar, so an
+observation run can read those. Prompt
 injection in someone's message can at most shape a note that only the manager receives. She also listens in the rooms she is a member of (group and meeting chats,
 channels): every `MARGO_LISTEN_MINUTES` she reads what was said there through Work IQ with her own
-token and may send the manager up to two notes. The backchannel is on by default (`MARGO_BACKCHANNEL=off` turns
-both off); listening also needs one copy kept running (`MARGO_INSTANCE_MIN_REPLICAS=1`). Both are bounded:
-a daily cap and one run per conversation every ten minutes. Desktop Margo has no exception.
+token and is told to send the manager at most two notes (the limit in code is three Teams notes, three
+emails and five shares per run). The backchannel is on by default (`MARGO_BACKCHANNEL=off` turns
+both off); listening also needs her container kept running (`MARGO_INSTANCE_MIN_REPLICAS=1`). Both are bounded:
+a daily cap and one run per conversation every ten minutes. Both counts are kept in the running
+container's memory and start again when it restarts, which happens often when it may scale to zero. Desktop Margo has no exception.
 
 ### Margo Cloud approval cards
 
@@ -124,7 +128,8 @@ enforced in code, not left to the model:
 - The model can only *propose*: it records the exact Work IQ call in the work ledger and asks for a card. It is never
   offered a write tool.
 - The card is drawn from the ledger, not from the model's text, and says in plain words what will happen: recipients,
-  subject, the full text, meeting times, and which existing email, meeting, chat or file it affects, read from
+  subject, the text (shortened on the card beyond 4,000 characters, with a line telling the manager to ask Margo for
+  the rest before approving), meeting times, and which existing email, meeting, chat or file it affects, read from
   Microsoft 365. It shows no tool names, paths or JSON. An action it can't describe carries a warning to reject it and
   ask.
 - A tap counts only if it comes from the instance's manager, in their one-to-one chat or the group chat or channel
@@ -149,9 +154,14 @@ cases, which the guard does not see (the reply gate in `Margo.Cloud.Orchestrator
 - **The "passed this on" acknowledgment**, off by default. With `/replies acknowledge`, a colleague who messages Margo
   in Teams gets one fixed note per conversation saying their message was passed to her manager; in a group chat,
   everyone in it sees the note. It is the manager's standing setting, triggered by the colleague's message, and names
-  neither content nor data. Email is never answered, so it is never acknowledged. `/replies none` turns it off.
+  the manager but none of their content or data. Email is never answered, so it is never acknowledged. `/replies none` turns it off.
 
-Neither notice is written by the model, and neither contains the manager's data.
+The acknowledgment and the fixed sentence are not written by the model and carry none of the manager's work data (the
+acknowledgment names the manager). Her answers to her manager in a room are written by the model and can include what
+the request needs from the manager's work, which is why that turn is told who can see it. What goes into a room answer
+is an instruction to the model, not a rule enforced in code: in a room she has the same read access as in the
+one-to-one chat. That the manager must @mention her is the Teams app manifest's setting; Margo's code checks who sent
+the message, not the mention.
 
 **What this rule does and does not cover.** It is scoped to *outbound* actions — anything another
 person can see. A skill may still write to its own **local** state: the proactive ledger under

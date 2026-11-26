@@ -190,7 +190,7 @@ Margo Cloud runtime reads this exact line and enforces it; anything missing or u
 - **Replies to other people:** none
 
 Values: `none` (no reply), `acknowledge` (one fixed "passed this on" note per conversation, no
-other content), `approve` (Margo drafts; nothing is sent until you approve that exact reply).
+other content), `approve` (not built yet: Margo Cloud treats it as `none`, so nothing is sent).
 
 ## Daily brief preferences
 

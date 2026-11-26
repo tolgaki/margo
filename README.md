@@ -1,6 +1,6 @@
 # Margo
 
-**A Microsoft Work IQ reference implementation. Margo is the worked example.**
+**A community reference implementation for Microsoft Work IQ. Margo is the worked example. Not a Microsoft product.**
 
 *MARGO: Managing Actions, Relationships, Goals and Obligations. An AI chief of staff for Microsoft 365.*
 
@@ -11,7 +11,7 @@ affected. She waits for your approval before making those changes.
 
 | | What it is | Status | Start here |
 | --- | --- | --- | --- |
-| **Margo desktop** | GitHub Copilot CLI on your machine, with Margo's persona, skills and private local state | Stable and supported for individual use (installers: 1.0.0; the `main` branch: 1.3.0, unreleased) | [Getting started](docs/getting-started.md) |
+| **Margo desktop** | GitHub Copilot CLI on your machine, with Margo's persona, skills and private local state | Stable for individual use, with community support ([what that means](SUPPORT.md)) (installers: 1.0.0; the `main` branch: 1.3.0, unreleased) | [Getting started](docs/getting-started.md) |
 | **Margo Cloud** | Self-hosted in your own Azure subscription as an Agent 365 agent with her own identity. She works for one manager, listens in the chats and channels she is in, and tells her manager what matters | Preview, not for production: the core chat-and-read path is verified in one test tenant; approval cards, documents and on-behalf-of access are built but not verified there ([maturity](docs/margo-cloud.md#maturity)) | [Margo Cloud overview](docs/margo-cloud.md) |
 | **Learn Work IQ** | How to load Work IQ in a harness or a custom agent, its tools, identity, errors and writes, with Margo's code as the example | Guide | [Learn Work IQ](docs/work-iq/README.md) |
 
@@ -30,6 +30,11 @@ affected. She waits for your approval before making those changes.
   waiting for approvals; the hands-on part is a day or two. See the [Margo Cloud overview](docs/margo-cloud.md).
 
 New to these terms? See the [glossary](docs/glossary.md).
+
+Hiring a Margo Cloud that someone else deployed? Read what she does and what your tap on Approve
+means in the [terms](cloud/terms.md), then
+[approval cards](docs/autopilot-deployment.md#sending-on-your-behalf-approval-cards) and
+[who Margo answers](docs/autopilot-deployment.md#who-margo-answers).
 
 Margo is not a service anyone runs for you: you run it on your machine, or deploy it into your own
 tenant. Desktop is stable and supported for individual use; new work goes into Margo Cloud. Choose
@@ -185,9 +190,9 @@ irm https://raw.githubusercontent.com/tolgaki/margo/main/install.ps1 | iex
 ```
 
 Or as a plugin, in Copilot CLI or Claude Code: `/plugin marketplace add tolgaki/margo`, then
-`/plugin install margo@margo`, next to Microsoft's `workiq@work-iq` (Codex: its plugin loader reads
-`.codex-plugin/plugin.json`). Your personal files then live in
-`~/.copilot/margo/`; see [as a plugin](docs/getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex).
+`/plugin install margo@margo`, next to Microsoft's `workiq@work-iq` (Codex gets the skills only,
+untested). Your personal files then live in `~/.copilot/margo/`, not at the paths in steps 3 and 4
+below; see [as a plugin](docs/getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex).
 
 Or from a clone, which is what you want if you're here to read and fork:
 

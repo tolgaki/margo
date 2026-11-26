@@ -6,9 +6,11 @@ Only 1.0.0 has a release tag; 1.1.0 and 1.2.0 shipped on `main` without one.
 
 ### Margo Cloud (new)
 
-- **Hosted Margo in C# on .NET 10** (`cloud/`), self-hosted for Agent 365 with one container per hired Margo. Its
-  state commands stay byte-compatible with the desktop helpers, judged by `tools/state_parity.py`. Running in a test
-  tenant; the Margo Cloud overview's maturity table says which features are verified there.
+- **Margo Cloud, in C# on .NET 10** (`cloud/`), self-hosted for Agent 365 with one container per hired Margo. Its
+  state commands stay byte-compatible with the desktop helpers, judged by `tools/state_parity.py`. A preview, not for
+  production: only provisioning, the router-to-instance path, delegated mail and calendar reads and a Teams reply
+  are verified in a test tenant. Everything else below is built and tested offline; see the Margo Cloud overview's
+  maturity table.
 - **Work IQ through the official MCP C# SDK** (`ModelContextProtocol.Core`). The model gets Work IQ's own tool
   descriptions and schemas from `tools/list`, limited by the guard. Writes run on their own session and are never
   resent; throttled reads honor a short `Retry-After` once; an expired token is refreshed once for reads; calls are
@@ -26,15 +28,17 @@ Only 1.0.0 has a release tag; 1.1.0 and 1.2.0 shipped on `main` without one.
 - **Reports to her manager without a card**: a message in their 1:1 chat, an email to them alone, or a file shared
   with them alone; the guard checks the manager is the only recipient.
 - **The backchannel and listening.** When someone else messages, emails or copies Margo, and every
-  `MARGO_LISTEN_MINUTES` in the chats and channels she belongs to (with one copy kept running), she reads through Work
+  `MARGO_LISTEN_MINUTES` in the chats and channels she belongs to (with her container kept running), she reads through Work
   IQ with her own token and may send the manager a note. She never answers those people. `MARGO_BACKCHANNEL`, a daily
   cap (`MARGO_BACKCHANNEL_DAILY_RUNS`) and a per-conversation cooldown bound it.
+- **Other people get no reply.** Messages and mail from anyone but the manager are queued as untrusted requests;
+  with `/replies acknowledge` the sender gets one fixed "passed this on" note per conversation.
 - **Access modes.** Delegation (the default) reads the manager's mail and calendar through Exchange delegation; on-
   behalf-of mode signs the manager in from their own 1:1 messages through a configured handler.
 - **Microsoft's `workiq` skill** (3.0.0, pinned in `cloud/vendor/workiq/source.json`, refreshed with
   `cloud/scripts/update-workiq-skill.sh`) is served next to Margo's skills; where they differ, Margo's rules win.
-- **Security, privacy and reliability.** Platform tokens are accepted only from the platform; the model service
-  stores nothing; replaced state versions expire after 30 days; voice signs in through its own single-page app;
+- **Security, privacy and reliability.** Platform tokens are checked for issuer, calling application and reply host
+  (pin the platform's application with `MARGO_PLATFORM_APP_IDS`); model requests ask the service to store nothing; replaced state versions expire after 30 days; voice signs in through its own single-page app;
   duplicate deliveries are dropped, turns in flight finish on shutdown, and the provisioner grants only the roles an
   instance needs. Instructions are cacheable and token use is logged. `cloud/terms.md` describes what this version
   does and keeps.

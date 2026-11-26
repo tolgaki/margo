@@ -15,7 +15,7 @@ agent acting for a person needs: one session per identity, writes on their own s
 
 ## Run it
 
-You need a Microsoft 365 tenant with Work IQ, and an app registration (public client, "Allow public client flows" on)
+You need the .NET 10 SDK, a Microsoft 365 tenant with Work IQ, and an app registration (public client, "Allow public client flows" on)
 with Work IQ's delegated permission (both `WorkIQAgent.Ask` and `WorkIQ.Read`), consented
 for the user.
 

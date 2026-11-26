@@ -509,7 +509,7 @@ procedure describes when she consults them.
 | --- | --- | --- |
 | Read principal's data (OBO) | Allowed, bounded, attended or unattended | Same authority as local Margo; new mechanism |
 | Write to Margo's private local state (ledger, memory) | Allowed | Same |
-| **Message the manager directly** (their 1:1 chat, an email to them alone, a file shared with them alone) | Allowed at any time, including unattended and in an observation run started by someone else's message | **Built, not verified in a tenant** (the guard checks the manager is the only recipient; observation runs read only with Margo's own token). Nobody else |
+| **Message the manager directly** (their 1:1 chat, an email to them alone, a file shared with them alone) | Allowed at any time, including unattended and in an observation run started by someone else's message | **Built, not verified in a tenant** (the guard checks the manager is the only recipient; observation runs read only with Margo's own token, which in `delegation` mode also reaches the manager's mail and calendar). Nobody else |
 | **Send mail on the manager's behalf, or from Margo's own mailbox** | Per-action approval by the manager | Decided: both allowed. The approval must be recorded with the manager's object ID; the guard refuses any other approver |
 | Any other Microsoft 365 write: drafts, replies, RSVP, meeting moves, deletes, posts, work items, files | Per-action approval via Adaptive Card, attended only | Same rule, stronger evidence |
 | Replies to other people | Governed by the manager's setting (6.1) | New, default off |
@@ -518,7 +518,9 @@ procedure describes when she consults them.
 
 ### 6.3 Approval cards
 
-An approval card shows the exact action: account, target, payload, revision and hash. On submit,
+An approval card shows the exact action in plain words (who it goes to, the subject, the text, the
+time, the item it affects); the account, target, payload, revision and hash it is bound to stay in
+the ledger, not on the card. On submit,
 the handler checks that:
 
 1. the responder's object ID equals the instance's principal;
