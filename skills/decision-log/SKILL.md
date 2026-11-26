@@ -14,7 +14,9 @@ as settled calls.
 constraint. Only the second one is worth retrieving six months later.
 
 **Requires** the Work IQ MCP server for meeting/chat/mail sources. Composes with the `workiq` and
-`chief-of-staff` skills. Read `config.md` before every routine — it holds the log location, the
+`chief-of-staff` skills. Read `config.md` before every routine (the user's personal copy at
+`~/.copilot/margo/decision-log-config.md` when it exists, which is where a plugin install keeps it,
+otherwise the `config.md` next to this file) — it holds the log location, the
 sources to watch, team members, and workstream areas.
 
 ## 🛑 Non-negotiable operating rules

@@ -8,6 +8,13 @@
   open.
 - Margo Cloud delegation mode reads the manager's mail and calendar directly through the delegation and searches only
   what is shared with Margo; Copilot search of the manager's whole data reports "unavailable".
+- Margo is a plugin for GitHub Copilot CLI and Claude Code: the repository is its own marketplace
+  (`/plugin marketplace add tolgaki/margo`, `/plugin install margo@margo`). Personal files (preferences, decision-log
+  configuration) can live outside the plugin in `~/.copilot/margo/`, which Margo and the doctor read first; procedures
+  name scripts relative to the skill instead of `~/.copilot/skills`.
+- Margo Cloud carries Microsoft's `workiq` skill (3.0.0, pinned in `cloud/vendor/workiq/source.json`; refresh with
+  `cloud/scripts/update-workiq-skill.sh`), served like Margo's own skills. Where it and Margo's skills differ on what to
+  do, Margo's rules win.
 - Margo Cloud reports to her manager directly: a Teams message in their 1:1 chat, an email from her mailbox to them
   alone, or a file shared with them alone, with no card (the guard checks the manager is the only recipient). When
   someone else messages, emails or copies her, she may look into it with read-only tools and send the manager a note

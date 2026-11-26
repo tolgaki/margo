@@ -339,8 +339,14 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         root = Path(args.install_root).expanduser()
-        preferences = Path(args.preferences).expanduser() if args.preferences else root / "skills/chief-of-staff/preferences.md"
-        decisions = Path(args.decision_config).expanduser() if args.decision_config else root / "skills/decision-log/config.md"
+        # A plugin install keeps personal copies outside the plugin's folder, under <root>/margo/.
+        personal = root / "margo"
+        preferences = (Path(args.preferences).expanduser() if args.preferences
+                       else personal / "preferences.md" if (personal / "preferences.md").is_file()
+                       else root / "skills/chief-of-staff/preferences.md")
+        decisions = (Path(args.decision_config).expanduser() if args.decision_config
+                     else personal / "decision-log-config.md" if (personal / "decision-log-config.md").is_file()
+                     else root / "skills/decision-log/config.md")
         config = {"preferences": configuration_fields(preferences, REQUIRED_PREFERENCES),
                   "decision_log": configuration_fields(decisions, REQUIRED_DECISION_CONFIG)}
         installation = inspect_installation_manifest(args.install_root)

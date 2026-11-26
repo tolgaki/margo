@@ -53,7 +53,8 @@ command picks one:
 | Provisioner job | `dotnet /app/provisioner/Margo.Cloud.Provisioner.dll run` | `infra/main.bicep` |
 
 The runtime image is ASP.NET Core 10 on Alpine plus `tzdata` (the IANA zones the persona's clock, the Dream window
-and quiet hours need), running as the non-root user the .NET images provide; `agents/` and `skills/` sit under `/app`
+and quiet hours need), running as the non-root user the .NET images provide; `agents/` and `skills/`, plus Microsoft's
+`workiq` skill pinned in `vendor/workiq/` (refresh with `scripts/update-workiq-skill.sh`), sit under `/app`
 (`MARGO_REPO_ROOT`), without any `state/`. Deploy with `azd` from this folder; the steps are in
 [docs/autopilot-deployment.md](../docs/autopilot-deployment.md).
 

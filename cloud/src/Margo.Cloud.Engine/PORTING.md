@@ -447,3 +447,10 @@ port; the C# code is now the implementation of record, and the desktop state hel
   read the desktop scripts' argparse parsers with `Parity/subcommands.py` (desktop helpers only), so a subcommand
   added to the desktop still fails until it is classified. The `--help` comparisons run the desktop scripts as before.
 - `The_image_carries_the_persona_and_every_skill` now checks `cloud/Dockerfile` (no skip).
+
+## Microsoft's Work IQ skill (Nov 26, 2026)
+
+The image copies `cloud/vendor/workiq/skills/` into `/app/skills/`, so `SkillLibrary` indexes and serves Microsoft's
+`workiq` skill (a pinned copy of `plugins/workiq/skills/workiq` from `microsoft/work-iq`, MIT; `source.json` records the
+commit) like Margo's own. Desktop Margo gets the same skill from the Work IQ plugin. Refresh with
+`cloud/scripts/update-workiq-skill.sh`.

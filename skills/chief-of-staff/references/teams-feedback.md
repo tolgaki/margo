@@ -75,7 +75,7 @@ pages, drops `systemEventMessage` join/leave noise (which is most of the raw vol
 Teams HTML, and threads replies onto their parents:
 
 ```bash
-python3 ~/.copilot/skills/chief-of-staff/scripts/teams_feedback.py \
+python3 <this skill>/scripts/teams_feedback.py \
     <message-page>.txt <message-page2>.txt ... \
     --replies <replies-batch1>.txt <replies-batch2>.txt ... \
     [--since 2026-07-01] [--format table|json]

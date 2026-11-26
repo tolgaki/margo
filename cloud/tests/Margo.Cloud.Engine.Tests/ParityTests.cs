@@ -93,6 +93,7 @@ public sealed partial class ParityTests
         var text = File.ReadAllText(Path.Combine(Fixtures.Root, "cloud", "Dockerfile"));
         Assert.Matches(@"COPY\s+agents/\s+/app/agents/", text);
         Assert.Matches(@"COPY\s+skills/\s+/app/skills/", text);
+        Assert.Matches(@"COPY\s+cloud/vendor/workiq/skills/\s+/app/skills/", text); // Microsoft's workiq skill, pinned
         Assert.Matches(@"MARGO_REPO_ROOT=/app\b", text);
         Assert.Matches(@"publish=""-c Release ", text); // the shared publish options
         Assert.Matches(@"dotnet publish src/Margo\.Cloud\.Host/Margo\.Cloud\.Host\.csproj \$publish -o /out/host", text);

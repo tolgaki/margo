@@ -59,7 +59,9 @@ for files over 4 MB with its own sign-in (`references/files.md`). Composes with 
 
 All workplace data — mail, calendar, Teams chats/channels/group chats, OneDrive/SharePoint
 documents, meeting recaps, people — comes from **Work IQ**. Load the `workiq` skill for detailed
-guidance (call the `skill` tool with `workiq`) and use its MCP tools.
+guidance (call the `skill` tool with `workiq`) and use its MCP tools. That skill is Microsoft's
+reference for how each Work IQ tool behaves. Where it and this skill differ on what to do (when to
+use `ask`, approval, unattended runs), this skill's rules win.
 
 Every Work IQ tool is prefixed `workiq-`. **Always use the full prefixed name**
 (`workiq-do_action`, not `do_action`) — unprefixed names are not callable. Other hosts spell the
@@ -148,7 +150,9 @@ account/host/workspace is opted in and the host supplies authorized content with
 locators. Follow `references/dream.md`; do not scrape history or checkpoint Dream's own run/output.
 Unsupported checkpoint capability is a reported limitation, not permission to invent an adapter.
 
-Read **`preferences.md`** at the start of any routine. It holds the user's role, working hours,
+Read **`preferences.md`** at the start of any routine: the user's personal copy at
+`~/.copilot/margo/preferences.md` (or `$COPILOT_HOME/margo/preferences.md`) when it exists, which
+is where a plugin install keeps it, otherwise the `preferences.md` next to this file. It holds the user's role, working hours,
 VIPs, projects, tone/voice for drafts, standing rules, and what to always/never surface. If it's
 empty or missing detail, proceed with sensible defaults and offer to capture preferences as you
 learn them (and remind the user you can persist durable ones to memory).

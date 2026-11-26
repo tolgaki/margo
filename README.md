@@ -183,6 +183,10 @@ curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/install.sh | bas
 irm https://raw.githubusercontent.com/tolgaki/margo/main/install.ps1 | iex
 ```
 
+Or as a plugin, in Copilot CLI or Claude Code: `/plugin marketplace add tolgaki/margo`, then
+`/plugin install margo@margo`, next to Microsoft's `workiq@work-iq`. Your personal files then live in
+`~/.copilot/margo/`; see [as a plugin](docs/getting-started.md#or-as-a-plugin-copilot-cli-or-claude-code).
+
 Or from a clone, which is what you want if you're here to read and fork:
 
 ```bash

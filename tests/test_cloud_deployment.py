@@ -30,6 +30,19 @@ class Deployment(unittest.TestCase):
         self.assertIn("MESSAGING_ENDPOINT", outputs)
         self.assertRegex(bicep, r"output MESSAGING_ENDPOINT string = '[^']*/api/messages'")
 
+    def test_the_image_carries_a_pinned_copy_of_microsofts_workiq_skill(self):
+        vendor = CLOUD / "vendor" / "workiq"
+        source = json.loads((vendor / "source.json").read_text(encoding="utf-8"))
+        self.assertEqual(source["repository"], "https://github.com/microsoft/work-iq")
+        self.assertRegex(source["commit"], r"^[0-9a-f]{40}$")
+        self.assertTrue((vendor / "skills" / "workiq" / "SKILL.md").is_file())
+        self.assertIn("MIT License", (vendor / "LICENSE").read_text(encoding="utf-8"))
+        skill = (vendor / "skills" / "workiq" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertTrue(skill.startswith("---\nname: workiq\n"))
+        dockerfile = read("Dockerfile")
+        self.assertIn("COPY cloud/vendor/workiq/skills/ /app/skills/", dockerfile)
+        self.assertNotIn("vendor", (ROOT / ".dockerignore").read_text(encoding="utf-8"))
+
     def test_no_foundry_hosted_agent_remains(self):
         files = [CLOUD / "Dockerfile"]
         files += sorted((CLOUD / "infra").glob("*.bicep"))

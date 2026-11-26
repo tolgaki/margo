@@ -103,7 +103,7 @@ Retrieval returns markdown with a **doubly-escaped** `sourceJson` blob per hit. 
 extra escape layer first and falls back to regex field extraction for stragglers:
 
 ```bash
-python3 ~/.copilot/skills/chief-of-staff/scripts/engage_parse.py <retrieval-output.txt> \
+python3 <this skill>/scripts/engage_parse.py <retrieval-output.txt> \
     --group "{community}" --format table      # or --format json for full bodies
 ```
 

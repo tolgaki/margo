@@ -84,6 +84,40 @@ The PowerShell equivalents are `-Skills`, `-Dest`, `-DryRun`.
 > personal templates after backing them up; do not use it just to refresh code. File copying
 > and private-state migration are separate operations.
 
+### Or as a plugin (Copilot CLI or Claude Code)
+
+Margo is also a plugin: the repository is its own marketplace, next to Microsoft's Work IQ
+marketplace. A plugin install gives you the agent and both skills, and updates with the plugin
+manager. It does not install the scheduled-run wrapper (`margo-scheduled.sh`), the automation
+prompts or the action desk; use the installer when you want those.
+
+In Copilot CLI (`copilot`):
+
+```text
+/plugin marketplace add microsoft/work-iq
+/plugin install workiq@work-iq
+/plugin marketplace add tolgaki/margo
+/plugin install margo@margo
+```
+
+Restart, then check `/mcp` (workiq), `/skills` (chief-of-staff, decision-log, workiq) and `/agent`
+(margo). In Claude Code the same `/plugin` commands work; see
+[run Margo in Claude Code](how-to/run-in-claude-code.md) for the differences.
+
+A plugin update replaces the plugin's folder, so your personal files live outside it, in
+`~/.copilot/margo/` (or `$COPILOT_HOME/margo/`). Margo reads them there first:
+
+```bash
+mkdir -p ~/.copilot/margo
+curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/skills/chief-of-staff/preferences.md \
+  -o ~/.copilot/margo/preferences.md
+"${EDITOR:-nano}" ~/.copilot/margo/preferences.md
+```
+
+(The decision log's personal configuration, if you use it, is `~/.copilot/margo/decision-log-config.md`.)
+Then ask Margo to set up her records ("set up your records for you@example.com"): she runs
+`margo_store.py init` from her own skill folder, as in [step 4](#4-first-run).
+
 ### Copilot CLI's own skill installer
 
 `copilot skill add` takes a file, URL or directory, and is a fine way to add a
