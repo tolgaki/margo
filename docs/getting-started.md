@@ -118,6 +118,21 @@ curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/skills/chief-of-
 Then ask Margo to set up her records ("set up your records for you@example.com"): she runs
 `margo_store.py init` from her own skill folder, as in [step 4](#4-first-run).
 
+**Update, check and remove a plugin install:**
+
+- **Update:** use your host's plugin manager (the `/plugin` menu, or reinstall with
+  `/plugin install margo@margo`) to take the latest version from the marketplace. Your files in
+  `~/.copilot/margo/` and Margo's records are not touched. `./install.sh update` does not apply to a
+  plugin install.
+- **Check:** `copilot plugin list` shows the installed version; compare it with the
+  [changelog](../CHANGELOG.md).
+- **Remove:** `copilot plugin uninstall margo` (in Claude Code, the `/plugin` menu). This removes the
+  agent and skills only; `~/.copilot/margo/` (your preferences and Margo's records) stays until you
+  delete it.
+- **Switching from an installer install:** copy your filled-in `preferences.md` (and the decision
+  log's `config.md`) to `~/.copilot/margo/` as above, then run `./install.sh uninstall`, so the same
+  skills are not installed twice. Margo's records already live in `~/.copilot/margo/` and stay.
+
 ### Copilot CLI's own skill installer
 
 `copilot skill add` takes a file, URL or directory, and is a fine way to add a

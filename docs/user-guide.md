@@ -21,7 +21,8 @@ outside the repository; a contributor's linked checkout is not the place for you
 
 Follow [Getting started](getting-started.md) to complete three distinct steps:
 
-1. Install the Margo agent and chief-of-staff skill, then select Margo with
+1. Install the Margo agent and chief-of-staff skill (with the installer, or
+   [as a plugin](getting-started.md#or-as-a-plugin-copilot-cli-or-claude-code)), then select Margo with
    `copilot --agent margo` or the host's agent picker. Extra skills and review panels are optional.
 2. Confirm which account Work IQ is signed into with a bounded read.
 3. Configure that confirmed account as the owner of the private local ledger.

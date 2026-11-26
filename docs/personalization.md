@@ -15,6 +15,11 @@ The private preferences and compatibility view sit next to `SKILL.md` in the ins
 | **`preferences.md`** | Who you are, who matters, how you work, how you write | You |
 | **`commitments.md`** | Confirmed-only readable view after migration | Exported by the ledger after approved work changes |
 
+`preferences.md` lives in the skill folder (`~/.copilot/skills/chief-of-staff/preferences.md`) for an
+installer install. For a [plugin install](getting-started.md#or-as-a-plugin-copilot-cli-or-claude-code),
+keep your copy at `~/.copilot/margo/preferences.md`, outside the plugin, so updates never replace
+it; Margo reads that copy first when it exists.
+
 Both ship as templates. Both will contain real names and addresses once filled in — see
 [what stays on your machine](safety.md#7-what-stays-on-your-machine).
 

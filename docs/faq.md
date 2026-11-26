@@ -50,7 +50,7 @@ account, who can read every manager's stored records. See the
 **How do I uninstall?**
 `./install.sh uninstall` (or **Settings › Apps** on Windows) removes the installed files and backs
 up personal ones; your private `margo/` records stay until you delete them. See
-[uninstall deliberately](how-to/setup-and-migration.md#7-uninstall-deliberately). For Margo Cloud,
+[uninstall deliberately](how-to/setup-and-migration.md#7-uninstall-deliberately). For a plugin install, `copilot plugin uninstall margo` (your `~/.copilot/margo/` folder stays until you delete it). For Margo Cloud,
 see **Remove everything** in the [deployment guide](autopilot-deployment.md#operate).
 
 **Where do I report a security problem?**
