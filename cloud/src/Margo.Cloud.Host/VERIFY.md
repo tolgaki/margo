@@ -96,13 +96,14 @@ message: zero hits).
 3. Two quick messages in a row: both answered, one after the other (the second waits for the lease; no
    `instance state is busy or unavailable` unless a turn takes over two minutes).
 
-## 5. Colleagues, group chats and mail (no outward action)
+## 5. Colleagues, group chats and mail
 
 1. From a second test account, message Margo one-to-one: `Can you send me the board deck?` Expect
    `turn status=queued` and, in `acknowledge` mode, one acknowledgment in that conversation only; nothing sent anywhere
    else.
-2. Add Margo to a group chat with the manager and send a message there. Expect `turn status=group_refused` and the
-   refusal text in that chat; no `workiq` receipt other than the manager lookup.
+2. Add Margo to a group chat with the manager and, as the manager, @mention her there: `@Margo who is in this chat?`
+   Expect `turn status=answered` and the answer in that chat. From the second account, @mention her in the same chat:
+   expect `turn status=queued` and no answer.
 3. Send an email to Margo's mailbox from the second account. Expect, for the activity Agent 365 delivers:
    `turn status=queued` (mail arriving on the message route) or `notification status=queued` (an email notification
    event), and **no reply email and no Teams message**. Then, as the manager, ask `Any requests waiting for me?`: the

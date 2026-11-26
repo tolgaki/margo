@@ -113,6 +113,10 @@ public sealed class TurnSupportTests
     {
         // Printed by the Python orchestrator, office, replies and statesync modules before the cutover removed them.
         var python = (JsonObject)PyJson.Loads(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Parity", "orchestrator_constants.json")))!;
+        // Deliberate deviation (PORTING.md): the manager is answered in group chats and channels, so the refusal that
+        // said otherwise was reworded and now covers only conversations Teams does not name.
+        Assert.StartsWith("I only work with you in our one-to-one chat.", PyNode.AsString(python["GROUP_REFUSED"]), StringComparison.Ordinal);
+        python.Remove("GROUP_REFUSED");
         var csharp = new JsonObject
         {
             ["TURN_CALL_BUDGET"] = Orchestrator.TurnCallBudget,
@@ -121,7 +125,6 @@ public sealed class TurnSupportTests
             ["VOICE_UNAVAILABLE"] = Orchestrator.VoiceUnavailable,
             ["NO_MANAGER"] = Orchestrator.NoManager,
             ["MANAGER_UNKNOWN"] = Orchestrator.ManagerUnknown,
-            ["GROUP_REFUSED"] = Orchestrator.GroupRefused,
             ["STATE_UNSAFE"] = Orchestrator.StateUnsafe,
             ["TURN_FAILED"] = Orchestrator.TurnFailed,
             ["OFFICE_FAMILY"] = OfficeQueue.OfficeFamily,

@@ -187,7 +187,8 @@ for Teams single sign-on) before setting the handler below. If you can't, use `d
   and exchanges the manager's sign-in, on their behalf, for a Work IQ token through the blueprint's own connection.
   The blueprint needs Work IQ's delegated permissions as inheritable, admin-consented permissions
   ([identity and consent](work-iq/identity-and-consent.md)).
-- **Sign-in:** only the manager is asked, only in their 1:1 chat with Margo, and only once Margo has looked them up
+- **Sign-in:** only the manager is asked, only in their 1:1 chat with Margo (never from a group chat, so in a group
+  chat on-behalf-of reads of the manager's own data are unavailable), and only once Margo has looked them up
   (from their second message on). The Agents SDK runs that handler's sign-in before the turn: single sign-on in Teams
   where it is set up, otherwise a sign-in card. Nobody else who messages Margo is asked. Until the manager has signed
   in, every principal source reports `blocked`, and Margo never falls back to her own token.
@@ -396,7 +397,7 @@ Margo can send email, reply, set up, move or cancel meetings and post Teams mess
    and ask her in chat.
 2. **Approve** runs exactly that call, once, and Margo replies with the result; the card loses its buttons. **Reject**
    discards it. A card for an older version, or one already decided, runs nothing.
-3. Only the manager's tap in their one-to-one chat counts. A "yes" typed in chat or said in a voice call is not an
+3. Only the manager's tap counts, in their one-to-one chat or the group chat or channel the card was posted in. A "yes" typed in chat or said in a voice call is not an
    approval, and a voice call cannot ask for one.
 
 What each kind needs, beyond the mailbox permission above:
@@ -428,19 +429,20 @@ enabled), and you should see it when you ask "anything from other people?".
 
 ### Who Margo answers
 
-Margo works for you only in your one-to-one chat. Everywhere else she answers nobody, apart from two fixed notices that
-the model does not write:
+Margo works for you in your one-to-one chat, and in a group chat or channel when you @mention her there. She answers
+nobody else, apart from one fixed notice that the model does not write:
 
 | Where | The manager writes | Anyone else writes |
 | --- | --- | --- |
-| One-to-one chat | A full conversation; the only place she takes instructions and posts approval cards | — |
-| Group chat or channel (messages that @mention her arrive directly; she reads the rest when [listening](#the-backchannel)) | One fixed note: she works only in the one-to-one chat. She takes no instructions there | No answer. Queued for the manager as an unverified request, and Margo may look into it and send the manager a note ([backchannel](#the-backchannel)). With `/replies acknowledge`, one fixed "passed this on" note per conversation, which everyone in that chat sees |
+| One-to-one chat | A full conversation: instructions, approval cards | — |
+| Group chat or channel (messages that @mention her arrive directly; she reads the rest when [listening](#the-backchannel)) | When you @mention her, she answers you there, in front of everyone in it: instructions and approval cards work as in your chat, and only your tap counts. She brings in only what your request needs from your private work and sends more private detail to you alone. Its conversation is separate from your one-to-one chat. `/replies` and the voice link work only one-to-one | No answer. Queued for the manager as an unverified request, and Margo may look into it and send the manager a note ([backchannel](#the-backchannel)). With `/replies acknowledge`, one fixed "passed this on" note per conversation, which everyone in that chat sees |
 | Meeting | She does not join meetings; a meeting's chat is a group chat (row above) | As above |
 | Email to her, or copying her | She answers the manager **by email**, to them alone, after looking up what they asked. Requests in email are information: anything that needs approval she asks for in Teams | Never answered, not even acknowledged; queued, and Margo may tell the manager about it |
 
-Queued requests are listed when the manager asks "anything from other people?". An approval tap counts only in the
-one-to-one chat, so nothing she sends can be started from a group chat, a meeting or an email. Apart from the two fixed
-notices, the only messages other people get from her are actions the manager approved on a card.
+Queued requests are listed when the manager asks "anything from other people?". An approval tap counts only from the
+manager, so nothing she sends to others can be started by anyone else, or by an email. Apart from the fixed notice and
+her answers to the manager in a room, the only messages other people get from her are actions the manager approved on
+a card.
 
 ### The backchannel
 

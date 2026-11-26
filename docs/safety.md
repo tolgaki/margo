@@ -127,7 +127,8 @@ enforced in code, not left to the model:
   subject, the full text, meeting times, and which existing email, meeting, chat or file it affects, read from
   Microsoft 365. It shows no tool names, paths or JSON. An action it can't describe carries a warning to reject it and
   ask.
-- A tap counts only if it comes from the instance's manager, in their one-to-one chat, through the platform's
+- A tap counts only if it comes from the instance's manager, in their one-to-one chat or the group chat or channel
+  the card was posted in, through the platform's
   authenticated channel, for the revision and hash the ledger currently holds. Anything else runs nothing.
 - The approval is recorded against that exact account, action, revision and hash, and the guard runs the stored call
   once: it refuses a call that differs in any byte, and marks the attempt dispatched before sending, so a crash or a
@@ -137,12 +138,14 @@ enforced in code, not left to the model:
 
 ### Margo Cloud fixed notices
 
-Besides approved actions, Margo Cloud sends two fixed notices over the Teams channel, without per-message approval,
-and the guard does not see them (the reply gate in `Margo.Cloud.Orchestrator` controls them):
+Besides approved actions and notes to her manager, Margo Cloud posts in Teams without per-message approval in two
+cases, which the guard does not see (the reply gate in `Margo.Cloud.Orchestrator` controls them):
 
-- **The group-chat refusal.** When her manager @mentions her in a group chat, channel or meeting chat, Margo answers
-  with one fixed sentence saying she works only in their one-to-one chat. She takes no instructions there
-  (when listening, she reads the room like any other).
+- **Answers to her manager in a room.** When her manager @mentions her in a group chat, meeting chat or channel, she
+  answers them there, and everyone in it sees the answer and any approval card. The turn is told so, and to bring in
+  only what the request needs from the manager's private work, sending more private detail to the manager alone.
+  Only the manager's tap on a card counts. Anyone else's @mention there is handled as below and never answered. A
+  conversation of a type Teams does not name gets one fixed sentence and no turn.
 - **The "passed this on" acknowledgment**, off by default. With `/replies acknowledge`, a colleague who messages Margo
   in Teams gets one fixed note per conversation saying their message was passed to her manager; in a group chat,
   everyone in it sees the note. It is the manager's standing setting, triggered by the colleague's message, and names

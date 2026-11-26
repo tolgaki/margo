@@ -47,11 +47,11 @@ instance containers) are Margo Cloud pages: Agent 365 calls this kind of agent a
 
 Every action another person can see: sending or replying to mail, setting up, moving or canceling
 meetings, posting in Teams, sharing or editing a document others use. Margo posts a card in the
-manager's one-to-one chat showing the exact action, and runs it once, only after the manager taps
+manager's one-to-one chat (or the group chat where they asked) showing the exact action, and runs it once, only after the manager taps
 **Approve** ([writes and approvals](work-iq/writes-and-approvals.md)). Without a card: anything that reaches the manager alone (a
 Teams note in their one-to-one chat, an email to them, a file or a document shared with them, see
-[the backchannel](autopilot-deployment.md#the-backchannel)), and two fixed notices
-([safety](safety.md#margo-cloud-fixed-notices)).
+[the backchannel](autopilot-deployment.md#the-backchannel)), her answers to the manager in a group chat or channel
+where they @mention her, and one fixed notice ([safety](safety.md#margo-cloud-fixed-notices)).
 
 ## What she does without being asked
 

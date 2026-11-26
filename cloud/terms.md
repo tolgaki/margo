@@ -24,19 +24,20 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
   on the manager's calendar, and posts Teams messages as itself, only after the manager taps Approve
   on a card in Teams showing that exact action. Each approval covers that one action, once. A "yes"
   in chat or by voice is not an approval. Apart from the exceptions below (documents shared with you,
-  notes to you, two fixed notices), everything else outward is refused in software.
+  notes to you, answers to you in a group chat, one fixed notice), everything else outward is refused in software.
 - **Documents you ask for.** Margo creates a Word, Excel or PowerPoint file you ask for in its own
   OneDrive and shares it with you alone, without a card. Sharing it with anyone else needs your
   approval on a card.
-- **Takes instructions only from its manager**, and only in their one-to-one chat. Messages and
-  mail from anyone else are kept as requests for the manager to review, not acted on.
+- **Takes instructions only from its manager**, in their one-to-one chat, or in a group chat or channel
+  where the manager @mentions it. There it answers the manager, and everyone in that chat sees the answer and any
+  approval card; only the manager's tap counts. Messages and mail from anyone else are kept as requests for the
+  manager to review, not acted on.
 - **Reports to its manager.** Margo may message, email or share a file with its manager alone,
   without a card. When someone else messages, emails or copies Margo, it may look into the matter
   and send its manager a note about it. The deploying organization can turn this off.
-- **Two fixed notices are sent without per-message approval.** In a group chat or channel Margo
-  answers with one fixed note that she works only one-to-one. If the manager turns it on
+- **One fixed notice is sent without per-message approval.** If the manager turns it on
   (`/replies acknowledge`), a colleague who writes to Margo gets one fixed "passed this on" note per
-  conversation. Neither contains the manager's data. By default colleagues get no reply.
+  conversation. It contains none of the manager's data. By default colleagues get no reply.
 - **Messages only its manager first.** When the deploying organization keeps one copy always running, every
   few minutes it reads the chats and channels it is a
   member of and may send its manager a note, as above; it never starts a conversation with anyone else

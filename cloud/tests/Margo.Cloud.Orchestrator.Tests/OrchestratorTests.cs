@@ -180,10 +180,34 @@ public sealed class OrchestratorTests
     }
 
     [Theory]
-    [InlineData("groupChat")]
-    [InlineData("channel")]
+    [InlineData("groupChat", "a group or meeting chat")]
+    [InlineData("channel", "a Teams channel")]
+    public async Task Manager_in_a_group_chat_or_channel_is_answered_there_knowing_who_sees_it(string conversationType, string where)
+    {
+        using var state = new TempState();
+        var orchestrator = Create(state, [FakeModel.Final("Booked for 8:30 once you approve.")]);
+        var result = await Handle(orchestrator, Event(text: "Set up breakfast with us", conversation: "conv-group", conversationType: conversationType));
+        Assert.Equal(("Booked for 8:30 once you approve.", "answered"), (result.Reply, result.Status));
+        var input = PyJson.Dumps(_model.Requests[0]["input"]);
+        Assert.Contains("talking to you in " + where + " (conversation conv-group)", input, StringComparison.Ordinal);
+        Assert.Contains("Everyone here sees your reply", input, StringComparison.Ordinal);
+        Assert.Contains("Set up breakfast with us", input, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Voice_and_reply_commands_work_only_in_the_one_to_one_chat()
+    {
+        using var state = new TempState();
+        var orchestrator = Create(state, [FakeModel.Final("Ask me that in our chat.")]);
+        var result = await Handle(orchestrator, Event(text: "/replies acknowledge", conversation: "conv-group", conversationType: "groupChat"));
+        Assert.Equal("answered", result.Status);
+        Assert.Single(_model.Requests);
+    }
+
+    [Theory]
     [InlineData(null)]
-    public async Task Manager_outside_a_one_to_one_chat_is_refused_before_any_read(string? conversationType)
+    [InlineData("meeting")]
+    public async Task Manager_in_a_conversation_Teams_does_not_name_is_refused_before_any_read(string? conversationType)
     {
         using var state = new TempState();
         var orchestrator = Create(state, [FakeModel.Final("Your inbox: ...")]);

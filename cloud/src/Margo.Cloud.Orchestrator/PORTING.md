@@ -13,7 +13,7 @@ the same.
 | Python | C# | Notes |
 | --- | --- | --- |
 | `TURN_CALL_BUDGET`, `STATE_CALL_BUDGET`, `PERSONAL` | `Orchestrator.TurnCallBudget`, `StateCallBudget`, `Personal` | 40, 40, `personal` |
-| `VOICE_UNAVAILABLE`, `NO_MANAGER`, `MANAGER_UNKNOWN`, `GROUP_REFUSED`, `STATE_UNSAFE`, `TURN_FAILED` | `Orchestrator.VoiceUnavailable`, `NoManager`, `ManagerUnknown`, `GroupRefused`, `StateUnsafe`, `TurnFailed` | Identical text (a test compares them with the Python module) |
+| `VOICE_UNAVAILABLE`, `NO_MANAGER`, `MANAGER_UNKNOWN`, `GROUP_REFUSED`, `STATE_UNSAFE`, `TURN_FAILED` | `Orchestrator.VoiceUnavailable`, `NoManager`, `ManagerUnknown`, `GroupRefused`, `StateUnsafe`, `TurnFailed` | Identical text (a test compares them with the Python module), except `GroupRefused`: deliberate deviation, see [the manager in a room](#the-manager-in-a-room) |
 | `REPLIES_COMMAND`, `VOICE_COMMAND` | `ManagerCommands.ReplyMode(text)`, `ManagerCommands.IsVoice(text)` | Matched by hand with Python's `\s` and `IGNORECASE` tables (see deviation 6) |
 | `ManagerLookupFailed` | `ManagerLookupFailedException` | Message is the guard status, or `no status` |
 | `TurnTokens(tokens)`, `.token_for(subject)` | `TurnTokens(IReadOnlyDictionary<string,string?>) : ITokenProvider`, `TokenFor` | `TokenUnavailableException("<subject> token not available for this turn")`; no fallback |
@@ -405,3 +405,17 @@ chat's newest messages; `/me/joinedTeams`, their channels and each channel's new
 channels and 30 calls), keeps messages newer than `since` that are not hers, as plain text, and runs one unattended
 observation with the manager channel over all of them (counted against the daily limit). Returns a `RoomPass` with
 counts. Tests: `RoomListeningTests`.
+
+## The manager in a room
+
+Deliberate deviation from Python, which refused every manager message outside the one-to-one chat (`GROUP_REFUSED`).
+The manager may talk to Margo in a group or meeting chat or a channel (`conversationType` `groupChat` or `channel`):
+the turn runs as a manager turn with its own conversation history, and the model is first told that everyone there
+sees the reply and any card, to bring in only what the request needs from the manager's private work, and to send more
+private detail with `tell_manager`. The voice link and `/replies` commands stay one-to-one only. The manager's tap on a
+card counts in the room it was posted in; nobody else's does anywhere. A conversation of any other or no type is still
+refused before any read, with `GroupRefused` reworded to match. In on-behalf-of mode the manager is not asked to sign
+in from a room, so reads of the manager's own data there need delegation. Tests:
+`Manager_in_a_group_chat_or_channel_is_answered_there_knowing_who_sees_it`,
+`Manager_in_a_conversation_Teams_does_not_name_is_refused_before_any_read`,
+`Only_the_manager_decides_in_their_chat_or_a_room`, `The_manager_in_a_group_chat_is_answered_in_that_chat`.

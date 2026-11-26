@@ -274,17 +274,20 @@ public sealed class HostIntegrationTests
     }
 
     [Fact]
-    public async Task A_group_chat_from_the_manager_is_refused_before_any_read()
+    public async Task The_manager_in_a_group_chat_is_answered_in_that_chat()
     {
         using var state = new TempState();
         await using var host = new HostFactory(state);
+        host.Model.Add(FakeModel.Final("Three decisions so far."));
         var client = host.Start();
         await HostFactory.PostAsync(client, Activities.Message("summarise this thread", conversation: "group-1", conversationType: "groupChat"));
-        Assert.Equal(("message", TurnStatuses.GroupRefused), await host.NextTurnAsync());
-        Assert.Empty(host.Model.Requests);
-        Assert.DoesNotContain(host.WorkIQ.Calls, call => call.Bearer != "margo-workiq-token");
-        // The refusal itself is the reply, in the chat it came from.
-        Assert.Equal(Margo.Cloud.Orchestrator.Orchestrator.GroupRefused, (string?)Assert.Single(host.Connector.Messages)["text"]);
+        Assert.Equal(("message", TurnStatuses.Answered), await host.NextTurnAsync());
+        Assert.Contains("Everyone here sees your reply", ModelInput(host.Model.Requests[0]), StringComparison.Ordinal);
+        Assert.EndsWith("summarise this thread", ModelInput(host.Model.Requests[0]), StringComparison.Ordinal);
+        Assert.All(host.WorkIQ.Calls, call => Assert.Equal("margo-workiq-token", call.Bearer));
+        var reply = Assert.Single(host.Connector.Messages);
+        Assert.Equal("Three decisions so far.", (string?)reply["text"]);
+        Assert.Equal("group-1", (string?)reply["conversation"]!["id"]);
     }
 
     [Fact]

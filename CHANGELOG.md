@@ -21,6 +21,8 @@ Only 1.0.0 has a release tag; 1.1.0 and 1.2.0 shipped on `main` without one.
   meetings, posts Teams messages, and writes to Pages, Viva Engage and SharePoint only after the manager taps Approve
   on a card showing that exact action, in plain words with no request details. A typed or spoken "yes" is not an
   approval.
+- **Works with her manager in group chats and channels.** When the manager @mentions her there, she answers in
+  front of everyone, bringing in only what the request needs; cards posted there count only on the manager's tap.
 - **Reports to her manager without a card**: a message in their 1:1 chat, an email to them alone, or a file shared
   with them alone; the guard checks the manager is the only recipient.
 - **The backchannel and listening.** When someone else messages, emails or copies Margo, and every

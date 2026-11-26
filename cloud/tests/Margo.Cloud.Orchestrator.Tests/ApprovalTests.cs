@@ -50,7 +50,7 @@ public sealed partial class ApprovalTests
     }
 
     private static InboundEvent Event(string activity, string? text = null, CardDecision? decision = null, string sender = "principal-1",
-                                      string conversationType = "personal") => new()
+                                      string? conversationType = "personal") => new()
     {
         AgentIdentityId = "agent-identity-1",
         AgentUserId = "margo-user-1",
@@ -171,7 +171,7 @@ public sealed partial class ApprovalTests
     }
 
     [Fact]
-    public async Task Only_the_manager_in_their_one_to_one_chat_decides()
+    public async Task Only_the_manager_decides_in_their_chat_or_a_room()
     {
         using var state = new TempState();
         var orchestrator = Create(state, ProposeAndAsk());
@@ -179,12 +179,18 @@ public sealed partial class ApprovalTests
         var decision = new CardDecision(CardDecision.Approve, card.ActionId, card.Revision, card.ActionHash);
 
         var colleague = await Handle(orchestrator, Event("a-2", decision: decision, sender: "colleague-1"));
-        var group = await Handle(orchestrator, Event("a-3", decision: decision, conversationType: "groupChat"));
+        var colleagueInRoom = await Handle(orchestrator, Event("a-3", decision: decision, sender: "colleague-1", conversationType: "groupChat"));
+        var unnamed = await Handle(orchestrator, Event("a-5", decision: decision, conversationType: null));
         Assert.Equal((TurnStatuses.DecisionRefused, (string?)null), (colleague.Status, colleague.Reply));
-        Assert.Equal((TurnStatuses.DecisionRefused, (string?)null), (group.Status, group.Reply));
+        Assert.Equal((TurnStatuses.DecisionRefused, (string?)null), (colleagueInRoom.Status, colleagueInRoom.Reply));
+        Assert.Equal((TurnStatuses.DecisionRefused, (string?)null), (unnamed.Status, unnamed.Reply));
         // A card for a revision or hash the ledger does not hold runs nothing.
         var forged = await Handle(orchestrator, Event("a-4", decision: decision with { ActionHash = "not-the-hash" }));
         Assert.StartsWith("This card is out of date", forged.Reply, StringComparison.Ordinal);
         Assert.False(Sent());
+        // The manager's own tap in the room the card was posted in counts.
+        var room = await Handle(orchestrator, Event("a-6", decision: decision, conversationType: "groupChat"));
+        Assert.NotEqual(TurnStatuses.DecisionRefused, room.Status);
+        Assert.True(Sent());
     }
 }

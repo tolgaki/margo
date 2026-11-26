@@ -145,7 +145,8 @@ the synthetic core without connecting a real mailbox or installing into your nor
 Margo will never send an email, post to Teams, react, accept or decline a meeting, delete
 anything, or change a work item without your explicit approval **of that specific action**. A
 summary is not consent. Reading is free; writing is not. (Margo Cloud asks on a card in Teams for each action; without a card it only
-writes to its own manager (a note, an email or a file shared with them alone) and sends two fixed notices; see [Trust & safety](docs/safety.md#margo-cloud-approval-cards).)
+writes to its own manager (a note, an email or a file shared with them alone), answers its manager in a group chat or
+channel where they spoke to it, and sends one fixed notice; see [Trust & safety](docs/safety.md#margo-cloud-approval-cards).)
 
 There is a bounded exception for actions that are reversible *and* invisible to anyone else —
 mark-read, categorize, flag, archive, move between folders — which you can grant as a standing
