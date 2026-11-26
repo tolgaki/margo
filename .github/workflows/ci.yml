@@ -310,6 +310,7 @@ jobs:
   cloud:
     name: Margo Cloud (C#)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-dotnet@v5

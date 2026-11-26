@@ -61,7 +61,7 @@
         "--account",
         "owner@example.com",
         "--state-dir",
-        "~root/x",
+        "~daemon/x",
         "store",
         "state-path"
       ],

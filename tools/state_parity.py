@@ -232,7 +232,13 @@ def snapshot(root):
             elif re.search(r"\.sqlite3-(journal|wal|shm)$", relative):
                 files.append("side %s %s" % (relative, mode))
             else:
-                files.append(("file %s %s " % (relative, mode), path.read_bytes()))
+                try:
+                    content = path.read_bytes()
+                except PermissionError:
+                    # A scenario may leave a mode-000 file; only root can read it back. Record it, do not crash.
+                    files.append("file %s %s unreadable" % (relative, mode))
+                else:
+                    files.append(("file %s %s " % (relative, mode), content))
     return files, databases
 
 

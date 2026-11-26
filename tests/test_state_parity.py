@@ -13,6 +13,9 @@ SPEC = importlib.util.spec_from_file_location("state_parity_under_test", ROOT / 
 parity = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(parity)
 
+# The judge drives POSIX paths and mode bits and runs only in the Linux "Margo Cloud (C#)" job.
+posix_only = unittest.skipIf(os.name == "nt", "state_parity.py is POSIX-only (paths, mode bits)")
+
 
 class TokenTests(unittest.TestCase):
     def test_token_kinds(self):
@@ -115,6 +118,7 @@ class SnapshotTests(unittest.TestCase):
         self.assertLess(databases.index('  "m" | "first"'), databases.index('  "z" | "last"'))
         self.assertIn("db   state/db.sqlite3 %04o" % (os.stat(path).st_mode & 0o7777), files)
 
+    @posix_only
     def test_file_tree_has_modes_text_contents_and_ignores_home_caches(self):
         (self.root / "home" / ".dotnet").mkdir(parents=True)
         (self.root / "home" / ".dotnet" / "cache").write_text("x")
@@ -129,6 +133,16 @@ class SnapshotTests(unittest.TestCase):
         self.assertIn("file home/.copilot/config.json 0600 text 1 lines", text)
         self.assertIn('  | {"account":"owner@example.com"}', text)
         self.assertIn("binary sha256:", text)
+
+    @posix_only
+    def test_unreadable_file_is_recorded_not_fatal(self):
+        locked = self.root / "locked.txt"
+        locked.write_text("locked")
+        locked.chmod(0o000)
+        if os.access(locked, os.R_OK):
+            self.skipTest("this user (root) can read a mode-000 file")
+        files, _ = parity.snapshot(self.root)
+        self.assertEqual(files, ["file locked.txt 0000 unreadable"])
 
 
 class ScenarioSchemaTests(unittest.TestCase):
@@ -160,6 +174,7 @@ class ScenarioSchemaTests(unittest.TestCase):
                 for step in scenario["steps"]:
                     parity.python_script(step["script"])
 
+    @posix_only
     def test_contract_probes_are_enabled_for_every_step(self):
         # margo-state refuses its contract probes unless MARGO_STATE_PROBES=1; the reference scripts ignore it.
         env = parity.base_environment(Path("/r"))
@@ -179,6 +194,7 @@ class ScenarioSchemaTests(unittest.TestCase):
             with self.subTest(probe=probe):
                 self.assertIn("`probes/%s`" % probe, readme)
 
+    @posix_only
     def test_substitution(self):
         self.assertEqual(parity.substitute("{root}/c {state_dir} {account}", Path("/r"), "a@example.com"),
                          "/r/c /r/state a@example.com")
