@@ -1,6 +1,7 @@
 # Developer journey: from checkout to contribution
 
-Margo is a **reference implementation of a Work IQ assistant**, not a hosted service to start
+Margo is an **independent, open-source example of a Work IQ assistant** (not a Microsoft product or an official
+reference implementation), not a hosted service to start
 with `npm run dev`. A capable agent host supplies the model, tools and authenticated connections.
 This repository supplies the persona, procedures, portable local state APIs and optional UI.
 You can develop and test those pieces without a mailbox, Copilot subscription or live model.

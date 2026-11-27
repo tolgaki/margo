@@ -2,8 +2,9 @@
 
 ## Choose your path
 
-Margo is a Work IQ reference implementation: an AI chief of staff for Microsoft 365, built to show
-how an agent reads and writes Microsoft 365 through Work IQ. It comes in two forms that share the
+Margo is an independent, personal open-source project, not a Microsoft product or an official reference
+implementation: an AI chief of staff for Microsoft 365, built to show how an agent can read and write Microsoft 365
+through Work IQ. It comes in two forms that share the
 persona and skills. **Margo desktop** runs in GitHub Copilot CLI on your machine; most of this
 documentation describes it. **Margo Cloud** runs in your own Azure subscription as an Agent 365 agent
 with her own identity ([overview](margo-cloud.md)). Nobody runs either one for you.

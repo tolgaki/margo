@@ -6,9 +6,9 @@ gets their own Margo, with her own account (mailbox, Teams presence, OneDrive), 
 person, her **manager**. She uses the same persona and skills as desktop Margo, and reaches
 Microsoft 365 only through Work IQ.
 
-It is a **preview** of a community reference implementation, not a Microsoft product and not a
-supported one ([getting help](../SUPPORT.md)): its core path has run in one test tenant with fictional
-users. It is not for production use. This page is for the IT admin or developer deciding whether to try it; the
+It is a **preview** of an independent, personal open-source project: not a Microsoft product, not an official
+reference implementation, and not supported by Microsoft; help is best effort ([getting help](../SUPPORT.md)). Its core
+path has run in one test tenant with fictional users. It is not for production use. This page is for the IT admin or developer deciding whether to try it; the
 [deployment guide](autopilot-deployment.md) has the steps.
 
 Pages whose file names start with `autopilot` (the deployment guide, the design record, voice and

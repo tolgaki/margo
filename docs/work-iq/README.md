@@ -2,7 +2,7 @@
 
 Microsoft Work IQ gives an agent one MCP server for Microsoft 365: mail, calendar, Teams chats and
 channels, meetings and their recaps, OneDrive and SharePoint files, people and the organization, and
-Copilot itself. Margo is a worked example of building on it: every routine in this repository
+Copilot itself. Margo is one independent example of building on it, not Microsoft guidance: every routine in this repository
 reads and writes Microsoft 365 through Work IQ and nothing else.
 
 | | |

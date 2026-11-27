@@ -1,6 +1,7 @@
 # Getting help
 
-Margo is a community reference implementation maintained in spare time. There is no paid support and no response
+Margo is an independent, personal open-source project maintained in spare time. It is not a Microsoft product,
+and Microsoft does not support it. There is no paid support and no response
 time guarantee.
 
 - **Setup questions and bugs:** [open an issue](https://github.com/tolgaki/margo/issues) using the templates. Include

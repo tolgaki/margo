@@ -2,7 +2,8 @@
 
 Instructions for AI coding agents working in this repository. Humans: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Margo is a Work IQ reference implementation, not a standalone hosted assistant. Follow
+Margo is an independent, personal project built on Microsoft Work IQ (not a Microsoft product or an official
+reference implementation; never describe it as one), and not a standalone hosted assistant. Follow
 [CONTRIBUTING.md](CONTRIBUTING.md) and the
 [architecture and state map](docs/development/architecture.md). Use the
 [change workflow](docs/development/agent-workflow.md) for task scope and handoff.

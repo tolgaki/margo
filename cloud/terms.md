@@ -7,6 +7,9 @@ An organization that deploys Margo publishes these terms to its own users: repla
 contact details with your own, and check each statement against how you deployed it (retention
 periods, model region, whether voice is on).
 
+Margo is an independent open-source project. It is not a Microsoft product, and Microsoft does not provide,
+endorse or support it; Microsoft's own terms govern Microsoft 365, Work IQ and Agent 365.
+
 These terms cover the Margo Cloud agent blueprint and the instances an organization creates from
 it. The Margo source code is separately licensed under the [MIT License](../LICENSE); nothing
 here narrows that license.

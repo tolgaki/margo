@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for considering a contribution. This repo is a reference implementation — the most useful
+Thanks for considering a contribution. This repo is an independent example of building on Work IQ, not a Microsoft project — the most useful
 contributions sharpen the procedure or fix something that's wrong, rather than adding surface area.
 
 **New here?** Follow the [developer journey](docs/development/README.md) from a clean checkout
