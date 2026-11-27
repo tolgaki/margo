@@ -90,7 +90,12 @@ public sealed class VoiceBridge
         // Python cancels both pumps, then closes the instance's socket and the browser's.
         await CloseOutputAsync(upstream, WebSocketCloseStatus.NormalClosure);
         await CloseOutputAsync(downstream, WebSocketCloseStatus.NormalClosure);
-        if (await Task.WhenAny(other, Task.Delay(CloseTimeout)) != other)
+        // WaitAsync, not WhenAny with a delay: the delay's timer would run on after the other pump had finished.
+        try
+        {
+            await other.WaitAsync(CloseTimeout);
+        }
+        catch (TimeoutException)
         {
             upstream.Abort();
             downstream.Abort();

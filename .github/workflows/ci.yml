@@ -327,10 +327,14 @@ jobs:
         run: dotnet test --solution Margo.Cloud.slnx --no-build
       - name: State commands match the desktop Python helpers (parity judge)
         run: python tools/state_parity.py --check
+      # Run from cloud/, like the build and the tests: cloud/global.json pins the SDK only for commands started
+      # under it. From the repository root this step used whatever SDK the runner image had newest, whose analyzers
+      # the code was never built against.
       - name: Release publish carries no contract probes
+        working-directory: cloud
         run: |
           for app in Host Router Provisioner StateCli; do
-            dotnet publish "cloud/src/Margo.Cloud.$app/Margo.Cloud.$app.csproj" -c Release -o "$RUNNER_TEMP/publish/$app" -nologo -v q
+            dotnet publish "src/Margo.Cloud.$app/Margo.Cloud.$app.csproj" -c Release -o "$RUNNER_TEMP/publish/$app" -nologo -v q
           done
           if find "$RUNNER_TEMP/publish" -iname '*Probes*' | grep .; then echo 'contract probes in a Release publish' >&2; exit 1; fi
           test -f "$RUNNER_TEMP/publish/Host/margo-state.dll"

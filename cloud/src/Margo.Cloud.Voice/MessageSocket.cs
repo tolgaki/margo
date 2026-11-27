@@ -122,7 +122,12 @@ internal sealed class MessageSocket : IAsyncDisposable
     internal async Task CloseAsync(WebSocketCloseStatus status = WebSocketCloseStatus.NormalClosure)
     {
         await StartClosingAsync(status).ConfigureAwait(false);
-        if (await Task.WhenAny(_reader, Task.Delay(CloseTimeout)).ConfigureAwait(false) != _reader)
+        // WaitAsync, not WhenAny with a delay: the delay's timer would run on after the reader had finished.
+        try
+        {
+            await _reader.WaitAsync(CloseTimeout).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
         {
             _socket.Abort();
         }
