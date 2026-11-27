@@ -419,3 +419,26 @@ in from a room, so reads of the manager's own data there need delegation. Tests:
 `Manager_in_a_group_chat_or_channel_is_answered_there_knowing_who_sees_it`,
 `Manager_in_a_conversation_Teams_does_not_name_is_refused_before_any_read`,
 `Only_the_manager_decides_in_their_chat_or_a_room`, `The_manager_in_a_group_chat_is_answered_in_that_chat`.
+
+## Approval runs once, on what the card showed (Nov 27, 2026)
+
+Deliberate deviations, found in review of the approval path. None changes the state commands or the ledger's schema.
+
+- **The claim is saved before the call leaves.** `StateSync.CheckpointAsync` uploads the leased state in the middle of
+  a run; the decision guard's `WorkIQGuard.DispatchCheckpoint` calls it after `MarkDispatched` and before the
+  transport. Python (and this port until now) saved only at the end of the turn, so a failed save or a lost container
+  reinstalled a bundle in which the sent action was still `ready`, and a second tap sent it again. If the checkpoint
+  fails, the attempt is settled as a no-effect failure and nothing is sent.
+- **A turn that ran but could not be saved says so** (`SyncException.NotSaved`, `Orchestrator.StateNotSaved`), instead
+  of "Nothing was sent", and its activity is not released for redelivery.
+- **The target is read again at the tap** (`CardDecisions.DecideAsync`, `newReader`): `CardContext.DescribeAsync` runs
+  again and must match the facts the card carried. Changed: the action is dismissed and the card is out of date.
+  Unreadable: nothing is used up and the card keeps its buttons. `checked_at` is now the time of that read.
+- **A journal or checkpoint failure before dispatch is reported as Margo's own**, not as "Microsoft 365 turned it
+  down", and the attempt is ended as unsent where the journal can still be written.
+- **`replyAll` is its own card kind** (`ApprovalKind.ReplyAll`), with the recipients read from the email it answers.
+
+Tests: `A_sent_action_is_not_sent_again_when_the_turn_s_state_cannot_be_saved`,
+`Nothing_is_sent_when_the_claim_cannot_be_saved_first`, `What_an_approval_acts_on_is_read_again_before_it_runs`,
+`An_approval_is_not_used_when_what_it_acts_on_has_changed`, `An_approval_waits_when_what_it_acts_on_cannot_be_read`,
+`The_conversation_advances_only_after_the_state_was_saved`.

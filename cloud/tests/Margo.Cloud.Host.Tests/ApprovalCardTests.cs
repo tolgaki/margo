@@ -43,7 +43,8 @@ public sealed class ApprovalCardTests
         Assert.Contains("Subject: Review moved", text, StringComparison.Ordinal);
         Assert.Contains("Message: Hi Rafa,\nThe review moved to Thursday & is online.", text, StringComparison.Ordinal);
         Assert.Contains("Attachments: agenda.docx", text, StringComparison.Ordinal);
-        Assert.Contains("Why: You asked for it.", text, StringComparison.Ordinal);
+        Assert.Contains("Margo's reason: You asked for it.", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(ApprovalCards.AlsoSet, text, StringComparison.Ordinal); // nothing in this call is beyond the card's words
         Assert.EndsWith(ApprovalCards.Footer, text, StringComparison.Ordinal);
         Plain(text);
     }
@@ -99,7 +100,53 @@ public sealed class ApprovalCardTests
         var text = Text(ApprovalCards.Card(card, null));
         Assert.Contains("Let Margo do this?", text, StringComparison.Ordinal);
         Assert.Contains(ApprovalCards.Undescribed, text, StringComparison.Ordinal);
-        Plain(text);
+        // With no plain words for it, the call itself is on the card: what it calls, and every setting it carries.
+        Assert.Contains("What it does: do action /me/something/else", text, StringComparison.Ordinal);
+        Assert.Contains("Also set: x: 1", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_reply_to_everyone_does_not_look_like_a_reply_to_one_person()
+    {
+        var body = JsonNode.Parse("""{"comment": "Thanks!"}""")!.AsObject();
+        var one = Text(ApprovalCards.Card(Card("do_action", "/me/messages/msg-1/reply", body), null));
+        var all = Text(ApprovalCards.Card(Card("do_action", "/me/messages/msg-1/replyAll", body.DeepClone().AsObject())
+            with { Context = [new CardFact("Replying to", "“Q3” from Rafa (rafa@example.com)"), new CardFact("Goes to everyone on it", "Rafa (rafa@example.com); kai@example.com")] }, null));
+        Assert.StartsWith("Send this reply?", one, StringComparison.Ordinal);
+        Assert.StartsWith("Send this reply to everyone on the email?", all, StringComparison.Ordinal);
+        Assert.Contains("Goes to everyone on it: Rafa (rafa@example.com); kai@example.com", all, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_link_or_image_in_a_draft_shows_where_it_goes()
+    {
+        var card = Card("do_action", "/me/sendMail", JsonNode.Parse("""
+            {"message": {"subject": "Policy", "toRecipients": [{"emailAddress": {"address": "rafa@example.com"}}],
+              "body": {"contentType": "html", "content": "<p>See <a class='x' href=\"https://attacker.example.com/login\">https://intranet.example.com/policy</a><img src='https://attacker.example.com/p.png'></p>"}}}
+            """)!.AsObject());
+        var text = Text(ApprovalCards.Card(card, null));
+        Assert.Contains("https://intranet.example.com/policy (link to https://attacker.example.com/login)", text, StringComparison.Ordinal);
+        Assert.Contains("(loads or links to https://attacker.example.com/p.png)", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Nothing_in_the_approved_call_is_left_off_the_card()
+    {
+        var card = Card("do_action", "/me/sendMail", JsonNode.Parse("""
+            {"message": {"subject": "Hello", "toRecipients": [{"emailAddress": {"address": "rafa@example.com"}}],
+              "replyTo": [{"emailAddress": {"address": "elsewhere@example.org"}}],
+              "internetMessageHeaders": [{"name": "x-fictional", "value": "1"}], "body": {"content": "Hi"}}}
+            """)!.AsObject());
+        var text = Text(ApprovalCards.Card(card, null));
+        Assert.Contains("Replies will go to: elsewhere@example.org", text, StringComparison.Ordinal);
+        Assert.Contains("Also set: internetMessageHeaders: [{\"name\":\"x-fictional\",\"value\":\"1\"}]", text, StringComparison.Ordinal);
+
+        var share = Card("do_action", "/me/drive/items/item-1/invite", JsonNode.Parse("""
+            {"recipients": [{"objectId": "group-1"}], "roles": ["read"], "requireSignIn": false, "sendInvitation": true}
+            """)!.AsObject(), onDataOf: "self");
+        var shared = Text(ApprovalCards.Card(share, null));
+        Assert.Contains("Share with: someone or a group in your organization Margo can't name (directory ID group-1)", shared, StringComparison.Ordinal);
+        Assert.Contains("Sign-in: No sign-in needed: anyone who gets the link can open it", shared, StringComparison.Ordinal);
     }
 
     [Fact]

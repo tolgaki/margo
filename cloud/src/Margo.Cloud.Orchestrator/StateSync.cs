@@ -188,6 +188,7 @@ public sealed class StateSync
         var renewer = RenewAsync(lease, renewal.Token);
         var saved = false;
         var ran = false;
+        _run = (lease, renewer, stamp);
         try
         {
             var known = LocalETag();
@@ -268,6 +269,7 @@ public sealed class StateSync
         }
         finally
         {
+            _run = null;
             try
             {
                 await renewal.CancelAsync().ConfigureAwait(false);
@@ -303,6 +305,44 @@ public sealed class StateSync
                 }
             }
         }
+    }
+
+    /// <summary>The lease, its renewal and the time stamp of the run in progress; null outside <see cref="RunAsync{T}"/>.</summary>
+    private (IStateLease Lease, Task Renewer, DateTimeOffset Stamp)? _run;
+
+    /// <summary>
+    /// Saves the state as it is now, in the middle of the run in progress, under the same lease. For the one record
+    /// that must not be lost with this machine or with a failed save at the end of the turn: that an approved action
+    /// has been claimed and is about to be sent. If this throws, nothing was saved and the caller must not send.
+    /// No Python equivalent.
+    /// </summary>
+    /// <exception cref="SyncException">No run is in progress, the lease was lost, or the upload failed.</exception>
+    public async Task CheckpointAsync(CancellationToken cancellationToken = default)
+    {
+        if (_run is not { } run)
+        {
+            throw new SyncException("no leased run is in progress; nothing was saved");
+        }
+
+        if (run.Renewer.IsFaulted)
+        {
+            throw new SyncException("the state lease could not be renewed; nothing was saved");
+        }
+
+        var (database, preferences) = await Task.Run(Snapshot, cancellationToken).ConfigureAwait(false);
+        var bundle = await Task.Run(() => MakeBundle(database, preferences, run.Stamp), cancellationToken).ConfigureAwait(false);
+        string? etag;
+        try
+        {
+            etag = await run.Lease.WriteAsync(bundle, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exc) when (exc is not SyncException and not OperationCanceledException)
+        {
+            throw new SyncException("the state could not be saved before sending; nothing was sent", exc);
+        }
+
+        SetLocalETag(etag);
+        WriteMarker(ContentMarkerPath, ContentHash(database, preferences));
     }
 
     // -- bundle ---------------------------------------------------------------------------

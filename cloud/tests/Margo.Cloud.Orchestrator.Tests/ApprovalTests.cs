@@ -19,7 +19,7 @@ public sealed partial class ApprovalTests
          "why": "The manager asked for this email.", "source_refs": [], "target_fingerprint": "dana@example.com", "work_item_id": null}
         """;
 
-    private readonly Dictionary<string, InMemoryLeaseStore> _stores = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, TestStore> _stores = new(StringComparer.Ordinal);
     private DirectoryTransport _transport = new();
 
     private static CancellationToken Cancel => TestContext.Current.CancellationToken;
@@ -37,7 +37,7 @@ public sealed partial class ApprovalTests
             {
                 if (!_stores.TryGetValue(container, out var store))
                 {
-                    store = new InMemoryLeaseStore();
+                    store = new TestStore(new InMemoryLeaseStore());
                     _stores[container] = store;
                 }
 
@@ -154,6 +154,133 @@ public sealed partial class ApprovalTests
         // A second tap on the same card: already done, nothing sent again.
         var again = await Handle(orchestrator, Event("a-3", decision: decision));
         Assert.Equal("This card is out of date (it was already done). Nothing was sent. Ask me again if you still want it.", again.Reply);
+        Assert.Single(_transport.Calls, call => call.Tool == "do_action");
+    }
+
+    private const string CancelInput = """
+        {"kind": "calendar.cancel", "target": {"on_data_of": "principal", "event": "evt-1"},
+         "payload": {"workiq": {"tool": "do_action", "arguments": {"actionUrl": "/me/events/evt-1/cancel",
+           "jsonBody": "{\"comment\": \"Something came up.\"}"}}},
+         "why": "You asked me to cancel it.", "source_refs": [], "target_fingerprint": "evt-1", "work_item_id": null}
+        """;
+
+    /// <summary>The meeting a cancellation acts on, as Microsoft 365 answers for it now.</summary>
+    private void Meeting(string? subject, string start = "2026-12-03T14:00:00")
+    {
+        _transport.Answer = (tool, arguments) =>
+        {
+            if (tool != "fetch" || !PyNode.AsString(arguments["entityUrls"]?[0])!.Contains("/events/evt-1", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            if (subject is null)
+            {
+                return Task.FromResult(Fixtures.Obj("{\"results\": [{\"statusCode\": 503}]}"));
+            }
+
+            var item = new JsonObject
+            {
+                ["subject"] = subject,
+                ["start"] = new JsonObject { ["dateTime"] = start, ["timeZone"] = "UTC" },
+                ["end"] = new JsonObject { ["dateTime"] = "2026-12-03T14:30:00", ["timeZone"] = "UTC" },
+            };
+            return Task.FromResult(new JsonObject { ["results"] = new JsonArray(new JsonObject { ["statusCode"] = 200, ["data"] = item }) });
+        };
+    }
+
+    private async Task<(Orchestrator Orchestrator, CardDecision Decision)> AskToCancel(TempState state)
+    {
+        var orchestrator = Create(state, ProposeAndAsk(CancelInput));
+        Meeting("Budget review");
+        var card = Assert.Single((await Handle(orchestrator, Event("a-1", "Cancel the budget review."))).Cards);
+        Assert.Contains(new CardFact("Meeting", "Budget review"), card.Context);
+        return (orchestrator, new CardDecision(CardDecision.Approve, card.ActionId, card.Revision, card.ActionHash) { Context = card.Context });
+    }
+
+    [Fact]
+    public async Task What_an_approval_acts_on_is_read_again_before_it_runs()
+    {
+        using var state = new TempState();
+        var (orchestrator, decision) = await AskToCancel(state);
+        var readsBefore = _transport.Calls.Count(call => call.Tool == "fetch");
+        var approved = await Handle(orchestrator, Event("a-2", decision: decision));
+        Assert.Equal("Done: the meeting is canceled and the attendees are being told.", approved.Reply);
+        Assert.True(_transport.Calls.Count(call => call.Tool == "fetch") > readsBefore); // the meeting was read at the tap
+    }
+
+    [Fact]
+    public async Task An_approval_is_not_used_when_what_it_acts_on_has_changed()
+    {
+        // The card said "Budget review, 2:00 PM". By the tap the meeting has moved: that is not what was approved.
+        using var state = new TempState();
+        var (orchestrator, decision) = await AskToCancel(state);
+        Meeting("Budget review", start: "2026-12-04T09:00:00");
+        var stale = await Handle(orchestrator, Event("a-2", decision: decision));
+        Assert.Equal("This card is out of date (what it acts on has changed since I made it). Nothing was sent. Ask me again if you still want it.", stale.Reply);
+        Assert.Equal("out_of_date", stale.Decided!.OutcomeStatus);
+        Assert.False(Sent());
+
+        // The action is dismissed, not left waiting: the same card cannot run later even if the meeting moves back.
+        Meeting("Budget review");
+        await Handle(orchestrator, Event("a-3", decision: decision));
+        Assert.False(Sent());
+    }
+
+    [Fact]
+    public async Task An_approval_waits_when_what_it_acts_on_cannot_be_read()
+    {
+        using var state = new TempState();
+        var (orchestrator, decision) = await AskToCancel(state);
+        Meeting(null);
+        var waiting = await Handle(orchestrator, Event("a-2", decision: decision));
+        Assert.StartsWith("Nothing went out: I couldn't check that what this acts on is still as the card says.", waiting.Reply, StringComparison.Ordinal);
+        Assert.Null(waiting.Decided); // the card keeps its buttons
+        Assert.False(Sent());
+
+        Meeting("Budget review");
+        Assert.Equal("Done: the meeting is canceled and the attendees are being told.", (await Handle(orchestrator, Event("a-3", decision: decision))).Reply);
+    }
+
+    [Fact]
+    public async Task A_sent_action_is_not_sent_again_when_the_turn_s_state_cannot_be_saved()
+    {
+        // The claim is saved to the shared state before the call leaves. The save at the end of the turn then fails, so
+        // this machine's copy is discarded: what is installed next must still say the action was sent.
+        using var state = new TempState();
+        var orchestrator = Create(state, ProposeAndAsk());
+        var card = Assert.Single((await Handle(orchestrator, Event("a-1", "Email Dana that it's working."))).Cards);
+        var decision = new CardDecision(CardDecision.Approve, card.ActionId, card.Revision, card.ActionHash);
+        var store = Assert.Single(_stores.Values);
+        store.WritesLeft = 1; // the checkpoint before dispatch; the turn's own save fails
+
+        var approved = await Handle(orchestrator, Event("a-2", decision: decision));
+        Assert.Equal(new TurnReply(Orchestrator.StateNotSaved, "state_unsafe"), approved);
+        Assert.Single(_transport.Calls, call => call.Tool == "do_action");
+
+        store.WritesLeft = null;
+        var again = await Handle(orchestrator, Event("a-3", decision: decision)); // a second tap on the card, which kept its buttons
+        Assert.Equal("This card is out of date (it was already approved and run). Nothing was sent. Ask me again if you still want it.", again.Reply);
+        Assert.Single(_transport.Calls, call => call.Tool == "do_action");
+    }
+
+    [Fact]
+    public async Task Nothing_is_sent_when_the_claim_cannot_be_saved_first()
+    {
+        using var state = new TempState();
+        var orchestrator = Create(state, ProposeAndAsk());
+        var card = Assert.Single((await Handle(orchestrator, Event("a-1", "Email Dana that it's working."))).Cards);
+        var decision = new CardDecision(CardDecision.Approve, card.ActionId, card.Revision, card.ActionHash);
+        var store = Assert.Single(_stores.Values);
+        store.FailWrites = true;
+
+        await Handle(orchestrator, Event("a-2", decision: decision));
+        Assert.False(Sent());
+
+        // Nothing went out and nothing was saved, so the card still stands: approved again, it runs once.
+        store.FailWrites = false;
+        var approved = await Handle(orchestrator, Event("a-3", decision: decision));
+        Assert.Equal("Done: the email has gone out.", approved.Reply);
         Assert.Single(_transport.Calls, call => call.Tool == "do_action");
     }
 

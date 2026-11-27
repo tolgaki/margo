@@ -148,7 +148,7 @@ internal static class CardDecisions
     /// <summary>What a successful approval did, in plain words.</summary>
     public static string Done(ApprovalKind kind) => kind switch
     {
-        ApprovalKind.Email or ApprovalKind.Reply or ApprovalKind.Forward => "Done: the email has gone out.",
+        ApprovalKind.Email or ApprovalKind.Reply or ApprovalKind.ReplyAll or ApprovalKind.Forward => "Done: the email has gone out.",
         ApprovalKind.MeetingNew => "Done: the meeting is on your calendar and the invitations are on their way.",
         ApprovalKind.MeetingChange => "Done: the meeting is updated.",
         ApprovalKind.MeetingCancel => "Done: the meeting is canceled and the attendees are being told.",
@@ -174,7 +174,7 @@ internal static class CardDecisions
 
     public static async Task<(string Reply, ApprovalCard? Card)> DecideAsync(CardDecision decision, InstanceBinding binding, string stateRoot,
                                                                             Func<IClaimJournal, WorkIQGuard> newGuard, string evidenceRef,
-                                                                            CancellationToken cancellationToken)
+                                                                            CancellationToken cancellationToken, Func<WorkIQGuard>? newReader = null)
     {
         using var ledger = binding.OpenLedger(stateRoot);
         JsonObject action;
@@ -216,6 +216,26 @@ internal static class CardDecisions
             return NotSentResult(card, GuardStatuses.Refused);
         }
 
+        // The card described an existing email, meeting, chat or file as it was when the card was made. Before the
+        // approval is used, that item is read again: if it reads differently now (a meeting moved, an email gone, more
+        // people on the thread), the manager approved something that is no longer the case, and nothing is sent.
+        if (newReader is not null)
+        {
+            var now = await CardContext.DescribeAsync(newReader(), card.Tool, card.Arguments, card.OnDataOf, cancellationToken).ConfigureAwait(false);
+            if (CardContext.Unread(now))
+            {
+                // Nothing is used up, and the card keeps its buttons: it can be approved once the item can be read.
+                return (Finished(NotSent, PlainReason("not_checked")), null);
+            }
+
+            if (now.Count > 0 && !CardContext.Same(card.Context, now))
+            {
+                ledger.Disposition(PyNode.Of(card.ActionId), PyNode.Of(card.Revision), "dismissed", expectedHash: PyNode.Of(card.ActionHash));
+                var changed = Finished(OutOfDate, "what it acts on has changed since I made it");
+                return (changed, card with { Context = now, Outcome = changed, OutcomeStatus = "out_of_date" });
+            }
+        }
+
         string attemptId;
         try
         {
@@ -233,7 +253,8 @@ internal static class CardDecisions
                 ["decided_at"] = now.Isoformat(),
             }, PyNode.Of((now + PyTimeDelta.FromMinutes((long)ApprovalLifetime.TotalMinutes)).Isoformat()));
 
-            // The approved snapshot is what runs: no new read of the target happens between the tap and the call.
+            // What runs is the approved call, byte for byte. Its target was read again just above (when the call names
+            // one) and reads as the card showed it, so checked_at is the time of a real check.
             var started = ledger.Begin(PyNode.Of(card.ActionId), PyNode.Of(card.Revision), new JsonObject
             {
                 ["checked_at"] = now.Isoformat(),
@@ -261,6 +282,33 @@ internal static class CardDecisions
             return (Unknown, card with { Outcome = Unknown, OutcomeStatus = "unknown" });
         }
 
+        if (result.Status == GuardStatuses.Error && result.Reason is WorkIQGuard.DispatchNotRecorded or WorkIQGuard.DispatchNotSaved)
+        {
+            // Margo's own record failed before the call left: nothing was sent, and Microsoft 365 never saw it. Say that,
+            // not that it was turned down. Where the journal still shows the attempt as running, end it as unsent; if
+            // that cannot be written either, it stays as it is and a later tap is refused.
+            try
+            {
+                if (PyNode.Is(PyNode.Get(ledger.Show(card.ActionId), "state"), "executing"))
+                {
+                    ledger.Finish(PyNode.Of(attemptId), PyNode.Of("failed"), new JsonObject
+                    {
+                        ["kind"] = "tool_result",
+                        ["reference"] = "workiq:" + attemptId,
+                        ["outcome"] = "failed",
+                        ["recorded_at"] = StateStore.UtcNow(),
+                        ["definitive_no_effect"] = true,
+                    });
+                }
+            }
+            catch (Exception exc) when (exc is StateError or Microsoft.Data.Sqlite.SqliteException)
+            {
+                // The record stays "executing"; the reply below is still true.
+            }
+
+            return NotSentResult(card, "not_recorded");
+        }
+
         if (BeforeDispatch.Contains(result.Status) && PyNode.Is(PyNode.Get(ledger.Show(card.ActionId), "state"), "executing"))
         {
             // Refused before anything was sent: the attempt ends here, with nothing sent.
@@ -285,6 +333,7 @@ internal static class CardDecisions
         GuardStatuses.Unavailable => "I couldn't reach Microsoft 365. Ask me again for a new card",
         GuardStatuses.BudgetExhausted => "I've reached my limit for now. Ask me again later",
         "not_recorded" => "I couldn't record your approval, so I stopped. Ask me again for a new card",
+        "not_checked" => "I couldn't check that what this acts on is still as the card says. Try the card again in a moment, or ask me for a new one",
         _ => "Microsoft 365 turned it down",
     };
 

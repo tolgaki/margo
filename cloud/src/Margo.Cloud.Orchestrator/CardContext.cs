@@ -12,6 +12,9 @@ public enum ApprovalKind
 {
     Email,
     Reply,
+
+    /// <summary>A reply that also goes to everyone the original was sent to: Microsoft 365 adds them, the call names none.</summary>
+    ReplyAll,
     Forward,
     MeetingNew,
     MeetingChange,
@@ -87,7 +90,8 @@ public static class CardContext
         return tool switch
         {
             "do_action" when lower.EndsWith("/sendmail", StringComparison.Ordinal) => ApprovalKind.Email,
-            "do_action" when lower.EndsWith("/reply", StringComparison.Ordinal) || lower.EndsWith("/replyall", StringComparison.Ordinal) => ApprovalKind.Reply,
+            "do_action" when lower.EndsWith("/reply", StringComparison.Ordinal) => ApprovalKind.Reply,
+            "do_action" when lower.EndsWith("/replyall", StringComparison.Ordinal) => ApprovalKind.ReplyAll,
             "do_action" when lower.EndsWith("/forward", StringComparison.Ordinal) => ApprovalKind.Forward,
             "do_action" when lower.EndsWith("/cancel", StringComparison.Ordinal) && lower.Contains("/events/", StringComparison.Ordinal) => ApprovalKind.MeetingCancel,
             "create_entity" when lower.EndsWith("/events", StringComparison.Ordinal) => ApprovalKind.MeetingNew,
@@ -139,6 +143,10 @@ public static class CardContext
         {
             ApprovalKind.Reply or ApprovalKind.Forward when segments.Length >= 2 =>
                 (Parent(path) + "?$select=subject,from,receivedDateTime", item => Email(kind == ApprovalKind.Reply ? "Replying to" : "Forwarding", item)),
+            // A reply to all names no recipients: who receives it is read from the email it answers.
+            ApprovalKind.ReplyAll when segments.Length >= 2 =>
+                (Parent(path) + "?$select=subject,from,receivedDateTime,toRecipients,ccRecipients",
+                 item => Email("Replying to", item).Concat(Everyone(item))),
             ApprovalKind.MeetingCancel => (Parent(path) + "?$select=subject,start,end", item => Meeting(item)),
             ApprovalKind.MeetingChange => (path + "?$select=subject,start,end", item => Meeting(item)),
             ApprovalKind.Delete when path.Contains("/events/", StringComparison.OrdinalIgnoreCase) => (path + "?$select=subject,start,end", item => Meeting(item)),
@@ -200,6 +208,40 @@ public static class CardContext
 
         yield return new CardFact(label, text);
     }
+
+    /// <summary>Who a reply to all goes to: the sender and everyone on the To and Cc lines of the email it answers.</summary>
+    private static IEnumerable<CardFact> Everyone(JsonObject item)
+    {
+        var people = new List<string>();
+        void Add(JsonNode? person)
+        {
+            var address = PyNode.AsString(person?["emailAddress"]?["address"]);
+            var name = PyNode.AsString(person?["emailAddress"]?["name"]);
+            var shown = address is null ? name : string.IsNullOrEmpty(name) ? address : name + " (" + address + ")";
+            if (!string.IsNullOrEmpty(shown) && !people.Contains(shown, StringComparer.OrdinalIgnoreCase))
+            {
+                people.Add(shown);
+            }
+        }
+
+        Add(item["from"]);
+        foreach (var list in new[] { item["toRecipients"], item["ccRecipients"] })
+        {
+            foreach (var person in list as JsonArray ?? [])
+            {
+                Add(person);
+            }
+        }
+
+        yield return new CardFact("Goes to everyone on it", people.Count == 0 ? NotFound : string.Join("; ", people));
+    }
+
+    /// <summary>True when two readings of an item say the same: the one a card showed and the one made at the tap.</summary>
+    public static bool Same(IReadOnlyList<CardFact> shown, IReadOnlyList<CardFact> now) =>
+        shown.Count == now.Count && shown.Zip(now).All(pair => pair.First.Label == pair.Second.Label && pair.First.Value == pair.Second.Value);
+
+    /// <summary>True when the item a card acts on could not be read.</summary>
+    public static bool Unread(IReadOnlyList<CardFact> facts) => facts.Any(fact => fact.Value == NotFound);
 
     private static IEnumerable<CardFact> Meeting(JsonObject item)
     {

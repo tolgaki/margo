@@ -490,6 +490,23 @@ internal sealed class TestStore(InMemoryLeaseStore inner, bool exclusiveNoWait =
 
     public bool FailWrites { get; set; }
 
+    /// <summary>When set, this many more writes succeed and every later one fails.</summary>
+    public int? WritesLeft { get; set; }
+
+    private bool TakeWrite()
+    {
+        lock (this)
+        {
+            if (FailWrites || WritesLeft is <= 0)
+            {
+                return false;
+            }
+
+            WritesLeft -= 1;
+            return true;
+        }
+    }
+
     public int Acquires => Volatile.Read(ref _acquires);
 
     public int Refused => Volatile.Read(ref _refused);
@@ -522,7 +539,7 @@ internal sealed class TestStore(InMemoryLeaseStore inner, bool exclusiveNoWait =
             lease.ReadIfChangedAsync(knownETag, cancellationToken);
 
         public Task<string?> WriteAsync(byte[] data, CancellationToken cancellationToken = default) =>
-            store.FailWrites ? Task.FromException<string?>(new SyncException("could not save instance state; the lease may have been lost"))
+            !store.TakeWrite() ? Task.FromException<string?>(new SyncException("could not save instance state; the lease may have been lost"))
                 : lease.WriteAsync(data, cancellationToken);
 
         public Task RenewAsync(CancellationToken cancellationToken = default) => lease.RenewAsync(cancellationToken);

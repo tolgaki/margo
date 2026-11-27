@@ -559,7 +559,7 @@ public sealed class Orchestrator
 
                     // A token that expires during a long turn is fetched again once, for reads (WorkIQGuard).
                     Task<string?> Refresh(string subject, CancellationToken refreshToken) => TokenAsync(getToken, subject, refreshToken);
-                    return await ManagerTurnAsync(inbound, binding, tokens, preferences, Refresh, managerMail, token).ConfigureAwait(false);
+                    return await ManagerTurnAsync(inbound, binding, tokens, preferences, Refresh, managerMail, sync.CheckpointAsync, token).ConfigureAwait(false);
                 }
 
                 return new TurnOutcome(await Task.Run(() => ThirdPartyTurn(inbound, binding, preferences, managerName), token).ConfigureAwait(false));
@@ -625,11 +625,12 @@ public sealed class Orchestrator
 
     private async Task<TurnOutcome> ManagerTurnAsync(InboundEvent inbound, InstanceBinding binding, IReadOnlyDictionary<string, string?> tokens,
                                                      string preferences, Func<string, CancellationToken, Task<string?>> refresh,
-                                                     string? managerMail, CancellationToken cancellationToken)
+                                                     string? managerMail, Func<CancellationToken, Task> checkpoint,
+                                                     CancellationToken cancellationToken)
     {
         if (inbound.Decision is { } decision)
         {
-            return await DecideAsync(inbound, decision, binding, tokens, refresh, cancellationToken).ConfigureAwait(false);
+            return await DecideAsync(inbound, decision, binding, tokens, refresh, checkpoint, cancellationToken).ConfigureAwait(false);
         }
 
         var inRoom = IsRoom(inbound.ConversationType);
@@ -715,17 +716,28 @@ public sealed class Orchestrator
     /// </summary>
     private async Task<TurnOutcome> DecideAsync(InboundEvent inbound, CardDecision decision, InstanceBinding binding,
                                                 IReadOnlyDictionary<string, string?> tokens, Func<string, CancellationToken, Task<string?>> refresh,
-                                                CancellationToken cancellationToken)
+                                                Func<CancellationToken, Task> checkpoint, CancellationToken cancellationToken)
     {
         WorkIQGuard NewGuard(IClaimJournal journal) =>
             new(binding, new TurnTokens(tokens, refresh), Transport, journal, recorder: Options.GuardRecorder, budget: new CallBudget(1),
                 principalAccess: Options.PrincipalAccess)
             {
                 FileHosts = Options.FileHosts,
+                // The claim is saved to the shared state before the call leaves: a failed save at the end of the turn,
+                // or the loss of this container, must not leave the approved action looking unsent.
+                DispatchCheckpoint = checkpoint,
             };
 
         var evidence = "host-interaction:teams-card/" + (inbound.ActivityId ?? "unknown");
-        var (reply, card) = await CardDecisions.DecideAsync(decision, binding, StateRoot, NewGuard, evidence, cancellationToken).ConfigureAwait(false);
+        // A guard of its own for the one read that checks the target is still as the card showed it.
+        WorkIQGuard NewReader() =>
+            new(binding, new TurnTokens(tokens, refresh), Transport, recorder: Options.GuardRecorder, budget: new CallBudget(1),
+                principalAccess: Options.PrincipalAccess)
+            {
+                FileHosts = Options.FileHosts,
+            };
+
+        var (reply, card) = await CardDecisions.DecideAsync(decision, binding, StateRoot, NewGuard, evidence, cancellationToken, NewReader).ConfigureAwait(false);
         if (_logger.IsEnabled(LogLevel.Information))
         {
             _logger.LogInformation("approval card decision={Verb} outcome={Outcome}", decision.Verb, card?.OutcomeStatus ?? "out_of_date");

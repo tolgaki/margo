@@ -120,6 +120,26 @@ both off); listening also needs her container kept running (`MARGO_INSTANCE_MIN_
 a daily cap and one run per conversation every ten minutes. Both counts are kept in the running
 container's memory and start again when it restarts, which happens often when it may scale to zero. Desktop Margo has no exception.
 
+### Margo Cloud: what needs a card, and who sees it
+
+This table is the one statement of what Margo Cloud does with and without an approval card, and who can see
+each thing. Other pages point here; where one differs, this table is right and the page is a bug. "Room" means
+a group chat, a meeting chat or a Teams channel.
+
+| What Margo Cloud does | Card? | Who can see it |
+| --- | --- | --- |
+| Reads through Work IQ, drafts, and keeps her own records | No | Nobody else. Her records are readable by your Azure administrators ([what she stores](#what-margo-cloud-stores-and-where)) |
+| Answers her manager in their one-to-one chat | No | The manager |
+| Sends her manager, alone, a note: a Teams message in their one-to-one chat, an email to them with no copies, or a file shared with them (including an Office document she created for them) | No. The guard checks that the manager is the only recipient | The manager |
+| Answers her manager in a room where they @mention her | No | **Everyone in that room.** The answer is written by the model and can include what the request needs from the manager's work; keeping the rest out is an instruction, not enforced in code |
+| Shows an approval card | The card itself needs none | In the one-to-one chat: the manager. Asked for in a room: **everyone in that room** sees the card, with the recipients, subject and text of the action it proposes. Only the manager's tap counts |
+| Posts the fixed "passed this on" acknowledgment (off by default; `/replies acknowledge`) | No card per note: it is the manager's standing setting | The colleague who wrote to her; in a group chat, everyone in it. It names the manager and carries none of their content |
+| Posts one fixed sentence in a conversation of a type Teams does not name | No | That conversation. It carries none of the manager's content |
+| Anything else another person can see: sending, replying to or forwarding email; setting up, moving or canceling a meeting; posting a Teams message; sharing, changing, publishing or deleting content | **Yes**, one card for each exact action, tapped by the manager | Whoever the approved action reaches |
+
+The sections below give the detail: [the manager channel](#3-proactive-runs-never-act-on-the-outside-world) above,
+[approval cards](#margo-cloud-approval-cards) and [fixed notices](#margo-cloud-fixed-notices).
+
 ### Margo Cloud approval cards
 
 In Margo Cloud, approval of an outward action is a tap on a card in the manager's one-to-one Teams chat, and it is
@@ -130,16 +150,24 @@ enforced in code, not left to the model:
 - The card is drawn from the ledger, not from the model's text, and says in plain words what will happen: recipients,
   subject, the text (shortened on the card beyond 4,000 characters, with a line telling the manager to ask Margo for
   the rest before approving), meeting times, and which existing email, meeting, chat or file it affects, read from
-  Microsoft 365. It shows no tool names, paths or JSON. An action it can't describe carries a warning to reject it and
-  ask.
+  Microsoft 365. Nothing in the approved call is left off: a link or image in a draft has its destination written out
+  beside it, a reply to everyone is titled as one and lists who receives it, and any setting the card has no plain
+  words for is listed under its own name ("Also set: ..."). An action it can't describe shows the call itself, with a
+  warning to reject it and ask.
 - A tap counts only if it comes from the instance's manager, in their one-to-one chat or the group chat or channel
   the card was posted in, through the platform's
   authenticated channel, for the revision and hash the ledger currently holds. Anything else runs nothing.
 - The approval is recorded against that exact account, action, revision and hash, and the guard runs the stored call
-  once: it refuses a call that differs in any byte, and marks the attempt dispatched before sending, so a crash or a
-  second tap can never send it twice. An unconfirmed result is recorded as unknown and is never retried.
+  once: it refuses a call that differs in any byte, marks the attempt dispatched, and saves that record to the shared
+  state before the call leaves; if it cannot be saved, nothing is sent. A crash, a failed save at the end of the turn
+  or a second tap therefore cannot send it twice. An unconfirmed result is recorded as unknown and is never retried.
+- Where the action names an existing email, meeting, chat or file, that item is read again at the tap. If it no
+  longer reads as the card showed it (a meeting moved, more people on the thread), nothing is sent and the card is
+  out of date; if it cannot be read, nothing is sent and the card can be approved again later.
 - Typed or spoken "yes" is not an approval. Voice calls cannot ask for one.
-- Known gap: the target is not re-read between the tap and the call (the approved snapshot is what runs).
+- Known gaps: the re-read compares what the card shows (subject, sender, time, name), not every property of the
+  item, and no conditional write is used, so a change in the moment between that read and the call is not caught.
+  A share to a directory ID shows the ID; the card cannot say whether it is a person or a group.
 
 ### Margo Cloud fixed notices
 
@@ -325,7 +353,7 @@ Azure storage account, in that instance's own container:
 
 | What | Where | Kept |
 | --- | --- | --- |
-| Work ledger, approvals, memory of the manager, her own notes, the manager's `preferences.md` | The instance's `state.zip`, with daily copies under `daily/` | Until an administrator deletes them; replaced versions and daily copies expire after the retention period (30 days by default) |
+| Work ledger, approvals, memory of the manager, her own notes, the manager's `preferences.md` | The instance's `state.zip`, with daily copies under `daily/` | Until an administrator deletes them. Replaced versions expire after the retention period (30 days by default); daily copies older than that are deleted only on the manager's next turn, so they stay for a Margo that is no longer used; deleted copies are recoverable for 14 more days ([the exact windows](autopilot-deployment.md#how-long-forgotten-information-stays-in-copies)) |
 | Requests from colleagues (sender, conversation, short excerpt) | The same state | No automatic expiry |
 | Operational logs (operation, kind of resource, outcome; no message content) | Application Insights and Log Analytics | 30 days by default |
 

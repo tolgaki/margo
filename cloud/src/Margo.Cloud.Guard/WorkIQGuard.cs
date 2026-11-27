@@ -276,7 +276,27 @@ public sealed class WorkIQGuard
             }
             catch (Exception)
             {
-                return Finish(receipt, GuardStatuses.Error, "could not record dispatch; nothing was sent");
+                return Finish(receipt, GuardStatuses.Error, DispatchNotRecorded);
+            }
+
+            if (DispatchCheckpoint is { } checkpoint)
+            {
+                try
+                {
+                    await checkpoint(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception exc)
+                {
+                    // Nothing has been sent: the attempt ends here as a no-effect failure rather than as a dispatch.
+                    Settle(receipt, claim, "failed", null);
+                    var refused = Finish(receipt, GuardStatuses.Error, DispatchNotSaved);
+                    if (exc is OperationCanceledException && cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+
+                    return refused;
+                }
             }
         }
 
@@ -729,6 +749,20 @@ public sealed class WorkIQGuard
     /// channel (the orchestrator's <c>TurnManagerChannel</c>), never on the model's own guard.
     /// </summary>
     public bool AllowsManagerChannel { get; init; }
+
+    /// <summary>
+    /// Called for a claimed write after its dispatch is recorded in the journal and before the call leaves: saves that
+    /// record where a restart or a failed end-of-turn save cannot lose it (the orchestrator uploads the leased state).
+    /// If it fails, nothing is sent. Without it the record of a sent action lives only on this machine until the turn
+    /// ends, and losing it would leave the approval usable a second time.
+    /// </summary>
+    public Func<CancellationToken, Task>? DispatchCheckpoint { get; init; }
+
+    /// <summary>The reason given when the journal could not record the dispatch: the call was never sent.</summary>
+    public const string DispatchNotRecorded = "could not record dispatch; nothing was sent";
+
+    /// <summary>The reason given when <see cref="DispatchCheckpoint"/> failed: the call was never sent.</summary>
+    public const string DispatchNotSaved = "could not save the record of dispatch; nothing was sent";
 
     /// <summary>The manager's email address, from the directory; an email may go to this address alone.</summary>
     public string? ManagerMail { get; init; }
