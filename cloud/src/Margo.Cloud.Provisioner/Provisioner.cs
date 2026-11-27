@@ -16,8 +16,14 @@ public enum HandleOutcome
     Retry,
 
     /// <summary>The message is malformed, was refused, or failed for the last allowed time: delete it.
-    /// A suspension is never dropped, and a retirement only once the route records it.</summary>
+    /// A suspension and a retirement are never dropped.</summary>
     Dropped,
+
+    /// <summary>A retirement whose removal keeps failing, recorded on the route: replace the message
+    /// with <see cref="Provisioner.PendingRemovalText"/>, hidden for
+    /// <see cref="Provisioner.RemovalRetrySeconds"/>, so the removal is tried again without any other
+    /// message having to start the job.</summary>
+    Postponed,
 }
 
 /// <summary>
@@ -28,8 +34,9 @@ public enum HandleOutcome
 /// Each step is idempotent, so a message that fails part-way is safe to retry from the start. The
 /// route table is the only record the provisioner writes; storage is never deleted by it. Not
 /// thread-safe: the job handles one message at a time. Deliberately not in the Python job
-/// (PORTING.md): a failed retirement stays <c>retired</c>, an activity never starts a stopped
-/// instance, the number of instances is capped, and a duplicate redeploy is skipped.
+/// (PORTING.md): a failed retirement stays <c>retired</c> and stays on the queue, a suspension
+/// removes the app, an activity never starts a stopped instance, the number of instances is
+/// capped, and a duplicate redeploy is skipped.
 /// </remarks>
 public sealed class Provisioner
 {
@@ -42,8 +49,16 @@ public sealed class Provisioner
     /// <summary>The route <c>error</c> of an <c>ensure</c> refused because <c>maxInstances</c> was reached.</summary>
     public const string MaxInstancesError = "MaxInstancesExceeded";
 
-    /// <summary>The <c>event</c> of the retirement the job resumes for a route whose removal is pending.</summary>
-    public const string PendingRemovalEvent = "pending-removal";
+    /// <summary>The <c>event</c> of the retirement the job queues or resumes for a route whose removal is pending.</summary>
+    public const string PendingRemovalEvent = ProvisioningEvents.PendingRemoval;
+
+    /// <summary>How long the message that tries a pending removal again stays hidden. The job is started
+    /// only by visible messages, so this message is what makes the retry happen in a deployment with
+    /// no other traffic. It must stay longer than the job's run budget
+    /// (<see cref="ProvisionerCommands.RunBudgetSeconds"/>), so a run never receives it twice, and far
+    /// shorter than a queue message's seven days to live. One job run an hour for each instance whose
+    /// removal is stuck, each logging an error, until the removal works.</summary>
+    public const int RemovalRetrySeconds = 3600;
 
     /// <summary>How many times a route write is re-read and re-applied after a conflicting write.</summary>
     public const int RouteWriteAttempts = 5;
@@ -97,7 +112,8 @@ public sealed class Provisioner
     /// recorded on the route as <c>failed</c> with the exception's type name and retried until
     /// <paramref name="dequeueCount"/> reaches <see cref="MaxAttempts"/>, then dropped. A failed
     /// retirement keeps the route <c>retired</c> (with the error), so the router never provisions the
-    /// instance again, and is resumed by <see cref="ResumePendingRemovalsAsync"/>; a failed suspension
+    /// instance again; it is retried until <see cref="MaxAttempts"/>, then
+    /// <see cref="HandleOutcome.Postponed"/> for as long as the removal fails. A failed suspension
     /// is never dropped.
     /// </summary>
     /// <remarks>Reading the route table happens before any step and is not guarded, as in Python: if
@@ -122,7 +138,7 @@ public sealed class Provisioner
             return Malformed();
         }
 
-        return HandleAsync(message, dequeueCount, enqueuedAt, cancellationToken);
+        return HandleAsync(message, dequeueCount, enqueuedAt, queued: true, cancellationToken);
     }
 
     /// <summary>Process one message that is already JSON (Python's <c>handle</c> accepts a dict too).</summary>
@@ -138,13 +154,28 @@ public sealed class Provisioner
             return Malformed();
         }
 
-        return HandleAsync(message, dequeueCount, enqueuedAt, cancellationToken);
+        return HandleAsync(message, dequeueCount, enqueuedAt, queued: true, cancellationToken);
+    }
+
+    /// <summary>The message that replaces a <see cref="HandleOutcome.Postponed"/> retirement on the
+    /// queue: the same instance, as a <see cref="PendingRemovalEvent"/> retirement, which only finishes
+    /// a pending removal (<see cref="Instances.IsStalePendingRemoval"/>). The original text is not
+    /// queued again: by the time it returned, a lifecycle event or an operator may have started the
+    /// instance again, and a plain retirement would remove it.</summary>
+    /// <exception cref="RouteException">The text is not a valid provisioning message.</exception>
+    public static string PendingRemovalText(string raw)
+    {
+        var message = Instances.ParseMessage(raw).Message;
+        return new ProvisioningMessage(ProvisioningActions.Retire, message.AgentIdentityId, message.AgentUserId, PendingRemovalEvent).ToJson();
     }
 
     /// <summary>
     /// Retire again every instance whose route is <c>retired</c> with an error (its app or identity
     /// may still exist), except those this run already tried. Called once per job run, after the
-    /// queue is drained, so a removal that failed is never forgotten with its message.
+    /// queue is drained: it covers a removal whose message is hidden for now, or was lost (dropped by
+    /// an older version, expired, or its replacement could not be queued). It queues nothing itself:
+    /// it cannot tell whether a message for the instance is waiting, and a second one for every run
+    /// would multiply them.
     /// </summary>
     /// <returns>How many removals were tried.</returns>
     public async Task<int> ResumePendingRemovalsAsync(CancellationToken cancellationToken = default)
@@ -174,7 +205,7 @@ public sealed class Provisioner
             }
 
             tried++;
-            await HandleAsync(message, MaxAttempts, null, cancellationToken).ConfigureAwait(false);
+            await HandleAsync(message, MaxAttempts, null, queued: false, cancellationToken).ConfigureAwait(false);
         }
 
         return tried;
@@ -186,7 +217,9 @@ public sealed class Provisioner
         return Task.FromResult(HandleOutcome.Dropped);
     }
 
-    private async Task<HandleOutcome> HandleAsync(CheckedMessage message, long dequeueCount, DateTimeOffset? enqueuedAt, CancellationToken cancellationToken)
+    /// <param name="queued">The message is on the queue (not a removal this run resumed from the route
+    /// table), so it can be kept there.</param>
+    private async Task<HandleOutcome> HandleAsync(CheckedMessage message, long dequeueCount, DateTimeOffset? enqueuedAt, bool queued, CancellationToken cancellationToken)
     {
         var key = message.Key;
         var action = message.Message.Action;
@@ -243,7 +276,8 @@ public sealed class Provisioner
 
             if (action == ProvisioningActions.Suspend)
             {
-                // The only step is the route write: there is nothing to record, and the message is never dropped.
+                // Nothing to record: the route is suspended already, or could not be written. Both steps are
+                // idempotent and the message is never dropped (it returns after its visibility timeout).
                 if (last)
                 {
                     _error("instance " + key + ": suspend still failing after " + dequeueCount + " attempt(s) (" + name + "); it stays on the queue");
@@ -255,14 +289,37 @@ public sealed class Provisioner
             // A retirement stays a retirement: the router ignores a retired route, whatever is left to remove.
             _removalsTried.Add(key);
             var recorded = await RecordAsync(key, message, RouteStates.Retired, name, cancellationToken).ConfigureAwait(false);
-            if (!last)
+            if (!recorded)
+            {
+                // The route may still say ready: the message returns after its visibility timeout, however often it failed.
+                if (last)
+                {
+                    _error("instance " + key + ": retire still failing after " + dequeueCount + " attempt(s) (" + name + "); it could not be recorded and stays on the queue");
+                }
+
+                return HandleOutcome.Retry;
+            }
+
+            if (!queued)
+            {
+                _error("instance " + key + ": pending removal still failing (" + name + "); the route stays retired. A later run tries again; "
+                    + "if no retire message for it is waiting on the queue, nothing starts that run: queue one with 'enqueue retire'");
+                return HandleOutcome.Retry;
+            }
+
+            // A message that already is the hourly retry is not also retried every visibility timeout.
+            var resumed = message.Message.Event == PendingRemovalEvent;
+            if (!last && !resumed)
             {
                 return HandleOutcome.Retry;
             }
 
-            _error("instance " + key + ": retire still failing after " + dequeueCount + " attempt(s) (" + name + "); "
-                + (recorded ? "the route stays retired and every run tries the removal again" : "it could not be recorded and stays on the queue"));
-            return recorded ? HandleOutcome.Dropped : HandleOutcome.Retry;
+            // Never dropped: the job is started only by queue messages, so without one nothing would try the removal
+            // again while the app and the identity (which holds the agent's Microsoft 365 access) still exist. The
+            // removal steps are idempotent (an app or identity that is gone is not an error), so repeating them is safe.
+            _error("instance " + key + ": " + (resumed ? "pending removal still failing" : "retire still failing after " + dequeueCount + " attempt(s)")
+                + " (" + name + "); the route stays retired and the removal is tried again within " + (RemovalRetrySeconds / 60) + " minute(s)");
+            return HandleOutcome.Postponed;
         }
     }
 

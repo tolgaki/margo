@@ -15,10 +15,16 @@ public static class ProvisioningActions
     internal static bool IsKnown(string? action) => action is Ensure or Suspend or Retire;
 }
 
-/// <summary>The <c>event</c> values the router gives an <c>ensure</c> it queues for an ordinary activity
-/// (not a lifecycle notification). Such a message never starts a suspended or retired instance.</summary>
+/// <summary>The <c>event</c> values that change how a message is planned: those the router gives an
+/// <c>ensure</c> it queues for an ordinary activity (not a lifecycle notification), which never starts a
+/// suspended or retired instance, and the one the provisioner gives a retirement it resumes.</summary>
 public static class ProvisioningEvents
 {
+    /// <summary>A retirement the provisioner queued or resumed for a route whose removal is pending
+    /// (<see cref="Instances.IsRemovalPending"/>). It only finishes that removal: it never retires an
+    /// instance that was started again since.</summary>
+    public const string PendingRemoval = "pending-removal";
+
     /// <summary>An activity for an instance that has no route yet.</summary>
     public const string FirstActivity = "first-activity";
 
@@ -38,7 +44,7 @@ public static class ProvisioningEvents
 /// <param name="AgentIdentityId">The agent application instance (<c>agenticAppId</c>).</param>
 /// <param name="AgentUserId">The agent user (<c>agenticUserId</c>).</param>
 /// <param name="Event">What caused the message: a lower-cased lifecycle event, <c>first-activity</c>,
-/// <c>retry-after-failure</c> or <c>operator</c>. Omitted from the JSON when <see langword="null"/>.</param>
+/// <c>retry-after-failure</c>, <c>operator</c> or <c>pending-removal</c>. Omitted from the JSON when <see langword="null"/>.</param>
 /// <param name="Redeploy">An ensure that redeploys even a ready instance. Written only when <see langword="true"/>.</param>
 public sealed record ProvisioningMessage(string Action, string AgentIdentityId, string AgentUserId, string? Event = null, bool Redeploy = false)
 {

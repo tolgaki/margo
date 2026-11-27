@@ -152,16 +152,31 @@ unchanged; what an operator must act on is logged at `ERROR` in the same format 
     type name), which the router ignores like any retired route. `Instances.Plan` plans such a route again as
     `delete_app`, `delete_identity`, `route_retired` (the last clears the error), also when the message was received
     before and the route already says `retired` without an error (the job stopped between the route write and the
-    removal). The message is dropped after five attempts only if the route holds that record; each job run then
-    tries every pending removal once more after draining the queue (`ResumePendingRemovalsAsync`, event
-    `pending-removal`), so the removal does not depend on the message. A failed suspension (its only step is the
-    route write) records nothing, never `failed`, and is never dropped. A failed `ensure` is unchanged (`failed`,
-    dropped after five attempts), now with an `ERROR` line when dropped.
+    removal). The message is never dropped while the removal fails. After five attempts, if the route holds that
+    record, the job replaces it (`HandleOutcome.Postponed`) with a retirement whose event is `pending-removal`,
+    sent hidden for `RemovalRetrySeconds` (one hour): the job is started only by visible queue messages, so this
+    message is what tries the removal again when nothing else arrives. Its first failure replaces it again, so a
+    stuck removal costs one run an hour and one `ERROR` line each. A `pending-removal` retirement only finishes a
+    pending removal (`Instances.IsStalePendingRemoval`): if the instance was started again meanwhile, or the
+    removal is done, it does nothing. A new message is sent, and the handled one deleted, because the job's
+    identity may send and delete messages but not update one, and a message lives seven days. Each run also tries
+    every pending removal it saw no message for, after draining the queue (`ResumePendingRemovalsAsync`); that
+    queues nothing, so a removal whose message was lost (dropped by an older version) needs an operator's
+    `enqueue retire` in a deployment with no other traffic. A failed suspension records nothing, never `failed`,
+    and is never dropped. A failed `ensure` is unchanged (`failed`, dropped after five attempts), now with an
+    `ERROR` line when dropped.
 12. **An activity never starts a stopped instance.** An `ensure` whose `event` is `first-activity` or
     `retry-after-failure` (what the router queues for an ordinary activity) is ignored when the route is `suspended`
     or `retired`: logged as `ensure for an activity ignored: instance is STATE`, no route write. A router replica
     with an empty or stale route table could otherwise resurrect a disabled agent. A lifecycle notification
     (`agenticuserenabled`, `agenticuserundeleted`, ...) or an operator's `enqueue ensure` still starts it.
+12a. **A suspension removes the app.** Python's `suspend` only set the route to `suspended`: the router stopped
+    delivering, but a container kept running (`minReplicas` 1) went on running its timers, the room listener among
+    them. An instance cannot learn that it is suspended (only the router and the provisioner read the route table),
+    so the plan is now `route_suspended`, `delete_app`, and `delete_app` again for a route that already says
+    `suspended` (an attempt that stopped in between, or a route an older version suspended). The identity, its role
+    assignments and the state are kept; an `ensure` of a suspended instance already ran the whole deployment, which
+    creates the app again.
 13. **Instance cap.** `MARGO_MAX_INSTANCES` (default 50; `main.bicep` `maxInstances`): an `ensure` that would deploy
     while that many other routes may hold resources (every state except a completed retirement and a refused
     ensure) deploys nothing, logs an `ERROR`, records the route once as `failed` with error `MaxInstancesExceeded`

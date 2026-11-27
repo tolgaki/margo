@@ -66,6 +66,10 @@ public interface IProvisioningQueueClient
 
     /// <summary>Put a message on the queue, as text.</summary>
     Task SendAsync(string text, CancellationToken cancellationToken);
+
+    /// <summary>Put a message on the queue that stays hidden for <paramref name="delay"/> (at most
+    /// seven days) and then starts the job like any other.</summary>
+    Task SendAsync(string text, TimeSpan delay, CancellationToken cancellationToken);
 }
 
 /// <summary>Creates the Azure clients for one command. Python: <c>_credential()</c>,

@@ -10,6 +10,9 @@ namespace Margo.Cloud.Host;
 /// Runs only in per-instance hosting with the backchannel on; it needs the instance kept running
 /// (<c>instanceMinReplicas</c> 1), since a container scaled to zero runs no timer.
 /// </summary>
+/// <remarks>Nothing here checks whether the instance is suspended, and nothing could: an instance cannot
+/// read the route table. A suspended or retired instance has no container app (the provisioner removes
+/// it, <c>Instances.Plan</c>), so this does not run for it.</remarks>
 public sealed class RoomListener(Margo.Cloud.Orchestrator.Orchestrator orchestrator, IVoiceTokens tokens, HostSettings settings,
                                  ILoggerFactory loggers, TimeProvider time) : BackgroundService
 {

@@ -437,6 +437,24 @@ public sealed class AzureCloudTests : IDisposable
         Assert.Equal(text, XElement.Parse(send.Body!).Element("MessageText")!.Value); // no Base64, as in Python
     }
 
+    [Fact]
+    public async Task A_delayed_message_is_sent_hidden_with_the_default_time_to_live()
+    {
+        _http.Respond = _ => Xml(HttpStatusCode.Created, new XElement("QueueMessagesList",
+            new XElement("QueueMessage",
+                new XElement("MessageId", "id-3"),
+                new XElement("InsertionTime", "Sat, 07 Nov 2026 09:30:00 GMT"),
+                new XElement("ExpirationTime", "Sat, 14 Nov 2026 09:30:00 GMT"),
+                new XElement("PopReceipt", "receipt-3"),
+                new XElement("TimeNextVisible", "Sat, 07 Nov 2026 10:30:00 GMT"))));
+        var text = Provisioner.PendingRemovalText(Fixtures.Message("retire"));
+        await Queue().SendAsync(text, TimeSpan.FromSeconds(Provisioner.RemovalRetrySeconds), Token);
+        var send = Assert.Single(_http.Requests);
+        // A send, which the job's "Storage Queue Data Message Sender" role allows (an update of a message is not).
+        Assert.Equal(("POST", QueueUrl + "/messages?visibilitytimeout=3600"), (send.Method, send.Url));
+        Assert.Equal(text, XElement.Parse(send.Body!).Element("MessageText")!.Value);
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.NotFound, "MessageNotFound", false)] // gone, or received again (the receipt changed)
     [InlineData(HttpStatusCode.BadRequest, "PopReceiptMismatch", false)]

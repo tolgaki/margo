@@ -77,7 +77,7 @@ public sealed class ProvisionerStepsTests
             [
                 "instance 8f6b44ff6f8dd73b5b3a: ensure -> ['route_provisioning', 'deploy', 'route_ready']",
                 "instance 8f6b44ff6f8dd73b5b3a: ensure -> nothing to do",
-                "instance 8f6b44ff6f8dd73b5b3a: suspend -> ['route_suspended']",
+                "instance 8f6b44ff6f8dd73b5b3a: suspend -> ['route_suspended', 'delete_app']", // Python: the route only
                 "instance 8f6b44ff6f8dd73b5b3a: ensure -> ['route_provisioning', 'deploy', 'route_ready']",
                 "instance 8f6b44ff6f8dd73b5b3a: retire -> ['route_retired', 'delete_app', 'delete_identity']",
                 "instance 8f6b44ff6f8dd73b5b3a: retire -> nothing to do",
@@ -85,7 +85,8 @@ public sealed class ProvisionerStepsTests
             _log);
         Assert.Equal(
             [
-                ("deploy", "margo-instance-8f6b44ff6f8dd73b5b3a"), ("deploy", "margo-instance-8f6b44ff6f8dd73b5b3a"),
+                ("deploy", "margo-instance-8f6b44ff6f8dd73b5b3a"), ("delete_app", "margo-8f6b44ff6f8dd73b5b3a"),
+                ("deploy", "margo-instance-8f6b44ff6f8dd73b5b3a"),
                 ("delete_app", "margo-8f6b44ff6f8dd73b5b3a"), ("delete_identity", "id-margo-8f6b44ff6f8dd73b5b3a"),
             ],
             cloud.Calls);
@@ -181,7 +182,56 @@ public sealed class ProvisionerStepsTests
     }
 
     [Fact]
-    public async Task A_retirement_that_keeps_failing_is_dropped_only_once_recorded_and_says_so()
+    public async Task A_suspended_instance_has_no_app_and_an_ensure_brings_it_back()
+    {
+        // Suspending the route alone stops the router delivering, but a container kept running still runs its
+        // timers (the room listener reads rooms and may notify the manager). The app has to go.
+        var cloud = new FakeCloud();
+        var provisioner = Create(cloud);
+        Assert.Equal(HandleOutcome.Done, await Handle(provisioner, Message("ensure")));
+        Assert.Equal(["margo-" + Key], cloud.Apps);
+        Assert.Equal(HandleOutcome.Done, await Handle(provisioner, Message("suspend", @event: "agenticuserdisabled")));
+        Assert.Equal("suspended", cloud.Route()!.State);
+        Assert.Empty(cloud.Apps);
+        Assert.Equal(("delete_app", "margo-" + Key), cloud.Calls[^1]);
+        Assert.DoesNotContain(cloud.Calls, call => call.Call == "delete_identity"); // the identity and its roles are kept
+
+        // An activity does not bring her back; the lifecycle notification does, with a full deployment.
+        Assert.Equal(HandleOutcome.Done, await Handle(provisioner, Message("ensure", @event: "first-activity")));
+        Assert.Empty(cloud.Apps);
+        Assert.Equal(HandleOutcome.Done, await Handle(provisioner, Message("ensure", @event: "agenticuserenabled")));
+        Assert.Equal(["margo-" + Key], cloud.Apps);
+        Assert.Equal(("ready", null), (cloud.Route()!.State, cloud.Route()!.Error));
+        Assert.Equal("instance 8f6b44ff6f8dd73b5b3a: ensure -> ['route_provisioning', 'deploy', 'route_ready']", _log[^1]);
+    }
+
+    [Fact]
+    public async Task A_suspension_whose_app_removal_failed_is_finished_when_the_message_returns_and_never_dropped()
+    {
+        var cloud = new FakeCloud();
+        var provisioner = Create(cloud);
+        Assert.Equal(HandleOutcome.Done, await Handle(provisioner, Message("ensure")));
+        cloud.Fail = "delete_app";
+        Assert.Equal(HandleOutcome.Retry, await Handle(provisioner, Message("suspend")));
+        // The router stops delivering at once; the route is never "failed" (the router would provision her again).
+        Assert.Equal(("suspended", null), (cloud.Route()!.State, cloud.Route()!.Error));
+        Assert.Equal(["margo-" + Key], cloud.Apps);
+        Assert.Equal(HandleOutcome.Retry, await Handle(provisioner, Message("suspend"), 50));
+        Assert.Equal(["instance 8f6b44ff6f8dd73b5b3a: suspend still failing after 50 attempt(s) (TimeoutException); it stays on the queue"], _errors);
+        cloud.Fail = null;
+        var revision = cloud.Route()!.Revision;
+        Assert.Equal(HandleOutcome.Done, await Handle(provisioner, Message("suspend"), 51));
+        Assert.Equal("instance 8f6b44ff6f8dd73b5b3a: suspend -> ['delete_app']", _log[^1]);
+        Assert.Empty(cloud.Apps);
+        Assert.Equal(("suspended", revision), (cloud.Route()!.State, cloud.Route()!.Revision));
+        // The same for a route an older version suspended while leaving the app: an operator's suspend removes it.
+        cloud.Apps.Add("margo-" + Key);
+        Assert.Equal(HandleOutcome.Done, await Handle(provisioner, Message("suspend", @event: "operator")));
+        Assert.Empty(cloud.Apps);
+    }
+
+    [Fact]
+    public async Task A_retirement_that_keeps_failing_is_never_dropped_once_recorded_and_says_so()
     {
         var ready = new FakeCloud();
         Assert.Equal(HandleOutcome.Done, await Handle(Create(ready), Message("ensure")));
@@ -190,11 +240,27 @@ public sealed class ProvisionerStepsTests
         var provisioner = new Provisioner(cloud, Config(), null, _log.Add, new FakeClock(Now), logError: errors.Add);
         Assert.Equal(HandleOutcome.Retry, await Handle(provisioner, Message("retire"), Provisioner.MaxAttempts - 1));
         Assert.Empty(errors);
-        Assert.Equal(HandleOutcome.Dropped, await Handle(provisioner, Message("retire"), Provisioner.MaxAttempts));
+        // Not dropped: the job runs only when a message is visible, so a dropped retirement was retried only if
+        // some other message happened to start a run.
+        Assert.Equal(HandleOutcome.Postponed, await Handle(provisioner, Message("retire"), Provisioner.MaxAttempts));
         Assert.Equal(
-            ["instance 8f6b44ff6f8dd73b5b3a: retire still failing after 5 attempt(s) (TimeoutException); the route stays retired and every run tries the removal again"],
+            ["instance 8f6b44ff6f8dd73b5b3a: retire still failing after 5 attempt(s) (TimeoutException); the route stays retired and the removal is tried again within 60 minute(s)"],
             errors);
         Assert.Equal(("retired", "TimeoutException"), (cloud.Route()!.State, cloud.Route()!.Error));
+        Assert.Equal(HandleOutcome.Postponed, await Handle(provisioner, Message("retire"), Provisioner.MaxAttempts + 20));
+        // The message that replaces it is postponed again by its first failure, not retried every visibility timeout too.
+        var pending = Provisioner.PendingRemovalText(Message("retire", @event: "agenticuserdeleted"));
+        Assert.Equal("{\"action\": \"retire\", \"agent_identity_id\": \"agent-identity-1\", \"agent_user_id\": \"margo-user-1\", \"event\": \"pending-removal\"}", pending);
+        errors.Clear();
+        Assert.Equal(HandleOutcome.Postponed, await Handle(provisioner, pending));
+        Assert.Equal(
+            ["instance 8f6b44ff6f8dd73b5b3a: pending removal still failing (TimeoutException); the route stays retired and the removal is tried again within 60 minute(s)"],
+            errors);
+        Assert.Equal("retired", cloud.Route()!.State);
+        cloud.Fail = null;
+        Assert.Equal(HandleOutcome.Done, await Handle(provisioner, pending));
+        Assert.Equal(("retired", null), (cloud.Route()!.State, cloud.Route()!.Error));
+        Assert.Throws<RouteException>(() => Provisioner.PendingRemovalText("not json"));
 
         // The route cannot be written at all: nothing records the retirement, so the message is never dropped.
         var stuck = new FakeCloud { Text = ready.Text, ETag = "etag-ready", Conflicts = 1000 };
@@ -242,7 +308,11 @@ public sealed class ProvisionerStepsTests
         var next = new Provisioner(cloud, Config(), null, _log.Add, new FakeClock(Now), logError: errors.Add);
         Assert.Equal(1, await next.ResumePendingRemovalsAsync(TestContext.Current.CancellationToken));
         Assert.Equal(("retired", "TimeoutException"), (cloud.Route()!.State, cloud.Route()!.Error));
-        Assert.Contains("retire still failing", Assert.Single(errors), StringComparison.Ordinal);
+        // A resumed removal has no message of its own to keep: the log says what does and does not try it again.
+        Assert.Equal(
+            "instance 8f6b44ff6f8dd73b5b3a: pending removal still failing (TimeoutException); the route stays retired. A later run tries again; "
+            + "if no retire message for it is waiting on the queue, nothing starts that run: queue one with 'enqueue retire'",
+            Assert.Single(errors));
         Assert.Equal(0, await next.ResumePendingRemovalsAsync(TestContext.Current.CancellationToken));
 
         cloud.Fail = null;
@@ -252,6 +322,34 @@ public sealed class ProvisionerStepsTests
         Assert.Equal(("delete_identity", "id-margo-" + Key), cloud.Calls[^1]);
         Assert.Equal("ready", cloud.Route(Instances.InstanceKey("agent-identity-2", User))!.State); // the other instance is untouched
         Assert.Equal(0, await Create(cloud).ResumePendingRemovalsAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("ready")]
+    [InlineData("suspended")]
+    [InlineData("retired")] // the removal was finished by another run
+    public async Task A_pending_removal_message_only_finishes_a_pending_removal(string? state)
+    {
+        // It waits on the queue for an hour at a time: by then she may have been hired again.
+        var cloud = new FakeCloud();
+        var provisioner = Create(cloud);
+        if (state is not null)
+        {
+            var table = new RouteTable(new FakeClock(Now));
+            table.Put(Key, Identity, User, state);
+            cloud.Text = table.Dumps();
+        }
+
+        var before = cloud.Text;
+        foreach (var dequeueCount in new[] { 1, 2, Provisioner.MaxAttempts })
+        {
+            Assert.Equal(HandleOutcome.Done, await Handle(provisioner, Message("retire", @event: Provisioner.PendingRemovalEvent), dequeueCount));
+        }
+
+        Assert.Empty(cloud.Calls);
+        Assert.Equal(before, cloud.Text);
+        Assert.Equal("instance 8f6b44ff6f8dd73b5b3a: retire -> nothing to do", _log[^1]);
     }
 
     [Theory]

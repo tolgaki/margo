@@ -119,7 +119,9 @@ public sealed class ProvisionerCommands
     /// Drain the provisioning queue: receive one message at a time, hidden for
     /// <see cref="VisibilitySeconds"/>, until none is visible or <see cref="RunBudgetSeconds"/> have
     /// passed. A message that is done or dropped is deleted; one to retry is left to reappear after
-    /// its visibility timeout. Then retirements whose removal is still pending are tried again
+    /// its visibility timeout; a retirement whose removal keeps failing is replaced by one hidden for
+    /// <see cref="Provisioner.RemovalRetrySeconds"/>, which starts the job again by itself. Then
+    /// retirements whose removal is still pending are tried again
     /// (<see cref="Provisioner.ResumePendingRemovalsAsync"/>).
     /// </summary>
     /// <returns>0. Anything that is not a step failure (a missing setting, an unreadable template or
@@ -148,6 +150,7 @@ public sealed class ProvisionerCommands
                 break;
             }
 
+            var received = clock.GetUtcNow();
             var page = await queue.ReceiveAsync(MessagesPerPage, TimeSpan.FromSeconds(VisibilitySeconds), cancellationToken).ConfigureAwait(false);
             if (page.Count == 0)
             {
@@ -158,7 +161,11 @@ public sealed class ProvisionerCommands
             {
                 var dequeueCount = message.DequeueCount != 0 ? message.DequeueCount : 1; // Python: dequeue_count or 1
                 var outcome = await provisioner.HandleAsync(message.Text, dequeueCount, message.InsertedOn, cancellationToken).ConfigureAwait(false);
-                if (outcome is HandleOutcome.Done or HandleOutcome.Dropped
+                if (outcome == HandleOutcome.Postponed)
+                {
+                    await PostponeAsync(queue, message, clock.GetUtcNow() - received, cancellationToken).ConfigureAwait(false);
+                }
+                else if (outcome is HandleOutcome.Done or HandleOutcome.Dropped
                     && !await queue.DeleteAsync(message, cancellationToken).ConfigureAwait(false))
                 {
                     // Handling outlasted the visibility timeout: the message is on the queue again and the next
@@ -181,6 +188,32 @@ public sealed class ProvisionerCommands
 
         _log.Info("processed " + handled + " message(s)");
         return 0;
+    }
+
+    /// <summary>
+    /// Replace a retirement whose removal keeps failing by a pending-removal retirement that stays
+    /// hidden for <see cref="Provisioner.RemovalRetrySeconds"/>: queued first, then the handled message
+    /// is deleted, so a failure in between leaves two messages (both safe: the removal is idempotent,
+    /// and both end once it works) and never none.
+    /// </summary>
+    /// <remarks>A new message, not a longer visibility timeout on this one: the job's identity may
+    /// receive, delete and send messages, but not update them, and a message cannot outlive its seven
+    /// days. A handled message that is already visible again is left alone, since the next receive
+    /// handles it and replacing it too would add a message every time.</remarks>
+    private async Task PostponeAsync(IProvisioningQueueClient queue, QueuedMessage message, TimeSpan handlingTook, CancellationToken cancellationToken)
+    {
+        const string again = "a retirement to try again later was received again before it could be replaced; it is checked once more";
+        if (handlingTook >= TimeSpan.FromSeconds(VisibilitySeconds))
+        {
+            _log.Info(again);
+            return;
+        }
+
+        await queue.SendAsync(Provisioner.PendingRemovalText(message.Text), TimeSpan.FromSeconds(Provisioner.RemovalRetrySeconds), cancellationToken).ConfigureAwait(false);
+        if (!await queue.DeleteAsync(message, cancellationToken).ConfigureAwait(false))
+        {
+            _log.Info(again);
+        }
     }
 
     /// <summary>Queue one operator message. <paramref name="redeploy"/> makes an ensure redeploy even

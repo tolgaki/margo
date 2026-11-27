@@ -102,10 +102,12 @@ public sealed partial class CommandsTests : IDisposable
         Assert.Equal(19, log.Length);
         Assert.Equal("processed 18 message(s)", log[^1]);
         Assert.Equal("dropped malformed provisioning message", log[1]);
-        Assert.Equal("instance 8f6b44ff6f8dd73b5b3a: suspend -> ['route_suspended']", log[2]);
+        Assert.Equal("instance 8f6b44ff6f8dd73b5b3a: suspend -> ['route_suspended', 'delete_app']", log[2]); // Python: the route only
         // One message at a time (Python: pages of 16), each hidden for 900 seconds, until none is visible.
         Assert.Equal(Enumerable.Repeat((1, TimeSpan.FromSeconds(900)), 19), _queue.Receives);
-        Assert.Equal(16, _cloud.Calls.Count);
+        Assert.Equal(17, _cloud.Calls.Count); // 16 deployments, and the suspended instance's app removed
+        Assert.DoesNotContain("margo-" + Key, _cloud.Apps);
+        Assert.Equal(15, _cloud.Apps.Count);
         Assert.Equal(1, _servicesCreated);
         Assert.Equal(
             [
@@ -232,6 +234,123 @@ public sealed partial class CommandsTests : IDisposable
         Assert.Equal(Provisioner.DefaultMaxInstances, ProvisionerConfig.MaxInstances(_ => null));
         Assert.Equal(50, ProvisionerConfig.MaxInstances(_ => " "));
         Assert.Equal(7, ProvisionerConfig.MaxInstances(_ => " 7 "));
+    }
+
+    [Fact]
+    public async Task A_retirement_that_keeps_failing_is_retried_by_its_own_message_without_other_traffic()
+    {
+        // The job is started only by visible queue messages. Before, the fifth failure dropped the retire message
+        // and only a run started by some other message tried the removal again: in a quiet deployment, never.
+        SetJobEnvironment();
+        var ready = new FakeCloud();
+        Assert.Equal(HandleOutcome.Done, await new Provisioner(ready, Config(), new JsonObject()).HandleAsync(Message("ensure"), cancellationToken: TestContext.Current.CancellationToken));
+        var cloud = new FakeCloud(fail: "delete_identity") { Text = ready.Text, ETag = ready.ETag };
+        var commands = new ProvisionerCommands(name => _environment.GetValueOrDefault(name), () => new FakeServices(cloud, _queue), _stderr, _clock);
+        var id = _queue.Add(Message("retire", @event: "agenticuserdeleted"));
+        for (var run = 1; run < Provisioner.MaxAttempts; run++)
+        {
+            Assert.Equal(0, await commands.InvokeAsync(["run"], TestContext.Current.CancellationToken));
+            Assert.True(_queue.Contains(id));
+            _clock.Advance(TimeSpan.FromSeconds(ProvisionerCommands.VisibilitySeconds));
+        }
+
+        Assert.Empty(_queue.Sent);
+        Assert.Equal(0, await commands.InvokeAsync(["run"], TestContext.Current.CancellationToken));
+        // The fifth failure: the message is replaced by one that only finishes the removal, hidden for an hour.
+        const string pending = "{\"action\": \"retire\", \"agent_identity_id\": \"agent-identity-1\", \"agent_user_id\": \"margo-user-1\", \"event\": \"pending-removal\"}";
+        Assert.False(_queue.Contains(id));
+        Assert.Equal([pending], _queue.Texts);
+        Assert.Equal([TimeSpan.FromSeconds(Provisioner.RemovalRetrySeconds)], _queue.SentDelays);
+        Assert.Equal(0, _queue.Visible); // hidden: it does not start the job, and this run cannot receive it again
+        Assert.True(Provisioner.RemovalRetrySeconds > ProvisionerCommands.RunBudgetSeconds);
+        Assert.Equal(("retired", "TimeoutException"), (cloud.Route()!.State, cloud.Route()!.Error)); // the router keeps ignoring it
+        Assert.EndsWith(
+            " ERROR margo.provision | instance 8f6b44ff6f8dd73b5b3a: retire still failing after 5 attempt(s) (TimeoutException); "
+            + "the route stays retired and the removal is tried again within 60 minute(s)",
+            Lf(_stderr.ToString()).Split('\n').Single(line => line.Contains(" ERROR ", StringComparison.Ordinal)), StringComparison.Ordinal);
+
+        // Nothing else arrives. An hour later the message is visible (which starts the job); it fails once and is replaced again.
+        var removals = cloud.Calls.Count;
+        _clock.Advance(TimeSpan.FromSeconds(Provisioner.RemovalRetrySeconds));
+        Assert.Equal(1, _queue.Visible);
+        _stderr.GetStringBuilder().Clear();
+        Assert.Equal(0, await commands.InvokeAsync(["run"], TestContext.Current.CancellationToken));
+        Assert.Equal(removals + 2, cloud.Calls.Count); // the app, then the identity, once: not every visibility timeout as well
+        Assert.Equal([pending], _queue.Texts);
+        Assert.Equal(0, _queue.Visible);
+        Assert.Equal("retired", cloud.Route()!.State);
+        Assert.Contains(
+            "instance 8f6b44ff6f8dd73b5b3a: pending removal still failing (TimeoutException); the route stays retired and the removal is tried again within 60 minute(s)",
+            LogMessages());
+        Assert.Contains("processed 1 message(s)", LogMessages());
+
+        // Once the removal works, the message is done and nothing is left on the queue.
+        cloud.Fail = null;
+        _clock.Advance(TimeSpan.FromSeconds(Provisioner.RemovalRetrySeconds));
+        Assert.Equal(0, await commands.InvokeAsync(["run"], TestContext.Current.CancellationToken));
+        Assert.Equal(("retired", null), (cloud.Route()!.State, cloud.Route()!.Error));
+        Assert.Equal(("delete_identity", "id-margo-" + Key), cloud.Calls[^1]);
+        Assert.Equal(0, _queue.Count);
+        Assert.Equal(2, _queue.Sent.Count);
+    }
+
+    [Fact]
+    public async Task A_postponed_retirement_never_retires_an_instance_that_was_started_again()
+    {
+        SetJobEnvironment();
+        _environment["MARGO_INSTANCE_TEMPLATE"] = Path.Combine(RepoRoot.Find(), "cloud", "infra", "instance.json");
+        _cloud.Fail = "delete_app";
+        _queue.Add(Message("ensure"));
+        _queue.Add(Message("retire"));
+        Assert.Equal(0, await Invoke("run"));
+        for (var run = 1; run < Provisioner.MaxAttempts; run++)
+        {
+            _clock.Advance(TimeSpan.FromSeconds(ProvisionerCommands.VisibilitySeconds));
+            Assert.Equal(0, await Invoke("run"));
+        }
+
+        Assert.Single(_queue.Sent);
+        Assert.Equal("retired", _cloud.Route()!.State);
+        // She is hired again (a lifecycle event) while the retry waits on the queue.
+        _queue.Add(Message("ensure", @event: "agenticuserundeleted"));
+        Assert.Equal(0, await Invoke("run"));
+        Assert.Equal("ready", _cloud.Route()!.State);
+        _cloud.Fail = null;
+        _clock.Advance(TimeSpan.FromSeconds(Provisioner.RemovalRetrySeconds));
+        var calls = _cloud.Calls.Count;
+        _stderr.GetStringBuilder().Clear();
+        Assert.Equal(0, await Invoke("run"));
+        Assert.Equal(["instance 8f6b44ff6f8dd73b5b3a: retire -> nothing to do", "processed 1 message(s)"], LogMessages());
+        Assert.Equal(calls, _cloud.Calls.Count);
+        Assert.Equal("ready", _cloud.Route()!.State);
+        Assert.Contains("margo-" + Key, _cloud.Apps);
+        Assert.Equal(0, _queue.Count);
+    }
+
+    [Fact]
+    public async Task A_retirement_handled_longer_than_its_visibility_is_not_replaced_while_it_is_on_the_queue_again()
+    {
+        SetJobEnvironment();
+        var ready = new FakeCloud();
+        Assert.Equal(HandleOutcome.Done, await new Provisioner(ready, Config(), new JsonObject()).HandleAsync(Message("ensure"), cancellationToken: TestContext.Current.CancellationToken));
+        var cloud = new FakeCloud(fail: "delete_app") { Text = ready.Text, ETag = ready.ETag };
+        cloud.OnDelete = () => _clock.Advance(TimeSpan.FromSeconds(ProvisionerCommands.VisibilitySeconds + 60));
+        var commands = new ProvisionerCommands(name => _environment.GetValueOrDefault(name), () => new FakeServices(cloud, _queue), _stderr, _clock);
+        var id = _queue.Add(Message("retire"));
+        for (var n = 1; n < Provisioner.MaxAttempts; n++)
+        {
+            Assert.Single(await _queue.ReceiveAsync(1, TimeSpan.Zero, TestContext.Current.CancellationToken)); // earlier attempts
+        }
+
+        Assert.Equal(0, await commands.InvokeAsync(["run"], TestContext.Current.CancellationToken));
+        // Each attempt outlasted the visibility timeout, so the message was visible again when it ended: replacing it
+        // too would leave one more message each time. It is left where it is, and the run stops when its time is up.
+        Assert.Empty(_queue.Sent);
+        Assert.Equal([Message("retire")], _queue.Texts);
+        Assert.True(_queue.Contains(id));
+        Assert.Equal(2, LogMessages().Count(line => line == "a retirement to try again later was received again before it could be replaced; it is checked once more"));
+        Assert.Contains("out of time after 2 message(s); the next run takes the rest", LogMessages());
+        Assert.Equal("retired", cloud.Route()!.State);
     }
 
     [Fact]
@@ -446,6 +565,8 @@ public sealed partial class CommandsTests : IDisposable
         }
 
         public Task SendAsync(string text, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public Task SendAsync(string text, TimeSpan delay, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
     private sealed class ZeroCountServices(ICloud cloud, IProvisioningQueueClient queue) : IProvisionerServices

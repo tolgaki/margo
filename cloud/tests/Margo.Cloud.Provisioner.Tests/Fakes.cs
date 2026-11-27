@@ -60,6 +60,12 @@ internal sealed class FakeCloud(string? fail = null) : ICloud
     /// <summary>Runs inside each deployment, as the minutes a real one takes.</summary>
     public Action? OnDeploy { get; set; }
 
+    /// <summary>Runs inside each app or identity removal, as the time a real one takes.</summary>
+    public Action? OnDelete { get; set; }
+
+    /// <summary>The Container Apps that exist: created by a deployment that worked, removed by <see cref="DeleteAppAsync"/>.</summary>
+    public HashSet<string> Apps { get; } = new(StringComparer.Ordinal);
+
     public string Text { get; set; } = string.Empty;
 
     public string? ETag { get; set; }
@@ -86,18 +92,27 @@ internal sealed class FakeCloud(string? fail = null) : ICloud
             throw new InvalidOperationException("deployment failed");
         }
 
+        Apps.Add((string)parameters["appName"]!["value"]!);
         return Task.CompletedTask;
     }
 
     public Task DeleteAppAsync(string name, CancellationToken cancellationToken)
     {
         Calls.Add(("delete_app", name));
-        return Fail == "delete_app" ? throw new TimeoutException("delete timed out") : Task.CompletedTask;
+        OnDelete?.Invoke();
+        if (Fail == "delete_app")
+        {
+            throw new TimeoutException("delete timed out");
+        }
+
+        Apps.Remove(name); // an app that does not exist is not an error
+        return Task.CompletedTask;
     }
 
     public Task DeleteIdentityAsync(string name, CancellationToken cancellationToken)
     {
         Calls.Add(("delete_identity", name));
+        OnDelete?.Invoke();
         return Fail == "delete_identity" ? throw new TimeoutException("delete timed out") : Task.CompletedTask;
     }
 
@@ -156,13 +171,22 @@ internal sealed class FakeQueue(FakeClock clock) : IProvisioningQueueClient
 
     public List<string> Sent { get; } = [];
 
+    /// <summary>How long each message of <see cref="Sent"/> was hidden for when it was sent.</summary>
+    public List<TimeSpan> SentDelays { get; } = [];
+
     public int Count => _items.Count;
 
+    /// <summary>The messages a reader would receive now, as the job's queue trigger counts them.</summary>
+    public int Visible => _items.Count(item => item.VisibleAt <= clock.Now);
+
+    /// <summary>The text of every message on the queue, hidden or not.</summary>
+    public IEnumerable<string> Texts => _items.Select(item => item.Text);
+
     /// <summary>Put a message on the queue, as a sender would; returns its id.</summary>
-    public string Add(string text)
+    public string Add(string text, TimeSpan delay = default)
     {
         var id = "m" + _next++;
-        _items.Add(new Item(id, text) { VisibleAt = clock.Now, InsertedOn = clock.Now });
+        _items.Add(new Item(id, text) { VisibleAt = clock.Now + delay, InsertedOn = clock.Now });
         return id;
     }
 
@@ -202,10 +226,13 @@ internal sealed class FakeQueue(FakeClock clock) : IProvisioningQueueClient
 
     public int StaleDeletes { get; private set; }
 
-    public Task SendAsync(string text, CancellationToken cancellationToken)
+    public Task SendAsync(string text, CancellationToken cancellationToken) => SendAsync(text, TimeSpan.Zero, cancellationToken);
+
+    public Task SendAsync(string text, TimeSpan delay, CancellationToken cancellationToken)
     {
         Sent.Add(text);
-        Add(text);
+        SentDelays.Add(delay);
+        Add(text, delay);
         return Task.CompletedTask;
     }
 }

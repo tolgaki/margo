@@ -62,6 +62,13 @@ public sealed class AzureProvisioningQueueClient : IProvisioningQueueClient
     {
         await _queue.SendMessageAsync(text, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <inheritdoc/>
+    /// <remarks>The message keeps the queue's default seven days to live, counted from now.</remarks>
+    public async Task SendAsync(string text, TimeSpan delay, CancellationToken cancellationToken)
+    {
+        await _queue.SendMessageAsync(text, visibilityTimeout: delay, timeToLive: null, cancellationToken).ConfigureAwait(false);
+    }
 }
 
 /// <summary>

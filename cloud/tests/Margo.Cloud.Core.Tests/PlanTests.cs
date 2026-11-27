@@ -24,7 +24,7 @@ public sealed class PlanTests
         Assert.Empty(Instances.Plan(ensure, Route("ready")));
         Assert.Equal("deploy", Instances.Plan(Message("ensure", redeploy: true), Route("ready"))[1]);
         Assert.Equal("deploy", Instances.Plan(ensure, Route("failed"))[1]);
-        Assert.Equal(["route_suspended"], Instances.Plan(Message("suspend"), Route("ready")));
+        Assert.Equal(["route_suspended", "delete_app"], Instances.Plan(Message("suspend"), Route("ready"))); // Python: the route only
         Assert.Empty(Instances.Plan(Message("suspend"), null));
         var retire = Instances.Plan(Message("retire"), Route("ready"));
         Assert.Equal(["route_retired", "delete_app", "delete_identity"], retire);
@@ -38,10 +38,12 @@ public sealed class PlanTests
     [InlineData("ensure", false, "suspended", new[] { "route_provisioning", "deploy", "route_ready" })]
     [InlineData("ensure", false, "retired", new[] { "route_provisioning", "deploy", "route_ready" })]
     [InlineData("ensure", false, "ready", new string[0])]
-    [InlineData("suspend", false, "suspended", new string[0])]
+    [InlineData("suspend", false, null, new string[0])]
+    [InlineData("suspend", false, "suspended", new[] { "delete_app" })] // not in Python: see A_suspension_removes_the_app
     [InlineData("suspend", false, "retired", new string[0])]
-    [InlineData("suspend", false, "failed", new[] { "route_suspended" })]
-    [InlineData("suspend", false, "provisioning", new[] { "route_suspended" })]
+    [InlineData("suspend", false, "ready", new[] { "route_suspended", "delete_app" })]
+    [InlineData("suspend", false, "failed", new[] { "route_suspended", "delete_app" })]
+    [InlineData("suspend", false, "provisioning", new[] { "route_suspended", "delete_app" })]
     [InlineData("retire", false, null, new string[0])]
     [InlineData("retire", false, "suspended", new[] { "route_retired", "delete_app", "delete_identity" })]
     [InlineData("retire", false, "failed", new[] { "route_retired", "delete_app", "delete_identity" })]
@@ -73,6 +75,55 @@ public sealed class PlanTests
         Assert.Equal(ensureEvent is "first-activity" or "retry-after-failure", ProvisioningEvents.IsActivity(ensureEvent));
         // Only an ensure is ever ignored: a suspend or retire with the same event is planned as usual.
         Assert.False(Instances.IsStoppedForActivity(new ProvisioningMessage("retire", Identity, User, ensureEvent), current));
+    }
+
+    [Fact]
+    public void A_suspension_removes_the_app_and_keeps_the_identity_and_storage()
+    {
+        // Not in Python, which only suspended the route: a container kept running went on doing background work.
+        foreach (var state in new[] { "ready", "provisioning", "failed" })
+        {
+            Assert.Equal(["route_suspended", "delete_app"], Instances.Plan(Message("suspend"), Route(state)));
+        }
+
+        // Planned again while suspended: an attempt may have stopped after the route write, and the removal is idempotent.
+        Assert.Equal(["delete_app"], Instances.Plan(Message("suspend"), Route("suspended")));
+        Assert.Equal(["delete_app"], Instances.Plan(Message("suspend"), Route("suspended"), retried: true));
+        Assert.Empty(Instances.Plan(Message("suspend"), Route("retired")));
+        Assert.Empty(Instances.Plan(Message("suspend"), null));
+        foreach (var state in new[] { "ready", "suspended" })
+        {
+            var plan = Instances.Plan(Message("suspend"), Route(state));
+            Assert.DoesNotContain("delete_identity", plan);
+            Assert.DoesNotContain(plan, step => step.Contains("storage", StringComparison.Ordinal) || step.Contains("container", StringComparison.Ordinal));
+        }
+
+        // An ensure of a suspended instance runs the whole deployment, which creates the app again.
+        Assert.Equal(["route_provisioning", "deploy", "route_ready"], Instances.Plan(new ProvisioningMessage("ensure", Identity, User, "agenticuserenabled"), Route("suspended")));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("ready")]
+    [InlineData("provisioning")]
+    [InlineData("failed")]
+    [InlineData("suspended")]
+    [InlineData("retired")]
+    public void A_pending_removal_retirement_does_nothing_unless_a_removal_is_pending(string? state)
+    {
+        var message = new ProvisioningMessage("retire", Identity, User, ProvisioningEvents.PendingRemoval);
+        var current = state is null ? null : Route(state);
+        Assert.True(Instances.IsStalePendingRemoval(message, current));
+        Assert.Empty(Instances.Plan(message, current));
+        Assert.Empty(Instances.Plan(message, current, retried: true));
+        // Any other retirement of the same route is planned as before.
+        Assert.False(Instances.IsStalePendingRemoval(new ProvisioningMessage("retire", Identity, User, "agenticuserdeleted"), current));
+        Assert.False(Instances.IsStalePendingRemoval(new ProvisioningMessage("ensure", Identity, User, ProvisioningEvents.PendingRemoval), current));
+
+        var table = new RouteTable();
+        var pending = table.Put(Key, Identity, User, "retired", error: "TimeoutException");
+        Assert.False(Instances.IsStalePendingRemoval(message, pending));
+        Assert.Equal(["delete_app", "delete_identity", "route_retired"], Instances.Plan(message, pending));
     }
 
     [Fact]
