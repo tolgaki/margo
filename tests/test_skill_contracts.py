@@ -100,6 +100,28 @@ class SkillContractTests(unittest.TestCase):
         wrapper = (REPO / "tools/margo-scheduled.sh").read_text(encoding="utf-8")
         self.assertIn('DENY_TOOLS="do_action create_entity update_entity delete_entity"', wrapper)
 
+    def test_document_creation_is_the_one_built_in_standing_permission(self):
+        # Rule 1 and the work-products procedure must state the same bounded exception.
+        def flat(path):
+            return " ".join((REPO / path).read_text(encoding="utf-8").split())
+
+        skill = flat("skills/chief-of-staff/SKILL.md")
+        rule = skill[skill.index("**Standing authorization is bounded.**"):skill.index("2. **Ground everything")]
+        self.assertEqual(rule.count("One exception is built in"), 1)
+        exception = rule[rule.index("One exception is built in"):rule.index("These **always** require approval")]
+        for phrase in ("creating an Office document the user asked for, in their own OneDrive",
+                       "`references/work-products.md`", "Sharing it", "editing a document other people use",
+                       "sending it stays per-action", "Only in a conversation, never unattended"):
+            self.assertIn(phrase, exception)
+        procedure = flat("skills/chief-of-staff/references/work-products.md")
+        for phrase in ("/office-agent-mcp/generate_artifact", "no per-action approval",
+                       "sharing it with anyone else", "editing a document other people use",
+                       "do not call it again", "never in an unattended run"):
+            self.assertIn(phrase, procedure)
+        safety = flat("docs/safety.md")
+        self.assertIn("One standing permission is built in", safety)
+        self.assertIn("editing a document other people use, or sending it stays per-action", safety)
+
     def test_mutable_markdown_is_never_written_inside_a_plugin_folder(self):
         # A plugin update replaces the skill folder. One rule, in SKILL.md, says where the user's
         # Markdown files live; a procedure that names a path under state/ must point to it.

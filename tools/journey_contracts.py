@@ -30,6 +30,9 @@ FEATURE_IDS = (
     "action-desk-canvas", "upgrade-migration", "uninstall", "containers", "memory-capture",
     "memory-retrieval", "memory-control", "memory-learning", "memory-trends", "memory-export",
     "memory-canvas", "task-progress", "task-recovery", "dream",
+    "cloud-approval-cards", "cloud-manager-channel", "cloud-backchannel", "cloud-room-listening",
+    "cloud-group-answers", "cloud-documents", "cloud-voice", "office-documents", "plugin-install",
+    "people-org", "sharepoint", "page-publishing", "copilot-agents",
 )
 COVERAGE_KINDS = {"runtime", "procedure-contract", "model-evaluation"}
 

@@ -33,6 +33,10 @@ for files over 4 MB with its own sign-in (`references/files.md`). Composes with 
    to anyone else**: mark-read/unread, categorize, flag, archive, move between folders.
    Confirm the grant back to them once, in writing, and note its scope.
 
+   One exception is built in: creating an Office document the user asked for, in their own
+   OneDrive, needs no prompt (`references/work-products.md`). Sharing it, editing a document
+   other people use, or sending it stays per-action. Only in a conversation, never unattended.
+
    These **always** require approval of the specific action, no matter what standing
    instruction exists, because they are visible to other people or cannot be undone:
    send / reply / forward, Teams or Engage posts and reactions, meeting accept / decline /
