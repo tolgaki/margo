@@ -54,6 +54,8 @@ are never sent twice.
 5. **[Errors and recovery](errors.md).** What each observed failure means and what to do next.
 6. **[Writes and approvals](writes-and-approvals.md).** The reusable pattern for letting an agent
    near a send button.
+7. **[Margo Cloud's tools](margo-cloud-tools.md).** The tools a custom agent gives its model, and
+   the Work IQ calls, tokens and guard checks underneath each one.
 
 Then read Margo as the worked example: the [chief-of-staff playbook](../chief-of-staff.md), the
 [walkthroughs](../walkthroughs.md) and, for a custom agent, the [Margo Cloud overview](../margo-cloud.md).

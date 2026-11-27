@@ -95,8 +95,8 @@ Everything is billed to your organization. No estimate is made here
    on-behalf-of.
 5. Optional: [one container per hired Margo](autopilot-instance-containers.md) and
    [talk to Margo by voice](autopilot-voice.md).
-6. For developers: [Margo Cloud code](../cloud/README.md) and the
-   [design and decision record](autopilot.md).
+6. For developers: [Margo Cloud code](../cloud/README.md), [her tools and what they call](work-iq/margo-cloud-tools.md)
+   and the [design and decision record](autopilot.md).
 
 ## Glossary
 

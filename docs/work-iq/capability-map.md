@@ -2,7 +2,8 @@
 
 Each row is one Work IQ tool or path family: what it is for, the Margo feature that uses it, the
 file that demonstrates it, how far Margo takes it, and what it needs. Paths under `skills/` are the
-procedures both runtimes follow; paths under `cloud/` are Margo Cloud's code.
+procedures both runtimes follow; paths under `cloud/` are Margo Cloud's code. For the other direction, from each of
+Margo Cloud's tools to the Work IQ calls it makes, see [Margo Cloud's tools](margo-cloud-tools.md).
 
 **Status:**
 
