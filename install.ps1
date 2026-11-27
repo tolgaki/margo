@@ -295,9 +295,23 @@ function Get-RemoteRevision {
     try {
         $ProgressPreference = 'SilentlyContinue'
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 15 `
-             -Headers @{ Accept = 'application/vnd.github.sha' } `
-             -Uri "https://api.github.com/repos/$RepoSlug/commits/$Branch"
+        # Anonymous calls to GitHub's API are limited to 60 an hour for each IP address, which a shared address
+        # can use up. When GH_TOKEN or GITHUB_TOKEN is already set it is sent with this call, and only this
+        # call, for the higher limit. If GitHub refuses the token, the call is made once more without it: this
+        # only reads a public commit ID.
+        $api = "https://api.github.com/repos/$RepoSlug/commits/$Branch"
+        $token = if ($env:GH_TOKEN) { $env:GH_TOKEN } else { $env:GITHUB_TOKEN }
+        $r = $null
+        if ($token) {
+            try {
+                $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 15 `
+                     -Headers @{ Accept = 'application/vnd.github.sha'; Authorization = "Bearer $token" } -Uri $api
+            } catch { $r = $null }
+        }
+        if (-not $r) {
+            $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 15 `
+                 -Headers @{ Accept = 'application/vnd.github.sha' } -Uri $api
+        }
         $revision = Get-ResponseText $r
         if ($revision -cnotmatch '^[0-9a-f]{40}$') { throw 'invalid remote revision' }
         return $revision

@@ -303,7 +303,9 @@ without losing preferences or work — see [§1](#1-choose-copy-or-link),
 [§5 Review and import commitments](#5-review-and-import-commitments). Try it:
 `./install.sh update --check`, then `./install.sh update`, then the legacy import commands above.
 For a preserving same-revision refresh, use `update --reinstall` (`-Reinstall` in PowerShell),
-not `--force`. Updates fetch one pinned remote revision, including same-version changes, and
+not `--force`. Updates fetch one pinned remote revision, including same-version changes (the check reads one commit ID from
+GitHub's API; if `GH_TOKEN` or `GITHUB_TOKEN` is already set, it is sent with that one call, which avoids
+"cannot check the remote revision" on a shared network that has used up GitHub's anonymous limit), and
 refuse remote failure, invalid metadata or downgrade without changing installed files.
 What you'll see: version/revision comparison, then an atomic, replay-safe import with counts — never a
 partial import on malformed input. Nothing sends or changes external state; this only copies

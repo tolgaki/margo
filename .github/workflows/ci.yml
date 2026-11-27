@@ -392,6 +392,11 @@ jobs:
   install:
     name: Install (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    # The installer's update check reads one commit ID from GitHub's API. Runners share IP addresses, and the
+    # anonymous limit for an address is sometimes spent before this job runs; the workflow's own token is not
+    # subject to it. The installer sends it to that one call only.
+    env:
+      GH_TOKEN: ${{ github.token }}
     strategy:
       fail-fast: false
       matrix:

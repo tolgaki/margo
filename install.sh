@@ -117,10 +117,23 @@ write_manifest() {
 }
 
 # Pin metadata and payload to the same commit, even if the branch moves mid-update.
+# The one call to GitHub's API. Anonymous calls are limited to 60 an hour for each IP address, which a shared
+# address (a CI runner, an office network) can use up. When GH_TOKEN or GITHUB_TOKEN is already set, it is sent
+# with this call, and only this call, for the higher limit. It goes to curl on standard input, never on the
+# command line, where other users of the machine could see it. If GitHub refuses the token, the call is made
+# once more without it: this only reads a public commit ID.
 remote_revision() {
   command -v curl >/dev/null 2>&1 || return 1
-  revision=$(curl -fsSL --max-time 15 -H 'Accept: application/vnd.github.sha' \
-    "https://api.github.com/repos/$REPO_SLUG/commits/$BRANCH") || return 1
+  api="https://api.github.com/repos/$REPO_SLUG/commits/$BRANCH"
+  token=${GH_TOKEN:-${GITHUB_TOKEN:-}}
+  revision=
+  if [ -n "$token" ]; then
+    revision=$(printf 'Authorization: Bearer %s\n' "$token" \
+      | curl -fsSL --max-time 15 -H 'Accept: application/vnd.github.sha' -H @- "$api") || revision=
+  fi
+  if [ -z "$revision" ]; then
+    revision=$(curl -fsSL --max-time 15 -H 'Accept: application/vnd.github.sha' "$api") || return 1
+  fi
   [ "${#revision}" -eq 40 ] || return 1
   printf '%s' "$revision" | grep -Eq '^[0-9a-f]{40}$' || return 1
   printf '%s' "$revision"
