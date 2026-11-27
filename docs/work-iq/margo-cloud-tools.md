@@ -2,16 +2,26 @@
 
 A custom agent decides which tools its model sees. Margo Cloud gives the model two kinds:
 
-- **Work IQ's own read tools**, as Work IQ describes them in `tools/list`, limited to the arguments the guard accepts.
+- **Work IQ's own tools**, as Work IQ describes them in `tools/list`, limited to the arguments the guard accepts.
   Margo adds one required argument to each, `on_data_of`: `principal` for the manager's data, `self` for Margo's own
-  and what is shared with her.
+  and what is shared with her. The read tools are offered in every run. The write tools (`do_action`,
+  `create_entity`, `update_entity`, `delete_entity`) are offered only in the manager's one-to-one chat, and only run
+  with `on_data_of: "self"`.
 - **Margo's own tools**, which the model calls by name. Most of them make Work IQ calls underneath, always through the
   guard ([`WorkIQGuard.cs`](../../cloud/src/Margo.Cloud.Guard/WorkIQGuard.cs)) and the MCP SDK client
   ([`WorkIQMcpTransport.cs`](../../cloud/src/Margo.Cloud.WorkIQ/WorkIQMcpTransport.cs)).
 
-The model is never offered a Work IQ write tool (`do_action`, `create_entity`, `update_entity`, `delete_entity`).
-Every write happens inside one of Margo's own tools, where the guard checks it. This page lists those tools: what the
-model passes, which Work IQ calls they make, with whose token, and what the guard checks.
+So Margo acts **as herself** directly, and **for her manager** only through a card:
+
+- **Her own account** (her mailbox, calendar, files and the chats she is in): in the manager's one-to-one chat the
+  model calls Work IQ's write tools itself, with no card. The guard allows this only in a turn the manager started
+  there, at most ten actions a turn, and refuses a call whose body names another sender (`from`, `sender`), because
+  with delegated access that would send as the manager.
+- **The manager's account** (`on_data_of: "principal"`): a write is refused when the model calls it. It runs only
+  from an approved card, inside `request_approval` below.
+
+This page lists Margo's own tools: what the model passes, which Work IQ calls they make, with whose token, and what
+the guard checks.
 
 For what each tool means to the manager, in plain words, see [trust and safety](../safety.md#margo-cloud-what-needs-a-card-and-who-sees-it).
 
@@ -32,11 +42,12 @@ For what each tool means to the manager, in plain words, see [trust and safety](
 
 ## Which runs get which tools
 
-| Run | Work IQ reads | `load_skill`, `read_skill_file` | `margo-state` | `office_requests` | `request_approval`, `create_document` | `tell_manager`, `share_with_manager` |
-| --- | --- | --- | --- | --- | --- | --- |
-| The manager talks to Margo (1:1 chat, or a group chat or channel where they @mention her) | Yes | Yes | Yes | Yes | Yes | Yes |
-| Voice | Yes | Yes | Yes | Yes | No | No |
-| Observation runs (someone else messaged, emailed or copied her) and listening in rooms | Yes, with Margo's token only | Yes | No: these runs don't open her state | No | No | Yes |
+| Run | Work IQ reads | Work IQ writes, as herself | `load_skill`, `read_skill_file` | `margo-state` | `office_requests` | `request_approval`, `create_document` | `tell_manager`, `share_with_manager` |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| The manager talks to Margo in their 1:1 chat | Yes | **Yes**, no card | Yes | Yes | Yes | Yes | Yes |
+| The manager @mentions her in a group chat or channel | Yes | No: other people's words are in that conversation | Yes | Yes | Yes | Yes | Yes |
+| Voice | Yes | No | Yes | Yes | Yes | No | No |
+| Observation runs (someone else messaged, emailed or copied her) and listening in rooms | Yes, with her own access only: nothing is read as the manager, in either access mode, and no other agent is asked | No | Yes | No: these runs don't open her state | No | No | Yes |
 
 ## Limits
 
@@ -44,6 +55,8 @@ For what each tool means to the manager, in plain words, see [trust and safety](
 | --- | --- |
 | Work IQ calls in one manager turn | 40 |
 | Work IQ calls in one observation run | 25 |
+| Actions as herself in one turn | 10 |
+| Time for one turn | 8 minutes; she then stops and says so |
 | Documents in one turn | 3, each at most 100,000 characters of content |
 | Notes to the manager in one run | 3 Teams messages, 3 emails |
 | Files shared with the manager in one run | 5 |
