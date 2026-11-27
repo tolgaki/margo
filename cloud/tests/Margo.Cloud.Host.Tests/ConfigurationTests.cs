@@ -97,7 +97,7 @@ public sealed class ConfigurationTests
         Assert.Equal(LogLevel.Information, settings.LogLevel);
         Assert.Equal("Voice.Talk", settings.VoiceScope);
         Assert.Empty(settings.ExtraIssuers);
-        Assert.Empty(settings.PlatformAppIds);
+        Assert.Equal(["fictional-channel-app"], settings.PlatformAppIds); // the test defaults pin the application Tokens.Valid names
         Assert.Equal(["smba.example.com"], settings.ExtraServiceHosts); // the test defaults' fictional platform host
         environment["MARGO_PLATFORM_APP_IDS"] = "fictional-platform-app, another-app";
         environment["MARGO_EXTRA_SERVICE_HOSTS"] = "platform.example.com";

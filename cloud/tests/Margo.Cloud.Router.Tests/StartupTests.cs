@@ -114,7 +114,7 @@ public sealed class StartupTests
     [Fact]
     public async Task The_entry_point_serves_the_router()
     {
-        await using var factory = new RouterFactory(Complete);
+        await using var factory = new RouterFactory([.. Complete, ("MARGO_PLATFORM_APP_IDS", Tokens.PlatformApp)]);
         using var client = factory.CreateClient();
         var health = await client.GetAsync(new Uri("/liveness", UriKind.Relative), Cancel);
         Assert.Equal((HttpStatusCode.OK, "{\"status\": \"ok\"}"), (health.StatusCode, await health.Content.ReadAsStringAsync(Cancel)));

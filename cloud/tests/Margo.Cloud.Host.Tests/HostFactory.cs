@@ -66,6 +66,7 @@ internal sealed class HostFactory : WebApplicationFactory<Program>
         ["MARGO_STATE_CONTAINER"] = "margo-state-instance-1",
         ["MARGO_PUBLIC_BASE_URL"] = "https://margo.example.com",
         ["MARGO_TENANT_ID"] = Tokens.TenantId,
+        ["MARGO_PLATFORM_APP_IDS"] = "fictional-channel-app", // the application Tokens.Valid names; unpinned, nothing is accepted
         ["AZURE_CLIENT_ID"] = "fictional-instance-identity",
         ["AZURE_OPENAI_ENDPOINT"] = "https://fictional-ai.openai.azure.com",
         ["MARGO_MODEL_DEPLOYMENT"] = "fictional-deployment",

@@ -25,7 +25,7 @@ public sealed class TokenValidationTests : IDisposable
 
     public TokenValidationTests()
     {
-        _validator = new AgentTokenValidator(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId), new JwksClientManager(_jwks, _time),
+        _validator = new AgentTokenValidator(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId, PlatformAppIds: [Tokens.PlatformApp]), new JwksClientManager(_jwks, _time),
             _logs.CreateLogger("auth"), _time);
     }
 
@@ -87,7 +87,7 @@ public sealed class TokenValidationTests : IDisposable
         {
             Audience = Tokens.ClientId,
             Issuer = "https://login.microsoftonline.com/" + Tokens.TenantId + "/v2.0",
-            Claims = new Dictionary<string, object> { ["tid"] = Tokens.TenantId, ["sub"] = "fictional-subject" },
+            Claims = new Dictionary<string, object> { ["tid"] = Tokens.TenantId, ["sub"] = "fictional-subject", ["appid"] = Tokens.PlatformApp },
             IssuedAt = _time.GetUtcNow().UtcDateTime,
             NotBefore = _time.GetUtcNow().UtcDateTime,
             Expires = _time.GetUtcNow().UtcDateTime.AddHours(1),
@@ -159,21 +159,47 @@ public sealed class TokenValidationTests : IDisposable
     {
         // The blueprint can be the audience of a person's sign-in (a delegated scope on it). The sender of an activity is
         // read from its body, so accepting such a token would let any signed-in colleague post "as the manager".
-        await AssertRejected(Valid(c => c["scp"] = "Voice.Talk"));
+        // The voice page's application is not the pinned platform application, so its sign-ins are refused.
         await AssertRejected(Valid(c =>
         {
             c["scp"] = "Voice.Talk";
+            c.Remove("appid");
+        }));
+        await AssertRejected(Valid(c =>
+        {
+            c["scp"] = "Voice.Talk";
+            c.Remove("appid");
             c["azp"] = "fictional-voice-page-app";
             c["iss"] = "https://login.microsoftonline.com/" + Tokens.TenantId + "/v2.0";
         }));
-        await AssertRejected(Valid(c => c["scp"] = ""));
+        // Unpinned, a person's token is named as such in the log.
+        var unpinned = new AgentTokenValidator(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId), new JwksClientManager(_jwks, _time),
+            _logs.CreateLogger("auth"), _time);
+        Assert.Equal(401, (await unpinned.AuthorizeAsync("Bearer " + Valid(c =>
+        {
+            c["scp"] = "Voice.Talk";
+            c["appid"] = "fictional-voice-page-app";
+        }), TestContext.Current.CancellationToken)).StatusCode);
         Assert.Contains(_logs.Lines, line => line.Contains("JWT is a person's token (scp), not the platform's; application fictional-voice-page-app", StringComparison.Ordinal));
 
-        // An application's own token is accepted, and the application is named once so it can be pinned.
-        await AssertAccepted(Valid(c => c["appid"] = "fictional-platform-app"));
-        await AssertAccepted(Valid(c => c["appid"] = "fictional-platform-app"));
-        Assert.Single(_logs.Lines, line => line.Contains("Platform token accepted from application fictional-platform-app", StringComparison.Ordinal));
-        Assert.Contains(_logs.Lines, line => line.Contains("Platform tokens are not pinned to an application", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Without_a_pinned_platform_application_no_entra_token_is_accepted()
+    {
+        // Any application in the tenant can get its own token for the blueprint, and the sender of an activity is read
+        // from its body: accepting it would let that application post "as the manager" and tap Approve. It is refused,
+        // and the application is named once so an operator can confirm it is the platform and pin it.
+        var validator = new AgentTokenValidator(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId), new JwksClientManager(_jwks, _time),
+            _logs.CreateLogger("auth"), _time);
+        async Task<int> Status(string token) => (await validator.AuthorizeAsync("Bearer " + token, TestContext.Current.CancellationToken)).StatusCode;
+        Assert.Equal(401, await Status(Valid(c => c["appid"] = "some-tenant-app")));
+        Assert.Equal(401, await Status(Valid(c => c["appid"] = "some-tenant-app")));
+        Assert.Equal(401, await Status(Valid(c => c.Remove("appid"))));
+        // Bot Framework's issuer signs only its own service's deliveries, so it needs no pin.
+        Assert.Equal(200, await Status(Valid(c => { c["iss"] = "https://api.botframework.com"; c.Remove("appid"); })));
+        Assert.Single(_logs.Lines, line => line.Contains("Platform token refused from application some-tenant-app: MARGO_PLATFORM_APP_IDS is empty", StringComparison.Ordinal));
+        Assert.Contains(_logs.Lines, line => line.Contains("Entra-issued platform tokens are refused until it names the platform's application", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -191,7 +217,7 @@ public sealed class TokenValidationTests : IDisposable
             c["scp"] = "user_impersonation"; // pinned: the application decides, whatever kind of token the platform uses
         })));
         Assert.Equal(401, await Status(Valid(c => c["appid"] = "another-tenant-app")));
-        Assert.Equal(401, await Status(Valid()));
+        Assert.Equal(401, await Status(Valid(c => c.Remove("appid"))));
         Assert.Equal(401, await Status(Valid(c => c["appid"] = 5)));
         Assert.Contains(_logs.Lines, line => line.Contains("JWT caller application not accepted: another-tenant-app", StringComparison.Ordinal));
 
@@ -313,7 +339,7 @@ public sealed class TokenValidationTests : IDisposable
     [Fact]
     public async Task Configured_extra_issuers_are_accepted_as_well()
     {
-        var validator = new AgentTokenValidator(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId, [" https://issuer.example.com/ ", ""]),
+        var validator = new AgentTokenValidator(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId, [" https://issuer.example.com/ ", ""], [Tokens.PlatformApp]),
             new JwksClientManager(_jwks, _time), _logs.CreateLogger("auth"), _time);
         var token = Valid(c => c["iss"] = "https://issuer.example.com/");
         Assert.Equal(200, (await validator.AuthorizeAsync("Bearer " + token, TestContext.Current.CancellationToken)).StatusCode);
@@ -369,13 +395,13 @@ public sealed class TokenValidationTests : IDisposable
     {
         // A repeated claim: the last value counts.
         var header = Tokens.B64("{\"alg\": \"RS256\", \"kid\": \"k1\"}");
-        var payload = Tokens.B64("{\"aud\": \"other\", \"aud\": \"" + Tokens.ClientId + "\", \"iss\": \"" + Tokens.V1Issuer() + "\"}");
+        var payload = Tokens.B64("{\"aud\": \"other\", \"aud\": \"" + Tokens.ClientId + "\", \"iss\": \"" + Tokens.V1Issuer() + "\", \"appid\": \"" + Tokens.PlatformApp + "\"}");
         var signature = Tokens.B64(Tokens.Key1.SignData(Encoding.ASCII.GetBytes(header + "." + payload),
             System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.RSASignaturePadding.Pkcs1));
         await AssertAccepted(header + "." + payload + "." + signature);
 
         // UTF-16 with a BOM is JSON to Python's json.loads(bytes).
-        var utf16Payload = Tokens.B64(Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("{\"aud\": \"" + Tokens.ClientId + "\", \"iss\": \"" + Tokens.V1Issuer() + "\"}")).ToArray());
+        var utf16Payload = Tokens.B64(Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("{\"aud\": \"" + Tokens.ClientId + "\", \"iss\": \"" + Tokens.V1Issuer() + "\", \"appid\": \"" + Tokens.PlatformApp + "\"}")).ToArray());
         var utf16Signature = Tokens.B64(Tokens.Key1.SignData(Encoding.ASCII.GetBytes(header + "." + utf16Payload),
             System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.RSASignaturePadding.Pkcs1));
         await AssertAccepted(header + "." + utf16Payload + "." + utf16Signature);

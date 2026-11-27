@@ -215,8 +215,9 @@ ingress target port) and `LOG_LEVEL` (default `INFO`; Python's level names). New
     audience of a person's sign-in (a delegated scope on it, such as the voice scope when the page signs in for the
     blueprint), and an activity names its own sender. Python accepted any token for the blueprint, so a signed-in
     colleague could post an activity "from the manager". Now an Entra-issued token is accepted only from the
-    applications in `MARGO_PLATFORM_APP_IDS` (`appid` or `azp`), or, while that is empty, only without `scp`; the first
-    accepted application is logged so it can be pinned. Bot Framework's own issuer is not subject to this.
+    applications in `MARGO_PLATFORM_APP_IDS` (`appid` or `azp`). While that is empty none is accepted: any application
+    in the tenant can get its own token for the blueprint, so audience and tenant do not identify the platform. Each
+    refused application is logged once so it can be confirmed and pinned. Bot Framework's own issuer is not subject to this.
     An extra issuer (`MARGO_EXTRA_TOKEN_ISSUERS`) that is another tenant's Entra issuer stops the router at start-up.
     A token without `kid` is refused with 401 and one warning; Python answered 500 with a stack trace, for anyone.
 16. **Connection pools.** aiohttp's one pool of 100 covered activities and voice for every instance. An instance that

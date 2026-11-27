@@ -20,7 +20,7 @@ public sealed class SigningKeyCacheTests
 
     public SigningKeyCacheTests()
     {
-        _validator = new AgentTokenValidator(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId), new JwksClientManager(_jwks, _time),
+        _validator = new AgentTokenValidator(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId, PlatformAppIds: [Tokens.PlatformApp]), new JwksClientManager(_jwks, _time),
             new ListLoggerProvider().CreateLogger("auth"), _time);
     }
 

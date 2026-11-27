@@ -13,7 +13,8 @@ namespace Margo.Cloud.Router.Authentication;
 /// from <c>MARGO_EXTRA_TOKEN_ISSUERS</c>: a recovery setting if the platform signs with an issuer this version does not
 /// know. Another tenant's Entra issuer is refused at start-up.</param>
 /// <param name="PlatformAppIds">The applications (<c>appid</c> or <c>azp</c>) an Entra-issued platform token may come
-/// from, from <c>MARGO_PLATFORM_APP_IDS</c>. Empty: any application's own token is accepted, but never a token issued
+/// from, from <c>MARGO_PLATFORM_APP_IDS</c>. Empty: no Entra-issued token is accepted (only Bot Framework's own
+/// deliveries); the refusal names the calling application so an operator can confirm and pin it. Never a token issued
 /// to a signed-in person (one with <c>scp</c>).</param>
 public sealed record AgentAuthSettings(string ClientId, string TenantId, IReadOnlyList<string>? ExtraIssuers = null,
     IReadOnlyList<string>? PlatformAppIds = null);
@@ -47,8 +48,9 @@ public sealed record AuthorizationResult(int StatusCode, string? ErrorJson, Json
 /// another tenant was refused only by its audience. A token from a recognised Entra issuer must also carry the same
 /// tenant in <c>tid</c>, when it has one.</item>
 /// <item>An Entra-issued token must come from the platform, not from a person (a deliberate deviation): with
-/// <c>MARGO_PLATFORM_APP_IDS</c> set, its <c>appid</c> or <c>azp</c> must be one of them; without, it must carry no
-/// <c>scp</c>. The blueprint is also the audience of sign-ins that are not platform deliveries (the voice page's
+/// its <c>appid</c> or <c>azp</c> must be one of <c>MARGO_PLATFORM_APP_IDS</c>, and while that is empty every
+/// Entra-issued token is refused. Any application in the tenant can get its own token for the blueprint, so the
+/// audience and the tenant do not show that the caller is the platform; only the pinned application does. The blueprint is also the audience of sign-ins that are not platform deliveries (the voice page's
 /// scope, when the page signs in as the blueprint), and the sender of an activity is read from its body, so a person's
 /// token must never be accepted here.</item>
 /// </list>
@@ -92,7 +94,7 @@ public sealed class AgentTokenValidator
         _logger = logger;
         if (_platformApps.Count == 0)
         {
-            _logger.LogWarning("Platform tokens are not pinned to an application (MARGO_PLATFORM_APP_IDS is empty): any application's own token for the blueprint is accepted.");
+            _logger.LogWarning("MARGO_PLATFORM_APP_IDS is empty: Entra-issued platform tokens are refused until it names the platform's application. Each refusal logs the calling application.");
         }
         _time = timeProvider ?? TimeProvider.System;
     }
@@ -275,12 +277,16 @@ public sealed class AgentTokenValidator
             throw new TokenRejectedException("ValueError", "Invalid caller.");
         }
 
-        // Unpinned: say once which application delivers, so an operator can pin it.
+        // Unpinned: refused. The audience and tenant only show that some application in this tenant asked for a
+        // token for the blueprint, which any of them can; the sender of an activity is then read from its body. Say
+        // once per application who called, so an operator can confirm it is the platform and pin it.
         var caller = Printable(app);
-        if (_seenCallers.Count < 16 && _seenCallers.TryAdd(caller, true) && _logger.IsEnabled(LogLevel.Information))
+        if (_seenCallers.Count < 16 && _seenCallers.TryAdd(caller, true) && _logger.IsEnabled(LogLevel.Warning))
         {
-            _logger.LogInformation("Platform token accepted from application {Application}; set MARGO_PLATFORM_APP_IDS to accept only it.", caller);
+            _logger.LogWarning("Platform token refused from application {Application}: MARGO_PLATFORM_APP_IDS is empty. Confirm this is the Agent 365 platform's application in your tenant, then set MARGO_PLATFORM_APP_IDS to it.", caller);
         }
+
+        throw new TokenRejectedException("ValueError", "Invalid caller.");
     }
 
     /// <summary>The issuers a token may come from: Bot Framework (public cloud), the configured tenant's Entra v1 and v2

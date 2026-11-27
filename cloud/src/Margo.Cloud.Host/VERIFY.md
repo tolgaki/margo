@@ -42,8 +42,9 @@ environment does not match the platform's token: fix the variables, do not loose
 other than Bot Framework's or your tenant's Entra issuers. Record the issuer. Admit it with `MARGO_EXTRA_TOKEN_ISSUERS`
 only if it is Microsoft's and not another tenant's, and report it so the default list can include it.
 
-Record the platform's application: the router logs `Platform token accepted from application <id>` once. Set
-`MARGO_PLATFORM_APP_IDS` to it, provision, redeploy all, and send another message: it must still be answered. A
+Record the platform's application: with `MARGO_PLATFORM_APP_IDS` empty the first message is refused and the router
+logs `Platform token refused from application <id>` once. Confirm the ID is Agent 365's, set
+`MARGO_PLATFORM_APP_IDS` to it, provision, redeploy all, and send another message: it must be answered. A
 refusal logged as `JWT is a person's token (scp)` or `JWT caller application not accepted` means Agent 365 delivers
 with a kind of token this check does not expect; record the log line.
 

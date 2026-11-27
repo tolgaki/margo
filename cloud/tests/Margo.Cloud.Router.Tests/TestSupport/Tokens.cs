@@ -53,6 +53,9 @@ internal static class Tokens
     public static byte[] DefaultKeySet() =>
         Encoding.UTF8.GetBytes(new JsonObject { ["keys"] = new JsonArray(Jwk(Key1, "k1"), Jwk(Key2, "k2", "RS384")) }.ToJsonString());
 
+    /// <summary>The application the tests' validators accept platform tokens from (<c>MARGO_PLATFORM_APP_IDS</c>).</summary>
+    public const string PlatformApp = "fictional-platform-app";
+
     /// <summary>Claims of a valid token issued now.</summary>
     public static JsonObject Claims(DateTimeOffset now)
     {
@@ -62,6 +65,7 @@ internal static class Tokens
             ["aud"] = ClientId,
             ["iss"] = V1Issuer(),
             ["tid"] = TenantId,
+            ["appid"] = PlatformApp,
             ["iat"] = seconds,
             ["nbf"] = seconds,
             ["exp"] = seconds + 3600,

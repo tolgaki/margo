@@ -278,7 +278,7 @@ internal sealed class RouterUnderTest : IAsyncDisposable
             builder.WebHost.UseTestServer();
         }
 
-        builder.Services.AddMargoRouter(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId), source, sink, jwks, time);
+        builder.Services.AddMargoRouter(new AgentAuthSettings(Tokens.ClientId, Tokens.TenantId, PlatformAppIds: [Tokens.PlatformApp]), source, sink, jwks, time);
         if (connector is not null)
         {
             builder.Services.AddSingleton(connector); // the last registration wins
