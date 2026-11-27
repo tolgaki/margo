@@ -1,12 +1,10 @@
-// Copied from Margo.Cloud.Router (namespace changed only): the Agents SDK token check the Python host also ran.
-// Keep the copies in step; see Margo.Cloud.Host/PORTING.md, "Requests to other components".
 using System.Globalization;
 using System.Numerics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace Margo.Cloud.Host.Authentication;
+namespace Margo.Cloud.Auth;
 
 /// <summary>
 /// The Python semantics the router and its token check depend on: <c>str.isspace</c>,

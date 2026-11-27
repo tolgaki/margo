@@ -1,10 +1,8 @@
-// Copied from Margo.Cloud.Router (namespace changed only): the Agents SDK token check the Python host also ran.
-// Keep the copies in step; see Margo.Cloud.Host/PORTING.md, "Requests to other components".
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace Margo.Cloud.Host.Authentication;
+namespace Margo.Cloud.Auth;
 
 /// <summary>A token was refused. Python: a <c>PyJWTError</c> or <c>ValueError</c>, which the Agents SDK
 /// turns into 401 "Invalid token or authentication failed.". <see cref="Kind"/> names the Python

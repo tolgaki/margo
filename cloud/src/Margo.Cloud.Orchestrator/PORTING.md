@@ -442,3 +442,27 @@ Tests: `A_sent_action_is_not_sent_again_when_the_turn_s_state_cannot_be_saved`,
 `Nothing_is_sent_when_the_claim_cannot_be_saved_first`, `What_an_approval_acts_on_is_read_again_before_it_runs`,
 `An_approval_is_not_used_when_what_it_acts_on_has_changed`, `An_approval_waits_when_what_it_acts_on_cannot_be_read`,
 `The_conversation_advances_only_after_the_state_was_saved`.
+
+## Margo acts as herself; runs she was not asked for use her own access (Nov 27, 2026)
+
+Deliberate deviations, by the owner's decision.
+
+- **Own-account writes.** `WorkIQGuard.AllowsOwnWrites` is set on the model's guard in a manager turn in the one-to-one
+  chat. The engine then offers Work IQ's write tools and the guard runs an unclaimed write whose intent is `self`, in
+  attended mode only, at most `MaxOwnWrites` a turn, and never one whose body names a sender (`from`, `sender`): with
+  delegated access to the manager's mailbox that would send as the manager. A write with intent `principal` is refused
+  with a pointer to `propose` and `request_approval`. Python (and this port until now) never offered a write tool.
+  Not in a room, not in voice, not in observation or listening runs.
+- **Own access only.** `WorkIQGuard.OwnAccessOnly` is set on the guards of observation runs and listening passes: intent
+  `principal` and any `agentId` are refused there. Under delegation those runs could read the manager's mailbox before.
+- **A turn has a time limit** (`OrchestratorOptions.TurnTimeLimit`, 8 minutes). A turn that reaches it answers
+  `TurnTimedOut`, and its activity is not run again on redelivery.
+- **File links fail closed.** With `MARGO_SHAREPOINT_HOSTS` unset the host passes an empty set, so a file link in a
+  question to Copilot is refused instead of accepted for every tenant's SharePoint host.
+- **`create_document` passes on the service's own error text** instead of the bare "Work IQ error".
+
+Tests: `In_the_one_to_one_chat_margo_acts_as_herself_with_every_work_iq_tool`,
+`Acting_as_herself_never_reaches_the_manager_s_account`,
+`In_a_room_the_write_tools_are_not_offered_and_a_call_to_one_is_refused`,
+`A_run_someone_else_started_reads_only_with_her_own_access_and_cannot_write`,
+`A_turn_that_runs_out_of_time_stops_says_so_and_is_not_run_again`.

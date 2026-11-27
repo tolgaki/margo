@@ -1,10 +1,10 @@
 using Azure.Core;
 using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
+using Margo.Cloud.Auth;
 using Margo.Cloud.Core;
 using Margo.Cloud.Engine;
 using Margo.Cloud.Guard;
-using Margo.Cloud.Host.Authentication;
 using Margo.Cloud.Orchestrator;
 using Margo.Cloud.Voice;
 using Margo.Cloud.WorkIQ;
@@ -278,7 +278,9 @@ public static class MargoHost
                 DailyRetentionDays = settings.DailyRetentionDays,
                 Backchannel = settings.Backchannel,
                 BackchannelDailyRuns = settings.BackchannelDailyRuns,
-                FileHosts = settings.SharePointHosts.Count == 0 ? null : new HashSet<string>(settings.SharePointHosts, StringComparer.OrdinalIgnoreCase),
+                // Unset means none, not any: a file link in a question to Copilot is otherwise accepted for every tenant's
+                // SharePoint host, and a link is a way to carry data out. Set MARGO_SHAREPOINT_HOSTS to allow your own.
+                FileHosts = new HashSet<string>(settings.SharePointHosts, StringComparer.OrdinalIgnoreCase),
             });
     }
 

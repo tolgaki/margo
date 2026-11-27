@@ -2,7 +2,7 @@ using System.Numerics;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
-namespace Margo.Cloud.Router.Authentication;
+namespace Margo.Cloud.Auth;
 
 /// <summary>The blueprint the router accepts tokens for. Python:
 /// <c>AgentAuthConfiguration(client_id=..., tenant_id=...)</c>.</summary>

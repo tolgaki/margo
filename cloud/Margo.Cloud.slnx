@@ -3,6 +3,7 @@
     <Project Path="samples/WorkIQHello/WorkIQHello.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Margo.Cloud.Auth/Margo.Cloud.Auth.csproj" />
     <Project Path="src/Margo.Cloud.Core/Margo.Cloud.Core.csproj" />
     <Project Path="src/Margo.Cloud.Engine/Margo.Cloud.Engine.csproj" />
     <Project Path="src/Margo.Cloud.Guard/Margo.Cloud.Guard.csproj" />

@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace Margo.Cloud.Router.Authentication;
+namespace Margo.Cloud.Auth;
 
 /// <summary>Where signing key sets come from. The service reads them over HTTPS
 /// (<see cref="HttpJwksSource"/>); tests pass a local key set.</summary>

@@ -2,7 +2,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Margo.Cloud.Host.Authentication;
+using Margo.Cloud.Auth;
 using Microsoft.AspNetCore.Http;
 
 namespace Margo.Cloud.Host;

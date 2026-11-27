@@ -109,9 +109,9 @@ manager is the only recipient; anything for anyone else still needs a card. She 
 the manager (an email they ask for) and in **observation runs**: when someone else messages her, emails
 her or copies her, she may look into it with read-only tools and tell the manager what matters. An
 observation run reads only with her own token (the platform's user token in that turn would be the
-sender's, never the manager's), never answers the sender, and treats what it read as data. In the
-default `delegation` mode her own token also reaches her manager's mail and calendar, so an
-observation run can read those. Prompt
+sender's, never the manager's), never answers the sender, and treats what it read as data. The guard
+refuses anything read as the manager in such a run, in every access mode, so her manager's mail and
+calendar are not read and no other agent is asked. Prompt
 injection in someone's message can at most shape a note that only the manager receives. She also listens in the rooms she is a member of (group and meeting chats,
 channels): every `MARGO_LISTEN_MINUTES` she reads what was said there through Work IQ with her own
 token and is told to send the manager at most two notes (the limit in code is three Teams notes, three
@@ -135,7 +135,9 @@ a group chat, a meeting chat or a Teams channel.
 | Shows an approval card | The card itself needs none | In the one-to-one chat: the manager. Asked for in a room: **everyone in that room** sees the card, with the recipients, subject and text of the action it proposes. Only the manager's tap counts |
 | Posts the fixed "passed this on" acknowledgment (off by default; `/replies acknowledge`) | No card per note: it is the manager's standing setting | The colleague who wrote to her; in a group chat, everyone in it. It names the manager and carries none of their content |
 | Posts one fixed sentence in a conversation of a type Teams does not name | No | That conversation. It carries none of the manager's content |
-| Anything else another person can see: sending, replying to or forwarding email; setting up, moving or canceling a meeting; posting a Teams message; sharing, changing, publishing or deleting content | **Yes**, one card for each exact action, tapped by the manager | Whoever the approved action reaches |
+| Acts **as herself**, from her own account, when her manager asks in their one-to-one chat: email from her own mailbox, a post in a chat or channel she is in, a meeting on her own calendar, sharing or changing her own files | No. This is the manager's standing permission, by the owner's decision. Only in the one-to-one chat, only what the manager asked for there, at most ten actions a turn, and never as anyone but herself (a call that names another sender is refused) | Whoever her action reaches. It shows as coming from Margo |
+| Anything on **her manager's account** that another person can see: sending, replying to or forwarding email from the manager's mailbox; setting up, moving or canceling a meeting on the manager's calendar; sharing, changing, publishing or deleting the manager's content. Also anything she would do as herself from a room | **Yes**, one card for each exact action, tapped by the manager | Whoever the approved action reaches |
+| A run her manager did not start (someone else's message, or listening in rooms) | No card can be asked for and no Work IQ write tool is offered. She reads only with her own access: never the manager's mail or calendar, and no other agent is asked. The one thing she can send is a note to her manager | The manager |
 
 The sections below give the detail: [the manager channel](#3-proactive-runs-never-act-on-the-outside-world) above,
 [approval cards](#margo-cloud-approval-cards) and [fixed notices](#margo-cloud-fixed-notices).
@@ -145,8 +147,10 @@ The sections below give the detail: [the manager channel](#3-proactive-runs-neve
 In Margo Cloud, approval of an outward action is a tap on a card in the manager's one-to-one Teams chat, and it is
 enforced in code, not left to the model:
 
-- The model can only *propose*: it records the exact Work IQ call in the work ledger and asks for a card. It is never
-  offered a write tool.
+- For anything on the manager's account the model can only *propose*: it records the exact Work IQ call in the work
+  ledger and asks for a card. Work IQ's write tools are offered to it only for her own account, in the manager's
+  one-to-one chat ([what needs a card](#margo-cloud-what-needs-a-card-and-who-sees-it)); the guard refuses them for
+  the manager's account, in a room, and in any run the manager did not start.
 - The card is drawn from the ledger, not from the model's text, and says in plain words what will happen: recipients,
   subject, the text (shortened on the card beyond 4,000 characters, with a line telling the manager to ask Margo for
   the rest before approving), meeting times, and which existing email, meeting, chat or file it affects, read from

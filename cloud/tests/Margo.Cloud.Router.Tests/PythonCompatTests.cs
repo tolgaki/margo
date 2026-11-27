@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Margo.Cloud.Auth;
 using Xunit;
 
 namespace Margo.Cloud.Router.Tests;

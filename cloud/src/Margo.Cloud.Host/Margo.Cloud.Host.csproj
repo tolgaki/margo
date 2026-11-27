@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Margo.Cloud.Core/Margo.Cloud.Core.csproj" />
+    <ProjectReference Include="../Margo.Cloud.Auth/Margo.Cloud.Auth.csproj" />
     <ProjectReference Include="../Margo.Cloud.WorkIQ/Margo.Cloud.WorkIQ.csproj" />
     <ProjectReference Include="../Margo.Cloud.Guard/Margo.Cloud.Guard.csproj" />
     <ProjectReference Include="../Margo.Cloud.Engine/Margo.Cloud.Engine.csproj" />

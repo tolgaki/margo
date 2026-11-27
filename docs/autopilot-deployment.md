@@ -490,8 +490,8 @@ zero runs no timer; it then costs one always-on container per Margo.
 Limits: one observation run per conversation every ten minutes (later messages are read by the next run); this and the
 daily count are kept in the running container's memory and start again when it restarts; a listening
 pass that fails is read again next time, looking back at most six hours. An
-observation run reads only with Margo's own token, so in `obo` mode it can't read the manager's data; in `delegation`
-mode it reads the manager's mail and calendar as usual. Messages addressed to her arrive as the platform delivers them (in
+observation run reads only with Margo's own access: in either mode the guard refuses anything read as the manager,
+so the manager's mail and calendar are not read. Messages addressed to her arrive as the platform delivers them (in
 Teams, usually @mentions); everything else in her rooms she reads when listening. Each run is a model run, billed like a turn. Not verified in a
 tenant.
 
@@ -540,7 +540,7 @@ Details, the custom voice and limits: [Voice](autopilot-voice.md).
 | See what Margo read | Application Insights traces named `workiq`: subject, tool, a path template such as `/users/{user}/messages/{id}` (no identifiers, names or query text), status and outcome. No message content |
 | See what a turn cost | The `turn usage input= cached= output= reasoning= rounds= tool_calls=` log line, one per model turn |
 | Name the platform's application | Required before the first conversation ([step 6](#6-first-conversation)). While `MARGO_PLATFORM_APP_IDS` is empty the router refuses Entra-issued deliveries and logs `Platform token refused from application <id>`. Confirm the ID is Agent 365's, then `azd env set MARGO_PLATFORM_APP_IDS <id>` (several: separated by spaces), provision, redeploy all |
-| Limit file links to your tenant | `azd env set MARGO_SHAREPOINT_HOSTS "contoso.sharepoint.com contoso-my.sharepoint.com"` (your own hosts), provision, redeploy all |
+| Allow file links to your tenant | Until this is set, a file link in a question to Copilot is refused for every host. `azd env set MARGO_SHAREPOINT_HOSTS "contoso.sharepoint.com contoso-my.sharepoint.com"` (your own hosts), provision, redeploy all |
 | See her state | Storage account › containers named `margo-i-…`, one per hired Margo, with each manager's state under its own prefix. `state.zip` is current; `daily/` holds one copy per day |
 | Ship a change | Commit, then `azd provision` (it builds and pins a new image for the router and the provisioner), then redeploy all |
 | Update Microsoft's Work IQ skill | The image carries a pinned copy of Microsoft's `workiq` skill (`cloud/vendor/workiq/source.json` names the commit). From `cloud/`: `bash scripts/update-workiq-skill.sh` (or a tag or commit), review the diff, commit, then ship it as above |

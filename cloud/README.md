@@ -82,6 +82,7 @@ and quiet hours need), running as the non-root user the .NET images provide; `ag
 | `Margo.Cloud.State.Probes` | `cloud/contracts/state/probes/*_probe.py` | Contract probes for the parity judge only: in `margo-state` only when built with `MargoStateProbes=true` (Debug default, never Release) and run only with `MARGO_STATE_PROBES=1` |
 | `Margo.Cloud.StateCli` (`margo-state`) | the script entry points | `margo-state SCRIPT.py --account A --state-dir D ARGS...` |
 | `Margo.Cloud.Core` | Its recorded answers and fixtures | Names, route table, lifecycle, activity helpers, instance binding |
+| `Margo.Cloud.Auth` | The router's recorded answers and fixtures | The platform token check the router and the host both run |
 | `Margo.Cloud.WorkIQ` | The MCP C# SDK and Work IQ's own tool schemas | Work IQ loaded as an MCP server: one session per identity, tool list, writes never resent |
 | `Margo.Cloud.Guard` | Its recorded answers and fixtures | The only path from the model to Work IQ |
 | `Margo.Cloud.Engine` | Its recorded answers and fixtures | Model turn loop and the `margo-state` tool |
@@ -102,7 +103,7 @@ need them.
 posts an Adaptive Card drawn from the ledger; the manager's tap arrives as a message whose value names the action,
 revision and hash; the orchestrator records the approval, starts the attempt, and runs the stored call through a guard
 holding the ledger's claim journal (`Margo.Cloud.Orchestrator/Approvals.cs`, `Margo.Cloud.Host/ApprovalCards.cs`). The
-model is never offered a write tool and cannot approve.
+model cannot approve, and is offered Work IQ's write tools only for Margo's own account in her manager's one-to-one chat ([what needs a card](../docs/safety.md#margo-cloud-what-needs-a-card-and-who-sees-it)).
 
 Approved writes executed by Margo Cloud carry the exact Work IQ call in the action snapshot, so the human approves the
 call itself rather than a description of it:

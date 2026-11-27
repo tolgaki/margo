@@ -115,7 +115,7 @@ param extraServiceHosts string = ''
 @allowed([ 'none', 'minimal', 'low', 'medium', 'high' ])
 param modelReasoningEffort string = 'low'
 
-@description('The tenant\'s own SharePoint and OneDrive hosts (for example contoso.sharepoint.com contoso-my.sharepoint.com), separated by spaces: the only hosts a file link given to Copilot search may name. Empty accepts any one tenant under sharepoint.com.')
+@description('The tenant\'s own SharePoint and OneDrive hosts (for example contoso.sharepoint.com contoso-my.sharepoint.com), separated by spaces: the only hosts a file link given to Copilot search may name. Empty allows no file link at all.')
 param sharePointHosts string = ''
 
 @description('Days each manager\'s daily state copies are kept; 0 keeps them all.')

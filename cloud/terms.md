@@ -19,15 +19,18 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
 
 ## What this version does and does not do
 
-- **Acts only on the manager's tap.** Margo reads, briefs, triages and drafts. It sends, replies to and
-  forwards email (from the manager's mailbox, as Margo on their behalf), sets up, moves or cancels meetings
-  on the manager's calendar, posts Teams messages as itself, and shares, changes, publishes or deletes
-  content (a file, a Copilot Page, a Viva Engage post, a SharePoint item), each only after the manager taps
-  Approve on a card in Teams showing that exact action. Each approval covers that one action, once. A "yes"
-  in chat or by voice is not an approval. Apart from the exceptions below (documents shared with you,
-  notes to you, answers to you in a group chat, one fixed notice), nothing outward runs without that tap;
-  this is enforced in software. The project's
+- **Acts on your account only on your tap.** Margo reads, briefs, triages and drafts. On the manager's account
+  it sends, replies to and forwards email (from the manager's mailbox, as Margo on their behalf), sets up,
+  moves or cancels meetings on the manager's calendar, and shares, changes, publishes or deletes the manager's
+  content, each only after the manager taps Approve on a card in Teams showing that exact action. Each approval covers that one action, once. A "yes"
+  in chat or by voice is not an approval. Apart from the exceptions below (what Margo does as itself when you ask, documents
+  shared with you, notes to you, answers to you in a group chat, one fixed notice), nothing outward runs
+  without that tap; this is enforced in software. The project's
   [table of what needs a card and who can see it](../docs/safety.md#margo-cloud-what-needs-a-card-and-who-sees-it) lists every case.
+- **Acts as itself when you ask.** In your one-to-one chat, when you ask Margo to do something it can do from
+  its own account (email from its own mailbox, a post in a chat or channel it is in, a meeting on its own
+  calendar, its own files), it does it without a card. Other people see it as coming from Margo, not from you.
+  It never sends as you this way, never does this from a group chat, and never in a run you did not start.
 - **Documents you ask for.** Margo creates a Word, Excel or PowerPoint file you ask for in its own
   OneDrive and shares it with you alone, without a card. Sharing it with anyone else needs your
   approval on a card.

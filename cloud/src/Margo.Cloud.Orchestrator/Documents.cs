@@ -27,6 +27,9 @@ internal sealed class TurnDocuments(WorkIQGuard guard, string principalId) : IDo
 
     private int _created;
 
+    /// <summary>The most of the service's own error text passed back to the model.</summary>
+    public const int MaxErrorChars = 400;
+
     /// <summary>The links of the documents created in this turn.</summary>
     public List<string> Links { get; } = [];
 
@@ -64,7 +67,11 @@ internal sealed class TurnDocuments(WorkIQGuard guard, string principalId) : IDo
 
         if (created.Status != GuardStatuses.Ok)
         {
-            return Answer(created.Status, created.Reason ?? "the document was not created");
+            // "Work IQ error" alone tells nobody what to fix: pass on what the service said, when it said anything.
+            var said = PyNode.AsString(At(created.Data, "error"));
+            var reason = created.Reason ?? "the document was not created";
+            return Answer(created.Status, string.IsNullOrWhiteSpace(said) ? reason + " (the service gave no detail)"
+                : reason + ": " + (said.Length > MaxErrorChars ? said[..MaxErrorChars] + "..." : said));
         }
 
         if (At(created.Data, "resource_links") is not JsonArray { Count: > 0 } links

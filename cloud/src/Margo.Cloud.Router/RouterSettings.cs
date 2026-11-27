@@ -1,4 +1,5 @@
 using System.Numerics;
+using Margo.Cloud.Auth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 

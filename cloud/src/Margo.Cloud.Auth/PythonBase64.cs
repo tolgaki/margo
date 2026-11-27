@@ -1,4 +1,4 @@
-namespace Margo.Cloud.Router;
+namespace Margo.Cloud.Auth;
 
 /// <summary>
 /// Python's lenient Base64 decoding: <c>binascii.a2b_base64(data, strict_mode=False)</c>, which

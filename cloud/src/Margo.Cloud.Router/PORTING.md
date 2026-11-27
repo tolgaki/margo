@@ -6,6 +6,11 @@ instance, turns lifecycle notifications and first activities into provisioning m
 the voice page and its WebSocket. Instance names, the route table and lifecycle mapping come from
 `Margo.Cloud.Core` (`Instances`, `RouteTable`, `ProvisioningMessage`); nothing there is re-implemented.
 
+The token check and the Python helpers it needs (`AgentTokenValidator`, `CompactJws`, `EntraIssuers`, `SigningKeys`,
+`PythonCompat`, `PythonBase64`, `PythonJsonBytes`) live in `Margo.Cloud.Auth`, the one implementation this project and
+`Margo.Cloud.Host` both reference. This note stays their porting record: the mapping, the deviations and the tests
+(`Margo.Cloud.Router.Tests`) are below.
+
 ## What maps to what
 
 | Python | C# |
@@ -28,7 +33,7 @@ the voice page and its WebSocket. Instance names, the route table and lifecycle 
 | `PyJWKClient.fetch_data` (urllib) | `IJwksSource`, `HttpJwksSource` |
 | `json.loads(bytes)` (`detect_encoding`, `surrogatepass`) | `PythonJsonBytes` |
 | `request.path` / `rel_url.path_safe` (yarl) | `RequestPath.FromRawTarget` |
-| `str.isspace`, `str.lower`, truthiness, `int()` | `PythonCompat` (Core has the same helpers, but internal) |
+| `str.isspace`, `str.lower`, truthiness, `int()` | `PythonCompat` in `Margo.Cloud.Auth` (Core has the same helpers, but internal) |
 | `binascii.a2b_base64` (non-strict), PyJWT `base64url_decode` | `PythonBase64` |
 | aiohttp's parser checks (repeated singleton headers, `Content-Encoding`), `_default_expect_handler`, `WebSocketResponse._handshake`, `RequestHandler.handle_error` (500/504) | `RouterService.ParserError`, `RequestContentEncoding`, `UnknownExpectation`, `HandshakeError`, `HandleAsync` |
 | aiohttp's request decompression (`DeflateBuffer`) | `RouterService.ReadActivityAsync` |
@@ -200,8 +205,8 @@ ingress target port) and `LOG_LEVEL` (default `INFO`; Python's level names). New
     with the configured tenant. Entra signs every tenant's tokens with the same keys, so a token from another tenant
     was refused by its audience alone. Now only Bot Framework (public cloud) and the configured tenant's Entra v1 and
     v2 issuers are accepted, plus `MARGO_EXTRA_TOKEN_ISSUERS` as a recovery setting. US Government Bot Framework and
-    Entra issuers, which Python accepted, are refused: Margo deploys to the public cloud. The host's copy changes with
-    it.
+    Entra issuers, which Python accepted, are refused: Margo deploys to the public cloud. The host runs the same code
+    (`Margo.Cloud.Auth`), so it changes with it.
 14. **The forward does not follow the caller.** Python forwarded on the caller's request: when Agent 365 stopped
     waiting, aiohttp canceled the handler, the connection to the instance closed and the instance's turn was cut off.
     A cold instance (scaled to zero) can take longer to start than the platform waits, so the first message after a
@@ -301,7 +306,7 @@ router are not in the repository (they import the scratch venv); the outcomes ar
 ## Open questions
 
 - **Core's `int()`**: `PythonValues.TryParseInt` strips U+001C to U+001F, which Python's `int()` does
-  not (`int("\x1f5")` raises `ValueError`; checked on 3.13). This project's copy is corrected; Core's
+  not (`int("\x1f5")` raises `ValueError`; checked on 3.13). `Margo.Cloud.Auth`'s `PythonCompat` is corrected; Core's
   owner may want the same fix.
 - **Issuer validation** (resolved: deviation 13): Python accepted tokens from any issuer for the blueprint audience.
   Which issuer Agent 365 uses for agentic activities is not yet confirmed live; a refusal logs it, and

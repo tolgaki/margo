@@ -1,6 +1,6 @@
 using System.Text;
 using System.Text.Json.Nodes;
-using Margo.Cloud.Router.Authentication;
+using Margo.Cloud.Auth;
 using Margo.Cloud.Router.Tests.TestSupport;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;

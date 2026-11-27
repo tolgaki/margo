@@ -2,8 +2,8 @@ using System.Net;
 using Azure.Core;
 using Azure.Identity;
 using Azure.Storage.Blobs;
+using Margo.Cloud.Auth;
 using Margo.Cloud.Router;
-using Margo.Cloud.Router.Authentication;
 
 // Python (removed at the cutover): router/app.py main.
 var builder = WebApplication.CreateBuilder(args);

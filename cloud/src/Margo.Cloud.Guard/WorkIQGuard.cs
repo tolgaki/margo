@@ -539,6 +539,16 @@ public sealed class WorkIQGuard
             throw new RefusedException("a request from someone other than the principal never reads as the principal");
         }
 
+        if (OwnAccessOnly && intent == Subjects.Principal)
+        {
+            throw new RefusedException("a run your manager did not start reads only with your own access; use on_data_of self");
+        }
+
+        if (OwnAccessOnly && args.ContainsKey("agentId"))
+        {
+            throw new RefusedException("a run your manager did not start asks no other agent");
+        }
+
         var write = WriteTools.Contains(tool);
         var claimed = given.ContainsKey("action_id") || given.ContainsKey("attempt_id");
         if (claimed && !write)
@@ -572,6 +582,28 @@ public sealed class WorkIQGuard
         if (!claimed && mode == RunModes.Attended && AllowsOwnDocuments && IsOwnDocumentCall(tool, intent, args))
         {
             return new Authorisation(sendArgs, null, paths);
+        }
+
+        // Margo acting as herself, in a turn her manager started: her own account, so no card. Never as someone else.
+        if (!claimed && mode == RunModes.Attended && AllowsOwnWrites && intent == Subjects.Self)
+        {
+            if (NamesAnotherSender(args))
+            {
+                throw new RefusedException("sending as someone else is not your own action: propose it and ask for your manager's approval");
+            }
+
+            if (Interlocked.Increment(ref _ownWrites) > MaxOwnWrites)
+            {
+                throw new RefusedException("at most " + MaxOwnWrites + " actions of your own in one turn");
+            }
+
+            return new Authorisation(sendArgs, null, paths);
+        }
+
+        if (!claimed && AllowsOwnWrites && intent == Subjects.Principal)
+        {
+            throw new RefusedException("this acts on your manager's account, which needs their approval of this exact action: "
+                                       + "record it with work_state.py propose, then call request_approval");
         }
 
         // The manager's standing permission for what only they receive: an email from Margo to them alone, or a file
@@ -751,6 +783,28 @@ public sealed class WorkIQGuard
     public bool AllowsManagerChannel { get; init; }
 
     /// <summary>
+    /// The manager's standing permission for Margo to act as herself: when true, a write with intent
+    /// <see cref="Subjects.Self"/> runs without an approval card, in an attended run only. It is her own mailbox,
+    /// chats, calendar and files; a write that names another sender (<c>from</c>, <c>sender</c>) is not her own and is
+    /// refused. Writes on the manager's account (intent <see cref="Subjects.Principal"/>) always need a claim of the
+    /// manager's approval of that exact call. Set only on the model's guard in a turn the manager started in their
+    /// one-to-one chat; never in a room, and never in a run someone else's message or a timer started.
+    /// </summary>
+    public bool AllowsOwnWrites { get; init; }
+
+    /// <summary>At most this many writes as herself in one turn (<see cref="AllowsOwnWrites"/>).</summary>
+    public const int MaxOwnWrites = 10;
+
+    private int _ownWrites;
+
+    /// <summary>
+    /// For a run the manager did not start (someone else's message, or listening in rooms): when true, nothing is read
+    /// or asked as the manager, whatever the access mode, and no Copilot agent is asked. What reached Margo from
+    /// other people is then looked into only with what her own account can see.
+    /// </summary>
+    public bool OwnAccessOnly { get; init; }
+
+    /// <summary>
     /// Called for a claimed write after its dispatch is recorded in the journal and before the call leaves: saves that
     /// record where a restart or a failed end-of-turn save cannot lose it (the orchestrator uploads the leased state).
     /// If it fails, nothing is sent. Without it the record of a sent action lives only on this machine until the turn
@@ -772,6 +826,30 @@ public sealed class WorkIQGuard
 
     /// <summary>The Office applications a document can be created for.</summary>
     public static readonly IReadOnlySet<string> OfficeApps = new HashSet<string>(StringComparer.Ordinal) { "Word", "Excel", "PowerPoint" };
+
+    /// <summary>True when a write's body names a sender (<c>from</c> or <c>sender</c>, at the top or on its message):
+    /// with delegated access to the manager's mailbox, such a call from Margo's own account would send as the manager.</summary>
+    private static bool NamesAnotherSender(JsonObject args)
+    {
+        if (PyNode.AsString(PyNode.Get(args, "jsonBody")) is not { Length: > 0 } text)
+        {
+            return false;
+        }
+
+        JsonNode? parsed;
+        try
+        {
+            parsed = PyJson.Loads(text);
+        }
+        catch (Exception exc) when (exc is PyValueError or System.Text.Json.JsonException or FormatException)
+        {
+            return true; // unreadable: not shown to be her own
+        }
+
+        return parsed is JsonObject body
+               && new[] { body, body["message"] as JsonObject }.Any(part => part is not null && part.Any(pair => pair.Key.Equals("from", StringComparison.OrdinalIgnoreCase)
+                                                                                                             || pair.Key.Equals("sender", StringComparison.OrdinalIgnoreCase)));
+    }
 
     private bool IsOwnDocumentCall(string tool, string intent, JsonObject args)
     {

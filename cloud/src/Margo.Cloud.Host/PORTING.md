@@ -32,7 +32,7 @@ Agent 365) and `host/azure_store.py` (the Azure Blob lease store), on ASP.NET Co
 | `on_installation` | `MargoTurns.OnInstallationAsync` | Logs `installation update: <action>` only |
 | `_typing` | private `TypingAsync` | Failures end it quietly |
 | `web_app()`: `jwt` middleware, `agent_configuration`, routes | `MargoHost.Map`, `InboundAuthentication` | Token check on everything but `/`, `/liveness`, `/readiness`, `/voice`, `/voice/...`; `POST` on both activity paths (a body over 1 MiB, aiohttp's `client_max_size`, is `400 {"error": "Invalid JSON or unsupported Content-Type"}` as Python's SDK answered); `GET`/`HEAD` health answering `{"status": "ok"}` |
-| `jwt_authorization_middleware` (SDK) | `Authentication/AgentTokenValidator` (copied from `Margo.Cloud.Router`) | See "The token check" |
+| `jwt_authorization_middleware` (SDK) | `AgentTokenValidator` in `Margo.Cloud.Auth` (shared with `Margo.Cloud.Router`) | See "The token check" |
 | `VoiceService(...)`, `mount(app, voice)` | `VoiceService` and `VoiceEndpoints.Map` from `Margo.Cloud.Voice`, `SdkVoiceTokens` | When `MARGO_HOSTING=instance` and `VOICE_LIVE_MODEL`; `UseWebSockets`; logger `margo.voice`; scope `MARGO_VOICE_SCOPE` (default `Voice.Talk`) |
 | `main()` / `run_app(host=HOST, port=PORT)` | `Program.cs` | Kestrel on `HOST` (default `0.0.0.0`) and `PORT` (default 8088); a start-up failure prints its message and exits 1 |
 
@@ -97,11 +97,11 @@ must not live only in one session`; `AZURE_OPENAI_ENDPOINT is required (https://
 
 `web_app()` wrapped every request except the health paths and `/voice`, `/voice/...` in the Agents SDK's aiohttp
 `jwt_authorization_middleware` with `AgentAuthConfiguration(client_id=<blueprint>, tenant_id=<tenant>)`. That is the
-check `Margo.Cloud.Router` already ports exactly (see its PORTING.md, "The token check": Bot Framework or tenant Entra
+check `Margo.Cloud.Auth` already ports exactly (see `Margo.Cloud.Router`'s PORTING.md, "The token check": Bot Framework or tenant Entra
 keys, RS256, 300 s leeway, audience equal to the blueprint ignoring case, the tenant binding, the 401 bodies and log
-messages), plus the issuer allowlist that both copies add on purpose (the Router's deviation 13; `MARGO_EXTRA_TOKEN_ISSUERS`,
-passed to every instance by the provisioner when set). Its four files and three helpers are copied into `Authentication/` with only the namespace changed (request
-1). The verified claims become the request's `ClaimsIdentity` (Python: `request["claims_identity"]`), which the SDK
+messages), plus the issuer allowlist added on purpose (the Router's deviation 13; `MARGO_EXTRA_TOKEN_ISSUERS`,
+passed to every instance by the provisioner when set). The host references `Margo.Cloud.Auth` and runs the same four files and three helpers as the router: one
+implementation, not a copy (`TokenCheckCopyTests` fails if either service grows its own again). The verified claims become the request's `ClaimsIdentity` (Python: `request["claims_identity"]`), which the SDK
 uses to pick the connection (audience) and validate the activity's `serviceUrl` against the token's `serviceurl` claim.
 
 The SDK for .NET would instead use ASP.NET Core's JWT bearer handler (`AddJwtBearer`), which accepts and refuses
@@ -185,11 +185,10 @@ and `SCOPES__0` changed the Python `AgentAuthConfiguration` but not what it acce
 
 ## Requests to other components
 
-1. **Shared token check** (integration owner): `Authentication/` is a copy of `Margo.Cloud.Router/Authentication` plus
-   `PythonCompat`, `PythonBase64`, `PythonJsonBytes`. Moving them into one library both services reference (and Voice's
-   `Jwt/` pieces with them) would leave one implementation to review. Until then, a change to one must be made to both;
-   `TokenCheckCopyTests` fails when the seven copied files differ from the router's in anything but the copy note and
-   the namespace.
+1. **Shared token check** (done): the host and the router both reference `Margo.Cloud.Auth`, which holds the token
+   check (`AgentTokenValidator`, `CompactJws`, `EntraIssuers`, `SigningKeys`) and its helpers (`PythonCompat`,
+   `PythonBase64`, `PythonJsonBytes`). A fix is made once. Still open: Voice's `Jwt/` pieces are a separate, adapted
+   reading for a different token (see `Margo.Cloud.Voice/PORTING.md`).
 2. **Cutover (image and Dockerfile, not done here):** a .NET 10 ASP.NET runtime image; `dotnet publish -c Release` of
    this project (it brings `margo-state.dll` and its `runtimeconfig.json`; the build fails if the contract probes would
    ship); `agents/` and `skills/` under `/app` (`MARGO_REPO_ROOT=/app`); **the `tzdata` package** (State's `PyZoneInfo`
@@ -235,8 +234,8 @@ failing-first test:
    (`HostIntegrationTests.A_mail_notification_with_an_unreadable_outlook_reference_is_still_queued_without_a_reply`.)
    `ActivityEvents.EmailReference` now also catches every exception, as `_email_reference` did.
 
-Checked and found consistent (no change): route order for mail as `message` versus `event`; the token check (a byte
-copy of the Router's); the four `AzureStoreTests`; the configuration keys through the SDK's types; the logging floors
+Checked and found consistent (no change): route order for mail as `message` versus `event`; the token check (then a byte
+copy of the Router's, now the shared `Margo.Cloud.Auth`); the four `AzureStoreTests`; the configuration keys through the SDK's types; the logging floors
 with Azure Monitor added (no provider-specific rule re-enables `Microsoft.Agents` debug output); the Release publish
 (`margo-state.dll` present, no probes assembly); `RemoveRecipientMention` against Python's; the SDK's default
 turn-error reply (both SDKs send the exception text, so it is not a regression). Not fixed, noted: the .NET lifecycle

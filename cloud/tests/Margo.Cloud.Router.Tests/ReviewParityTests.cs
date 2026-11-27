@@ -2,8 +2,8 @@ using System.IO.Compression;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Nodes;
+using Margo.Cloud.Auth;
 using Margo.Cloud.Core;
-using Margo.Cloud.Router.Authentication;
 using Margo.Cloud.Router.Tests.TestSupport;
 using Xunit;
 

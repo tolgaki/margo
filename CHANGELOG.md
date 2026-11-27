@@ -11,6 +11,11 @@ Only 1.0.0 has a release tag; 1.1.0 and 1.2.0 shipped on `main` without one.
   production: only provisioning, the router-to-instance path, delegated mail and calendar reads and a Teams reply
   are verified in a test tenant. Everything else below is built and tested offline; see the Margo Cloud overview's
   maturity table.
+- **Margo Cloud acts as herself with every Work IQ tool; her manager's account needs a card.** In the manager's
+  one-to-one chat the model is offered Work IQ's write tools for her own account (her mailbox, calendar, chats
+  and files) and uses them without a card. Anything on the manager's account still runs only from an approved
+  card. Not in a room, and not in a run someone else started: those runs now read only with her own access,
+  never the manager's mail or calendar.
 - **Approval runs once, on what the card showed.** The record that an approved action was sent is saved to shared
   storage before the call leaves; the email, meeting, chat or file it acts on is read again at the tap; and the card
   lists everything in the call, including link destinations and who a reply to everyone reaches.

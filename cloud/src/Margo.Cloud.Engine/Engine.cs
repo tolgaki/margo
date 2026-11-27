@@ -214,10 +214,12 @@ public sealed class Engine
         approvals = mode == RunModes.Attended ? approvals : null;
         documents = mode == RunModes.Attended ? documents : null;
         channel = mode is RunModes.Attended or RunModes.Unattended ? channel : null;
+        // Work IQ's write tools are offered only where the guard would run them: as herself, in a turn her manager started.
+        var ownWrites = mode == RunModes.Attended && guard.AllowsOwnWrites;
         var instructions = EngineTools.StableInstructions(RepoRoot, TimeZone, library, guard.PrincipalAccess, approvals is not null, documents is not null,
-                                                          channel is not null);
+                                                          channel is not null, ownWrites);
         // Work IQ describes its own tools (tools/list); the guard limits them to what it allows.
-        var tools = EngineTools.FunctionTools(mode, await guard.ServerToolsAsync(cancellationToken).ConfigureAwait(false));
+        var tools = EngineTools.FunctionTools(mode, await guard.ServerToolsAsync(cancellationToken).ConfigureAwait(false), ownWrites);
         if (approvals is not null)
         {
             tools.Add(EngineTools.ApprovalToolDefinition());
@@ -462,7 +464,7 @@ public sealed class Engine
         if (function is not null && function.StartsWith(EngineTools.Prefix, StringComparison.Ordinal))
         {
             var tool = function[EngineTools.Prefix.Length..];
-            if (GuardPolicy.WriteTools.Contains(tool) || !GuardPolicy.ToolArgs.ContainsKey(tool))
+            if (!GuardPolicy.ToolArgs.ContainsKey(tool) || (GuardPolicy.WriteTools.Contains(tool) && !(mode == RunModes.Attended && guard.AllowsOwnWrites)))
             {
                 return Refused("not available in this version");
             }

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Margo.Cloud.Router.Authentication;
+namespace Margo.Cloud.Auth;
 
 /// <summary>
 /// Recognised token issuers and where their signing keys are published. Python:

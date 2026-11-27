@@ -191,7 +191,7 @@ names every program, script, subcommand and Work IQ tool desktop Margo can use a
 cannot, each with its reason: `gh` (GitHub review load), `az`/`curl`/`jq` (Azure DevOps work
 items) and `git` (the team decision registry) each wait on a credential decision;
 `m365_files.py` waits on a hosted large-file bridge; installation checks and setup belong to the
-service; Work IQ write tools are never offered to the model, because writes go through approval cards. The engine puts this list in the model's
+service; Work IQ write tools are offered to the model only for Margo's own account, in her manager's one-to-one chat; writes on the manager's account go through approval cards. The engine puts this list in the model's
 instructions, so a routine that needs one of them reports the gap instead of an empty result.
 
 **The parity test** ([`ParityTests.cs`](../cloud/tests/Margo.Cloud.Engine.Tests/ParityTests.cs))
@@ -509,7 +509,7 @@ procedure describes when she consults them.
 | --- | --- | --- |
 | Read principal's data (OBO) | Allowed, bounded, attended or unattended | Same authority as local Margo; new mechanism |
 | Write to Margo's private local state (ledger, memory) | Allowed | Same |
-| **Message the manager directly** (their 1:1 chat, an email to them alone, a file shared with them alone) | Allowed at any time, including unattended and in an observation run started by someone else's message | **Built, not verified in a tenant** (the guard checks the manager is the only recipient; observation runs read only with Margo's own token, which in `delegation` mode also reaches the manager's mail and calendar). Nobody else |
+| **Message the manager directly** (their 1:1 chat, an email to them alone, a file shared with them alone) | Allowed at any time, including unattended and in an observation run started by someone else's message | **Built, not verified in a tenant** (the guard checks the manager is the only recipient; observation runs read only with Margo's own access; the guard refuses anything read as the manager there). Nobody else |
 | **Send mail on the manager's behalf, or from Margo's own mailbox** | Per-action approval by the manager | Decided: both allowed. The approval must be recorded with the manager's object ID; the guard refuses any other approver |
 | Any other Microsoft 365 write: drafts, replies, RSVP, meeting moves, deletes, posts, work items, files | Per-action approval via Adaptive Card, attended only | Same rule, stronger evidence |
 | Replies to other people | Governed by the manager's setting (6.1) | New, default off |
@@ -582,6 +582,7 @@ cloud/
     Margo.Cloud.Engine                             # model turn loop, persona and skills, margo-state tool, NotHosted
     Margo.Cloud.Orchestrator                       # who is speaking; leased state bundle; office queue; replies; approvals
     Margo.Cloud.Core  Margo.Cloud.Router  Margo.Cloud.Provisioner  # one container per instance
+    Margo.Cloud.Auth                               # the platform token check the router and the host share
     Margo.Cloud.Voice                              # talk to Margo: session bridge, endpoint, browser page (wwwroot/)
     Margo.Cloud.Host                               # Agents SDK endpoint, approval cards and Azure Blob store
     Margo.Cloud.State.*  Margo.Cloud.StateCli      # the desktop state helpers in C# (margo-state)

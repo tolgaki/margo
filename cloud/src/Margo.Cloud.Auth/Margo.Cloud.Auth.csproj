@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.Auth</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The router also uses the Python helpers here (PythonCompat, PythonBase64, PythonJsonBytes) for its own
+         request handling, and its tests check the internals (the key set parser, the helpers) directly. -->
+    <InternalsVisibleTo Include="Margo.Cloud.Router" />
+    <InternalsVisibleTo Include="Margo.Cloud.Router.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Margo.Cloud.Core/Margo.Cloud.Core.csproj" />
+    <!-- Logging only (ILogger); both services that use this library are ASP.NET Core applications. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

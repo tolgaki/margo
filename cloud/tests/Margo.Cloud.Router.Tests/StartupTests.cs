@@ -3,7 +3,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Xml.Linq;
 using Azure.Storage.Queues;
-using Margo.Cloud.Router.Authentication;
+using Margo.Cloud.Auth;
 using Margo.Cloud.Router.Tests.TestSupport;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;

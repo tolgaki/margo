@@ -47,7 +47,7 @@ Margo Cloud enforces the pattern in code, with the manager's authenticated tap a
 
 | Step | Where |
 | --- | --- |
-| The model proposes the exact call (`request_approval`); it is never offered a write tool | [`Approvals.cs`](../../cloud/src/Margo.Cloud.Orchestrator/Approvals.cs) |
+| For the manager's account the model proposes the exact call (`request_approval`); it is offered write tools only for Margo's own account, in the manager's one-to-one chat | [`Approvals.cs`](../../cloud/src/Margo.Cloud.Orchestrator/Approvals.cs) |
 | A card drawn from the ledger, in plain words, with the email or meeting it affects | [`ApprovalCards.cs`](../../cloud/src/Margo.Cloud.Host/ApprovalCards.cs), [`CardContext.cs`](../../cloud/src/Margo.Cloud.Orchestrator/CardContext.cs) |
 | Only the manager's tap (in their one-to-one chat, or the group chat or channel the card was posted in), for the current revision and hash, counts | [`Approvals.cs`](../../cloud/src/Margo.Cloud.Orchestrator/Approvals.cs) |
 | The guard runs the stored call once, after recording `workiq_dispatched` | [`WorkIQGuard.cs`](../../cloud/src/Margo.Cloud.Guard/WorkIQGuard.cs), [`LedgerClaimJournal.cs`](../../cloud/src/Margo.Cloud.Guard/LedgerClaimJournal.cs) |

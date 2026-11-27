@@ -46,13 +46,15 @@ instance containers) are Margo Cloud pages: Agent 365 calls this kind of agent a
 
 ## What needs approval
 
-Every action that reaches another person: sending or replying to mail, setting up, moving or canceling
-meetings, posting in Teams, sharing or editing a document others use. Margo posts a card in the
+Every action on the manager's account that reaches another person: sending or replying to mail from their
+mailbox, setting up, moving or canceling meetings on their calendar, sharing or editing their documents. Margo posts a card in the
 manager's one-to-one chat (or the group chat where they asked) showing the exact action, and runs it once, only after the manager taps
 **Approve** ([writes and approvals](work-iq/writes-and-approvals.md)). Without a card: anything that reaches the manager alone (a
 Teams note in their one-to-one chat, an email to them, a file or a document shared with them, see
 [the backchannel](autopilot-deployment.md#the-backchannel)), her answers to the manager in a group chat or channel
-where they @mention her (everyone there sees the answer, and any card she posts there), and one fixed notice.
+where they @mention her (everyone there sees the answer, and any card she posts there), one fixed notice, and
+what she does **as herself** when her manager asks in their one-to-one chat: with her own account she has every
+Work IQ tool there, so an email from her own mailbox or a post in a chat she is in goes out without a card.
 The full list, with who can see each: [what needs a card, and who sees it](safety.md#margo-cloud-what-needs-a-card-and-who-sees-it).
 
 ## What she does without being asked

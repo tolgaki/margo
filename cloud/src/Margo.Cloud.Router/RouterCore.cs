@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Margo.Cloud.Auth;
 using Margo.Cloud.Core;
 
 namespace Margo.Cloud.Router;

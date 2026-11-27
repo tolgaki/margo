@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Margo.Cloud.Core;
 
-namespace Margo.Cloud.Router;
+namespace Margo.Cloud.Auth;
 
 /// <summary>
 /// Python's <c>json.loads(data)</c> for <c>bytes</c>: the encoding is detected as

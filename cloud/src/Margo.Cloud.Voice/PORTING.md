@@ -64,7 +64,7 @@ Nothing is sent on a closed socket. No token, audio, transcript or text is logge
 ## The sign-in check
 
 `EntraTokenVerifier` reproduces PyJWT 2.15.1 (read in the venv) with the server's arguments, adapted from the router's
-reading of the same library (`Margo.Cloud.Router/Authentication`, internal there, so the needed parts are copied here:
+reading of the same library (now in `Margo.Cloud.Auth`, internal there, so the needed parts are copied here:
 `CompactJws`, `SigningKeys` and `PythonBase64`):
 
 1. `PyJWKClient("https://login.microsoftonline.com/<tenant>/discovery/v2.0/keys")`: one per service; the set is cached
@@ -191,8 +191,8 @@ costs more. The guard gets the orchestrator's `FileHosts`.
    `/voice/...` from the Agents SDK token check; pass a `margo.voice` logger.
 2. **`Margo.Cloud.Orchestrator`** (optional): exposing the manager lookup (Python `_manager`) and `_state_commands`
    publicly would let voice call them instead of reproducing them from public pieces.
-3. **`Margo.Cloud.Router`** (optional): the PyJWT pieces (`CompactJws`, `JwksClient`, `PythonBase64`) are now copied in
-   two projects; a shared home (for example a small `Margo.Cloud.Jwt` project) would remove the copy.
+3. **`Margo.Cloud.Auth`** (optional): the PyJWT pieces (`CompactJws`, `JwksClient`, `PythonBase64`) exist here and, in
+   the router's and host's reading, in `Margo.Cloud.Auth`. Folding this adapted copy into that project would leave one.
 
 ## Tests and evidence
 

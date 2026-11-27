@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using Margo.Cloud.Router.Authentication;
+using Margo.Cloud.Auth;
 using Microsoft.Extensions.Logging;
 
 namespace Margo.Cloud.Router.Tests.TestSupport;
