@@ -1734,15 +1734,15 @@ public sealed class PyArgumentParser
             var parts = new StringBuilder();
             if (string.IsNullOrEmpty(action.Help))
             {
-                parts.Append(new string(' ', _currentIndent)).Append(header).Append('\n');
+                parts.Append(' ', _currentIndent).Append(header).Append('\n');
             }
             else if (header.Length <= actionWidth)
             {
-                parts.Append(new string(' ', _currentIndent)).Append(header.PadRight(actionWidth)).Append("  ");
+                parts.Append(' ', _currentIndent).Append(header.PadRight(actionWidth)).Append("  ");
             }
             else
             {
-                parts.Append(new string(' ', _currentIndent)).Append(header).Append('\n');
+                parts.Append(' ', _currentIndent).Append(header).Append('\n');
                 indentFirst = helpPosition;
             }
 
@@ -1752,10 +1752,10 @@ public sealed class PyArgumentParser
                 if (helpText.Length > 0)
                 {
                     var lines = SplitLines(helpText, helpWidth);
-                    parts.Append(new string(' ', indentFirst)).Append(lines.Count > 0 ? lines[0] : "").Append('\n');
+                    parts.Append(' ', indentFirst).Append(lines.Count > 0 ? lines[0] : "").Append('\n');
                     foreach (var line in lines.Skip(1))
                     {
-                        parts.Append(new string(' ', helpPosition)).Append(line).Append('\n');
+                        parts.Append(' ', helpPosition).Append(line).Append('\n');
                     }
                 }
             }
