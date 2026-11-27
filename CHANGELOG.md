@@ -162,6 +162,6 @@ between local preparation, human approval and external execution.
 
 ## 1.0.0
 
-Initial reference implementation: Margo persona, chief-of-staff and decision-log skills,
+Initial release: Margo persona, chief-of-staff and decision-log skills,
 scheduled routine manifests, CLI wrappers, copy/link installers, native packaging,
 Work IQ usage guidance, and repository privacy checks.

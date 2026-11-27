@@ -1,6 +1,6 @@
 {
   "name": "margo",
   "version": "1.3.0",
-  "description": "Margo, an AI chief of staff on Microsoft 365 through Work IQ: briefs, triage, meeting prep, follow-through and drafts in your voice, with every send one approval away. Needs the workiq plugin from the work-iq marketplace.",
+  "description": "Margo, an AI chief of staff on Microsoft 365 through Work IQ: briefs, triage, meeting prep, follow-through and drafts in your voice, with every send one approval away. Needs the workiq plugin from the work-iq marketplace. An independent project, not a Microsoft product.",
   "skills": "./skills/"
 }

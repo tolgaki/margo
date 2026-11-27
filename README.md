@@ -1,6 +1,7 @@
 # Margo
 
-**A community reference implementation for Microsoft Work IQ. Margo is the worked example. Not a Microsoft product.**
+**An independent, personal open-source project that builds an assistant on Microsoft Work IQ. Not a Microsoft
+product: not an official reference implementation, and not affiliated with, endorsed by or supported by Microsoft.**
 
 *MARGO: Managing Actions, Relationships, Goals and Obligations. An AI chief of staff for Microsoft 365.*
 
@@ -370,6 +371,7 @@ Also: [Code of conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md) ·
 Third-party content: Margo Cloud bundles Microsoft's `workiq` skill under its MIT license, in
 [`cloud/vendor/workiq/`](cloud/vendor/workiq/) (license and pinned source alongside).
 
-Not an official Microsoft or GitHub product. Microsoft, Microsoft 365, Microsoft 365 Copilot, Work IQ, Agent 365,
+Margo is an independent project by its author, not an official Microsoft or GitHub product, sample or reference
+implementation, and neither company endorses or supports it. Microsoft, Microsoft 365, Microsoft 365 Copilot, Work IQ, Agent 365,
 Azure, Entra, Teams, Outlook, Viva Engage, GitHub and GitHub Copilot are trademarks of their owners, referenced here
 descriptively.

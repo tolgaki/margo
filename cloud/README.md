@@ -19,7 +19,8 @@ Margo has two implementations that share the persona (`agents/`) and the skills 
   the judge.
 
 New to Work IQ in a custom agent? Read [Learn Work IQ](../docs/work-iq/README.md) and the minimal sample in
-[`samples/WorkIQHello`](samples/WorkIQHello/).
+[`samples/WorkIQHello`](samples/WorkIQHello/). [Margo Cloud's tools](../docs/work-iq/margo-cloud-tools.md) lists the tools
+the model gets and the Work IQ calls under each.
 
 ## Build, test, publish
 
