@@ -1,6 +1,7 @@
 """Static agent/skill contracts; these do not evaluate a model's routing."""
 
 from pathlib import Path
+import re
 import unittest
 
 
@@ -98,6 +99,54 @@ class SkillContractTests(unittest.TestCase):
         self.assertIn("availability not checked (needs an attended run)", calendar)
         wrapper = (REPO / "tools/margo-scheduled.sh").read_text(encoding="utf-8")
         self.assertIn('DENY_TOOLS="do_action create_entity update_entity delete_entity"', wrapper)
+
+    def test_mutable_markdown_is_never_written_inside_a_plugin_folder(self):
+        # A plugin update replaces the skill folder. One rule, in SKILL.md, says where the user's
+        # Markdown files live; a procedure that names a path under state/ must point to it.
+        rule = "Where personal files live"
+        skill = (REPO / "skills/chief-of-staff/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("### " + rule, skill)
+        section = skill.split("### " + rule, 1)[1].split("\n## ", 1)[0]
+        for required in ("$COPILOT_HOME/margo/", "~/.copilot/margo/", "$COPILOT_HOME/skills/chief-of-staff/",
+                         "plugin install: create and change files only in the personal folder",
+                         "`state/relationships.md`", "`state/one-on-ones/{person-slug}.md`",
+                         "`commitments.md`", "`preferences.md`", "0700"):
+            self.assertIn(required, section)
+        decisions = (REPO / "skills/decision-log/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("**" + rule + ".**", decisions)
+        self.assertIn("never put the log, a draft or any other file in this folder", decisions)
+
+        # Not Markdown, so not covered: the helpers' private margo/state store and the legacy JSON import.
+        mutable = re.compile(r"(?<![\w/.~-])state/[a-z{][\w{}./-]*\.md\b|export-commitments \S+\.md")
+        named = set()
+        for path in sorted((REPO / "skills").rglob("*.md")):
+            if path == REPO / "skills/chief-of-staff/SKILL.md":
+                continue
+            text = path.read_text(encoding="utf-8")
+            for block in re.split(r"\n\s*\n", text):
+                if mutable.search(block):
+                    named.add(path.relative_to(REPO).as_posix())
+                    with self.subTest(path=path.name, block=block[:60]):
+                        start = text.index(block)
+                        nearby = " ".join(text[start:start + len(block) + 600].split())
+                        self.assertIn(rule, nearby, "a mutable Markdown path without the resolution rule")
+        self.assertEqual(named, {"skills/chief-of-staff/references/one-on-ones.md",
+                                 "skills/chief-of-staff/references/relationships.md",
+                                 "skills/chief-of-staff/references/work-ledger.md"})
+
+    def test_plugin_setup_creates_a_private_personal_folder(self):
+        # margo_store.py refuses a personal folder that group or others can read.
+        error = "state/config path must be private (directory 0700, file 0600)"
+        self.assertIn(error, (REPO / "skills/chief-of-staff/scripts/margo_store.py").read_text(encoding="utf-8"))
+        self.assertIn(error, (REPO / "docs/getting-started.md").read_text(encoding="utf-8"))
+        created = 0
+        for path in sorted(REPO.glob("*.md")) + sorted((REPO / "docs").rglob("*.md")):
+            text = path.read_text(encoding="utf-8")
+            for match in re.finditer(r"mkdir -p ~/\.copilot/margo(?![\w/])", text):
+                created += 1
+                with self.subTest(path=path.name):
+                    self.assertIn("chmod 700 ~/.copilot/margo", text[match.end():match.end() + 80])
+        self.assertGreaterEqual(created, 1)
 
     def test_references_use_fictional_hosts(self):
         for path in sorted((REPO / "skills/chief-of-staff/references").glob("*.md")):

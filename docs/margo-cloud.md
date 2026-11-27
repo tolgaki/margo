@@ -40,19 +40,20 @@ instance containers) are Margo Cloud pages: Agent 365 calls this kind of agent a
 | --- | --- |
 | The manager | Margo's answers in their one-to-one chat, and what she knows about them ("what do you know about me", "forget that") |
 | Margo | In `delegation` mode: the manager's mail and calendar, and what is shared with her own account, including the chats and channels she is a member of. With on-behalf-of: what the manager can see through Work IQ ([identity](work-iq/identity-and-consent.md)) |
-| Colleagues | Nothing of the manager's. What they send Margo, and what they say in chats and channels she is a member of, she reads and may report to the manager; their messages to her are queued as untrusted requests, and they get at most a fixed "passed this on" note, if the manager turns it on |
+| Colleagues | What the manager approved on a card for them. In a group chat or channel where the manager @mentions Margo, everyone there also sees her answer, which can include what the request needs from the manager's work, and any approval card she posts there, with the text it proposes ([who sees what, action by action](safety.md#margo-cloud-what-needs-a-card-and-who-sees-it)). Nothing of the manager's otherwise. What they send Margo, and what they say in chats and channels she is a member of, she reads and may report to the manager; their messages to her are queued as untrusted requests, and they get at most a fixed "passed this on" note, if the manager turns it on |
 | Your Azure administrators | Everyone's stored state: anyone with data access to the storage account can read every manager's records ([terms](../cloud/terms.md#privacy)) |
 | Microsoft 365 audit and your monitoring | Which operations ran, on what kind of resource, and their outcome; never message content |
 
 ## What needs approval
 
-Every action another person can see: sending or replying to mail, setting up, moving or canceling
+Every action that reaches another person: sending or replying to mail, setting up, moving or canceling
 meetings, posting in Teams, sharing or editing a document others use. Margo posts a card in the
 manager's one-to-one chat (or the group chat where they asked) showing the exact action, and runs it once, only after the manager taps
 **Approve** ([writes and approvals](work-iq/writes-and-approvals.md)). Without a card: anything that reaches the manager alone (a
 Teams note in their one-to-one chat, an email to them, a file or a document shared with them, see
 [the backchannel](autopilot-deployment.md#the-backchannel)), her answers to the manager in a group chat or channel
-where they @mention her, and one fixed notice ([safety](safety.md#margo-cloud-fixed-notices)).
+where they @mention her (everyone there sees the answer, and any card she posts there), and one fixed notice.
+The full list, with who can see each: [what needs a card, and who sees it](safety.md#margo-cloud-what-needs-a-card-and-who-sees-it).
 
 ## What she does without being asked
 
@@ -89,7 +90,7 @@ Everything is billed to your organization. No estimate is made here
 
 1. This page.
 2. [Deploy Margo Cloud](autopilot-deployment.md): prerequisites, roles, steps, operation, known limits.
-3. [Trust and safety](safety.md#margo-cloud-approval-cards): approval cards and fixed notices.
+3. [Trust and safety](safety.md#margo-cloud-what-needs-a-card-and-who-sees-it): what needs a card and who sees it, approval cards and fixed notices.
 4. [Identity and consent](work-iq/identity-and-consent.md): blueprint, agent user, delegation and
    on-behalf-of.
 5. Optional: [one container per hired Margo](autopilot-instance-containers.md) and

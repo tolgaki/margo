@@ -151,7 +151,8 @@ Margo will never send an email, post to Teams, react, accept or decline a meetin
 anything, or change a work item without your explicit approval **of that specific action**. A
 summary is not consent. Reading is free; writing is not. (Margo Cloud asks on a card in Teams for each action; without a card it only
 writes to its own manager (a note, an email or a file shared with them alone), answers its manager in a group chat or
-channel where they spoke to it, and sends one fixed notice; see [Trust & safety](docs/safety.md#margo-cloud-approval-cards).)
+channel where they @mention it, where everyone present sees the answer and any card, and sends one fixed notice; see
+[what needs a card, and who sees it](docs/safety.md#margo-cloud-what-needs-a-card-and-who-sees-it).)
 
 There is a bounded exception for actions that are reversible *and* invisible to anyone else —
 mark-read, categorize, flag, archive, move between folders — which you can grant as a standing
@@ -191,8 +192,9 @@ irm https://raw.githubusercontent.com/tolgaki/margo/main/install.ps1 | iex
 
 Or as a plugin, in Copilot CLI or Claude Code: `/plugin marketplace add tolgaki/margo`, then
 `/plugin install margo@margo`, next to Microsoft's `workiq@work-iq` (Codex gets the skills only,
-untested). Your personal files then live in `~/.copilot/margo/`, not at the paths in steps 3 and 4
-below; see [as a plugin](docs/getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex).
+untested). Your personal files then live in `~/.copilot/margo/`, a folder you create private to you
+(`chmod 700`), not at the paths in steps 3 and 4 below; see
+[as a plugin](docs/getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex).
 
 Or from a clone, which is what you want if you're here to read and fork:
 

@@ -43,6 +43,8 @@ linked obligations; those retain their own review and history.
 
 **Your data:** each person's agenda lives as a Markdown file under your private `state/`
 directory in the installed skill (`$COPILOT_HOME/skills/chief-of-staff/state/one-on-ones/{person-slug}.md`).
+In a [plugin install](../getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex) it is `$COPILOT_HOME/margo/one-on-ones/{person-slug}.md` instead,
+because a plugin update replaces the plugin's folder.
 These Markdown files are not the hashed SQLite account directories selected by `MARGO_STATE_DIR`.
 They are excluded from installer payloads; a link install can put them back in the checkout, so
 use a private copy installation for real work. Do not share one rolling directory across accounts.
@@ -77,12 +79,13 @@ hands off to [calendar scheduling](calendar-management.md#calendar-scheduling) o
 [drafting](drafting-and-follow-ups.md#drafting) as its own separate proposal.
 
 **Change your mind:** mute a person permanently (cadence `none`), correct a cadence, or dismiss a
-name for now — edit `state/relationships.md` directly, or ask Margo to do it. A dismissal mutes
+name for now — edit the roster file (below) directly, or ask Margo to do it. A dismissal mutes
 that person for 30 days in the documented procedure; known extended leave also suppresses drift.
 
 **Your data:** the roster and last-contact tracking live in
 `$COPILOT_HOME/skills/chief-of-staff/state/relationships.md`, a plain Markdown table in the same
-private installed-skill location as the agendas above. Session evidence and any queued findings
+private installed-skill location as the agendas above (`$COPILOT_HOME/margo/relationships.md` in a
+plugin install). Session evidence and any queued findings
 have their own retention; deleting a roster row is not erasure of those other records.
 
 **If something goes wrong:** "no contact on record" is exactly what it says — evidence may exist

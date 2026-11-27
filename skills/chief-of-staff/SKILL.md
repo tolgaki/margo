@@ -157,6 +157,39 @@ VIPs, projects, tone/voice for drafts, standing rules, and what to always/never 
 empty or missing detail, proceed with sensible defaults and offer to capture preferences as you
 learn them (and remind the user you can persist durable ones to memory).
 
+### Where personal files live
+
+The user's personal Markdown files are the ones in this table. The **personal folder** is
+`$COPILOT_HOME/margo/`, which is `~/.copilot/margo/` when `COPILOT_HOME` is not set.
+
+| File | Name the procedures use | In the personal folder |
+| --- | --- | --- |
+| Preferences | `preferences.md`, `../preferences.md` | `preferences.md` |
+| Commitments view (and the legacy tracker) | `commitments.md`, `../commitments.md` | `commitments.md` |
+| Relationship roster | `state/relationships.md` | `relationships.md` |
+| 1:1 agendas | `state/one-on-ones/{person-slug}.md` | `one-on-ones/{person-slug}.md` |
+
+One rule decides which copy a procedure reads and writes, whatever name it uses:
+
+1. **A copy in the personal folder is the file.** If it exists there, read and write it there.
+2. **Otherwise, in an installer install, the file is in this skill's folder** at the name the
+   procedures use. An installer install is one where this folder is
+   `$COPILOT_HOME/skills/chief-of-staff/`; the installers keep these files and all of `state/`
+   across updates.
+3. **Otherwise this is a plugin install: create and change files only in the personal folder.** A
+   plugin update replaces this whole folder, so anything written here is lost. Read the
+   `preferences.md` and `commitments.md` next to this file only as unfilled templates; to change
+   one, write the result to the personal folder and leave the template alone. If an earlier session
+   left a roster or agendas in this folder's `state/`, tell the user and offer to move them to the
+   personal folder; do not keep writing to them here.
+
+When you create the personal folder or a folder inside it, make it private to the user (`0700`,
+files `0600`): the state helpers refuse the folder otherwise. If the host gives you no file access
+and serves these files through its own tools, use the names as written and write nothing.
+
+Why: a path inside a plugin is replaced on update, and the user is not told. One rule in one place
+keeps every procedure from choosing its own location.
+
 **The work ledger is the canonical tracker after migration.** Read `references/work-ledger.md`
 and `references/action-desk.md` before capturing obligations or preparing actions. The private,
 account-scoped SQLite store survives CLI sessions and optional app canvases. `commitments.md`

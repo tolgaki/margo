@@ -19,6 +19,13 @@ constraint. Only the second one is worth retrieving six months later.
 otherwise the `config.md` next to this file) — it holds the log location, the
 sources to watch, team members, and workstream areas.
 
+**Where personal files live.** `config.md` is the user's file. Change the copy next to this file
+only in an installer install, where this folder is `$COPILOT_HOME/skills/decision-log/` and the
+installers keep `config.md` across updates. In any other install this folder belongs to a plugin
+and an update replaces it: read its `config.md` only as the unfilled template, write the user's
+configuration to `~/.copilot/margo/decision-log-config.md` (`$COPILOT_HOME/margo/` when that is set;
+folder `0700`, file `0600`), and never put the log, a draft or any other file in this folder.
+
 ## 🛑 Non-negotiable operating rules
 
 1. **Never write to the log without explicit approval.** Always present extracted records as a

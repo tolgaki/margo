@@ -105,7 +105,7 @@ param speechRoleDefinitionId string = ''
 @description('Token issuers the router and instances accept besides Bot Framework and this tenant\'s Entra issuers, separated by spaces. Leave empty unless the router logs "JWT issuer not accepted" for genuine Agent 365 traffic.')
 param extraTokenIssuers string = ''
 
-@description('Application (client) IDs the router and instances accept platform tokens from, separated by spaces. Empty accepts any application\'s own token for the blueprint, never a signed-in person\'s. Set it once the router has logged "Platform token accepted from application ...".')
+@description('Application (client) IDs the router and instances accept platform tokens from, separated by spaces. While it is empty every Entra-issued delivery is refused (any application in the tenant can get its own token for the blueprint). Set it to the Agent 365 application the router names in "Platform token refused from application ...".')
 param platformAppIds string = ''
 
 @description('Hosts instances may send replies to besides Microsoft\'s own, separated by spaces. Leave empty unless an instance logs "ServiceUrl host is not in the configured allowed hosts" for genuine Agent 365 traffic.')
@@ -389,7 +389,8 @@ resource provisioner 'Microsoft.App/jobs@2025-01-01' = {
                 accountName: storage.name
                 queueName: provisionQueue.name
                 queueLength: '1'
-                // A message being retried is hidden for 15 minutes; it must not start an execution every poll.
+                // A message being retried is hidden for 15 minutes (a retirement whose removal keeps failing, for an
+                // hour); it must not start an execution every poll. When it is visible again it starts the job itself.
                 queueLengthStrategy: 'visibleonly'
               }
               identity: provisionerIdentity.id

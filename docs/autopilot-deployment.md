@@ -305,12 +305,15 @@ and cannot read anything without the consent. Every step is idempotent; check ag
    | Field | Value |
    | --- | --- |
    | Name | Margo |
-   | Short description | Your chief of staff. Proposes; never sends without your yes. |
-   | Full description | A personal chief of staff that briefs, triages, preps meetings and drafts replies for the person who hires it. Works only for its manager. Every outward action needs that manager's explicit approval of the exact action. |
+   | Short description | Your chief of staff. Drafts and proposes; you approve what it sends for you. |
+   | Full description | A personal chief of staff that briefs, triages, preps meetings and drafts replies for the person who hires it. Works only for its manager. Email, meetings, posts and shares that reach other people run only after the manager approves that exact action on a card. Without a card it writes only to its manager: notes, email and files for them alone, and answers where they ask, including a group chat or channel where they @mention it, which everyone there can see. A manager can also turn on one fixed "passed this on" note to colleagues who write to it. |
    | Developer, website | Your organization; this repository's URL |
    | Terms of use, privacy | [`cloud/terms.md`](../cloud/terms.md) (or your own) |
    | Icons | `cloud/assets/` |
    | Respond without @mention in group chats | Off |
+
+   The descriptions are what managers and admins read before hiring; keep them in step with
+   [what needs a card, and who sees it](safety.md#margo-cloud-what-needs-a-card-and-who-sees-it) if you change them.
 
 2. A Microsoft 365 admin opens the [Microsoft 365 admin center](https://admin.cloud.microsoft/?#/agents/all/requested),
    **Agents › All agents › Requests**, selects **Margo**, and:
@@ -416,6 +419,14 @@ and never sent again: check Sent Items or the calendar.
 
 ## 6. First conversation
 
+**First, name the platform's application.** Until `MARGO_PLATFORM_APP_IDS` is set, the router refuses every
+Entra-issued delivery: any application registered in your tenant can get its own token for the blueprint, so the
+token alone does not show that the caller is Agent 365, and an activity names its own sender. Send Margo one
+message; the router logs `Platform token refused from application <id>`. Look that ID up in Entra (Enterprise
+applications) and confirm it is Microsoft's Agent 365 delivery application, not one registered in your tenant. Then
+`azd env set MARGO_PLATFORM_APP_IDS <id>`, `azd provision`, and redeploy all instances
+(`sh scripts/provisioner.sh redeploy-all` from `cloud/`). The first message is not answered; the next one is.
+
 As the manager, open a chat with **the instance you hired** (by the name you gave it, not the
 "Margo" app itself) and try:
 
@@ -442,8 +453,8 @@ nobody else, apart from one fixed notice that the model does not write:
 
 Queued requests are listed when the manager asks "anything from other people?". An approval tap counts only from the
 manager, so nothing she sends to others can be started by anyone else, or by an email. Apart from the fixed notice and
-her answers to the manager in a room, the only messages other people get from her are actions the manager approved on
-a card.
+her answers to the manager in a room (and any card she posts there), the only messages other people get from her are
+actions the manager approved on a card. The full list: [what needs a card, and who sees it](safety.md#margo-cloud-what-needs-a-card-and-who-sees-it).
 
 ### The backchannel
 
@@ -528,21 +539,54 @@ Details, the custom voice and limits: [Voice](autopilot-voice.md).
 | --- | --- |
 | See what Margo read | Application Insights traces named `workiq`: subject, tool, a path template such as `/users/{user}/messages/{id}` (no identifiers, names or query text), status and outcome. No message content |
 | See what a turn cost | The `turn usage input= cached= output= reasoning= rounds= tool_calls=` log line, one per model turn |
-| Pin the platform's application | After the first message, the router logs `Platform token accepted from application <id>`. `azd env set MARGO_PLATFORM_APP_IDS <id>`, provision, redeploy all: only that application's tokens are then accepted |
+| Name the platform's application | Required before the first conversation ([step 6](#6-first-conversation)). While `MARGO_PLATFORM_APP_IDS` is empty the router refuses Entra-issued deliveries and logs `Platform token refused from application <id>`. Confirm the ID is Agent 365's, then `azd env set MARGO_PLATFORM_APP_IDS <id>` (several: separated by spaces), provision, redeploy all |
 | Limit file links to your tenant | `azd env set MARGO_SHAREPOINT_HOSTS "contoso.sharepoint.com contoso-my.sharepoint.com"` (your own hosts), provision, redeploy all |
 | See her state | Storage account › containers named `margo-i-…`, one per hired Margo, with each manager's state under its own prefix. `state.zip` is current; `daily/` holds one copy per day |
 | Ship a change | Commit, then `azd provision` (it builds and pins a new image for the router and the provisioner), then redeploy all |
 | Update Microsoft's Work IQ skill | The image carries a pinned copy of Microsoft's `workiq` skill (`cloud/vendor/workiq/source.json` names the commit). From `cloud/`: `bash scripts/update-workiq-skill.sh` (or a tag or commit), review the diff, commit, then ship it as above |
 | Redeploy all | From `cloud/`: `sh scripts/provisioner.sh redeploy-all`. It queues one redeploy per ready instance; the queue then starts the job again, which redeploys them (`az containerapp job execution list -n $(azd env get-value PROVISIONER_NAME) -g $(azd env get-value RESOURCE_GROUP) -o table` shows both runs). For one instance: `sh scripts/provisioner.sh enqueue ensure <agent-identity-id> <agent-user-id> --redeploy` |
 | Keep instances warm | `azd env set MARGO_INSTANCE_MIN_REPLICAS 1`, provision, then redeploy all. For one instance: `az containerapp update -n margo-<key> -g <group> --min-replicas 1`. Optional: a cold instance still answers, but its first answer is slow (see Known limits) |
+| Suspend one instance | Disable the agent user in the admin center: the lifecycle event suspends it. Or, from `cloud/`: `sh scripts/provisioner.sh enqueue suspend <agent-identity-id> <agent-user-id>`. The router stops delivering to it at once, and its container app is removed, so nothing runs in the background (no listening in rooms, no notes to the manager); its identity and state stay. Enabling the agent user, or `enqueue ensure` with the same identifiers, deploys the app again (a few minutes); a message to a suspended Margo does not. An instance suspended by an earlier version still has its app: run `enqueue suspend` for it once. If removing the app fails, the provisioner logs `suspend still failing` and tries again every 15 minutes for up to seven days |
 | Retire one instance | Delete it in the admin center: the lifecycle event retires it (app and identity go; state stays). Or, from `cloud/`: `sh scripts/provisioner.sh enqueue retire <agent-identity-id> <agent-user-id>`. Remove any mailbox permissions |
-| Delete a retired instance's or a former manager's state | Nothing deletes it automatically. Delete the instance's `margo-i-…` container (or, for a former manager, their prefix inside it). A deleted container is recoverable for 14 days |
-| Change retention | `MARGO_STATE_VERSION_RETENTION_DAYS` (replaced versions of the state bundle, default 30), `MARGO_STATE_DAILY_RETENTION_DAYS` (daily copies, default 30; 0 keeps all), `MARGO_LOG_RETENTION_DAYS` (30), `MARGO_LOG_DAILY_QUOTA_GB` (1). What a manager had Margo forget is gone from every copy after the state retention at the latest |
+| A retirement that is stuck | If the app or identity cannot be removed, the route stays `retired` with an `error` (the router keeps ignoring the instance) and the provisioner tries again by itself: five times 15 minutes apart, then once an hour for as long as it fails, each time logging `ERROR ... the removal is tried again within 60 minute(s)`. Fix what the log names; the next try finishes the removal. To try at once, or for a retirement that got stuck before this version (nothing retries those in a quiet deployment): `sh scripts/provisioner.sh enqueue retire <agent-identity-id> <agent-user-id>` (both identifiers are on the instance's entry in `margo-routes/routes.json`). Until it succeeds the instance's identity still exists |
+| Delete a retired instance's or a former manager's state | Nothing deletes it automatically. Delete the instance's `margo-i-…` container (or, for a former manager, their prefix inside it). A deleted container is recoverable for 14 days. Until you do, that state and its daily copies stay ([forgotten information](#how-long-forgotten-information-stays-in-copies)) |
+| Change retention | `MARGO_STATE_VERSION_RETENTION_DAYS` (replaced versions of the state bundle, default 30), `MARGO_STATE_DAILY_RETENTION_DAYS` (daily copies, default 30; 0 keeps all), `MARGO_LOG_RETENTION_DAYS` (30), `MARGO_LOG_DAILY_QUOTA_GB` (1). What a manager had Margo forget leaves her current records at once, but earlier copies last longer than these numbers, and for a Margo that is no longer used they are not deleted at all: see [how long forgotten information stays in copies](#how-long-forgotten-information-stays-in-copies) |
 | Model settings | `MARGO_MODEL_CAPACITY` (thousand tokens a minute, default 100, shared by every instance), `MARGO_MODEL_SKU` (`GlobalStandard` by default: prompts may be processed outside your region; `DataZoneStandard` or `Standard` keep them closer), `MARGO_MODEL_REASONING_EFFORT` (default `low`; `none` for a model that is not a reasoning model), `MARGO_MAX_INSTANCES` (default 50) |
 | Stop everyone's Margo | Block Margo in the admin center |
 | Remove everything | Retire instances in the admin center; remove mailbox and calendar delegate permissions and the agent users' licenses; remove the blueprint with the Agent 365 CLI (`a365 cleanup`) and the Work IQ consent grant; delete the "Margo voice page" app registration if you made one; then `azd down --purge` (without `--purge` the AI Services account stays soft-deleted and its name reserved). `azd down` deletes the storage account, and with it every Margo's stored state and daily copies: tell managers first, and copy out anything you must keep |
 
+### How long forgotten information stays in copies
+
+When a manager has Margo forget something, that turn saves a new `state.zip` without it. Copies made before that still
+hold it, and three separate mechanisms remove them. None is immediate, and one runs only while the Margo is used:
+
+| Copy | What removes it | When |
+| --- | --- | --- |
+| Replaced versions of `state.zip` | The storage account's lifecycle rule. Azure runs it whether or not the Margo is used | Once the version is older than `MARGO_STATE_VERSION_RETENTION_DAYS` (default 30), at Azure's next lifecycle run |
+| Daily copies (`daily/YYYY-MM-DD.zip` under each manager's prefix) | Margo's own code, on **that manager's first turn of a day**. No storage rule covers them | On each such turn, copies dated more than `MARGO_STATE_DAILY_RETENTION_DAYS` (default 30) before that day are deleted. With `0`, never |
+| Anything deleted by the two rows above | Blob versioning and soft delete | A deleted daily copy first becomes a previous version, which the lifecycle rule removes at its next run once it is older than the version retention. A removed version stays recoverable for 14 more days (soft delete, set in `cloud/infra/main.bicep`, not an azd variable) |
+
+So, with the defaults:
+
+- **A Margo that is used every day:** a copy holding the forgotten information is unrecoverable about 44 days after it
+  was written (30 days, then 14 of soft delete), plus the wait for Azure's lifecycle run. Azure's timing for that run is
+  not something this deployment controls, and it has not been measured here.
+- **A Margo whose manager sends her nothing more** (an unused instance, a manager who has left, an instance that was
+  retired): replaced versions of `state.zip` still expire as above, but her **daily copies stay** until that manager's
+  next turn with her, or until an administrator deletes them. Retiring an instance removes its app and identity and
+  leaves its storage container. Nothing enforces the retention period for these copies.
+
+To purge sooner, or for a Margo that is no longer used: with a data role on the storage account (for example Storage
+Blob Data Contributor), delete the blobs under that manager's `daily/` prefix in the instance's `margo-i-…` container,
+and the previous versions of `state.zip` and of those copies written before the manager's request; or delete the whole
+container when the instance is retired. Each stays recoverable for the 14 days of soft delete. To shorten that, lower
+`deleteRetentionPolicy` and `containerDeleteRetentionPolicy` in `cloud/infra/main.bicep` and provision **before** you
+delete: a new period applies to what is deleted afterwards.
+
 ### Upgrading an existing deployment
+
+A deployment that ran without `MARGO_PLATFORM_APP_IDS` stops answering after this upgrade until it is set
+([step 6](#6-first-conversation)): unpinned Entra-issued tokens were accepted before and are refused now.
 
 The first provision after upgrading from a version whose provisioner job ran on a schedule deletes and recreates the
 job, which the provisioning queue starts. If that provision fails midway there is no job until the next
@@ -560,7 +604,7 @@ successful one: rerun `azd provision`, then redeploy all instances.
 | Nothing reaches Margo; the router logs no activities | The messaging endpoint is not registered on the blueprint, or points elsewhere | `a365 setup blueprint --update-endpoint https://<router>/api/messages`; check the Developer Portal configuration |
 | Nothing reaches Margo; the router logs `JWT issuer not accepted: <issuer>` | Agent 365 signs with an issuer this version does not accept by default | If the issuer is Microsoft's and not another tenant's, `azd env set MARGO_EXTRA_TOKEN_ISSUERS "<issuer>"`, provision, then redeploy all. Never add another tenant's issuer |
 | Every turn fails with "Something failed on my side" right after upgrading | The model deployment refuses the request shape (reasoning settings, or the replayed conversation with `store: false`, which has not been run against a live model) | Check the `turn failed` entry for the status code. `azd env set MARGO_MODEL_REASONING_EFFORT none`, provision, redeploy all; if it persists, report it |
-| Nothing reaches Margo; the router logs `JWT is a person's token (scp)` or `JWT caller application not accepted` | Agent 365 delivers with a kind of token this version refuses by default | Take the application ID from the log line and, if it is Microsoft's platform application, set `MARGO_PLATFORM_APP_IDS` to it |
+| Nothing reaches Margo; the router logs `Platform token refused from application <id>`, `JWT caller application not accepted` or `JWT is a person's token (scp)` | `MARGO_PLATFORM_APP_IDS` is empty or does not name the application Agent 365 delivers with | Take the application ID from the log line and, if it is Microsoft's platform application, set `MARGO_PLATFORM_APP_IDS` to it ([step 6](#6-first-conversation)) |
 | The instance answers 400 and logs `ServiceUrl host is not in the configured allowed hosts` | Agent 365's reply address is not one of the hosts the SDK knows as Microsoft's | If the host is Microsoft's, `azd env set MARGO_EXTRA_SERVICE_HOSTS "<host>"`, provision, redeploy all. Never add a host you do not recognize |
 | Margo says she is busy with an earlier request | A long turn for the same manager is still running elsewhere | Wait; messages in the same container queue behind it |
 | A hire never gets a container; the provisioner logs `MaxInstancesExceeded` | The instance cap is reached | Raise `MARGO_MAX_INSTANCES`, provision, then `sh scripts/provisioner.sh enqueue ensure <agent-identity-id> <agent-user-id>` |
@@ -586,9 +630,10 @@ successful one: rerun `azd provision`, then redeploy all instances.
 - The token check restricts which token issuers, calling applications and reply hosts are accepted. Which values
   Agent 365 really uses is not confirmed:
   each refusal is logged with the value, and `MARGO_EXTRA_TOKEN_ISSUERS`, `MARGO_PLATFORM_APP_IDS` and
-  `MARGO_EXTRA_SERVICE_HOSTS` admit it (Troubleshooting). Until `MARGO_PLATFORM_APP_IDS` is set, any application
-  registered in your tenant that can obtain its own token for the blueprint is accepted as the platform; a signed-in
-  person's token never is. Set it before any use outside a test tenant. Tokens issued by Bot Framework are accepted without further binding.
+  `MARGO_EXTRA_SERVICE_HOSTS` admit it (Troubleshooting). Until `MARGO_PLATFORM_APP_IDS` names the platform's
+  application, no Entra-issued token is accepted, so nothing is answered ([step 6](#6-first-conversation)); the test
+  tenant ran before this rule, and a pinned delivery has not been run there. Tokens issued by Bot Framework are
+  accepted without further binding.
 - The model request stores nothing at the service and resends the conversation each turn. This shape has only run
   against fakes.
 - Whether the provisioner job's queue trigger fires with the job's managed identity is unverified;

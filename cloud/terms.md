@@ -26,13 +26,15 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
   Approve on a card in Teams showing that exact action. Each approval covers that one action, once. A "yes"
   in chat or by voice is not an approval. Apart from the exceptions below (documents shared with you,
   notes to you, answers to you in a group chat, one fixed notice), nothing outward runs without that tap;
-  this is enforced in software.
+  this is enforced in software. The project's
+  [table of what needs a card and who can see it](../docs/safety.md#margo-cloud-what-needs-a-card-and-who-sees-it) lists every case.
 - **Documents you ask for.** Margo creates a Word, Excel or PowerPoint file you ask for in its own
   OneDrive and shares it with you alone, without a card. Sharing it with anyone else needs your
   approval on a card.
 - **Takes instructions only from its manager**, in their one-to-one chat, or in a group chat or channel
-  where the manager @mentions it. There it answers the manager, and everyone in that chat sees the answer and any
-  approval card; only the manager's tap counts. Messages and mail from anyone else are kept as requests for the
+  where the manager @mentions it. There it answers the manager, and everyone in that chat sees the answer, which can
+  include what the request needs from the manager's work, and any approval card with the text it proposes; only the
+  manager's tap counts. Messages and mail from anyone else are kept as requests for the
   manager to review, not acted on.
 - **Reports to its manager.** Margo may message, email or share a file with its manager alone,
   without a card. When someone else messages, emails or copies Margo, it may look into the matter
@@ -77,8 +79,13 @@ and proposes actions. It is an AI, not a person, and it says so when asked.
 - **What Margo remembers.** Facts, preferences and past events relevant to helping her manager,
   each recorded with its source, plus her own working notes. The manager can ask what Margo knows,
   correct it, or have her forget something. Forgetting removes it from her current records at
-  once; earlier copies of those records (storage versions and daily copies) are deleted after the
-  organization's retention period, 30 days unless it chose otherwise.
+  once. Earlier copies of those records last longer. Replaced storage versions are deleted after the
+  organization's retention period (30 days unless it chose otherwise). Daily copies older than that
+  period are deleted only when the manager next uses Margo, so for a Margo that is no longer used
+  they stay until an administrator deletes them. Deleted copies remain recoverable by the
+  organization's administrators for a further 14 days. The deploying organization can delete copies
+  sooner on request; the deployment guide's
+  [section on forgotten information](../docs/autopilot-deployment.md#how-long-forgotten-information-stays-in-copies) says how.
 - **Messages from other people.** When someone other than the manager writes to Margo, she keeps
   the sender's directory ID and display name, the conversation, and a short excerpt, for the
   manager to review. These records have no automatic expiry. Senders are not told unless the

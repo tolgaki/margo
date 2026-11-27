@@ -18,7 +18,10 @@ The private preferences and compatibility view sit next to `SKILL.md` in the ins
 `preferences.md` lives in the skill folder (`~/.copilot/skills/chief-of-staff/preferences.md`) for an
 installer install. For a [plugin install](getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex),
 keep your copy at `~/.copilot/margo/preferences.md`, outside the plugin, so updates never replace
-it; Margo reads that copy first when it exists.
+it; Margo reads that copy first when it exists. The folder must be private to you (`chmod 700
+~/.copilot/margo`). In a plugin install `commitments.md`, the relationship roster and 1:1 agendas
+live there too; the plugin section lists each file and what to move if you already have files
+inside the plugin's folder.
 
 Both ship as templates. Both will contain real names and addresses once filled in — see
 [what stays on your machine](safety.md#7-what-stays-on-your-machine).

@@ -11,6 +11,13 @@ Only 1.0.0 has a release tag; 1.1.0 and 1.2.0 shipped on `main` without one.
   production: only provisioning, the router-to-instance path, delegated mail and calendar reads and a Teams reply
   are verified in a test tenant. Everything else below is built and tested offline; see the Margo Cloud overview's
   maturity table.
+- **Approval runs once, on what the card showed.** The record that an approved action was sent is saved to shared
+  storage before the call leaves; the email, meeting, chat or file it acts on is read again at the tap; and the card
+  lists everything in the call, including link destinations and who a reply to everyone reaches.
+- **The platform's application must be named.** Entra-issued deliveries are refused until `MARGO_PLATFORM_APP_IDS`
+  is set (deployment guide, step 6); an existing deployment that ran without it stops answering until it is.
+- **Suspending an instance removes its container app**, so nothing runs in the background; a retirement whose
+  clean-up fails is retried hourly instead of dropped.
 - **Work IQ through the official MCP C# SDK** (`ModelContextProtocol.Core`). The model gets Work IQ's own tool
   descriptions and schemas from `tools/list`, limited by the guard. Writes run on their own session and are never
   resent; throttled reads honor a short `Retry-After` once; an expired token is refreshed once for reads; calls are
@@ -38,7 +45,7 @@ Only 1.0.0 has a release tag; 1.1.0 and 1.2.0 shipped on `main` without one.
 - **Microsoft's `workiq` skill** (3.0.0, pinned in `cloud/vendor/workiq/source.json`, refreshed with
   `cloud/scripts/update-workiq-skill.sh`) is served next to Margo's skills; where they differ, Margo's rules win.
 - **Security, privacy and reliability.** Platform tokens are checked for issuer, calling application and reply host
-  (pin the platform's application with `MARGO_PLATFORM_APP_IDS`); model requests ask the service to store nothing; replaced state versions expire after 30 days; voice signs in through its own single-page app;
+  (Entra-issued deliveries are refused until `MARGO_PLATFORM_APP_IDS` names the platform's application); model requests ask the service to store nothing; replaced state versions expire after 30 days; voice signs in through its own single-page app;
   duplicate deliveries are dropped, turns in flight finish on shutdown, and the provisioner grants only the roles an
   instance needs. Instructions are cacheable and token use is logged. `cloud/terms.md` describes what this version
   does and keeps.

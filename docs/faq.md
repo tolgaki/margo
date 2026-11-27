@@ -10,6 +10,7 @@ a Margo service: there isn't one. See [what stays on your machine](safety.md#7-w
 **What can Margo do without asking?**
 Read, summarize, draft privately and keep her own records. Anything another person can see (send,
 reply, post, RSVP, move a meeting, delete) needs your approval of that exact action, every time.
+(Margo Cloud has a few stated cases without a card, listed two questions below.)
 You can grant a standing instruction only for reversible actions nobody else sees, such as mark as
 read. See [trust and safety](safety.md#1-propose-never-act-unilaterally).
 
@@ -39,10 +40,12 @@ them a note. She never answers you there, and what you write is treated as data,
 deployer can turn it off. See [the backchannel](autopilot-deployment.md#the-backchannel).
 
 **Can Margo Cloud email me, or share a file with me, without a card?**
-Yes, if you are her manager: anything that reaches you alone needs no card. Anything she sends to
+Yes, if you are her manager: anything that reaches you alone needs no card. An action that reaches
 someone else does. Two things other people can see happen without a card: her answer to you in a
-group chat or channel where you @mention her, and, if you turn it on, one fixed "passed this on"
-note to a colleague who writes to her. See [what needs approval](margo-cloud.md#what-needs-approval).
+group chat or channel where you @mention her (everyone there sees it, and any approval card she
+posts there, with the text it proposes), and, if you turn it on, one fixed "passed this on" note to
+a colleague who writes to her. The full list:
+[what needs a card, and who sees it](safety.md#margo-cloud-what-needs-a-card-and-who-sees-it).
 
 **In Margo Cloud, who can see my records?**
 You, through Margo, and your organization's administrators with data access to the storage

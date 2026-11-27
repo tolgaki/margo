@@ -117,18 +117,61 @@ Work IQ's tools its own way; the skills say to use the host's name for each tool
 Codex.
 
 A plugin update replaces the plugin's folder, so your personal files live outside it, in
-`~/.copilot/margo/` (or `$COPILOT_HOME/margo/`). Margo reads them there first:
+`~/.copilot/margo/` (or `$COPILOT_HOME/margo/`). Margo reads them there first. Create the folder
+private to you: her state helpers refuse a folder that anyone else can read.
 
 ```bash
 mkdir -p ~/.copilot/margo
+chmod 700 ~/.copilot/margo
 curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/skills/chief-of-staff/preferences.md \
   -o ~/.copilot/margo/preferences.md
+chmod 600 ~/.copilot/margo/preferences.md
 "${EDITOR:-nano}" ~/.copilot/margo/preferences.md
 ```
 
-(The decision log's personal configuration, if you use it, is `~/.copilot/margo/decision-log-config.md`.)
+On Windows (PowerShell) the folder is under your profile and needs no permission change:
+
+```powershell
+New-Item -ItemType Directory -Force "$HOME\.copilot\margo" | Out-Null
+Invoke-WebRequest https://raw.githubusercontent.com/tolgaki/margo/main/skills/chief-of-staff/preferences.md `
+  -OutFile "$HOME\.copilot\margo\preferences.md"
+notepad "$HOME\.copilot\margo\preferences.md"
+```
+
 Then ask Margo to set up her records ("set up your records for you@example.com"): she runs
-`margo_store.py init` from her own skill folder, as in [step 4](#4-first-run).
+`margo_store.py init` from her own skill folder, as in [step 4](#4-first-run). If it stops with
+`state/config path must be private (directory 0700, file 0600)`, run `chmod 700 ~/.copilot/margo`
+and ask again ([troubleshooting](#troubleshooting)).
+
+In a plugin install, every personal file Margo keeps as Markdown lives in this folder, never in the
+plugin's own folder:
+
+| File | In a plugin install | In an installer install |
+| --- | --- | --- |
+| Your preferences | `~/.copilot/margo/preferences.md` | `~/.copilot/skills/chief-of-staff/preferences.md` |
+| Readable commitments view | `~/.copilot/margo/commitments.md` | `~/.copilot/skills/chief-of-staff/commitments.md` |
+| Relationship roster | `~/.copilot/margo/relationships.md` | `~/.copilot/skills/chief-of-staff/state/relationships.md` |
+| 1:1 agendas | `~/.copilot/margo/one-on-ones/` | `~/.copilot/skills/chief-of-staff/state/one-on-ones/` |
+| Decision log configuration | `~/.copilot/margo/decision-log-config.md` | `~/.copilot/skills/decision-log/config.md` |
+
+A copy in `~/.copilot/margo/` is used first in either kind of install. The work ledger and memory
+are databases under `~/.copilot/margo/state/` in both.
+
+**If you already have files in the plugin's folder** (a relationship roster or 1:1 agendas under
+the plugin's `skills/chief-of-staff/state/`, or a `preferences.md`, `commitments.md` or decision
+log `config.md` you edited in place), move them out before the next plugin update, which would
+replace them. Ask Margo "where is your skill folder?"
+for the path, then, with `P` set to that `skills` folder:
+
+```bash
+P=/path/to/the/plugin/skills
+[ -f "$P/chief-of-staff/state/relationships.md" ] && mv "$P/chief-of-staff/state/relationships.md" ~/.copilot/margo/
+[ -d "$P/chief-of-staff/state/one-on-ones" ] && mv "$P/chief-of-staff/state/one-on-ones" ~/.copilot/margo/
+# Copies of the ones you edited in place; -n keeps a copy you already have in ~/.copilot/margo:
+cp -n "$P/chief-of-staff/preferences.md" "$P/chief-of-staff/commitments.md" ~/.copilot/margo/
+cp -n "$P/decision-log/config.md" ~/.copilot/margo/decision-log-config.md
+chmod -R go-rwx ~/.copilot/margo
+```
 
 **Update, check and remove a plugin install:**
 
@@ -141,9 +184,11 @@ Then ask Margo to set up her records ("set up your records for you@example.com")
 - **Remove:** `copilot plugin uninstall margo` (in Claude Code, the `/plugin` menu). This removes the
   agent and skills only; `~/.copilot/margo/` (your preferences and Margo's records) stays until you
   delete it.
-- **Switching from an installer install:** copy your filled-in `preferences.md` (and the decision
-  log's `config.md`) to `~/.copilot/margo/` as above, then run `./install.sh uninstall`, so the same
-  skills are not installed twice. Margo's records already live in `~/.copilot/margo/` and stay.
+- **Switching from an installer install:** copy your personal files to `~/.copilot/margo/` under the
+  names in the table above (your filled-in `preferences.md`, `commitments.md`, the decision log's
+  `config.md` as `decision-log-config.md`, and `state/relationships.md` and `state/one-on-ones/` if
+  you have them), then run `./install.sh uninstall`, so the same skills are not installed twice.
+  Margo's records already live in `~/.copilot/margo/` and stay.
 
 ### Copilot CLI's own skill installer
 
@@ -466,6 +511,7 @@ Details: [documents and files](how-to/documents-and-files.md).
 | Windows SmartScreen warning | Build may be unsigned or unrecognized | Confirm the release source and follow your organization's software policy rather than treating the warning as a setup step |
 | Reinstall didn't pick up a change | Preserved personal file or customized prompt | Review and reconcile the diff. `--force` also replaces personal files; do not use it merely to update a prompt |
 | State commands say setup required | No explicit account configured | Initialize the confirmed owner with `margo_store.py init`; this is separate from OAuth |
+| `ERROR: state/config path must be private (directory 0700, file 0600)` from `margo_store.py init` or another state command | `~/.copilot/margo` (or a folder or file inside it) can be read by your group or everyone, usually because it was made with a plain `mkdir` | `chmod 700 ~/.copilot/margo`, then run the command again. If it still stops: `chmod -R go-rwx ~/.copilot/margo`. Not checked on Windows |
 | `ERROR: state/config root has a group/world-writable ancestor` from `margo_store.py init` | A folder above Margo's private state, often `~/.copilot` or your home folder, is writable by your group or everyone (common under `umask 002`). Margo refuses to keep private state there | `chmod go-w ~/.copilot ~` (and any other folder above it that `ls -ld` shows as group- or world-writable), then re-run `init`. Reinstalling with the current installer also fixes `~/.copilot`. Do not set `MARGO_ALLOW_UNSAFE_STATE_DIR`; it is for tests |
 | App prompts did not change after copying | Workflow store is separate from installed files | Ask to sync the reviewed automation files to existing workflows |
 | Canvas edits fail after a source changed | Revision or fingerprint is stale | Reload, revalidate sources, and prepare a new proposal; do not reuse old approval |

@@ -126,8 +126,8 @@ the instance's Blob container (private endpoint) and Application Insights.
 | Event | What happens |
 | --- | --- |
 | Instance hired (lifecycle notification or admin action) | The provisioner creates identity, storage, app and route; until it is ready the router answers activities for it with 503 and `Retry-After: 30`, so the platform retries; Margo messages nobody first (later she may send her manager notes) |
-| Manager changes | Same container; the account key changes (already true today), so the new manager starts with fresh state. The previous manager's data follows the retention rule |
-| Instance retired | The route is removed and the app and identity are deleted; storage is kept for the retention period, then deleted |
+| Manager changes | Same container; the account key changes (already true today), so the new manager starts with fresh state. The previous manager's state and daily copies stay until an administrator deletes them ([retention](autopilot-deployment.md#how-long-forgotten-information-stays-in-copies)) |
+| Instance retired | The route is removed and the app and identity are deleted; storage is kept: nothing deletes it automatically ([retention](autopilot-deployment.md#how-long-forgotten-information-stays-in-copies)) |
 | Image update | Staged by blueprint version: a new revision per instance, canary first; the lease prevents two writers during a swap |
 
 ## Phases
@@ -171,8 +171,9 @@ the instance's Blob container (private endpoint) and Application Insights.
    when an instance is stopped gets up to nine minutes to finish.
 3. **No automatic deletion of a retired instance's state.** Retirement removes an instance's app and identity and
    keeps its storage. An operator deletes the `margo-i-…` container when the organization decides. Within a live
-   instance, replaced versions of the state bundle and daily copies expire after 30 days
-   (`MARGO_STATE_VERSION_RETENTION_DAYS`, `MARGO_STATE_DAILY_RETENTION_DAYS`).
+   instance, replaced versions of the state bundle expire after 30 days (`MARGO_STATE_VERSION_RETENTION_DAYS`),
+   and daily copies older than 30 days (`MARGO_STATE_DAILY_RETENTION_DAYS`) are deleted on the manager's next turn,
+   not on a timer ([the exact windows](autopilot-deployment.md#how-long-forgotten-information-stays-in-copies)).
 
 ## Not done yet
 

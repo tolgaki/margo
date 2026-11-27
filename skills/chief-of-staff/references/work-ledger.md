@@ -166,6 +166,11 @@ python3 scripts/work_state.py --account fictional-account import-commitments rev
 python3 scripts/work_state.py --account fictional-account export-commitments commitments-view.md
 ```
 
+The file names here are examples. Resolve `commitments.md` with `SKILL.md` → *Where personal files
+live*, and write the exported view and any review files to the personal folder in a plugin install
+(for example `~/.copilot/margo/commitments.md`), never into the plugin's folder: an update replaces
+it and the view would be lost.
+
 Arbitrary Markdown is **never silently parsed as confirmed work**. Preview returns the original
 content with `safe_structured:false` and a review requirement. A human-reviewed structured
 file uses:

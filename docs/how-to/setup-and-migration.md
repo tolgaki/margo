@@ -91,6 +91,12 @@ Roots must not be in a repository, shared directory, or cloud-sync folder. State
 cannot be symlinked. On POSIX, directories must be private (0700), files private (0600), owned by
 the current user, with no group/world-writable ancestors. Do not disable these checks.
 
+If a state command stops with `ERROR: state/config path must be private (directory 0700, file 0600)`,
+the `margo` folder or a file in it is readable by your group or everyone, usually because it was
+created by hand with a plain `mkdir` (the plugin setup). Run `chmod 700 ~/.copilot/margo` and try
+again; `chmod -R go-rwx ~/.copilot/margo` fixes everything below it. These permission checks do
+not run on Windows.
+
 If `init` stops with `ERROR: state/config root has a group/world-writable ancestor`, a folder above
 the state, often `~/.copilot` or your home folder, is writable by your group or everyone (common
 under `umask 002`). Run `chmod go-w ~/.copilot ~` (and on any other folder above it that `ls -ld`
