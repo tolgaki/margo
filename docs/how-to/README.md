@@ -17,15 +17,15 @@ features. You do not need schedules, a canvas, or local embeddings for your firs
 | Draft a reply or an executive follow-up | [Drafting and follow-ups](drafting-and-follow-ups.md) |
 | Schedule, reschedule, RSVP, or clean up my calendar | [Calendar management](calendar-management.md) |
 | Plan a week, prepare a meeting, and follow it through | [Outcomes and meetings](outcomes-and-meetings.md) |
-| Keep up with people and 1:1s | [Relationships and one-on-ones](relationships-and-one-on-ones.md) |
+| Keep up with people and 1:1s; look up someone's manager or reports | [Relationships and one-on-ones](relationships-and-one-on-ones.md) |
 
 ## Carry work forward
 
 | I want to... | Start here |
 | --- | --- |
 | Track an ask, chase a reply, or review an action | [Commitments and action desk](commitments-and-action-desk.md) |
-| Prepare a memo, comparison, agenda, status update or delegation brief | [Feedback and work products](feedback-and-work-products.md) |
-| Read, download, copy, upload or share a file | [Documents and files](documents-and-files.md) |
+| Prepare a memo, comparison, agenda, status update or delegation brief; publish it; ask a Copilot agent | [Feedback and work products](feedback-and-work-products.md) |
+| Read, download, copy, upload or share a file; check SharePoint approvals, access or versions | [Documents and files](documents-and-files.md) |
 | Review GitHub PRs or an Azure DevOps backlog | [GitHub and work items](github-and-work-items.md) |
 | Watch a community or feedback channel | [Community and feedback](community-and-feedback.md) |
 | Keep a durable team decision log | [Decision log](decision-log.md) |
@@ -40,6 +40,13 @@ features. You do not need schedules, a canvas, or local embeddings for your firs
 | Control capture, retention, correction, forgetting and recipe export | [Memory controls and learning](memory-controls-and-learning.md) |
 | Reflect on selected opted-in session checkpoints | [Dream](dream.md) |
 | Know where a task stopped and continue safely | [Task progress and recovery](task-progress-and-recovery.md) |
+
+## Change Margo or run her elsewhere
+
+| I want to... | Start here |
+| --- | --- |
+| Change the persona, the morning brief, add a routine or a Work IQ source with a coding agent | [Customize with an AI coding agent](customize-with-ai-agents.md) |
+| Use Margo's skills in Claude Code instead of Copilot CLI | [Run in Claude Code](run-in-claude-code.md) |
 
 Use the conversational recipes first. The CLI recipes are for inspecting records, troubleshooting,
 or operating with Margo in the foreground. They are not scripts for unattended approval.
@@ -59,22 +66,25 @@ for availability and implementation kind. Edit the catalog, not this table.
 <!-- BEGIN GENERATED: feature-index -->
 | Guide | Features covered |
 | --- | --- |
+| [../autopilot-deployment.md](../autopilot-deployment.md) | [Approve an exact action on a card in Teams](../autopilot-deployment.md#sending-on-your-behalf-approval-cards), [Keep other people's requests from steering Margo](../autopilot-deployment.md#who-margo-answers), [Get an Office document from Margo Cloud](../autopilot-deployment.md#documents-she-creates-for-you), [Ask Margo in a group chat or channel](../autopilot-deployment.md#who-margo-answers), [Hear from Margo directly, with no card](../autopilot-deployment.md#the-backchannel), [Let Margo listen in the rooms she belongs to](../autopilot-deployment.md#the-backchannel) |
+| [../autopilot-voice.md](../autopilot-voice.md) | [Talk to Margo by voice](../autopilot-voice.md#what-you-get) |
 | [../container.md](../container.md) | [Run Margo unattended somewhere other than a laptop](../container.md#running-it) |
+| [../getting-started.md](../getting-started.md) | [Install Margo as a plugin](../getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex) |
 | [automation-health.md](automation-health.md) | [Get a quiet daily scan for slow-moving drift](automation-health.md#automation-ambient), [Get a weekly commitments and ambient digest](automation-health.md#automation-commitments), [Get an end-of-day wrap-up automatically](automation-health.md#automation-eod), [Get cheap, silent hourly checks](automation-health.md#automation-hourly), [Get the morning brief without asking for it](automation-health.md#automation-morning), [Get next week's shape before Monday](automation-health.md#automation-week-ahead), [Get one honest health report](automation-health.md#doctor), [Know if a scheduled output was actually delivered](automation-health.md#output-delivery), [Trust that a brief actually covered its sources](automation-health.md#source-coverage) |
 | [briefs-and-catch-up.md](briefs-and-catch-up.md) | [See what changed since you were away](briefs-and-catch-up.md#catch-up), [Know what needs attention today](briefs-and-catch-up.md#daily-brief), [Close the day without dropping anything](briefs-and-catch-up.md#end-of-day) |
 | [calendar-management.md](calendar-management.md) | [See what your calendar actually costs you](calendar-management.md#calendar-hygiene), [Move a meeting without making a mess](calendar-management.md#calendar-reschedule), [Triage invitations quickly](calendar-management.md#calendar-rsvp), [Find time without the back-and-forth](calendar-management.md#calendar-scheduling) |
 | [commitments-and-action-desk.md](commitments-and-action-desk.md) | [See what's ready for your decision](commitments-and-action-desk.md#action-desk), [Review proposals without a second CLI window](commitments-and-action-desk.md#action-desk-canvas), [Approve once, safely](commitments-and-action-desk.md#approval-execution), [Track an ask without inventing a promise](commitments-and-action-desk.md#commitments), [Know what you're waiting on, before it's overdue](commitments-and-action-desk.md#follow-through) |
 | [community-and-feedback.md](community-and-feedback.md) | [See what your Viva Engage community actually thinks](community-and-feedback.md#engage), [See what's breaking, from the people hitting it](community-and-feedback.md#teams-feedback) |
 | [decision-log.md](decision-log.md) | [Get the current answer, not a stale one](decision-log.md#decision-answer), [Find what's unresolved in the log](decision-log.md#decision-audit), [Get a short weekly read of what changed](decision-log.md#decision-digest), [Log what a team actually decided](decision-log.md#decision-extraction), [Change your mind on the record](decision-log.md#decision-supersession) |
-| [documents-and-files.md](documents-and-files.md) | [Know what to read before it's too late](documents-and-files.md#document-queue), [Copy a file server-side within Microsoft 365](documents-and-files.md#file-copy), [Pull a large file from Microsoft 365 to disk](documents-and-files.md#file-download), [Share a file without emailing the bytes](documents-and-files.md#file-sharing), [Upload a local file into Microsoft 365](documents-and-files.md#file-upload) |
+| [documents-and-files.md](documents-and-files.md) | [Know what to read before it's too late](documents-and-files.md#document-queue), [Copy a file server-side within Microsoft 365](documents-and-files.md#file-copy), [Pull a large file from Microsoft 365 to disk](documents-and-files.md#file-download), [Share a file without emailing the bytes](documents-and-files.md#file-sharing), [Upload a local file into Microsoft 365](documents-and-files.md#file-upload), [Answer SharePoint approval, access and version questions](documents-and-files.md#sharepoint-approvals-access-and-versions) |
 | [drafting-and-follow-ups.md](drafting-and-follow-ups.md) | [Get a ready-to-send draft in your voice](drafting-and-follow-ups.md#drafting), [Land a high-stakes message with the right tone](drafting-and-follow-ups.md#executive-followup) |
 | [dream.md](dream.md) | [Dream over opted-in session checkpoints](dream.md#reflect-on-one-daily-page) |
-| [feedback-and-work-products.md](feedback-and-work-products.md) | [Know a work product actually reached someone](feedback-and-work-products.md#artifact-delivery), [Say 'not a lesson' and mean it](feedback-and-work-products.md#do-not-learn), [Correct Margo without a permanent rule you didn't ask for](feedback-and-work-products.md#feedback), [Turn a repeated correction into a standing rule](feedback-and-work-products.md#rules), [Get a useful first draft of the real deliverable](feedback-and-work-products.md#work-products) |
+| [feedback-and-work-products.md](feedback-and-work-products.md) | [Know a work product actually reached someone](feedback-and-work-products.md#artifact-delivery), [Ask one of your Copilot agents](feedback-and-work-products.md#7-ask-one-of-your-copilot-agents), [Say 'not a lesson' and mean it](feedback-and-work-products.md#do-not-learn), [Correct Margo without a permanent rule you didn't ask for](feedback-and-work-products.md#feedback), [Get a real Word, Excel or PowerPoint file](feedback-and-work-products.md#5-get-a-real-word-excel-or-powerpoint-file), [Publish reviewed work as a page](feedback-and-work-products.md#6-publish-to-copilot-pages-or-a-sharepoint-site), [Turn a repeated correction into a standing rule](feedback-and-work-products.md#rules), [Get a useful first draft of the real deliverable](feedback-and-work-products.md#work-products) |
 | [github-and-work-items.md](github-and-work-items.md) | [Review your Azure DevOps backlog without hunting for the query](github-and-work-items.md#ado-work-items), [Never miss a stale review request](github-and-work-items.md#github-reviews) |
 | [inbox-and-teams.md](inbox-and-teams.md) | [Clear your inbox with confidence](inbox-and-teams.md#inbox-triage), [Find what needs a reply in Teams](inbox-and-teams.md#teams-triage) |
 | [memory-controls-and-learning.md](memory-controls-and-learning.md) | [Inspect memory without a CLI window](memory-controls-and-learning.md#memory-canvas), [Let Margo remember useful context, on your terms](memory-controls-and-learning.md#memory-capture), [Correct, suppress or forget what Margo remembers](memory-controls-and-learning.md#memory-control), [Share a lesson without sharing your history](memory-controls-and-learning.md#memory-export), [Teach an approach without granting new permissions](memory-controls-and-learning.md#memory-learning), [See a pattern without it becoming a rule](memory-controls-and-learning.md#memory-trends) |
 | [outcomes-and-meetings.md](outcomes-and-meetings.md) | [Check whether a plan actually fits the week](outcomes-and-meetings.md#capacity), [Close the loop after a meeting](outcomes-and-meetings.md#meeting-debrief), [Never rebuild a recurring meeting from scratch](outcomes-and-meetings.md#meeting-lifecycle), [Walk into a meeting ready](outcomes-and-meetings.md#meeting-prep), [Agree what success looks like this week](outcomes-and-meetings.md#outcomes), [Prepare for what next week actually needs](outcomes-and-meetings.md#week-ahead) |
-| [relationships-and-one-on-ones.md](relationships-and-one-on-ones.md) | [Never reconstruct a 1:1 agenda five minutes before it](relationships-and-one-on-ones.md#one-on-ones), [Notice who you've quietly stopped talking to](relationships-and-one-on-ones.md#relationships) |
+| [relationships-and-one-on-ones.md](relationships-and-one-on-ones.md) | [Never reconstruct a 1:1 agenda five minutes before it](relationships-and-one-on-ones.md#one-on-ones), [Know who someone is before you meet or write](relationships-and-one-on-ones.md#people-and-org), [Notice who you've quietly stopped talking to](relationships-and-one-on-ones.md#relationships) |
 | [semantic-memory.md](semantic-memory.md) | [Recall relevant context by meaning, not just keywords](semantic-memory.md#memory-retrieval) |
 | [setup-and-migration.md](setup-and-migration.md) | [Know which account and where data lives](setup-and-migration.md#account-storage), [Get a first useful brief](setup-and-migration.md#setup), [Remove Margo without losing personal files](setup-and-migration.md#uninstall), [Update without losing your settings or work](setup-and-migration.md#upgrade-migration) |
 | [task-progress-and-recovery.md](task-progress-and-recovery.md) | [Know where a task stopped](task-progress-and-recovery.md#task-progress), [Pick up a task safely after an interruption](task-progress-and-recovery.md#task-recovery) |

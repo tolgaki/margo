@@ -74,11 +74,11 @@ sent, close your obligation, or turn an uncertain in-flight call into a known fa
 | Paused | Future claims stop; in-flight outcomes still need recording |
 | Interrupted / unknown outcome | Recovery or a real reconciliation read is required |
 | Succeeded | The current planned steps completed; delivery and obligation closure remain separate facts |
-| Cancelled | No further steps should start; existing effects and uncertainty remain visible |
+| Canceled | No further steps should start; existing effects and uncertainty remain visible |
 
 These are task-journal states, not a guarantee that the host has delivered a notification or
 that you have read it. The optional panel shows the same records, including unknown effects
-on a cancelled run.
+on a canceled run.
 
 ## What needs your decision
 
@@ -94,7 +94,7 @@ applying it. It cannot rewrite completed history or hide an unresolved action.
 
 ## Change your mind
 
-Pause when you may continue later. Cancel when no remaining step should run. A cancelled task
+Pause when you may continue later. Cancel when no remaining step should run. A canceled task
 is not automatically resumed: create a deliberate follow-up plan if necessary.
 
 An already claimed action may still complete after you ask to stop. Margo records that actual
@@ -105,7 +105,7 @@ another external action with its own approval.
 
 Plans, bounded summaries, source/result references, budgets and progress history stay in the
 account's private SQLite database outside the repo. The data is not application-encrypted.
-Uninstall retains the account database. Cancelling does not erase history or source documents.
+Uninstall retains the account database. Canceling does not erase history or source documents.
 
 Claim tokens are returned once to the controller and stored only as hashes; do not paste them
 into public issues or command arguments. Selected context still reaches the configured model

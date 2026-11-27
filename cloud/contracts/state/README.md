@@ -1,0 +1,120 @@
+# State command contracts
+
+Scenarios that `tools/state_parity.py` runs against both implementations of Margo's state
+commands: the Python helpers in `skills/chief-of-staff/scripts/` (Margo desktop) and their C#
+ports behind `margo-state SCRIPT.py ARGS...` (Margo Cloud). A port is finished when every
+subcommand, including its failure paths, has scenarios here and `--check` passes.
+
+```sh
+cd cloud && dotnet build Margo.Cloud.slnx
+python3 ../tools/state_parity.py --check              # every scenario
+python3 ../tools/state_parity.py --filter store -v    # unified diff of the first mismatch
+```
+
+## Layout
+
+One folder per area; every `*.json` file in them is a scenario (`tests/test_state_parity.py` checks that this
+table names every folder and probe).
+
+| Folder | Scripts judged | Scenarios |
+| --- | --- | --- |
+| `core/` | `margo_store.py`, `state_core_probe.py`, and the shared helpers through `work_state.py` | `margo_store_cli` (init: help, argparse errors, create/replay, owner isolation, unsafe roots, file modes), `margo_store_unicode` (`casefold()`d names, surrogateescape arguments and `MARGO_CONFIG`), `probe_json` (`json.dumps`/`json.loads`/`parse_json`: separators, indent, key order, `ensure_ascii`, float repr, big ints, error positions, depth and digit limits), `probe_time` (`fromisoformat`, `isoformat`, `timedelta` text, `validate_timestamp`), `probe_args` (argparse abbreviations, choices, `type=int`, nargs, help wrapping under `COLUMNS`), `probe_store` (`connect`, read-only before init, nested transactions, sqlite3 semantics, account resolution), `probe_io` (`read_json` on unreadable files), `probe_unicode` (Unicode 15.1 `int()`/`repr()`, astral digits, a state root of `/`, `~user`), `json_recursion_budget` (CPython's C recursion budget in `json.loads` and `parse_json` near the nesting limit), `int_whitespace` (`int()` keeps U+001C..U+001F) |
+| `work/` | `work_state.py`, `work_ledger_probe.py` | the CLI parser and errors, sources and ingest, items, relations, the five record kinds, import/export, actions from proposal to execution, the library API, schema contracts, account isolation (see `cloud/src/Margo.Cloud.State.Work/PORTING.md`) |
+| `proactive/` | `proactive_state.py`, `proactive_probe.py` | every subcommand: queue, delivery and receipts, leases, publications, coverage pages/finish/tokens/health/retirement, legacy import, library composition, damaged and tampered state, BLOB values (`json.loads(bytes)`), big ints (see `cloud/src/Margo.Cloud.State.Proactive/PORTING.md`) |
+| `memory/` | `memory_probe.py` | `memory_store.py`, `memory_governance.py` and `memory_encoder.py` status as libraries: normalization, identities, put/revise, transitions, links, eligibility, file and work sources, forgetting, schema and migration, read-only stores, governance policy/capture/retention/usage/tombstones/export, Dream sources (see `cloud/src/Margo.Cloud.State.Memory/PORTING.md`) |
+| `tasks/` | `task_state.py`, `tasks_probe.py` | every subcommand and option: help and argparse errors, account resolution, read commands that never initialize, `--input` loading (stdin and files read as `read(262145)`), the `**data` dispatch, plan validation, local, read and action steps, claims, tokens and charges, settlement and receipts, recovery, retry and backoff under a replaced `task_runs.clock`, reconciliation, sync, pause/cancel/resume, replanning with human evidence, list/show/history/health, untrusted JSON types, the library API and schema contracts (see `cloud/src/Margo.Cloud.State.Tasks/PORTING.md`) |
+| `memory-learning/` | `memory_learning_probe.py` | `memory_learning.py` and `memory_consolidation.py` as libraries (behind `memory_state.py`'s capabilities, validate-capability, propose-lesson, activate-lesson, trend-definition, trend, preferences-preview/-import, consolidate and record-consolidation): every helper, capability inventories from skills and host manifests (glob, clock, retirement), synthetic and receipt validation, lessons and activation, feedback, trends and definitions, preference parsing/preview/import, consolidation pages and delivery (see `cloud/src/Margo.Cloud.State.MemoryLearning/PORTING.md`) |
+| `helpers/` | `capacity.py`, `teams_feedback.py`, `engage_parse.py`, `helpers_probe.py` | the three stateless helpers' command lines, reports, errors and untrusted JSON types, and the Python semantics layer (sort traces, comparisons, numbers, text, `json.dump`, the JSON recursion budget) on its own (see `cloud/src/Margo.Cloud.State.Helpers/PORTING.md`) |
+| `memory-search/` | `memory_search_probe.py` (with `memory_probe.py`-style store calls and `work_ledger_probe.py` for ledger fixtures) | `memory_search.py` and `memory_context.py` as libraries: module functions (vector packing with CPython's `sum()`, identity keys, validity, budgets), every index schema state, indexing and quarantine with a deterministic fake encoder, the absent local runtime, FTS5 query results over a Unicode corpus (about 100 queries: tokenization, operators quoted away, bm25 scores and ties), lexical fallback, semantic/hybrid fusion scores, search validation, and connected context/graph/explain over memory links, live work and hand-built ledger rows, mandatory constraints and budgets, and `review_regressions` (dynamically typed module arguments, unhashable ledger values) (see `cloud/src/Margo.Cloud.State.MemorySearch/PORTING.md`) |
+| `memory-commands/` | `memory_state.py`, `memory_commands_probe.py` (and `memory_probe.py` for a v1 schema fixture, `task_state.py init`) | `memory_state.py`: help and argparse errors of all 47 subcommands, read commands that never initialize, account resolution, `load()` for files and stdin (and the Dream `read(100001)` budget), CPython's `**data` binding errors for `put` and `record-usage`, `link --evidence` before `--input`, every lifecycle, policy, usage, capture, search/context/graph/explain/index, link, forget, tombstone, export, learning, trend and preference subcommand with its options and failures, `migrate` from v1; `memory_dream.py`: every flow of `tests/test_memory_dream.py` that needs no fake encoder (checkpoints, replays, plans, claims, finishes, citation quotes matched by code points, inspection, forgetting, corrections, expired and canceled claims, restored tombstones, output review, paging under a patched `MAX_SCAN`), input validation in Python's order, the daily window over IANA zones, and `zoneinfo` itself (every system zone around every transition, key errors, folds and gaps) (see `cloud/src/Margo.Cloud.State.MemoryCommands/PORTING.md`) |
+
+### Contract probes
+
+A probe is a Python reference in `probes/` and its C# twin in `cloud/src/Margo.Cloud.State.Probes`. Probes
+are not Margo commands: they exist so that helpers and libraries are judged byte for byte against CPython, not
+only through whichever scripts happen to call them. They run arbitrary SQL and write files, so `margo-state`
+contains them only when built with `MargoStateProbes=true` (the Debug default; Release builds never do) and runs
+one only when `MARGO_STATE_PROBES=1`, which the judge sets for every step. The hosted tool
+(`StateCommands` in `cloud/src/Margo.Cloud.Engine`) runs only classified scripts and never sets it.
+
+| Probe | C# twin | What it reaches |
+| --- | --- | --- |
+| `probes/state_core_probe.py` | `StateCoreProbeScript` | `json.dumps`/`json.loads`, `margo_store.parse_json`/`canonical_json`/`validate_timestamp`, ISO parsing, a demo argparse parser, hashing and ids, `margo_store.connect` and nested transactions |
+| `probes/work_ledger_probe.py` | `WorkLedgerProbeScript` | `work_state.main(argv)` in process with clock- and result-templated input (approvals, preflights, random action IDs), the ledger library API, SQL and fixture files |
+| `probes/proactive_probe.py` | `ProactiveProbeScript` | `proactive_state.main()` under a fixed clock, library calls on one connection inside an outer transaction, SQL fixtures, legacy files and symlinks |
+| `probes/memory_probe.py` | `MemoryProbeScript` | `MemoryStore`, `memory_governance`, `memory_dream` source helpers and `memory_encoder` calls on fresh or held stores, held transactions, SQL, constants and file fixtures |
+| `probes/tasks_probe.py` | `TasksProbeScript` | `task_state.main(argv)` in process with clock- and result-templated input (fresh bindings, deadlines, claim tokens), a replaceable `task_runs.clock`, `TaskStore` methods (also `from_connection` and inside a rolled-back outer transaction), the `task_runs` module functions, the ledger and coverage journal on the store's connection, SQL and input files |
+| `probes/memory_learning_probe.py` | `MemoryLearningProbeScript` | `memory_learning`/`memory_consolidation` functions (private helpers included) on fresh, held or read-only stores, `MemoryStore`, Work `Ledger` and `Productivity` fixtures (execution receipts, feedback), held transactions, SQL, clock-templated input and file fixtures (with saved SHA-256) |
+| `probes/helpers_probe.py` | `HelpersProbeScript` | the library code of the three stateless helpers and the Python semantics they rely on; `write`/`write-hex`/`write-nested` create input files (also for other scripts' scenarios) |
+| `probes/memory_search_probe.py` | `MemorySearchProbeScript` | `MemorySearch` (search, context, graph, explain, index, health, purge, encode) on fresh or held stores with a deterministic fake encoder (fixed results, errors and store-changing hooks), `ConnectedContext` methods with their state, `memory_search`/`memory_context` module functions, store calls and SQL |
+| `probes/memory_commands_probe.py` | `MemoryCommandsProbeScript` | `memory_state.main(argv)` in process with clock- and result-templated arguments, stdin and option files (Dream claims and tokens, policy and evidence subjects), a replaceable `task_runs.clock` and `memory_dream.MAX_SCAN`, `memory_dream`/`MemoryStore`/`memory_governance`/`TaskStore`/`proactive_state` calls under any account or state root, a writer holding a transaction, SQL, files with saved SHA-256, `memory_dream._window`, `ZoneInfo` offsets with fold and `astimezone`, and a per-zone digest sweep |
+
+Later ports add a folder per script family and, where a library needs it,
+a probe pair; add both to these tables.
+
+## Scenario schema
+
+One JSON object per file:
+
+```json
+{
+  "description": "what the scenario proves (required)",
+  "account": "parity-owner@example.com",
+  "env": {"NAME": "value or null to unset"},
+  "compare_db": true,
+  "compare_files": true,
+  "steps": [
+    {"script": "work_state.py", "args": ["list", "--view", "all"], "stdin": "text or any JSON value",
+     "expect_exit": 0, "env": {"COLUMNS": "40"}, "state_args": true}
+  ]
+}
+```
+
+- `steps` run in order in one fresh private root per run. The judge runs Python, then C#, then
+  Python again.
+- `script` is a file name in `skills/chief-of-staff/scripts/` or `cloud/contracts/state/probes/`.
+  A scenario may combine both, for example `helpers_probe.py write-nested` to create a deep input
+  file for `work_state.py`.
+- `args` may use `{root}` (the run's temporary root), `{state_dir}` (`{root}/state`) and
+  `{account}`. `stdin` strings may use them too; a JSON value is sent as
+  `json.dumps(value, ensure_ascii=False)`, as the hosted tool does. Without `stdin` the process
+  reads an empty stdin.
+- Stateful scripts (`work_state.py`, `proactive_state.py`, `memory_state.py`, `task_state.py`)
+  get `--account ACCOUNT --state-dir {state_dir}` prepended, as the hosted tool passes them.
+  Stateless scripts get nothing. `state_args` overrides this per step.
+- `expect_exit` asserts Python's exit status, so a scenario that stopped testing what it claims
+  (for example an error path that started succeeding) fails loudly.
+- `env` (scenario, then step) is applied on top of the base environment: `TZ=UTC`,
+  `LC_ALL=C.UTF-8`, `PYTHONHASHSEED=0`, `PYTHONDONTWRITEBYTECODE=1`, `PYTHONIOENCODING=utf-8`,
+  `HOME={root}/home`, `MARGO_ALLOW_UNSAFE_STATE_DIR=1` (temporary roots live under a
+  world-writable `/tmp`; set it to `"0"` to test the refusal) and `MARGO_STATE_PROBES=1`
+  (lets `margo-state` run the contract probes). Nothing else from the caller's
+  environment leaks in except `PATH` and `DOTNET_ROOT`.
+- `compare_db` and `compare_files` default to `true`.
+
+## What is compared
+
+Per step: the exit status, stdout after normalization, whether stderr is empty, and the error the
+hosted tool reports from stderr (`statecmd._first_error`: the last non-empty line, which the model
+sees). For an uncaught exception only the exception class is compared (`sqlite3.IntegrityError`
+and `IntegrityError` match), because the C# port prints a traceback-shaped report, not a Python
+stack. The full stderr text is shown in `--verbose` diffs.
+
+After the last step:
+
+- every SQLite database under the root: `PRAGMA user_version`, `sqlite_master` rows sorted by
+  type and name (exact schema SQL), and the rows of every table (`rowid` order, or primary key
+  for `WITHOUT ROWID` tables; blobs as hex). Rows of FTS/R-tree shadow tables are skipped
+  because their encoding belongs to the SQLite build; their schema is still compared.
+- the file tree: relative paths, types, permission bits, text contents (binary files by
+  SHA-256). `home/` is compared only under `home/.copilot`, so runtime caches do not count.
+
+Normalization: the root path becomes `<ROOT>`. ISO timestamps, UUIDs, decimal runs of 9+
+digits with a fraction and hexadecimal runs of 8+ characters are tokens. A token whose value
+differs between the two Python runs at the same position is volatile and becomes
+`<Vn:shape>` (numbered by first occurrence in that run; the shape masks digits and hex letters,
+so a format change still fails). A token that is the same in both Python runs must match C#
+literally. If the two Python runs cannot be aligned token by token, every token is normalized
+and the result line says so.
+
+Use fictional data and `example.com` only. Never put real workplace content in a scenario.

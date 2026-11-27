@@ -1,0 +1,449 @@
+{
+  "description": "work_state.py: help for the root parser and every subcommand (also under COLUMNS=60), argparse errors (missing or unknown command, required options, type=int, choices, abbreviations), account resolution failures and the --state-root alias, and --input loading failures (invalid JSON, non-object, duplicate keys, NaN, empty, missing file, directory) reported as {\"error\", \"command\"} with exit 2.",
+  "steps": [
+    {
+      "script": "work_state.py",
+      "args": [
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "--help"
+      ],
+      "expect_exit": 0,
+      "env": {
+        "COLUMNS": "60"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "history",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "propose",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "edit",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "approve",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "dismiss",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "begin",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "finish",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "reconcile",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-preview",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "import-commitments",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "export-commitments",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record-id",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "recap-check",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "artifact-shared",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "bogus"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_x",
+        "--revision",
+        "one",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_x",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "everything"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record-id",
+        "goal",
+        "x"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--vi",
+        "all",
+        "--js"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "finish",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "--state-dir",
+        "{state_dir}",
+        "list"
+      ],
+      "expect_exit": 2,
+      "state_args": false
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-root",
+        "{state_dir}",
+        "list",
+        "--view",
+        "all",
+        "--json"
+      ],
+      "expect_exit": 0,
+      "state_args": false
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "--account",
+        "bad account",
+        "--state-dir",
+        "{state_dir}",
+        "list"
+      ],
+      "expect_exit": 2,
+      "state_args": false
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "record-id",
+        "outcome",
+        "weekly-goal"
+      ],
+      "expect_exit": 0,
+      "state_args": false
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": "{not json"
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": "[1, 2]"
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": "{\"family\": \"a\", \"family\": \"b\"}"
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": "{\"family\": NaN}"
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": ""
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "{root}/missing.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "{root}"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "{root}/./missing//input.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        ""
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "item_x",
+        "--revision",
+        "1",
+        "--until",
+        "2999-01-01T00:00:00Z"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "all"
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

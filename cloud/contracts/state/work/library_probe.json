@@ -1,0 +1,1402 @@
+{
+  "description": "work_ledger_probe library calls: Ledger.from_connection (not initialized, account/schema mismatch, sqlite3.Row requirement, read-only connections), find_source (exact, account-scoped, validated), source() defaults, row, event, history, source_refs/refs_stale/source_evidence, the module functions digest/text/timestamp/human/check_revision, Ledger.validate_receipt, invalidate_approval (exact unused approvals only), and direct list/disposition/finish/propose/ingest/update_item/relate/Productivity calls (test_find_source_is_an_exact_account_scoped_lookup).",
+  "steps": [
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "call": "show",
+          "on": "borrowed",
+          "args": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "call": null,
+          "on": "borrowed",
+          "args": []
+        },
+        {
+          "call": "list",
+          "on": "borrowed",
+          "args": [
+            "all"
+          ]
+        },
+        {
+          "call": "list",
+          "on": "borrowed",
+          "args": [
+            "all"
+          ],
+          "read_only": true
+        },
+        {
+          "call": "list",
+          "on": "borrowed",
+          "args": [],
+          "borrow_account": "other-owner@example.com"
+        },
+        {
+          "call": "list",
+          "on": "borrowed",
+          "args": [],
+          "row_factory": false
+        },
+        {
+          "call": "show",
+          "on": "borrowed",
+          "args": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        },
+        {
+          "cli": [
+            "source"
+          ],
+          "input": {
+            "family": "mail",
+            "scope": "inbox",
+            "external_id": "message-1",
+            "revision": "v1",
+            "evidence": {
+              "quote": "Please review the fictional specification."
+            },
+            "web_link": "https://example.com/mail/1"
+          },
+          "save": "ref"
+        },
+        {
+          "cli": [
+            "ingest"
+          ],
+          "input": {
+            "claim_key": "claim-1",
+            "data": {
+              "title": "Review fictional specification",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                {
+                  "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                  "revision": "v1",
+                  "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                }
+              ]
+            }
+          },
+          "save": "item"
+        },
+        {
+          "call": "show",
+          "on": "borrowed",
+          "args": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        },
+        {
+          "call": "find_source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            "message-1"
+          ]
+        },
+        {
+          "call": "find_source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            "message-2"
+          ]
+        },
+        {
+          "call": "find_source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "sent",
+            "message-1"
+          ]
+        },
+        {
+          "call": "find_source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            ""
+          ]
+        },
+        {
+          "call": "find_source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            null,
+            "message-1"
+          ]
+        },
+        {
+          "call": "find_source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            5
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "office-request",
+            "teams",
+            "message-9",
+            "v1",
+            {
+              "from_name": "Fictional Sender",
+              "excerpt": "Hello"
+            },
+            "urn:margo:office-request:teams:message-9"
+          ],
+          "save": "office"
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "office-request",
+            "teams",
+            "message-9",
+            "v1",
+            {
+              "from_name": "Fictional Sender",
+              "excerpt": "Hello"
+            },
+            "urn:margo:office-request:teams:message-9"
+          ],
+          "kwargs": {
+            "observed_at": "2026-05-06T07:08:09Z"
+          }
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "office-request",
+            "teams",
+            "message-10",
+            "v1",
+            "text evidence",
+            "urn:x"
+          ],
+          "kwargs": {
+            "sensitivity": null,
+            "observed_at": "2026-05-06T07:08:09+02:00"
+          }
+        },
+        {
+          "call": "find_source",
+          "on": "ledger",
+          "args": [
+            "office-request",
+            "teams",
+            "message-9"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "ledger",
+          "args": [
+            "${office.source_id}"
+          ]
+        },
+        {
+          "call": "row",
+          "on": "ledger",
+          "args": [
+            "work_items",
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        },
+        {
+          "call": "row",
+          "on": "ledger",
+          "args": [
+            "work_sources",
+            "src_a5c99fb8406e7b79f1280431b36e9fd1"
+          ]
+        },
+        {
+          "call": "row",
+          "on": "ledger",
+          "args": [
+            "work_events",
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        },
+        {
+          "call": "row",
+          "on": "ledger",
+          "args": [
+            "work_items",
+            "item_missing"
+          ]
+        },
+        {
+          "call": "row",
+          "on": "ledger",
+          "args": [
+            "work_items",
+            null
+          ]
+        },
+        {
+          "call": "row",
+          "on": "ledger",
+          "args": [
+            "work_items",
+            [
+              "x"
+            ]
+          ]
+        },
+        {
+          "call": "event",
+          "on": "ledger",
+          "args": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+            "custom_note",
+            {
+              "note": "fictional",
+              "n": 1
+            }
+          ]
+        },
+        {
+          "call": "event",
+          "on": "ledger",
+          "args": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+            "empty",
+            {}
+          ]
+        },
+        {
+          "call": "history",
+          "on": "ledger",
+          "args": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        },
+        {
+          "call": "history",
+          "on": "ledger",
+          "args": [
+            "src_a5c99fb8406e7b79f1280431b36e9fd1"
+          ]
+        },
+        {
+          "call": "source_refs",
+          "on": "ledger",
+          "args": [
+            [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          ]
+        },
+        {
+          "call": "source_refs",
+          "on": "ledger",
+          "args": [
+            [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            false
+          ]
+        },
+        {
+          "call": "source_refs",
+          "on": "ledger",
+          "args": [
+            "refs"
+          ]
+        },
+        {
+          "call": "source_refs",
+          "on": "ledger",
+          "args": [
+            [
+              [
+                {
+                  "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                  "revision": "v1",
+                  "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "source_refs",
+          "on": "ledger",
+          "args": [
+            [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              },
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          ]
+        },
+        {
+          "call": "refs_stale",
+          "on": "ledger",
+          "args": [
+            [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          ]
+        },
+        {
+          "call": "refs_stale",
+          "on": "ledger",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "refs_stale",
+          "on": "ledger",
+          "args": [
+            "x"
+          ]
+        },
+        {
+          "call": "refs_stale",
+          "on": "ledger",
+          "args": [
+            [
+              {
+                "source_id": "src_missing",
+                "revision": "v1"
+              }
+            ]
+          ]
+        },
+        {
+          "call": "source_evidence",
+          "on": "ledger",
+          "args": [
+            [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          ]
+        },
+        {
+          "call": "source_evidence",
+          "on": "ledger",
+          "args": [
+            [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v9"
+              }
+            ]
+          ]
+        },
+        {
+          "call": "source_evidence",
+          "on": "ledger",
+          "args": [
+            [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1"
+              }
+            ]
+          ]
+        },
+        {
+          "call": "digest",
+          "on": "module",
+          "args": [
+            [
+              1,
+              "a",
+              {
+                "b": null,
+                "a": [
+                  true,
+                  1.0
+                ]
+              }
+            ]
+          ]
+        },
+        {
+          "call": "digest",
+          "on": "module",
+          "args": [
+            {
+              "é": "ü"
+            }
+          ]
+        },
+        {
+          "call": "digest",
+          "on": "module",
+          "args": [
+            1208925819614629174706176
+          ]
+        },
+        {
+          "call": "text",
+          "on": "module",
+          "args": [
+            "x",
+            "field"
+          ]
+        },
+        {
+          "call": "text",
+          "on": "module",
+          "args": [
+            " \t",
+            "field"
+          ]
+        },
+        {
+          "call": "text",
+          "on": "module",
+          "args": [
+            5,
+            "field"
+          ]
+        },
+        {
+          "call": "text",
+          "on": "module",
+          "args": [
+            null,
+            "field"
+          ]
+        },
+        {
+          "call": "timestamp",
+          "on": "module",
+          "args": [
+            "2026-01-02T03:04:05Z"
+          ]
+        },
+        {
+          "call": "timestamp",
+          "on": "module",
+          "args": [
+            "2026-01-02T03:04:05.123+02:00"
+          ]
+        },
+        {
+          "call": "timestamp",
+          "on": "module",
+          "args": [
+            "2026-01-02 03:04:05-07:30"
+          ]
+        },
+        {
+          "call": "timestamp",
+          "on": "module",
+          "args": [
+            "2026-01-02T03:04:05"
+          ]
+        },
+        {
+          "call": "timestamp",
+          "on": "module",
+          "args": [
+            "2026-01-02"
+          ]
+        },
+        {
+          "call": "timestamp",
+          "on": "module",
+          "args": [
+            "20260102T030405Z"
+          ]
+        },
+        {
+          "call": "timestamp",
+          "on": "module",
+          "args": [
+            "Z"
+          ]
+        },
+        {
+          "call": "timestamp",
+          "on": "module",
+          "args": [
+            1
+          ]
+        },
+        {
+          "call": "timestamp",
+          "on": "module",
+          "args": [
+            "0001-01-01T00:00:00+01:00"
+          ]
+        },
+        {
+          "call": "human",
+          "on": "module",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "subject-1",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "2026-01-02T03:04:05Z"
+            },
+            "subject-1",
+            1,
+            "approve"
+          ]
+        },
+        {
+          "call": "human",
+          "on": "module",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "subject-1",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "2026-01-02T03:04:05Z"
+            },
+            "subject-1",
+            1
+          ]
+        },
+        {
+          "call": "human",
+          "on": "module",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "subject-1",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "2026-01-02T03:04:05Z"
+            },
+            "subject-1",
+            1,
+            null
+          ]
+        },
+        {
+          "call": "human",
+          "on": "module",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "subject-1",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "2026-01-02T03:04:05Z"
+            },
+            "subject-1",
+            1,
+            ""
+          ]
+        },
+        {
+          "call": "human",
+          "on": "module",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "subject-1",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "2026-01-02T03:04:05Z"
+            },
+            "subject-1",
+            2,
+            "approve"
+          ]
+        },
+        {
+          "call": "human",
+          "on": "module",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "subject-1",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "2026-01-02T03:04:05Z"
+            },
+            "subject-2",
+            1,
+            "approve"
+          ]
+        },
+        {
+          "call": "human",
+          "on": "module",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "subject-1",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now+2m}"
+            },
+            "subject-1",
+            1
+          ]
+        },
+        {
+          "call": "human",
+          "on": "module",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "subject-1",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now+30s}"
+            },
+            "subject-1",
+            1
+          ]
+        },
+        {
+          "call": "human",
+          "on": "module",
+          "args": [
+            [
+              {
+                "kind": "human_confirmation",
+                "actor": "alex@example.com",
+                "statement": "I reviewed this exact revision and approve the stated change.",
+                "evidence_ref": "conversation:fictional/session/turn/42",
+                "subject_id": "subject-1",
+                "revision": 1,
+                "decision": "approve",
+                "decided_at": "2026-01-02T03:04:05Z"
+              }
+            ],
+            "subject-1",
+            1
+          ]
+        },
+        {
+          "call": "human",
+          "on": "module",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": 1,
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "2026-01-02T03:04:05Z"
+            },
+            1,
+            1
+          ]
+        },
+        {
+          "call": "check_revision",
+          "on": "module",
+          "args": [
+            {
+              "revision": 1
+            },
+            1
+          ]
+        },
+        {
+          "call": "check_revision",
+          "on": "module",
+          "args": [
+            {
+              "revision": 1
+            },
+            1.0
+          ]
+        },
+        {
+          "call": "check_revision",
+          "on": "module",
+          "args": [
+            {
+              "revision": 1
+            },
+            true
+          ]
+        },
+        {
+          "call": "check_revision",
+          "on": "module",
+          "args": [
+            {
+              "revision": 1
+            },
+            "1"
+          ]
+        },
+        {
+          "call": "check_revision",
+          "on": "module",
+          "args": [
+            {
+              "revision": null
+            },
+            null
+          ]
+        },
+        {
+          "call": "check_revision",
+          "on": "module",
+          "args": [
+            {},
+            1
+          ]
+        },
+        {
+          "call": "validate_receipt",
+          "on": "static",
+          "args": [
+            {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            },
+            "succeeded"
+          ]
+        },
+        {
+          "call": "validate_receipt",
+          "on": "static",
+          "args": [
+            {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "validate_receipt",
+          "on": "static",
+          "args": [
+            {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            },
+            "failed"
+          ]
+        },
+        {
+          "call": "validate_receipt",
+          "on": "static",
+          "args": [
+            {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "failed",
+              "recorded_at": "${now}",
+              "definitive_no_effect": true
+            },
+            "failed"
+          ]
+        },
+        {
+          "call": "validate_receipt",
+          "on": "static",
+          "args": [
+            {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "failed",
+              "recorded_at": "${now}",
+              "definitive_no_effect": false
+            },
+            "failed"
+          ]
+        },
+        {
+          "call": "validate_receipt",
+          "on": "static",
+          "args": [
+            {
+              "kind": "email",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "validate_receipt",
+          "on": "static",
+          "args": [
+            {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now+5m}"
+            }
+          ]
+        },
+        {
+          "call": "validate_receipt",
+          "on": "static",
+          "args": [
+            null
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "inv"
+        },
+        {
+          "cli": [
+            "approve",
+            "${inv.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${inv.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${inv.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${inv.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "call": "invalidate_approval",
+          "on": "ledger",
+          "args": [
+            "${inv.id}",
+            1,
+            "wrong-hash",
+            "Task plan changed"
+          ]
+        },
+        {
+          "call": "invalidate_approval",
+          "on": "ledger",
+          "args": [
+            "${inv.id}",
+            2,
+            "${inv.action_hash}",
+            "Task plan changed"
+          ]
+        },
+        {
+          "call": "invalidate_approval",
+          "on": "ledger",
+          "args": [
+            "${inv.id}",
+            1,
+            "${inv.action_hash}",
+            ""
+          ]
+        },
+        {
+          "call": "invalidate_approval",
+          "on": "ledger",
+          "args": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+            1,
+            "${inv.action_hash}",
+            "Task plan changed"
+          ]
+        },
+        {
+          "call": "invalidate_approval",
+          "on": "ledger",
+          "args": [
+            "act_missing",
+            1,
+            "${inv.action_hash}",
+            "Task plan changed"
+          ]
+        },
+        {
+          "call": "invalidate_approval",
+          "on": "ledger",
+          "args": [
+            "${inv.id}",
+            1,
+            "${inv.action_hash}",
+            "Task plan changed"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "ledger",
+          "args": [
+            "${inv.id}"
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "live"
+        },
+        {
+          "cli": [
+            "approve",
+            "${live.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${live.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${live.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${live.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${live.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          },
+          "save": "live_attempt"
+        },
+        {
+          "call": "invalidate_approval",
+          "on": "ledger",
+          "args": [
+            "${live.id}",
+            1,
+            "${live.action_hash}",
+            "Task plan changed"
+          ]
+        },
+        {
+          "cli": [
+            "finish",
+            "${live_attempt.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "invalidate_approval",
+          "on": "ledger",
+          "args": [
+            "${live.id}",
+            1,
+            "${live.action_hash}",
+            "Task plan changed"
+          ]
+        },
+        {
+          "call": "list",
+          "on": "ledger",
+          "args": [
+            "bogus"
+          ]
+        },
+        {
+          "call": "list",
+          "on": "ledger",
+          "args": []
+        },
+        {
+          "call": "disposition",
+          "on": "ledger",
+          "args": [
+            "${inv.id}",
+            1,
+            "archived"
+          ]
+        },
+        {
+          "call": "disposition",
+          "on": "ledger",
+          "args": [
+            "${inv.id}",
+            1,
+            "deferred"
+          ]
+        },
+        {
+          "call": "finish",
+          "on": "ledger",
+          "args": [
+            "exec_missing",
+            "outcome_unknown"
+          ]
+        },
+        {
+          "call": "finish",
+          "on": "ledger",
+          "args": [
+            "exec_missing",
+            "outcome_unknown",
+            null,
+            true
+          ]
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            "action"
+          ]
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Review fictional specification",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                {
+                  "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                  "revision": "v1",
+                  "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                }
+              ]
+            },
+            "lib-claim"
+          ],
+          "save": "lib_item"
+        },
+        {
+          "call": "update_item",
+          "on": "ledger",
+          "args": [
+            "${lib_item.id}",
+            1,
+            "rejected"
+          ]
+        },
+        {
+          "call": "update_item",
+          "on": "ledger",
+          "args": [
+            "${lib_item.id}",
+            2,
+            null,
+            {
+              "notes": "Library patch"
+            }
+          ]
+        },
+        {
+          "call": "relate",
+          "on": "ledger",
+          "args": [
+            "${lib_item.id}",
+            "tracked_in",
+            "planner:fictional",
+            3
+          ]
+        },
+        {
+          "call": "record_id",
+          "on": "products",
+          "args": [
+            "outcome",
+            "goal"
+          ]
+        },
+        {
+          "call": "record_id",
+          "on": "products",
+          "args": [
+            "goal",
+            "x"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "products",
+          "args": [
+            "outcome",
+            "lib-goal",
+            {
+              "week": "2026-09-07",
+              "title": "Library goal",
+              "owner": null,
+              "definition_of_done": null,
+              "due": null,
+              "effort": null,
+              "next_step": null,
+              "allocation": null,
+              "blocker": null
+            }
+          ]
+        },
+        {
+          "call": "import_preview",
+          "on": "ledger",
+          "args": [
+            "${dir}/missing.md"
+          ]
+        },
+        {
+          "call": "import_preview",
+          "on": "ledger",
+          "args": [
+            "relative/missing.md"
+          ]
+        },
+        {
+          "call": "export_commitments",
+          "on": "ledger",
+          "args": [
+            "${dir}/library-view.md"
+          ]
+        },
+        {
+          "call": "export_commitments",
+          "on": "ledger",
+          "args": [
+            "${dir}/library-view.md",
+            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          ]
+        },
+        {
+          "cli": [
+            "source"
+          ],
+          "input": {
+            "family": "mail",
+            "scope": "inbox",
+            "external_id": "message-1",
+            "revision": "v2",
+            "evidence": "Changed",
+            "web_link": "https://example.com/mail/1"
+          }
+        },
+        {
+          "call": "refs_stale",
+          "on": "ledger",
+          "args": [
+            [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          ]
+        },
+        {
+          "call": "source_refs",
+          "on": "ledger",
+          "args": [
+            [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          ]
+        },
+        {
+          "call": "source_refs",
+          "on": "ledger",
+          "args": [
+            [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            false
+          ]
+        },
+        {
+          "call": "source_refs",
+          "on": "ledger",
+          "args": [
+            [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v2",
+                "fingerprint": "2977d659946eacd48e650ce34ccb8933f327386b1921d1c492bb2cc6dffa6af6"
+              }
+            ]
+          ]
+        },
+        {
+          "call": "find_source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            "message-1"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

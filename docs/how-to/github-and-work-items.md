@@ -37,7 +37,7 @@ Review age uses the actual review-request event when available; PR creation time
 approximation. Hosts exposing an app session list can also show unfinished Copilot work.
 Without that capability, Margo cannot claim the repository sweep covered local-only sessions.
 
-**What needs your decision:** reviewing, commenting, approving, merging, closing, or labelling a
+**What needs your decision:** reviewing, commenting, approving, merging, closing, or labeling a
 PR or issue always needs explicit approval of that exact change — this routine only reads and
 recommends.
 

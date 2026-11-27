@@ -46,7 +46,7 @@ An item may break silence **only** if it clears one of these. Everything else qu
 2. **It touches a meeting starting within 2 hours** — a cancellation, a room change, a pre-read
    that just landed, an attendee dropping out.
 3. **A confirmed commitment due today, still open** — from the work ledger, after a resolution check.
-4. **A meeting cancelled or moved** — it either breaks the day or frees an hour. Both are worth
+4. **A meeting canceled or moved** — it either breaks the day or frees an hour. Both are worth
    knowing immediately.
 5. **An explicit deadline today** — stated in the message, not inferred.
 

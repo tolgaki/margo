@@ -298,7 +298,8 @@
         "anchor": "daily-brief"
       },
       "sources": [
-        "skills/chief-of-staff/references/daily-brief.md"
+        "skills/chief-of-staff/references/daily-brief.md",
+        "skills/chief-of-staff/references/delta.md"
       ],
       "router_refs": [
         {
@@ -316,7 +317,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "A source that fails to load is a visible gap, never a false all-clear"
+        "A source that fails to load is a visible gap, never a false all-clear",
+        "Lines built from Copilot synthesis carry no sensitivity label until the underlying source is cited"
       ]
     },
     {
@@ -339,7 +341,8 @@
         "anchor": "catch-up"
       },
       "sources": [
-        "skills/chief-of-staff/references/daily-brief.md"
+        "skills/chief-of-staff/references/daily-brief.md",
+        "skills/chief-of-staff/references/delta.md"
       ],
       "router_refs": [
         {
@@ -357,7 +360,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Delta coverage is per source; one source's freshness does not establish another's"
+        "Delta coverage is per source; one source's freshness does not establish another's",
+        "Changes come from stored Graph delta links per source; a first run or an expired link (410) starts a new bounded baseline, and sources without a delta path are labeled snapshots"
       ]
     },
     {
@@ -629,7 +633,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Availability for people outside your visibility is stated as an assumption, not fact"
+        "Availability for people outside your visibility is stated as an assumption, not fact",
+        "Unattended runs cannot check other people's availability (an action call the scheduled wrapper denies) and report it as a coverage gap"
       ]
     },
     {
@@ -645,7 +650,7 @@
       "surfaces": [
         "cli"
       ],
-      "approval": "Cancelling or moving a meeting sends a notification and needs the same care as any send",
+      "approval": "Canceling or moving a meeting sends a notification and needs the same care as any send",
       "guide": {
         "path": "docs/how-to/calendar-management.md",
         "anchor": "calendar-reschedule"
@@ -768,7 +773,8 @@
         "anchor": "meeting-prep"
       },
       "sources": [
-        "skills/chief-of-staff/references/meeting-prep.md"
+        "skills/chief-of-staff/references/meeting-prep.md",
+        "skills/chief-of-staff/references/people.md"
       ],
       "router_refs": [
         {
@@ -822,7 +828,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "No recap available means pending/unknown, never zero decisions or actions"
+        "No recap available means pending/unknown, never zero decisions or actions",
+        "Transcripts are read directly after the meeting only when transcription was on and the user can read them; live transcripts are not supported on desktop"
       ]
     },
     {
@@ -935,7 +942,8 @@
         "anchor": "relationships"
       },
       "sources": [
-        "skills/chief-of-staff/references/relationships.md"
+        "skills/chief-of-staff/references/relationships.md",
+        "skills/chief-of-staff/references/people.md"
       ],
       "router_refs": [
         {
@@ -976,7 +984,8 @@
         "anchor": "document-queue"
       },
       "sources": [
-        "skills/chief-of-staff/references/doc-queue.md"
+        "skills/chief-of-staff/references/doc-queue.md",
+        "skills/chief-of-staff/references/sharepoint.md"
       ],
       "router_refs": [
         {
@@ -994,7 +1003,7 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "A labelled sensitive document is cited, never excerpted into a forwardable card"
+        "A labeled sensitive document is cited, never excerpted into a forwardable card"
       ]
     },
     {
@@ -1162,7 +1171,8 @@
         "anchor": "file-sharing"
       },
       "sources": [
-        "skills/chief-of-staff/references/files.md"
+        "skills/chief-of-staff/references/files.md",
+        "skills/chief-of-staff/references/sharepoint.md"
       ],
       "router_refs": [
         {
@@ -1258,7 +1268,8 @@
         "anchor": "follow-through"
       },
       "sources": [
-        "skills/chief-of-staff/references/follow-through.md"
+        "skills/chief-of-staff/references/follow-through.md",
+        "skills/chief-of-staff/references/people.md"
       ],
       "router_refs": [
         {
@@ -1644,7 +1655,7 @@
     {
       "id": "work-products",
       "name": "Get a useful first draft of the real deliverable",
-      "user_goal": "Produce a decision memo, comparison, status update, agenda or delegation brief tied to its sources",
+      "user_goal": "Produce a decision memo, comparison, status update, agenda or delegation brief tied to its sources, as a draft or a real Word, Excel or PowerPoint file",
       "availability": "implemented",
       "implementation_kind": "runtime",
       "since_version": "1.1.0",
@@ -1654,14 +1665,16 @@
       "surfaces": [
         "cli"
       ],
-      "approval": "Content approval is separate from delivery approval; nothing is shared automatically",
+      "approval": "Content approval is separate from delivery approval; a document you ask for is created for you alone without a prompt, and sharing it with anyone else needs approval",
       "guide": {
         "path": "docs/how-to/feedback-and-work-products.md",
         "anchor": "work-products"
       },
       "sources": [
         "skills/chief-of-staff/references/work-products.md",
-        "skills/chief-of-staff/scripts/work_state.py"
+        "skills/chief-of-staff/scripts/work_state.py",
+        "skills/chief-of-staff/references/copilot-agents.md",
+        "skills/chief-of-staff/references/publishing.md"
       ],
       "router_refs": [
         {
@@ -1686,7 +1699,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Unattended preparation is local only and bounded to the single highest-priority item"
+        "Unattended preparation is local only and bounded to the single highest-priority item",
+        "Office documents use Work IQ's preview Office document tools, need the tenant's Work IQ policy to allow writes, and are never re-created after an unclear answer"
       ]
     },
     {
@@ -1709,7 +1723,8 @@
       },
       "sources": [
         "skills/chief-of-staff/references/work-products.md",
-        "skills/chief-of-staff/scripts/work_state.py"
+        "skills/chief-of-staff/scripts/work_state.py",
+        "skills/chief-of-staff/references/publishing.md"
       ],
       "router_refs": [
         {
@@ -1750,7 +1765,7 @@
         "cli",
         "scheduled"
       ],
-      "approval": "Reviewing, commenting, merging, closing or labelling always needs its own explicit approval",
+      "approval": "Reviewing, commenting, merging, closing or labeling always needs its own explicit approval",
       "guide": {
         "path": "docs/how-to/github-and-work-items.md",
         "anchor": "github-reviews"
@@ -1824,7 +1839,8 @@
       "implementation_kind": "procedure",
       "since_version": "1.0.0",
       "prerequisites": [
-        "Community name and GroupId recorded in preferences.md"
+        "Community name and GroupId recorded in preferences.md",
+        "Work IQ /engage reads (WorkIQ.Read); posting also needs WorkIQ.Act and a tenant Work IQ policy that allows Engage writes"
       ],
       "surfaces": [
         "cli"
@@ -1852,8 +1868,9 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "The verified Work IQ binding exposed grounded retrieval, not structured Engage paths or usable reply/upvote counts; re-check current host capabilities",
-        "The bundled parser has no dedicated automated test in this repository"
+        "Structured /engage paths are discovered at run time; when they are unavailable the read-out falls back to grounded retrieval, labeled search-based, with no reliable reply counts",
+        "Engage writes are blocked by default by tenant Work IQ policy; a blocked post is reported, never sent another way",
+        "The bundled fallback parser has no dedicated automated test in this repository"
       ]
     },
     {
@@ -2219,7 +2236,7 @@
     {
       "id": "automation-commitments",
       "name": "Get a weekly commitments and ambient digest",
-      "user_goal": "Run commitment ageing and render the week's ambient digest every Friday",
+      "user_goal": "Run commitment aging and render the week's ambient digest every Friday",
       "availability": "implemented",
       "implementation_kind": "procedure",
       "since_version": "1.0.0",
@@ -2255,7 +2272,7 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "Checks for silent resolution before ageing anything, even unattended",
+        "Checks for silent resolution before aging anything, even unattended",
         "The schedule itself lives only in automations/*.md front matter"
       ]
     },
@@ -2280,7 +2297,8 @@
       },
       "sources": [
         "automations/hourly-sweep.md",
-        "skills/chief-of-staff/references/proactive.md"
+        "skills/chief-of-staff/references/proactive.md",
+        "skills/chief-of-staff/references/delta.md"
       ],
       "router_refs": [
         {
@@ -2305,7 +2323,7 @@
     {
       "id": "automation-ambient",
       "name": "Get a quiet daily scan for slow-moving drift",
-      "user_goal": "Run a daily ambient scan for commitment ageing, relationship drift and stale PRs, queued for the next anchor, never interrupting",
+      "user_goal": "Run a daily ambient scan for commitment aging, relationship drift and stale PRs, queued for the next anchor, never interrupting",
       "availability": "implemented",
       "implementation_kind": "procedure",
       "since_version": "1.0.0",
@@ -2365,7 +2383,8 @@
       },
       "sources": [
         "skills/chief-of-staff/references/state-operations.md",
-        "skills/chief-of-staff/scripts/proactive_state.py"
+        "skills/chief-of-staff/scripts/proactive_state.py",
+        "skills/chief-of-staff/references/delta.md"
       ],
       "router_refs": [
         {
@@ -2398,7 +2417,8 @@
       ],
       "maintainer_role": "Margo maintainers",
       "limitations": [
-        "One source succeeding never advances another source's checkpoint"
+        "One source succeeding never advances another source's checkpoint",
+        "Delta links are bound to the recorded capability, query version and kind; changing any of them forces a resynchronization"
       ]
     },
     {
@@ -3000,6 +3020,559 @@
       "maintainer_role": "Margo maintainers (task runtime owned by the agentic-development-plan integrator)",
       "limitations": [
         "Cancellation stops future steps; it never undoes an effect that already happened"
+      ]
+    },
+    {
+      "id": "cloud-approval-cards",
+      "name": "Approve an exact action on a card in Teams",
+      "user_goal": "Have Margo Cloud send, schedule, post or share for you only after you tap Approve on a card that shows that exact action, which then runs once",
+      "availability": "limited",
+      "implementation_kind": "runtime",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "Margo Cloud deployed and an instance hired (docs/autopilot-deployment.md)",
+        "For email: Send on Behalf on the manager's mailbox; for meetings: Margo as a calendar delegate with Editor rights",
+        "Work IQ's WorkIQ.Act scope and a tenant Work IQ policy that allows the write"
+      ],
+      "surfaces": [
+        "margo-cloud"
+      ],
+      "approval": "Only the manager's tap on the card counts, for the revision and hash the ledger holds; a typed or spoken yes is not approval",
+      "guide": {
+        "path": "docs/autopilot-deployment.md",
+        "anchor": "sending-on-your-behalf-approval-cards"
+      },
+      "sources": [
+        "cloud/src/Margo.Cloud.Orchestrator/Approvals.cs",
+        "cloud/src/Margo.Cloud.Orchestrator/CardContext.cs",
+        "docs/safety.md",
+        "skills/chief-of-staff/references/work-products.md",
+        "cloud/tests/Margo.Cloud.Orchestrator.Tests/ApprovalTests.cs",
+        "cloud/tests/Margo.Cloud.Host.Tests/ApprovalCardTests.cs",
+        "cloud/tests/Margo.Cloud.Guard.Tests/ApprovalWriteTests.cs"
+      ],
+      "router_refs": [],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "cloud-approval-cards"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Evidence is C# tests against fakes (ApprovalTests, ApprovalCardTests, ApprovalWriteTests), run by dotnet test; built, not verified in a tenant",
+        "Unverified: that Graph sends on behalf with Send on Behalf alone, and that Work IQ passes delegated writes through",
+        "The re-read at the tap compares what the card shows, not every property, and no conditional write is used, so a change between that read and the call is not caught",
+        "An unconfirmed result is recorded as unknown and never sent again; check Sent Items or the calendar",
+        "A card asked for in a group chat or channel is seen, with its proposed text, by everyone there"
+      ]
+    },
+    {
+      "id": "cloud-manager-channel",
+      "name": "Hear from Margo directly, with no card",
+      "user_goal": "Get a note from Margo Cloud that reaches you alone: a Teams message in your one-to-one chat, an email to you with no copies, or a file shared with you",
+      "availability": "limited",
+      "implementation_kind": "runtime",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "Margo Cloud deployed and an instance hired (docs/autopilot-deployment.md)",
+        "The manager has messaged Margo once, so their one-to-one chat exists"
+      ],
+      "surfaces": [
+        "margo-cloud"
+      ],
+      "approval": "No card: the guard checks, recipient by recipient, that the manager is the only one; anyone else on it needs a card",
+      "guide": {
+        "path": "docs/autopilot-deployment.md",
+        "anchor": "the-backchannel"
+      },
+      "sources": [
+        "cloud/src/Margo.Cloud.Orchestrator/ManagerChannel.cs",
+        "cloud/src/Margo.Cloud.Guard/WorkIQGuard.cs",
+        "docs/safety.md",
+        "cloud/tests/Margo.Cloud.Guard.Tests/ManagerChannelTests.cs",
+        "cloud/tests/Margo.Cloud.Orchestrator.Tests/BackchannelTests.cs"
+      ],
+      "router_refs": [],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "cloud-manager-channel"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Evidence is C# tests against fakes (ManagerChannelTests, BackchannelTests), run by dotnet test; built, not verified in a tenant",
+        "Whether a note is worth sending, and what it says, is the model's judgment and is not evaluated",
+        "An unknown result is reported and the note is not sent again"
+      ]
+    },
+    {
+      "id": "cloud-backchannel",
+      "name": "Keep other people's requests from steering Margo",
+      "user_goal": "Have messages and mail other people send Margo Cloud queued for you as untrusted requests, never answered, with an optional fixed \"passed this on\" note",
+      "availability": "limited",
+      "implementation_kind": "runtime",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "Margo Cloud deployed and an instance hired (docs/autopilot-deployment.md)",
+        "Optional: /replies acknowledge in the one-to-one chat to turn the fixed note on (off by default)"
+      ],
+      "surfaces": [
+        "margo-cloud"
+      ],
+      "approval": "Other people's words are data and start nothing; the acknowledgment is the manager's standing setting, is not written by the model and carries none of their content",
+      "guide": {
+        "path": "docs/autopilot-deployment.md",
+        "anchor": "who-margo-answers"
+      },
+      "sources": [
+        "cloud/src/Margo.Cloud.Orchestrator/Replies.cs",
+        "cloud/src/Margo.Cloud.Orchestrator/ReplyText.cs",
+        "cloud/src/Margo.Cloud.Orchestrator/Orchestrator.cs",
+        "skills/chief-of-staff/preferences.md",
+        "docs/safety.md",
+        "cloud/tests/Margo.Cloud.Orchestrator.Tests/ReplyTests.cs",
+        "cloud/tests/Margo.Cloud.Orchestrator.Tests/OrchestratorTests.cs",
+        "cloud/tests/Margo.Cloud.Orchestrator.Tests/BackchannelTests.cs",
+        "cloud/tests/Margo.Cloud.Host.Tests/HostIntegrationTests.cs"
+      ],
+      "router_refs": [],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "cloud-backchannel"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Evidence is C# tests against fakes (ReplyTests, OrchestratorTests, BackchannelTests, HostIntegrationTests), run by dotnet test; built, not verified in a tenant",
+        "The approve reply setting is not built and acts as none, so nobody gets a drafted answer",
+        "Email is never answered or acknowledged; in a group chat everyone sees the acknowledgment, which names the manager",
+        "The per-conversation cooldown and the daily count of observation runs are kept in the container's memory and start again when it restarts",
+        "Whether a queued message leads to a note to the manager is the model's judgment and is not evaluated"
+      ]
+    },
+    {
+      "id": "cloud-room-listening",
+      "name": "Let Margo listen in the rooms she belongs to",
+      "user_goal": "Have Margo Cloud read what is new in the group chats, meeting chats and channels she is a member of and send you a short note when something matters",
+      "availability": "limited",
+      "implementation_kind": "runtime",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "Margo Cloud deployed and an instance hired (docs/autopilot-deployment.md)",
+        "MARGO_INSTANCE_MIN_REPLICAS=1 (an always-on container per Margo)",
+        "Margo added to the chat or team; MARGO_BACKCHANNEL on and MARGO_LISTEN_MINUTES above 0"
+      ],
+      "surfaces": [
+        "margo-cloud"
+      ],
+      "approval": "She reads with her own token and writes only to the manager alone through the manager channel; she never answers the room",
+      "guide": {
+        "path": "docs/autopilot-deployment.md",
+        "anchor": "the-backchannel"
+      },
+      "sources": [
+        "cloud/src/Margo.Cloud.Orchestrator/Rooms.cs",
+        "cloud/src/Margo.Cloud.Orchestrator/Orchestrator.cs",
+        "cloud/src/Margo.Cloud.Orchestrator/ManagerChannel.cs",
+        "cloud/terms.md",
+        "cloud/tests/Margo.Cloud.Orchestrator.Tests/RoomListeningTests.cs"
+      ],
+      "router_refs": [],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "cloud-room-listening"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Evidence is C# tests against fakes (RoomListeningTests), run by dotnet test; built, not verified in a tenant",
+        "Up to 8 rooms and 6 channels a pass, the newest messages of each; a failed pass is read again looking back at most six hours",
+        "She does not hear rooms she is not a member of or what is spoken in meetings, and the people in those rooms are not told when she reads",
+        "In obo mode an observation run cannot read the manager's data; each run is a model run, billed like a turn",
+        "Which messages matter is the model's judgment and is not evaluated"
+      ]
+    },
+    {
+      "id": "cloud-group-answers",
+      "name": "Ask Margo in a group chat or channel",
+      "user_goal": "@mention Margo Cloud in a group chat, meeting chat or channel and have her answer you there, with approval cards that only you can tap",
+      "availability": "limited",
+      "implementation_kind": "runtime",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "Margo Cloud deployed and an instance hired (docs/autopilot-deployment.md)",
+        "Margo added to that chat or team"
+      ],
+      "surfaces": [
+        "margo-cloud"
+      ],
+      "approval": "Her answer needs no card and everyone in the room sees it; any action still needs the manager's tap on its card",
+      "guide": {
+        "path": "docs/autopilot-deployment.md",
+        "anchor": "who-margo-answers"
+      },
+      "sources": [
+        "cloud/src/Margo.Cloud.Orchestrator/Orchestrator.cs",
+        "cloud/src/Margo.Cloud.Orchestrator/Conversations.cs",
+        "docs/safety.md",
+        "cloud/tests/Margo.Cloud.Orchestrator.Tests/OrchestratorTests.cs",
+        "cloud/tests/Margo.Cloud.Orchestrator.Tests/ApprovalTests.cs",
+        "cloud/tests/Margo.Cloud.Host.Tests/HostIntegrationTests.cs"
+      ],
+      "router_refs": [],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "cloud-group-answers"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Evidence is C# tests against fakes (OrchestratorTests, ApprovalTests, HostIntegrationTests), run by dotnet test; built, not verified in a tenant",
+        "Bringing in only what the request needs from the manager's private work is an instruction to the model, not enforced in code",
+        "That the manager must @mention her is the Teams app's setting; Margo's code checks who sent the message, not the mention",
+        "/replies and the voice link work only one-to-one; a conversation of a type Teams does not name gets one fixed sentence and no turn"
+      ]
+    },
+    {
+      "id": "cloud-documents",
+      "name": "Get an Office document from Margo Cloud",
+      "user_goal": "Ask Margo Cloud for a Word document, Excel workbook or PowerPoint presentation and get it created in her OneDrive and shared with you alone, with editing rights",
+      "availability": "limited",
+      "implementation_kind": "runtime",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "Margo Cloud deployed and an instance hired (docs/autopilot-deployment.md)",
+        "Work IQ's WorkIQ.Act scope and a tenant Work IQ policy that allows Office document writes and file sharing"
+      ],
+      "surfaces": [
+        "margo-cloud"
+      ],
+      "approval": "No card: the guard allows the share only to the manager, with sign-in required; sharing it further or changing a document others use needs a card",
+      "guide": {
+        "path": "docs/autopilot-deployment.md",
+        "anchor": "documents-she-creates-for-you"
+      },
+      "sources": [
+        "cloud/src/Margo.Cloud.Orchestrator/Documents.cs",
+        "skills/chief-of-staff/references/work-products.md",
+        "docs/safety.md",
+        "cloud/tests/Margo.Cloud.Orchestrator.Tests/DocumentTests.cs",
+        "cloud/tests/Margo.Cloud.Guard.Tests/OwnDocumentTests.cs"
+      ],
+      "router_refs": [],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "cloud-documents"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Evidence is C# tests against fakes (DocumentTests, OwnDocumentTests), run by dotnet test; built, not verified in a tenant",
+        "Unverified: that Work IQ's preview Office tools accept Margo's own account, where they save the file, and that her account can share it",
+        "Created once: an unclear answer is reported as unknown and not tried again; created but not shared is reported as partial, with the link",
+        "The document's content is written by the model and is not evaluated"
+      ]
+    },
+    {
+      "id": "cloud-voice",
+      "name": "Talk to Margo by voice",
+      "user_goal": "Open Margo Cloud's voice page, sign in and talk to the same Margo, with the same skills, tools and guard as in Teams",
+      "availability": "limited",
+      "implementation_kind": "runtime",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "Margo Cloud deployed and an instance hired (docs/autopilot-deployment.md)",
+        "MARGO_VOICE_LIVE_MODEL set and a Voice Live resource",
+        "A separate single-page app registration exposing Voice.Talk (MARGO_VOICE_CLIENT_ID), with each instance's voice page as a redirect URI"
+      ],
+      "surfaces": [
+        "margo-cloud"
+      ],
+      "approval": "Read-only: a voice call cannot ask for an approval, and a spoken yes is not one",
+      "guide": {
+        "path": "docs/autopilot-voice.md",
+        "anchor": "what-you-get"
+      },
+      "sources": [
+        "cloud/src/Margo.Cloud.Voice/VoiceSession.cs",
+        "cloud/src/Margo.Cloud.Voice/VoiceEndpoints.cs",
+        "cloud/src/Margo.Cloud.Voice/VoiceService.cs",
+        "cloud/src/Margo.Cloud.Voice/wwwroot/README.md",
+        "docs/autopilot-deployment.md",
+        "cloud/tests/Margo.Cloud.Voice.Tests/SessionFlowTests.cs",
+        "cloud/tests/Margo.Cloud.Voice.Tests/EndpointTests.cs",
+        "cloud/tests/Margo.Cloud.Voice.Tests/VoiceLiveTests.cs",
+        "cloud/tests/Margo.Cloud.Router.Tests/VoiceProxyTests.cs"
+      ],
+      "router_refs": [],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "cloud-voice"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Evidence is C# tests against fakes (SessionFlowTests, EndpointTests, VoiceLiveTests, VoiceProxyTests), run by dotnet test; built, not verified in a tenant",
+        "Not tested against a live Voice Live resource, a real browser or a microphone; the Entra setup commands have not been run in a tenant",
+        "Voice tool results are not marked as untrusted data as chat tool results are, and a voice session does not queue behind a chat turn",
+        "No idle timeout; custom voice, direct WebRTC and phone are not built"
+      ]
+    },
+    {
+      "id": "office-documents",
+      "name": "Get a real Word, Excel or PowerPoint file",
+      "user_goal": "Ask for a document, workbook or deck and get the file created in your own OneDrive, with its link",
+      "availability": "limited",
+      "implementation_kind": "procedure",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection with the WorkIQ.Act scope",
+        "A tenant Work IQ policy that allows Office document writes"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "The one built-in standing permission: a document you asked for, in your own OneDrive, is created without a prompt; sharing it, editing a document other people use, or sending it stays per-action",
+      "guide": {
+        "path": "docs/how-to/feedback-and-work-products.md",
+        "anchor": "5-get-a-real-word-excel-or-powerpoint-file"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/work-products.md",
+        "skills/chief-of-staff/SKILL.md",
+        "docs/safety.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Prepare the work"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "office-documents"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Uses Work IQ's preview Office document tools (/office-agent-mcp/generate_artifact); unavailable when the tenant does not offer them or policy blocks writes",
+        "Created once: after an unclear answer or a timeout Margo says she does not know whether it exists and does not try again",
+        "Only in a conversation, never in an unattended run",
+        "Evidence is a static check that rule 1 and the procedure state the same exception; no document is created in any test. Margo Cloud's version is cloud-documents"
+      ]
+    },
+    {
+      "id": "plugin-install",
+      "name": "Install Margo as a plugin",
+      "user_goal": "Add desktop Margo's skills and persona to GitHub Copilot CLI, Claude Code or Codex from the repository's own marketplace",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "GitHub Copilot CLI, Claude Code or Codex",
+        "Microsoft's workiq plugin from the work-iq marketplace",
+        "A private personal folder (~/.copilot/margo, mode 0700) for your own files"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Installing a plugin is not authentication and takes no external action",
+      "guide": {
+        "path": "docs/getting-started.md",
+        "anchor": "or-as-a-plugin-copilot-cli-claude-code-or-codex"
+      },
+      "sources": [
+        ".github/plugin/plugin.json",
+        ".claude-plugin/plugin.json",
+        ".codex-plugin/plugin.json",
+        ".claude-plugin/marketplace.json",
+        "docs/how-to/run-in-claude-code.md",
+        "skills/chief-of-staff/SKILL.md"
+      ],
+      "router_refs": [],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "plugin-install"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Not included: Work IQ itself, the scheduled-run wrapper and automation prompts, the action desk, the installer's version manifest and Margo Cloud",
+        "Codex gets the two skills only, without the persona, and is not tested in Codex",
+        "A plugin update replaces the plugin's folder; personal files must live in the personal folder",
+        "Manifest tests check the files agree; they do not install the plugin in any host"
+      ]
+    },
+    {
+      "id": "people-org",
+      "name": "Know who someone is before you meet or write",
+      "user_goal": "Look up a person's manager, direct reports and the people you work with most, from the directory and your own communication",
+      "availability": "implemented",
+      "implementation_kind": "procedure",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "These are reads; messaging anyone, including a person's manager at an escalation rung, is a separate proposal",
+      "guide": {
+        "path": "docs/how-to/relationships-and-one-on-ones.md",
+        "anchor": "people-and-org"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/people.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "People and org"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "people-org"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Org reads (manager, direct reports, people relevance) reflect the directory, which can be stale; relevance is not a relationship score",
+        "A guest or someone outside the directory has no manager here, and a failed lookup is shown as unknown",
+        "In Margo Cloud's delegation mode relevance over the manager's communication is unavailable and directory answers reflect Margo's own view"
+      ]
+    },
+    {
+      "id": "sharepoint",
+      "name": "Answer SharePoint approval, access and version questions",
+      "user_goal": "See what is waiting for your approval in SharePoint, who has access to a file, and how to get an earlier version back",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "Work IQ /sharepoint reads (WorkIQ.Read); changes also need WorkIQ.Act and a tenant Work IQ policy that allows them"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Reading is free; approving, rejecting, changing access, restoring a version, editing a list or commenting needs approval of that exact action",
+      "guide": {
+        "path": "docs/how-to/documents-and-files.md",
+        "anchor": "sharepoint-approvals-access-and-versions"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/sharepoint.md",
+        "skills/chief-of-staff/references/files.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "SharePoint"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "sharepoint"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "SharePoint approvals, access, versions and restore use discovered /sharepoint or Graph paths, and the family is hidden with WorkIQAgent.Ask only",
+        "A read that is not offered is reported as unavailable, never as zero; a permissions read you may not make is not proof nobody else has access",
+        "A timeout is unknown: the file is read back and the change is never repeated; scheduled runs only read"
+      ]
+    },
+    {
+      "id": "page-publishing",
+      "name": "Publish reviewed work as a page",
+      "user_goal": "Publish approved content as a Copilot Page or on a SharePoint site, with the destination and audience shown first",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "Work IQ /pages or /sharepoint writes (WorkIQ.Act) and a tenant Work IQ policy that allows them",
+        "Explicit account configured via margo_store.py init, for the proposal and receipt"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Publishing is visible to others and always needs approval of the exact destination, title and content; content approval is not approval to publish",
+      "guide": {
+        "path": "docs/how-to/feedback-and-work-products.md",
+        "anchor": "6-publish-to-copilot-pages-or-a-sharepoint-site"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/publishing.md",
+        "skills/chief-of-staff/references/work-products.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Publish a page"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "page-publishing"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Publishing to Copilot Pages or SharePoint uses discovered /pages or /sharepoint writes and is unavailable when not offered; the content then stays local",
+        "The substance of Confidential sources is left out rather than published more widely",
+        "A timeout is unknown: the destination is read back and nothing is published twice; scheduled runs never publish"
+      ]
+    },
+    {
+      "id": "copilot-agents",
+      "name": "Ask one of your Copilot agents",
+      "user_goal": "List the Copilot agents available to you and put a question to the one you name, with the answer reported as that agent's",
+      "availability": "optional",
+      "implementation_kind": "procedure",
+      "since_version": "1.3.0",
+      "prerequisites": [
+        "Configured Work IQ MCP connection that offers list_agents and ask with an agentId"
+      ],
+      "surfaces": [
+        "cli"
+      ],
+      "approval": "Asking is a read; an agent's reply that tells Margo to send, update or approve something is flagged and nothing is done",
+      "guide": {
+        "path": "docs/how-to/feedback-and-work-products.md",
+        "anchor": "7-ask-one-of-your-copilot-agents"
+      },
+      "sources": [
+        "skills/chief-of-staff/references/copilot-agents.md"
+      ],
+      "router_refs": [
+        {
+          "path": "skills/chief-of-staff/SKILL.md",
+          "label": "Ask a Copilot agent"
+        }
+      ],
+      "automation_refs": [],
+      "cli_refs": [],
+      "canvas_refs": [],
+      "scenario_ids": [
+        "copilot-agents"
+      ],
+      "maintainer_role": "Margo maintainers",
+      "limitations": [
+        "Copilot agent answers are reported as that agent's answer and treated as data; agents are asked only in a conversation",
+        "An agent that is not available is reported as such; Margo does not answer in its name",
+        "An agent's answer carries no sensitivity label"
       ]
     }
   ]

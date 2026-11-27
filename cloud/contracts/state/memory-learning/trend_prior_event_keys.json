@@ -1,0 +1,915 @@
+{
+  "description": "trend over a hand-made candidate whose resolved_events carry non-string ids or keys (as a store put can write): every prior event counts under Python's dict-key equality (1, True and 1.0 are one key, the last event wins), so a non-string id cannot hide an independent outcome that a new report reverses; unhashable ids and keys raise TypeError.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "int-id",
+            {
+              "domain": "agent",
+              "kind": "trend",
+              "title": "Hand-made trend candidate",
+              "text": "Fictional prior aggregate.",
+              "authority": "inferred",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic-prior"
+                }
+              ],
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "id": 5,
+                    "independence_key": "k1",
+                    "matched": false
+                  }
+                ]
+              }
+            }
+          ],
+          "save": "int-id"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "int-id",
+            {
+              "title": "Repeated synthetic gap",
+              "text": "Synthetic gaps in three observed events.",
+              "scope": "synthetic",
+              "window_start": "2020-01-01T00:00:00Z",
+              "window_end": "2020-02-01T00:00:00Z",
+              "population": 5,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "k1",
+                  "occurred_at": "2020-01-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "k2",
+                  "occurred_at": "2020-01-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "k3",
+                  "occurred_at": "2020-01-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "float-id",
+            {
+              "domain": "agent",
+              "kind": "trend",
+              "title": "Hand-made trend candidate",
+              "text": "Fictional prior aggregate.",
+              "authority": "inferred",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic-prior"
+                }
+              ],
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "id": 2.5,
+                    "independence_key": "k2",
+                    "matched": false
+                  }
+                ]
+              }
+            }
+          ],
+          "save": "float-id"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "float-id",
+            {
+              "title": "Repeated synthetic gap",
+              "text": "Synthetic gaps in three observed events.",
+              "scope": "synthetic",
+              "window_start": "2020-01-01T00:00:00Z",
+              "window_end": "2020-02-01T00:00:00Z",
+              "population": 5,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "k1",
+                  "occurred_at": "2020-01-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "k2",
+                  "occurred_at": "2020-01-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "k3",
+                  "occurred_at": "2020-01-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "null-id",
+            {
+              "domain": "agent",
+              "kind": "trend",
+              "title": "Hand-made trend candidate",
+              "text": "Fictional prior aggregate.",
+              "authority": "inferred",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic-prior"
+                }
+              ],
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "id": null,
+                    "independence_key": "k3",
+                    "matched": false
+                  }
+                ]
+              }
+            }
+          ],
+          "save": "null-id"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "null-id",
+            {
+              "title": "Repeated synthetic gap",
+              "text": "Synthetic gaps in three observed events.",
+              "scope": "synthetic",
+              "window_start": "2020-01-01T00:00:00Z",
+              "window_end": "2020-02-01T00:00:00Z",
+              "population": 5,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "k1",
+                  "occurred_at": "2020-01-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "k2",
+                  "occurred_at": "2020-01-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "k3",
+                  "occurred_at": "2020-01-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "equal-ids",
+            {
+              "domain": "agent",
+              "kind": "trend",
+              "title": "Hand-made trend candidate",
+              "text": "Fictional prior aggregate.",
+              "authority": "inferred",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic-prior"
+                }
+              ],
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "id": 1,
+                    "independence_key": "k1",
+                    "matched": false
+                  },
+                  {
+                    "id": true,
+                    "independence_key": "k3",
+                    "matched": true
+                  }
+                ]
+              }
+            }
+          ],
+          "save": "equal-ids"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "equal-ids",
+            {
+              "title": "Repeated synthetic gap",
+              "text": "Synthetic gaps in three observed events.",
+              "scope": "synthetic",
+              "window_start": "2020-01-01T00:00:00Z",
+              "window_end": "2020-02-01T00:00:00Z",
+              "population": 5,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "k1",
+                  "occurred_at": "2020-01-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "k2",
+                  "occurred_at": "2020-01-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "k3",
+                  "occurred_at": "2020-01-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "equal-ids-later",
+            {
+              "domain": "agent",
+              "kind": "trend",
+              "title": "Hand-made trend candidate",
+              "text": "Fictional prior aggregate.",
+              "authority": "inferred",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic-prior"
+                }
+              ],
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "id": 1,
+                    "independence_key": "k3",
+                    "matched": true
+                  },
+                  {
+                    "id": 1.0,
+                    "independence_key": "k1",
+                    "matched": false
+                  }
+                ]
+              }
+            }
+          ],
+          "save": "equal-ids-later"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "equal-ids-later",
+            {
+              "title": "Repeated synthetic gap",
+              "text": "Synthetic gaps in three observed events.",
+              "scope": "synthetic",
+              "window_start": "2020-01-01T00:00:00Z",
+              "window_end": "2020-02-01T00:00:00Z",
+              "population": 5,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "k1",
+                  "occurred_at": "2020-01-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "k2",
+                  "occurred_at": "2020-01-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "k3",
+                  "occurred_at": "2020-01-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "override",
+            {
+              "domain": "agent",
+              "kind": "trend",
+              "title": "Hand-made trend candidate",
+              "text": "Fictional prior aggregate.",
+              "authority": "inferred",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic-prior"
+                }
+              ],
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "id": "old",
+                    "independence_key": "k1",
+                    "matched": false
+                  },
+                  {
+                    "id": 3,
+                    "independence_key": "k1",
+                    "matched": true
+                  }
+                ]
+              }
+            }
+          ],
+          "save": "override"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "override",
+            {
+              "title": "Repeated synthetic gap",
+              "text": "Synthetic gaps in three observed events.",
+              "scope": "synthetic",
+              "window_start": "2020-01-01T00:00:00Z",
+              "window_end": "2020-02-01T00:00:00Z",
+              "population": 5,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "k1",
+                  "occurred_at": "2020-01-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "k2",
+                  "occurred_at": "2020-01-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "k3",
+                  "occurred_at": "2020-01-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "override-back",
+            {
+              "domain": "agent",
+              "kind": "trend",
+              "title": "Hand-made trend candidate",
+              "text": "Fictional prior aggregate.",
+              "authority": "inferred",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic-prior"
+                }
+              ],
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "id": 3,
+                    "independence_key": "k1",
+                    "matched": true
+                  },
+                  {
+                    "id": "old",
+                    "independence_key": "k1",
+                    "matched": false
+                  }
+                ]
+              }
+            }
+          ],
+          "save": "override-back"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "override-back",
+            {
+              "title": "Repeated synthetic gap",
+              "text": "Synthetic gaps in three observed events.",
+              "scope": "synthetic",
+              "window_start": "2020-01-01T00:00:00Z",
+              "window_end": "2020-02-01T00:00:00Z",
+              "population": 5,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "k1",
+                  "occurred_at": "2020-01-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "k2",
+                  "occurred_at": "2020-01-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "k3",
+                  "occurred_at": "2020-01-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "int-keys",
+            {
+              "domain": "agent",
+              "kind": "trend",
+              "title": "Hand-made trend candidate",
+              "text": "Fictional prior aggregate.",
+              "authority": "inferred",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic-prior"
+                }
+              ],
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "id": "x",
+                    "independence_key": 1,
+                    "matched": false
+                  },
+                  {
+                    "id": "y",
+                    "independence_key": true,
+                    "matched": true
+                  }
+                ]
+              }
+            }
+          ],
+          "save": "int-keys"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "int-keys",
+            {
+              "title": "Repeated synthetic gap",
+              "text": "Synthetic gaps in three observed events.",
+              "scope": "synthetic",
+              "window_start": "2020-01-01T00:00:00Z",
+              "window_end": "2020-02-01T00:00:00Z",
+              "population": 5,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "k1",
+                  "occurred_at": "2020-01-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "k2",
+                  "occurred_at": "2020-01-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "k3",
+                  "occurred_at": "2020-01-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "list-id",
+            {
+              "domain": "agent",
+              "kind": "trend",
+              "title": "Hand-made trend candidate",
+              "text": "Fictional prior aggregate.",
+              "authority": "inferred",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic-prior"
+                }
+              ],
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "id": [
+                      1
+                    ],
+                    "independence_key": "k1",
+                    "matched": false
+                  }
+                ]
+              }
+            }
+          ],
+          "save": "list-id"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "list-id",
+            {
+              "title": "Repeated synthetic gap",
+              "text": "Synthetic gaps in three observed events.",
+              "scope": "synthetic",
+              "window_start": "2020-01-01T00:00:00Z",
+              "window_end": "2020-02-01T00:00:00Z",
+              "population": 5,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "k1",
+                  "occurred_at": "2020-01-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "k2",
+                  "occurred_at": "2020-01-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "k3",
+                  "occurred_at": "2020-01-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "dict-key",
+            {
+              "domain": "agent",
+              "kind": "trend",
+              "title": "Hand-made trend candidate",
+              "text": "Fictional prior aggregate.",
+              "authority": "inferred",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic-prior"
+                }
+              ],
+              "metadata": {
+                "resolved_events": [
+                  {
+                    "id": 7,
+                    "independence_key": {
+                      "k": 1
+                    },
+                    "matched": false
+                  }
+                ]
+              }
+            }
+          ],
+          "save": "dict-key"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "dict-key",
+            {
+              "title": "Repeated synthetic gap",
+              "text": "Synthetic gaps in three observed events.",
+              "scope": "synthetic",
+              "window_start": "2020-01-01T00:00:00Z",
+              "window_end": "2020-02-01T00:00:00Z",
+              "population": 5,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "k1",
+                  "occurred_at": "2020-01-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "k2",
+                  "occurred_at": "2020-01-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "k3",
+                  "occurred_at": "2020-01-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-2"
+                    }
+                  ]
+                }
+              ]
+            },
+            1
+          ]
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "kwargs": {
+            "domain": "agent"
+          }
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

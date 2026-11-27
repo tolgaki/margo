@@ -9,7 +9,7 @@
 ## Before / after
 
 <!--
-For behavioural changes, show sanitized output from before and after. This is the most useful
+For behavioral changes, show sanitized output from before and after. This is the most useful
 thing in the PR.
 -->
 
@@ -37,7 +37,7 @@ thing in the PR.
 
 - [ ] Skill changes carry **no persona or tone** — voice stays in `agents/`.
 - [ ] Any new rule is paired with the failure it prevents.
-- [ ] Docs in `docs/` still match the behaviour, and the router table in `SKILL.md` is current.
+- [ ] Docs in `docs/` still match the behavior, and the router table in `SKILL.md` is current.
 - [ ] Feature catalog and mapped user scenarios include the change and identify their evidence scope.
 - [ ] Internal links resolve.
 
@@ -47,6 +47,8 @@ thing in the PR.
 - [ ] Doesn't introduce **outbound** actions (send, reply, post, react, RSVP, delete, work-item
       change) into unattended scheduled runs. Only documented private local preparation is
       allowed; this repository does not grant unattended shared-vault writes.
+      (Margo Cloud's notes to her own manager alone are the documented exception; see
+      `docs/safety.md` §3.)
 
 **Checks**
 

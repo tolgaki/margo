@@ -1,0 +1,18 @@
+{
+  "description": "Lone surrogates in keys and texts: UnicodeEncodeError while hashing identities and content, as in Python.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": "[{\"call\": \"memory_identity\", \"on\": \"module\", \"args\": [\"acct\", \"user\", \"bad\\ud800key\"]}, {\"call\": \"record_id\", \"on\": \"store\", \"args\": [\"user\", \"x\\udcff\"]}, {\"call\": \"put\", \"on\": \"store\", \"args\": [\"surrogate\", {\"domain\": \"user\", \"kind\": \"episode\", \"title\": \"Synthetic review preparation\", \"text\": \"text \\ud83d broken\", \"authority\": \"source_observed\", \"scope\": \"personal\", \"source_refs\": [{\"kind\": \"tool_result\", \"ref\": \"tool:synthetic-result\"}]}]}, {\"call\": \"_content_hash\", \"on\": \"store\", \"args\": [{\"domain\": \"user\", \"kind\": \"episode\", \"title\": \"Synthetic review preparation\", \"text\": \"text \\ud83d broken\", \"authority\": \"source_observed\", \"scope\": \"personal\", \"source_refs\": [{\"kind\": \"tool_result\", \"ref\": \"tool:synthetic-result\"}]}]}]",
+      "expect_exit": 0
+    }
+  ]
+}

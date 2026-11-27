@@ -64,7 +64,7 @@ You can omit this optional setup and use `--mode lexical`. An absent, never-conf
 runtime does not make core doctor health fail. A configured runtime that is broken is still
 reported as needing attention; nothing is downloaded or repaired automatically.
 
-## 2. Initialise account memory and review a seed
+## 2. Initialize account memory and review a seed
 
 Configure the account using the existing [setup guide](setup-and-migration.md). From the installed
 skill directory:

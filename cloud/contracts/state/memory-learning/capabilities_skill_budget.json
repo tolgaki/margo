@@ -1,0 +1,1454 @@
+{
+  "description": "capabilities refuses more than 200 installed skills (counted before symlink filtering) and observes exactly 200.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "mkdir": "many"
+        },
+        {
+          "mkdir": "many/s000"
+        },
+        {
+          "write": "many/s000/SKILL.md",
+          "text": "# skill 0\n"
+        },
+        {
+          "mkdir": "many/s001"
+        },
+        {
+          "write": "many/s001/SKILL.md",
+          "text": "# skill 1\n"
+        },
+        {
+          "mkdir": "many/s002"
+        },
+        {
+          "write": "many/s002/SKILL.md",
+          "text": "# skill 2\n"
+        },
+        {
+          "mkdir": "many/s003"
+        },
+        {
+          "write": "many/s003/SKILL.md",
+          "text": "# skill 3\n"
+        },
+        {
+          "mkdir": "many/s004"
+        },
+        {
+          "write": "many/s004/SKILL.md",
+          "text": "# skill 4\n"
+        },
+        {
+          "mkdir": "many/s005"
+        },
+        {
+          "write": "many/s005/SKILL.md",
+          "text": "# skill 5\n"
+        },
+        {
+          "mkdir": "many/s006"
+        },
+        {
+          "write": "many/s006/SKILL.md",
+          "text": "# skill 6\n"
+        },
+        {
+          "mkdir": "many/s007"
+        },
+        {
+          "write": "many/s007/SKILL.md",
+          "text": "# skill 7\n"
+        },
+        {
+          "mkdir": "many/s008"
+        },
+        {
+          "write": "many/s008/SKILL.md",
+          "text": "# skill 8\n"
+        },
+        {
+          "mkdir": "many/s009"
+        },
+        {
+          "write": "many/s009/SKILL.md",
+          "text": "# skill 9\n"
+        },
+        {
+          "mkdir": "many/s010"
+        },
+        {
+          "write": "many/s010/SKILL.md",
+          "text": "# skill 10\n"
+        },
+        {
+          "mkdir": "many/s011"
+        },
+        {
+          "write": "many/s011/SKILL.md",
+          "text": "# skill 11\n"
+        },
+        {
+          "mkdir": "many/s012"
+        },
+        {
+          "write": "many/s012/SKILL.md",
+          "text": "# skill 12\n"
+        },
+        {
+          "mkdir": "many/s013"
+        },
+        {
+          "write": "many/s013/SKILL.md",
+          "text": "# skill 13\n"
+        },
+        {
+          "mkdir": "many/s014"
+        },
+        {
+          "write": "many/s014/SKILL.md",
+          "text": "# skill 14\n"
+        },
+        {
+          "mkdir": "many/s015"
+        },
+        {
+          "write": "many/s015/SKILL.md",
+          "text": "# skill 15\n"
+        },
+        {
+          "mkdir": "many/s016"
+        },
+        {
+          "write": "many/s016/SKILL.md",
+          "text": "# skill 16\n"
+        },
+        {
+          "mkdir": "many/s017"
+        },
+        {
+          "write": "many/s017/SKILL.md",
+          "text": "# skill 17\n"
+        },
+        {
+          "mkdir": "many/s018"
+        },
+        {
+          "write": "many/s018/SKILL.md",
+          "text": "# skill 18\n"
+        },
+        {
+          "mkdir": "many/s019"
+        },
+        {
+          "write": "many/s019/SKILL.md",
+          "text": "# skill 19\n"
+        },
+        {
+          "mkdir": "many/s020"
+        },
+        {
+          "write": "many/s020/SKILL.md",
+          "text": "# skill 20\n"
+        },
+        {
+          "mkdir": "many/s021"
+        },
+        {
+          "write": "many/s021/SKILL.md",
+          "text": "# skill 21\n"
+        },
+        {
+          "mkdir": "many/s022"
+        },
+        {
+          "write": "many/s022/SKILL.md",
+          "text": "# skill 22\n"
+        },
+        {
+          "mkdir": "many/s023"
+        },
+        {
+          "write": "many/s023/SKILL.md",
+          "text": "# skill 23\n"
+        },
+        {
+          "mkdir": "many/s024"
+        },
+        {
+          "write": "many/s024/SKILL.md",
+          "text": "# skill 24\n"
+        },
+        {
+          "mkdir": "many/s025"
+        },
+        {
+          "write": "many/s025/SKILL.md",
+          "text": "# skill 25\n"
+        },
+        {
+          "mkdir": "many/s026"
+        },
+        {
+          "write": "many/s026/SKILL.md",
+          "text": "# skill 26\n"
+        },
+        {
+          "mkdir": "many/s027"
+        },
+        {
+          "write": "many/s027/SKILL.md",
+          "text": "# skill 27\n"
+        },
+        {
+          "mkdir": "many/s028"
+        },
+        {
+          "write": "many/s028/SKILL.md",
+          "text": "# skill 28\n"
+        },
+        {
+          "mkdir": "many/s029"
+        },
+        {
+          "write": "many/s029/SKILL.md",
+          "text": "# skill 29\n"
+        },
+        {
+          "mkdir": "many/s030"
+        },
+        {
+          "write": "many/s030/SKILL.md",
+          "text": "# skill 30\n"
+        },
+        {
+          "mkdir": "many/s031"
+        },
+        {
+          "write": "many/s031/SKILL.md",
+          "text": "# skill 31\n"
+        },
+        {
+          "mkdir": "many/s032"
+        },
+        {
+          "write": "many/s032/SKILL.md",
+          "text": "# skill 32\n"
+        },
+        {
+          "mkdir": "many/s033"
+        },
+        {
+          "write": "many/s033/SKILL.md",
+          "text": "# skill 33\n"
+        },
+        {
+          "mkdir": "many/s034"
+        },
+        {
+          "write": "many/s034/SKILL.md",
+          "text": "# skill 34\n"
+        },
+        {
+          "mkdir": "many/s035"
+        },
+        {
+          "write": "many/s035/SKILL.md",
+          "text": "# skill 35\n"
+        },
+        {
+          "mkdir": "many/s036"
+        },
+        {
+          "write": "many/s036/SKILL.md",
+          "text": "# skill 36\n"
+        },
+        {
+          "mkdir": "many/s037"
+        },
+        {
+          "write": "many/s037/SKILL.md",
+          "text": "# skill 37\n"
+        },
+        {
+          "mkdir": "many/s038"
+        },
+        {
+          "write": "many/s038/SKILL.md",
+          "text": "# skill 38\n"
+        },
+        {
+          "mkdir": "many/s039"
+        },
+        {
+          "write": "many/s039/SKILL.md",
+          "text": "# skill 39\n"
+        },
+        {
+          "mkdir": "many/s040"
+        },
+        {
+          "write": "many/s040/SKILL.md",
+          "text": "# skill 40\n"
+        },
+        {
+          "mkdir": "many/s041"
+        },
+        {
+          "write": "many/s041/SKILL.md",
+          "text": "# skill 41\n"
+        },
+        {
+          "mkdir": "many/s042"
+        },
+        {
+          "write": "many/s042/SKILL.md",
+          "text": "# skill 42\n"
+        },
+        {
+          "mkdir": "many/s043"
+        },
+        {
+          "write": "many/s043/SKILL.md",
+          "text": "# skill 43\n"
+        },
+        {
+          "mkdir": "many/s044"
+        },
+        {
+          "write": "many/s044/SKILL.md",
+          "text": "# skill 44\n"
+        },
+        {
+          "mkdir": "many/s045"
+        },
+        {
+          "write": "many/s045/SKILL.md",
+          "text": "# skill 45\n"
+        },
+        {
+          "mkdir": "many/s046"
+        },
+        {
+          "write": "many/s046/SKILL.md",
+          "text": "# skill 46\n"
+        },
+        {
+          "mkdir": "many/s047"
+        },
+        {
+          "write": "many/s047/SKILL.md",
+          "text": "# skill 47\n"
+        },
+        {
+          "mkdir": "many/s048"
+        },
+        {
+          "write": "many/s048/SKILL.md",
+          "text": "# skill 48\n"
+        },
+        {
+          "mkdir": "many/s049"
+        },
+        {
+          "write": "many/s049/SKILL.md",
+          "text": "# skill 49\n"
+        },
+        {
+          "mkdir": "many/s050"
+        },
+        {
+          "write": "many/s050/SKILL.md",
+          "text": "# skill 50\n"
+        },
+        {
+          "mkdir": "many/s051"
+        },
+        {
+          "write": "many/s051/SKILL.md",
+          "text": "# skill 51\n"
+        },
+        {
+          "mkdir": "many/s052"
+        },
+        {
+          "write": "many/s052/SKILL.md",
+          "text": "# skill 52\n"
+        },
+        {
+          "mkdir": "many/s053"
+        },
+        {
+          "write": "many/s053/SKILL.md",
+          "text": "# skill 53\n"
+        },
+        {
+          "mkdir": "many/s054"
+        },
+        {
+          "write": "many/s054/SKILL.md",
+          "text": "# skill 54\n"
+        },
+        {
+          "mkdir": "many/s055"
+        },
+        {
+          "write": "many/s055/SKILL.md",
+          "text": "# skill 55\n"
+        },
+        {
+          "mkdir": "many/s056"
+        },
+        {
+          "write": "many/s056/SKILL.md",
+          "text": "# skill 56\n"
+        },
+        {
+          "mkdir": "many/s057"
+        },
+        {
+          "write": "many/s057/SKILL.md",
+          "text": "# skill 57\n"
+        },
+        {
+          "mkdir": "many/s058"
+        },
+        {
+          "write": "many/s058/SKILL.md",
+          "text": "# skill 58\n"
+        },
+        {
+          "mkdir": "many/s059"
+        },
+        {
+          "write": "many/s059/SKILL.md",
+          "text": "# skill 59\n"
+        },
+        {
+          "mkdir": "many/s060"
+        },
+        {
+          "write": "many/s060/SKILL.md",
+          "text": "# skill 60\n"
+        },
+        {
+          "mkdir": "many/s061"
+        },
+        {
+          "write": "many/s061/SKILL.md",
+          "text": "# skill 61\n"
+        },
+        {
+          "mkdir": "many/s062"
+        },
+        {
+          "write": "many/s062/SKILL.md",
+          "text": "# skill 62\n"
+        },
+        {
+          "mkdir": "many/s063"
+        },
+        {
+          "write": "many/s063/SKILL.md",
+          "text": "# skill 63\n"
+        },
+        {
+          "mkdir": "many/s064"
+        },
+        {
+          "write": "many/s064/SKILL.md",
+          "text": "# skill 64\n"
+        },
+        {
+          "mkdir": "many/s065"
+        },
+        {
+          "write": "many/s065/SKILL.md",
+          "text": "# skill 65\n"
+        },
+        {
+          "mkdir": "many/s066"
+        },
+        {
+          "write": "many/s066/SKILL.md",
+          "text": "# skill 66\n"
+        },
+        {
+          "mkdir": "many/s067"
+        },
+        {
+          "write": "many/s067/SKILL.md",
+          "text": "# skill 67\n"
+        },
+        {
+          "mkdir": "many/s068"
+        },
+        {
+          "write": "many/s068/SKILL.md",
+          "text": "# skill 68\n"
+        },
+        {
+          "mkdir": "many/s069"
+        },
+        {
+          "write": "many/s069/SKILL.md",
+          "text": "# skill 69\n"
+        },
+        {
+          "mkdir": "many/s070"
+        },
+        {
+          "write": "many/s070/SKILL.md",
+          "text": "# skill 70\n"
+        },
+        {
+          "mkdir": "many/s071"
+        },
+        {
+          "write": "many/s071/SKILL.md",
+          "text": "# skill 71\n"
+        },
+        {
+          "mkdir": "many/s072"
+        },
+        {
+          "write": "many/s072/SKILL.md",
+          "text": "# skill 72\n"
+        },
+        {
+          "mkdir": "many/s073"
+        },
+        {
+          "write": "many/s073/SKILL.md",
+          "text": "# skill 73\n"
+        },
+        {
+          "mkdir": "many/s074"
+        },
+        {
+          "write": "many/s074/SKILL.md",
+          "text": "# skill 74\n"
+        },
+        {
+          "mkdir": "many/s075"
+        },
+        {
+          "write": "many/s075/SKILL.md",
+          "text": "# skill 75\n"
+        },
+        {
+          "mkdir": "many/s076"
+        },
+        {
+          "write": "many/s076/SKILL.md",
+          "text": "# skill 76\n"
+        },
+        {
+          "mkdir": "many/s077"
+        },
+        {
+          "write": "many/s077/SKILL.md",
+          "text": "# skill 77\n"
+        },
+        {
+          "mkdir": "many/s078"
+        },
+        {
+          "write": "many/s078/SKILL.md",
+          "text": "# skill 78\n"
+        },
+        {
+          "mkdir": "many/s079"
+        },
+        {
+          "write": "many/s079/SKILL.md",
+          "text": "# skill 79\n"
+        },
+        {
+          "mkdir": "many/s080"
+        },
+        {
+          "write": "many/s080/SKILL.md",
+          "text": "# skill 80\n"
+        },
+        {
+          "mkdir": "many/s081"
+        },
+        {
+          "write": "many/s081/SKILL.md",
+          "text": "# skill 81\n"
+        },
+        {
+          "mkdir": "many/s082"
+        },
+        {
+          "write": "many/s082/SKILL.md",
+          "text": "# skill 82\n"
+        },
+        {
+          "mkdir": "many/s083"
+        },
+        {
+          "write": "many/s083/SKILL.md",
+          "text": "# skill 83\n"
+        },
+        {
+          "mkdir": "many/s084"
+        },
+        {
+          "write": "many/s084/SKILL.md",
+          "text": "# skill 84\n"
+        },
+        {
+          "mkdir": "many/s085"
+        },
+        {
+          "write": "many/s085/SKILL.md",
+          "text": "# skill 85\n"
+        },
+        {
+          "mkdir": "many/s086"
+        },
+        {
+          "write": "many/s086/SKILL.md",
+          "text": "# skill 86\n"
+        },
+        {
+          "mkdir": "many/s087"
+        },
+        {
+          "write": "many/s087/SKILL.md",
+          "text": "# skill 87\n"
+        },
+        {
+          "mkdir": "many/s088"
+        },
+        {
+          "write": "many/s088/SKILL.md",
+          "text": "# skill 88\n"
+        },
+        {
+          "mkdir": "many/s089"
+        },
+        {
+          "write": "many/s089/SKILL.md",
+          "text": "# skill 89\n"
+        },
+        {
+          "mkdir": "many/s090"
+        },
+        {
+          "write": "many/s090/SKILL.md",
+          "text": "# skill 90\n"
+        },
+        {
+          "mkdir": "many/s091"
+        },
+        {
+          "write": "many/s091/SKILL.md",
+          "text": "# skill 91\n"
+        },
+        {
+          "mkdir": "many/s092"
+        },
+        {
+          "write": "many/s092/SKILL.md",
+          "text": "# skill 92\n"
+        },
+        {
+          "mkdir": "many/s093"
+        },
+        {
+          "write": "many/s093/SKILL.md",
+          "text": "# skill 93\n"
+        },
+        {
+          "mkdir": "many/s094"
+        },
+        {
+          "write": "many/s094/SKILL.md",
+          "text": "# skill 94\n"
+        },
+        {
+          "mkdir": "many/s095"
+        },
+        {
+          "write": "many/s095/SKILL.md",
+          "text": "# skill 95\n"
+        },
+        {
+          "mkdir": "many/s096"
+        },
+        {
+          "write": "many/s096/SKILL.md",
+          "text": "# skill 96\n"
+        },
+        {
+          "mkdir": "many/s097"
+        },
+        {
+          "write": "many/s097/SKILL.md",
+          "text": "# skill 97\n"
+        },
+        {
+          "mkdir": "many/s098"
+        },
+        {
+          "write": "many/s098/SKILL.md",
+          "text": "# skill 98\n"
+        },
+        {
+          "mkdir": "many/s099"
+        },
+        {
+          "write": "many/s099/SKILL.md",
+          "text": "# skill 99\n"
+        },
+        {
+          "mkdir": "many/s100"
+        },
+        {
+          "write": "many/s100/SKILL.md",
+          "text": "# skill 100\n"
+        },
+        {
+          "mkdir": "many/s101"
+        },
+        {
+          "write": "many/s101/SKILL.md",
+          "text": "# skill 101\n"
+        },
+        {
+          "mkdir": "many/s102"
+        },
+        {
+          "write": "many/s102/SKILL.md",
+          "text": "# skill 102\n"
+        },
+        {
+          "mkdir": "many/s103"
+        },
+        {
+          "write": "many/s103/SKILL.md",
+          "text": "# skill 103\n"
+        },
+        {
+          "mkdir": "many/s104"
+        },
+        {
+          "write": "many/s104/SKILL.md",
+          "text": "# skill 104\n"
+        },
+        {
+          "mkdir": "many/s105"
+        },
+        {
+          "write": "many/s105/SKILL.md",
+          "text": "# skill 105\n"
+        },
+        {
+          "mkdir": "many/s106"
+        },
+        {
+          "write": "many/s106/SKILL.md",
+          "text": "# skill 106\n"
+        },
+        {
+          "mkdir": "many/s107"
+        },
+        {
+          "write": "many/s107/SKILL.md",
+          "text": "# skill 107\n"
+        },
+        {
+          "mkdir": "many/s108"
+        },
+        {
+          "write": "many/s108/SKILL.md",
+          "text": "# skill 108\n"
+        },
+        {
+          "mkdir": "many/s109"
+        },
+        {
+          "write": "many/s109/SKILL.md",
+          "text": "# skill 109\n"
+        },
+        {
+          "mkdir": "many/s110"
+        },
+        {
+          "write": "many/s110/SKILL.md",
+          "text": "# skill 110\n"
+        },
+        {
+          "mkdir": "many/s111"
+        },
+        {
+          "write": "many/s111/SKILL.md",
+          "text": "# skill 111\n"
+        },
+        {
+          "mkdir": "many/s112"
+        },
+        {
+          "write": "many/s112/SKILL.md",
+          "text": "# skill 112\n"
+        },
+        {
+          "mkdir": "many/s113"
+        },
+        {
+          "write": "many/s113/SKILL.md",
+          "text": "# skill 113\n"
+        },
+        {
+          "mkdir": "many/s114"
+        },
+        {
+          "write": "many/s114/SKILL.md",
+          "text": "# skill 114\n"
+        },
+        {
+          "mkdir": "many/s115"
+        },
+        {
+          "write": "many/s115/SKILL.md",
+          "text": "# skill 115\n"
+        },
+        {
+          "mkdir": "many/s116"
+        },
+        {
+          "write": "many/s116/SKILL.md",
+          "text": "# skill 116\n"
+        },
+        {
+          "mkdir": "many/s117"
+        },
+        {
+          "write": "many/s117/SKILL.md",
+          "text": "# skill 117\n"
+        },
+        {
+          "mkdir": "many/s118"
+        },
+        {
+          "write": "many/s118/SKILL.md",
+          "text": "# skill 118\n"
+        },
+        {
+          "mkdir": "many/s119"
+        },
+        {
+          "write": "many/s119/SKILL.md",
+          "text": "# skill 119\n"
+        },
+        {
+          "mkdir": "many/s120"
+        },
+        {
+          "write": "many/s120/SKILL.md",
+          "text": "# skill 120\n"
+        },
+        {
+          "mkdir": "many/s121"
+        },
+        {
+          "write": "many/s121/SKILL.md",
+          "text": "# skill 121\n"
+        },
+        {
+          "mkdir": "many/s122"
+        },
+        {
+          "write": "many/s122/SKILL.md",
+          "text": "# skill 122\n"
+        },
+        {
+          "mkdir": "many/s123"
+        },
+        {
+          "write": "many/s123/SKILL.md",
+          "text": "# skill 123\n"
+        },
+        {
+          "mkdir": "many/s124"
+        },
+        {
+          "write": "many/s124/SKILL.md",
+          "text": "# skill 124\n"
+        },
+        {
+          "mkdir": "many/s125"
+        },
+        {
+          "write": "many/s125/SKILL.md",
+          "text": "# skill 125\n"
+        },
+        {
+          "mkdir": "many/s126"
+        },
+        {
+          "write": "many/s126/SKILL.md",
+          "text": "# skill 126\n"
+        },
+        {
+          "mkdir": "many/s127"
+        },
+        {
+          "write": "many/s127/SKILL.md",
+          "text": "# skill 127\n"
+        },
+        {
+          "mkdir": "many/s128"
+        },
+        {
+          "write": "many/s128/SKILL.md",
+          "text": "# skill 128\n"
+        },
+        {
+          "mkdir": "many/s129"
+        },
+        {
+          "write": "many/s129/SKILL.md",
+          "text": "# skill 129\n"
+        },
+        {
+          "mkdir": "many/s130"
+        },
+        {
+          "write": "many/s130/SKILL.md",
+          "text": "# skill 130\n"
+        },
+        {
+          "mkdir": "many/s131"
+        },
+        {
+          "write": "many/s131/SKILL.md",
+          "text": "# skill 131\n"
+        },
+        {
+          "mkdir": "many/s132"
+        },
+        {
+          "write": "many/s132/SKILL.md",
+          "text": "# skill 132\n"
+        },
+        {
+          "mkdir": "many/s133"
+        },
+        {
+          "write": "many/s133/SKILL.md",
+          "text": "# skill 133\n"
+        },
+        {
+          "mkdir": "many/s134"
+        },
+        {
+          "write": "many/s134/SKILL.md",
+          "text": "# skill 134\n"
+        },
+        {
+          "mkdir": "many/s135"
+        },
+        {
+          "write": "many/s135/SKILL.md",
+          "text": "# skill 135\n"
+        },
+        {
+          "mkdir": "many/s136"
+        },
+        {
+          "write": "many/s136/SKILL.md",
+          "text": "# skill 136\n"
+        },
+        {
+          "mkdir": "many/s137"
+        },
+        {
+          "write": "many/s137/SKILL.md",
+          "text": "# skill 137\n"
+        },
+        {
+          "mkdir": "many/s138"
+        },
+        {
+          "write": "many/s138/SKILL.md",
+          "text": "# skill 138\n"
+        },
+        {
+          "mkdir": "many/s139"
+        },
+        {
+          "write": "many/s139/SKILL.md",
+          "text": "# skill 139\n"
+        },
+        {
+          "mkdir": "many/s140"
+        },
+        {
+          "write": "many/s140/SKILL.md",
+          "text": "# skill 140\n"
+        },
+        {
+          "mkdir": "many/s141"
+        },
+        {
+          "write": "many/s141/SKILL.md",
+          "text": "# skill 141\n"
+        },
+        {
+          "mkdir": "many/s142"
+        },
+        {
+          "write": "many/s142/SKILL.md",
+          "text": "# skill 142\n"
+        },
+        {
+          "mkdir": "many/s143"
+        },
+        {
+          "write": "many/s143/SKILL.md",
+          "text": "# skill 143\n"
+        },
+        {
+          "mkdir": "many/s144"
+        },
+        {
+          "write": "many/s144/SKILL.md",
+          "text": "# skill 144\n"
+        },
+        {
+          "mkdir": "many/s145"
+        },
+        {
+          "write": "many/s145/SKILL.md",
+          "text": "# skill 145\n"
+        },
+        {
+          "mkdir": "many/s146"
+        },
+        {
+          "write": "many/s146/SKILL.md",
+          "text": "# skill 146\n"
+        },
+        {
+          "mkdir": "many/s147"
+        },
+        {
+          "write": "many/s147/SKILL.md",
+          "text": "# skill 147\n"
+        },
+        {
+          "mkdir": "many/s148"
+        },
+        {
+          "write": "many/s148/SKILL.md",
+          "text": "# skill 148\n"
+        },
+        {
+          "mkdir": "many/s149"
+        },
+        {
+          "write": "many/s149/SKILL.md",
+          "text": "# skill 149\n"
+        },
+        {
+          "mkdir": "many/s150"
+        },
+        {
+          "write": "many/s150/SKILL.md",
+          "text": "# skill 150\n"
+        },
+        {
+          "mkdir": "many/s151"
+        },
+        {
+          "write": "many/s151/SKILL.md",
+          "text": "# skill 151\n"
+        },
+        {
+          "mkdir": "many/s152"
+        },
+        {
+          "write": "many/s152/SKILL.md",
+          "text": "# skill 152\n"
+        },
+        {
+          "mkdir": "many/s153"
+        },
+        {
+          "write": "many/s153/SKILL.md",
+          "text": "# skill 153\n"
+        },
+        {
+          "mkdir": "many/s154"
+        },
+        {
+          "write": "many/s154/SKILL.md",
+          "text": "# skill 154\n"
+        },
+        {
+          "mkdir": "many/s155"
+        },
+        {
+          "write": "many/s155/SKILL.md",
+          "text": "# skill 155\n"
+        },
+        {
+          "mkdir": "many/s156"
+        },
+        {
+          "write": "many/s156/SKILL.md",
+          "text": "# skill 156\n"
+        },
+        {
+          "mkdir": "many/s157"
+        },
+        {
+          "write": "many/s157/SKILL.md",
+          "text": "# skill 157\n"
+        },
+        {
+          "mkdir": "many/s158"
+        },
+        {
+          "write": "many/s158/SKILL.md",
+          "text": "# skill 158\n"
+        },
+        {
+          "mkdir": "many/s159"
+        },
+        {
+          "write": "many/s159/SKILL.md",
+          "text": "# skill 159\n"
+        },
+        {
+          "mkdir": "many/s160"
+        },
+        {
+          "write": "many/s160/SKILL.md",
+          "text": "# skill 160\n"
+        },
+        {
+          "mkdir": "many/s161"
+        },
+        {
+          "write": "many/s161/SKILL.md",
+          "text": "# skill 161\n"
+        },
+        {
+          "mkdir": "many/s162"
+        },
+        {
+          "write": "many/s162/SKILL.md",
+          "text": "# skill 162\n"
+        },
+        {
+          "mkdir": "many/s163"
+        },
+        {
+          "write": "many/s163/SKILL.md",
+          "text": "# skill 163\n"
+        },
+        {
+          "mkdir": "many/s164"
+        },
+        {
+          "write": "many/s164/SKILL.md",
+          "text": "# skill 164\n"
+        },
+        {
+          "mkdir": "many/s165"
+        },
+        {
+          "write": "many/s165/SKILL.md",
+          "text": "# skill 165\n"
+        },
+        {
+          "mkdir": "many/s166"
+        },
+        {
+          "write": "many/s166/SKILL.md",
+          "text": "# skill 166\n"
+        },
+        {
+          "mkdir": "many/s167"
+        },
+        {
+          "write": "many/s167/SKILL.md",
+          "text": "# skill 167\n"
+        },
+        {
+          "mkdir": "many/s168"
+        },
+        {
+          "write": "many/s168/SKILL.md",
+          "text": "# skill 168\n"
+        },
+        {
+          "mkdir": "many/s169"
+        },
+        {
+          "write": "many/s169/SKILL.md",
+          "text": "# skill 169\n"
+        },
+        {
+          "mkdir": "many/s170"
+        },
+        {
+          "write": "many/s170/SKILL.md",
+          "text": "# skill 170\n"
+        },
+        {
+          "mkdir": "many/s171"
+        },
+        {
+          "write": "many/s171/SKILL.md",
+          "text": "# skill 171\n"
+        },
+        {
+          "mkdir": "many/s172"
+        },
+        {
+          "write": "many/s172/SKILL.md",
+          "text": "# skill 172\n"
+        },
+        {
+          "mkdir": "many/s173"
+        },
+        {
+          "write": "many/s173/SKILL.md",
+          "text": "# skill 173\n"
+        },
+        {
+          "mkdir": "many/s174"
+        },
+        {
+          "write": "many/s174/SKILL.md",
+          "text": "# skill 174\n"
+        },
+        {
+          "mkdir": "many/s175"
+        },
+        {
+          "write": "many/s175/SKILL.md",
+          "text": "# skill 175\n"
+        },
+        {
+          "mkdir": "many/s176"
+        },
+        {
+          "write": "many/s176/SKILL.md",
+          "text": "# skill 176\n"
+        },
+        {
+          "mkdir": "many/s177"
+        },
+        {
+          "write": "many/s177/SKILL.md",
+          "text": "# skill 177\n"
+        },
+        {
+          "mkdir": "many/s178"
+        },
+        {
+          "write": "many/s178/SKILL.md",
+          "text": "# skill 178\n"
+        },
+        {
+          "mkdir": "many/s179"
+        },
+        {
+          "write": "many/s179/SKILL.md",
+          "text": "# skill 179\n"
+        },
+        {
+          "mkdir": "many/s180"
+        },
+        {
+          "write": "many/s180/SKILL.md",
+          "text": "# skill 180\n"
+        },
+        {
+          "mkdir": "many/s181"
+        },
+        {
+          "write": "many/s181/SKILL.md",
+          "text": "# skill 181\n"
+        },
+        {
+          "mkdir": "many/s182"
+        },
+        {
+          "write": "many/s182/SKILL.md",
+          "text": "# skill 182\n"
+        },
+        {
+          "mkdir": "many/s183"
+        },
+        {
+          "write": "many/s183/SKILL.md",
+          "text": "# skill 183\n"
+        },
+        {
+          "mkdir": "many/s184"
+        },
+        {
+          "write": "many/s184/SKILL.md",
+          "text": "# skill 184\n"
+        },
+        {
+          "mkdir": "many/s185"
+        },
+        {
+          "write": "many/s185/SKILL.md",
+          "text": "# skill 185\n"
+        },
+        {
+          "mkdir": "many/s186"
+        },
+        {
+          "write": "many/s186/SKILL.md",
+          "text": "# skill 186\n"
+        },
+        {
+          "mkdir": "many/s187"
+        },
+        {
+          "write": "many/s187/SKILL.md",
+          "text": "# skill 187\n"
+        },
+        {
+          "mkdir": "many/s188"
+        },
+        {
+          "write": "many/s188/SKILL.md",
+          "text": "# skill 188\n"
+        },
+        {
+          "mkdir": "many/s189"
+        },
+        {
+          "write": "many/s189/SKILL.md",
+          "text": "# skill 189\n"
+        },
+        {
+          "mkdir": "many/s190"
+        },
+        {
+          "write": "many/s190/SKILL.md",
+          "text": "# skill 190\n"
+        },
+        {
+          "mkdir": "many/s191"
+        },
+        {
+          "write": "many/s191/SKILL.md",
+          "text": "# skill 191\n"
+        },
+        {
+          "mkdir": "many/s192"
+        },
+        {
+          "write": "many/s192/SKILL.md",
+          "text": "# skill 192\n"
+        },
+        {
+          "mkdir": "many/s193"
+        },
+        {
+          "write": "many/s193/SKILL.md",
+          "text": "# skill 193\n"
+        },
+        {
+          "mkdir": "many/s194"
+        },
+        {
+          "write": "many/s194/SKILL.md",
+          "text": "# skill 194\n"
+        },
+        {
+          "mkdir": "many/s195"
+        },
+        {
+          "write": "many/s195/SKILL.md",
+          "text": "# skill 195\n"
+        },
+        {
+          "mkdir": "many/s196"
+        },
+        {
+          "write": "many/s196/SKILL.md",
+          "text": "# skill 196\n"
+        },
+        {
+          "mkdir": "many/s197"
+        },
+        {
+          "write": "many/s197/SKILL.md",
+          "text": "# skill 197\n"
+        },
+        {
+          "mkdir": "many/s198"
+        },
+        {
+          "write": "many/s198/SKILL.md",
+          "text": "# skill 198\n"
+        },
+        {
+          "mkdir": "many/s199"
+        },
+        {
+          "write": "many/s199/SKILL.md",
+          "text": "# skill 199\n"
+        },
+        {
+          "mkdir": "many/s200"
+        },
+        {
+          "write": "many/s200/SKILL.md",
+          "text": "# skill 200\n"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/many"
+          ]
+        },
+        {
+          "remove": "many/s200/SKILL.md"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/many"
+          ],
+          "save": "many"
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            "agent",
+            "active"
+          ]
+        }
+      ]
+    }
+  ]
+}

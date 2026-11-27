@@ -1,5 +1,8 @@
 # Large files — moving bytes in and out of M365
 
+For SharePoint and OneDrive work that is not about moving bytes (approvals waiting on you, who has
+access to a file, version history and restore, list items), use `sharepoint.md`.
+
 The Work IQ MCP `fetch_blob` tool caps at **4 MB** because payloads are base64-encoded over
 JSON-RPC. That is a transport limit, not a Graph limit. `scripts/m365_files.py` works around it.
 
@@ -21,7 +24,8 @@ do not work at all.
 
 ## Current status — read this first
 
-These are observations from the documented binding, not guarantees for every host or tenant.
+These are typical results for a Work IQ client registration without file write consent, not
+guarantees for every host or tenant.
 Discover the current tool contract and inspect granted scope before choosing a route. A denial
 remains blocked; this bridge must not be used to bypass a provider or organizational policy.
 
@@ -29,9 +33,9 @@ remains blocked; this bridge must not be used to bypass a provider or organizati
 |---|---|---|
 | **A** | M365 → `Margo_Files` (server-side copy) | ❌ blocked — no write scope |
 | **B** | local → `Margo_Files` (upload) | ❌ blocked — no write scope |
-| **C** | M365 → local disk (download) | ✅ **working**, verified at 143.8 MB in 13 s |
+| **C** | M365 → local disk (download) | ✅ **working**, including files well over 100 MB |
 
-**A and B lack write scope in the documented binding.** The `copy` and `put` commands exist,
+**A and B lack write scope in a typical registration.** The `copy` and `put` commands exist,
 but require **`Files.ReadWrite.All`** or `Sites.ReadWrite.All`. A reviewed change to app consent
 does not itself establish a successful transfer or grant approval of any particular write.
 The larger upload-session path has an additional token-audience limitation described below.
@@ -72,21 +76,21 @@ With the same account selected, `python3 scripts/m365_files.py logout` requests 
 removal. Confirm it is absent without exposing the token; zero exit status alone does not prove
 deletion. This does not revoke remote permissions or sign out the Work IQ MCP connection.
 
-**Recorded failures — do not retry or bypass a current policy denial:**
+**Known failures — do not retry or bypass a current policy denial:**
 
 - **Azure CLI** (`04b07795-…`) is not preauthorized against Graph for Files scopes →
   `AADSTS65002`. `az login --scope` fails the same way; it is a preauthorization problem,
   not a consent prompt.
-- **Device-code flow** was blocked in the observed tenant by Conditional Access →
+- **Device-code flow** can be blocked by a tenant's Conditional Access policy →
   `AADSTS53003`, even from a compliant device. `auth --device` exists, but is not a workaround
   for that denial.
 - **Binding the loopback listener to `127.0.0.1` while redirecting to `localhost`** silently
   times out: macOS resolves `localhost` to `::1` first. The redirect URI must say `127.0.0.1`.
 
-Granted scopes in the recorded binding: `Sites.Read.All`, `Mail.Read`, `Chat.Read`, `ChannelMessage.Read.All`,
-`ExternalItem.Read.All`, `People.Read.All`, `OnlineMeetingTranscript.Read.All`. Note there is no
-`User.Read`, so **`/me` returns 403** — don't use it as a health check. `Sites.Read.All` is
-sufficient for reading driveItems and their content.
+Typical granted scopes on that registration: `Sites.Read.All`, `Mail.Read`, `Chat.Read`,
+`ChannelMessage.Read.All`, `ExternalItem.Read.All`, `People.Read.All`,
+`OnlineMeetingTranscript.Read.All`. When there is no `User.Read`, **`/me` returns 403** — don't use
+it as a health check. `Sites.Read.All` is sufficient for reading driveItems and their content.
 
 ## C — download (working)
 
@@ -141,7 +145,8 @@ python3 scripts/m365_files.py put --drive <driveId> --item <itemId> --file <path
 ```
 
 Create the target item first (the MCP allowlist rejects the colon path form
-`/items/{parent}:/{name}:/createUploadSession`):
+`/items/{parent}:/{name}:/createUploadSession`). If you aren't sure of the body, run
+`workiq-get_schema` for `/drives/{driveId}/items/{folderId}/children` with the create operation:
 
 ```
 workiq-create_entity  /drives/{driveId}/items/{folderId}/children
@@ -149,16 +154,17 @@ workiq-create_entity  /drives/{driveId}/items/{folderId}/children
 ```
 
 **Avoid upload sessions here.** `createUploadSession` succeeds (send `{}` as the body — an `item`
-body returns 400 `invalidRequest`), but the returned `uploadUrl` points at
-`*.sharepoint-df.com/_api/v2.0/…` and rejects a Graph token with
+body returns 400 `invalidRequest`), but the returned `uploadUrl` points at the tenant's SharePoint
+host (for example `contoso.sharepoint.com/_api/v2.0/…`) and rejects a Graph token with
 `401 invalidAudienceUri`. It also rejects anonymous PUTs, contrary to the documented contract.
 The `upload` subcommand remains for >250 MB, but it needs a SharePoint-audience token that this
 app registration cannot obtain.
 
-## Tenant quirks — verified, contrary to documentation
+## Provider quirks — contrary to documentation
 
-Both were recorded with plain `curl`, independent of this script. Treat these as binding-specific
-evidence, not universal API behavior or instructions to reproduce a live write:
+Both reproduce with plain `curl`, independent of this script. Treat them as behavior to expect
+with this kind of registration, not universal API behavior or instructions to reproduce a live
+write:
 
 - **`@microsoft.graph.downloadUrlNoAuth` returns 401.** Documented as usable without an
   Authorization header. It is not.
@@ -174,7 +180,9 @@ which works correctly under 4 MB.
 ## Sharing
 
 **Never** done by the script. Sharing is visible to other people and needs explicit per-action
-approval every time.
+approval every time. The example below shows typical fields, not the schema; if you aren't sure of
+one, run `workiq-get_schema` for `/drives/{driveId}/items/{itemId}/invite` (action). To check who
+already has access before sharing, use `sharepoint.md` § Who has access.
 
 ```
 workiq-do_action  /drives/{driveId}/items/{itemId}/invite

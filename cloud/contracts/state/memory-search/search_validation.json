@@ -1,0 +1,601 @@
+{
+  "description": "MemorySearch.search argument validation in Python's order (query, limit, mode, entities, then the store's eligibility filters), binding errors, filters selecting by domain/usage/routine, and hybrid or semantic searches failing explicitly without the local embedding runtime (or skipping it when nothing is eligible).",
+  "steps": [
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "record",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "record",
+              "text": "Review preparation",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "record",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:record}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "drafting-only",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "drafting-only",
+              "text": "Review drafting only",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "allowed_uses": [
+                "drafting"
+              ]
+            },
+            "active"
+          ],
+          "save": "drafting-only",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:drafting-only}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "agent-note",
+            {
+              "domain": "agent",
+              "kind": "lesson",
+              "title": "agent-note",
+              "text": "Agent review lesson",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "agent-note",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:agent:agent-note}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "calendar-note",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "calendar-note",
+              "text": "Calendar review routine",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "routines": [
+                "calendar"
+              ]
+            },
+            "active"
+          ],
+          "save": "calendar-note",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:calendar-note}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            ""
+          ],
+          "kwargs": {}
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "   "
+          ],
+          "kwargs": {}
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "\n\t"
+          ],
+          "kwargs": {}
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          ],
+          "kwargs": {}
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            null
+          ],
+          "kwargs": {}
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            5
+          ],
+          "kwargs": {}
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            [
+              "review"
+            ]
+          ],
+          "kwargs": {}
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "limit": 0
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "limit": 51
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "limit": true
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "limit": "3"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "limit": 2.0
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "limit": null
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "limit": 50,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "fuzzy"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": null
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": [
+              "lexical"
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "entities": "project:one"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "entities": [
+              5
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "entities": {
+              "a": 1
+            }
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "entities": [
+              "Dana"
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "entities": [
+              ""
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "entities": [
+              "identity:not-json"
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "entities": [
+              "person:display name"
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "domain": "team"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "usage": "sending"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "usage": null
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "routine": " "
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "environment": [
+              "host"
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "domain": "agent"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "usage": "drafting"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "routine": "calendar"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review",
+            3,
+            null,
+            null,
+            "reasoning",
+            null,
+            null,
+            "lexical",
+            "extra"
+          ],
+          "kwargs": {}
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "lmit": 3
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "query": "x"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ]
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "semantic"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "semantic",
+            "domain": "agent",
+            "routine": "nothing-here"
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "routine": "none",
+            "domain": "agent",
+            "usage": "drafting"
+          }
+        }
+      ]
+    }
+  ]
+}

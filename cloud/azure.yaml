@@ -1,0 +1,21 @@
+name: margo-autopilot
+requiredVersions:
+  azd: ">=1.27.1"
+
+infra:
+  provider: bicep
+  path: infra
+
+hooks:
+  preprovision:
+    posix:
+      shell: sh
+      run: ./scripts/preprovision.sh
+      interactive: false
+      continueOnError: false
+  postprovision:
+    posix:
+      shell: sh
+      run: ./scripts/postprovision.sh
+      interactive: true
+      continueOnError: false

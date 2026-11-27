@@ -1,0 +1,394 @@
+{
+  "description": "Retention is bounded and never assumed: maintain() argument limits, nothing is erased without an approved policy, a reviewed policy's preview shows the due roots, retention_authorized checks the exact policy revision and due date, maintain pages with a cursor, erases due roots with their derived records and reports review-due records.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "old-a",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "a"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "old-b",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "b"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "derived",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${a.id}",
+                  "revision": "1"
+                }
+              ]
+            }
+          ],
+          "save": "d"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "lesson",
+            {
+              "domain": "agent",
+              "kind": "lesson",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "review_after": "2001-02-03T04:05:06.000007+00:00"
+            }
+          ],
+          "save": "lesson"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "reviewing",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "review_after": "2001-02-03T04:05:06.000007+00:00"
+            },
+            "active"
+          ],
+          "save": "rev"
+        },
+        {
+          "sql": "UPDATE memory_records SET updated_at=? WHERE kind='episode'",
+          "params": [
+            "2001-02-03T04:05:06.000007+00:00"
+          ]
+        },
+        {
+          "call": "maintain",
+          "on": "governance"
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            0
+          ]
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            1001
+          ]
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            "5"
+          ]
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            true
+          ]
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            null
+          ]
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            10,
+            5
+          ]
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            10,
+            ""
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "2001-02-03T04:05:06.000007+00:00"
+            },
+            0
+          ]
+        },
+        {
+          "call": "policy_preview",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {
+                "episode": 7,
+                "project": 3650
+              },
+              "review_days": {}
+            }
+          ],
+          "save": "ret"
+        },
+        {
+          "call": "set_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {
+                "episode": 7,
+                "project": 3650
+              },
+              "review_days": {}
+            },
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${ret.subject_id}",
+              "revision": 1,
+              "decision": "configure",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "2001-02-03T04:05:06.000007+00:00"
+            },
+            0
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "2001-02-03T04:05:06.000007+00:00"
+            },
+            true
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "2001-02-03T04:05:06.000007+00:00"
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "lesson",
+              "updated_at": "2001-02-03T04:05:06.000007+00:00"
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "project",
+              "updated_at": "${now}"
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "2001-02-03T04:05:06"
+            },
+            1
+          ]
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${b.id}",
+            1,
+            null
+          ],
+          "kwargs": {
+            "policy_revision": 2
+          }
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${rev.id}",
+            1,
+            null
+          ],
+          "kwargs": {
+            "policy_revision": 1
+          }
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            1
+          ],
+          "save": "page1"
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            1,
+            "${page1.next_cursor}"
+          ],
+          "save": "page2"
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            1,
+            "${page2.next_cursor}"
+          ]
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            10
+          ]
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "call": "list",
+          "on": "store"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

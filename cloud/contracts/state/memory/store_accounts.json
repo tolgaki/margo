@@ -1,0 +1,115 @@
+{
+  "description": "Accounts are isolated: the same key gives a different identity and one account cannot read or revise another's memory.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "same-key",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ],
+          "save": "mine"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "same-key",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ],
+          "save": "theirs",
+          "account": "different-synthetic-account@example.com"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${mine.id}"
+          ],
+          "account": "different-synthetic-account@example.com"
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "account": "different-synthetic-account@example.com"
+        },
+        {
+          "call": "health",
+          "on": "store",
+          "account": "different-synthetic-account@example.com"
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${mine.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "candidate",
+            1
+          ],
+          "account": "different-synthetic-account@example.com"
+        },
+        {
+          "call": "record_id",
+          "on": "store",
+          "args": [
+            "user",
+            "same-key"
+          ],
+          "account": "different-synthetic-account@example.com"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

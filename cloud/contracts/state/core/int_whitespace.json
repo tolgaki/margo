@@ -1,0 +1,14 @@
+{
+ "description": "int() (argparse type=int) strips only ASCII whitespace and the non-ASCII spaces _PyUnicode_TransformDecimalAndSpaceToASCII turns into ' ': the information separators U+001C..U+001F are str.isspace() but make the literal invalid (state consolidation; State.Core accepted them, as the router review found in Margo.Cloud.Core). Controls: ASCII whitespace, NEL and IDEOGRAPHIC SPACE are stripped.",
+ "steps": [
+  {"script": "state_core_probe.py", "args": ["args", "list", "--limit", "\u001c5"], "expect_exit": 0},
+  {"script": "state_core_probe.py", "args": ["args", "list", "--limit", "5\u001f"], "expect_exit": 0},
+  {"script": "state_core_probe.py", "args": ["args", "list", "--limit", "\u001d-7"], "expect_exit": 0},
+  {"script": "state_core_probe.py", "args": ["args", "show", "x", "--revision", "1_0\u001e"], "expect_exit": 0},
+  {"script": "state_core_probe.py", "args": ["args", "list", "--limit", " \t\u000b\f5\r\n"], "expect_exit": 0},
+  {"script": "state_core_probe.py", "args": ["args", "list", "--limit", "\u00855\u3000"], "expect_exit": 0},
+  {"script": "state_core_probe.py", "args": ["args", "list", "--limit", "\u2028\u0661\u0662"], "expect_exit": 0},
+  {"script": "work_state.py", "args": ["item-update", "item_missing", "--revision", "\u001c1", "--input", "-"], "stdin": {}, "expect_exit": 2},
+  {"script": "work_state.py", "args": ["item-update", "item_missing", "--revision", "\u00a01", "--input", "-"], "stdin": {}, "expect_exit": 2}
+ ]
+}

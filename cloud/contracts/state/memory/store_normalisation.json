@@ -1,0 +1,2347 @@
+{
+  "description": "memory_store._normalise_data: every validation message (unknown fields, domains, kinds, authorities, texts with Unicode whitespace, sensitivity, allowed uses, scoped entity keys and their regular expressions over Unicode, identity entities, routines, source references with file hashes, memory revisions as Unicode digits, verification times, duplicates and canonical ordering, metadata and environment requirements, non-finite numbers, identity objects, validity windows) and Python's key order of the result.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            null
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            "data"
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "lesson",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "zeta": 1,
+              "alpha": 2
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "team",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": [
+                "user"
+              ],
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": {
+                "user": 1
+              },
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": null,
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "note",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": [
+                "episode"
+              ],
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "told",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": null,
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": " \t　",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": 5,
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": null,
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "  ",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "sensitivity": "secret"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "sensitivity": null
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "sensitivity": [
+                "private"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "sensitivity": "public"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "allowed_uses": "reasoning"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "allowed_uses": [
+                "publishing"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "allowed_uses": [
+                ""
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "allowed_uses": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "allowed_uses": null
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "allowed_uses": []
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "allowed_uses": [
+                "reasoning",
+                "drafting",
+                "reasoning"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": "user"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "Dana"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "person:"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                ":person"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "person:display name"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "person:dana x"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "person:x\u001c"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "person:dana​"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "MEM_ab12"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "mem_"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "mem_AB"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "action_0f9e",
+                "rule_1",
+                "feedback_aa",
+                "meeting_00",
+                "outcome_ff",
+                "item_9",
+                "artifact_1a",
+                "mem_ab"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "user",
+                "person:Dana",
+                "a.b-c_d:x:y",
+                "z:é"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "1person:x"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "pxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx:y"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "pxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx:y"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "identity:[\"directory\",\"scope\",\"person-a\"]",
+                "identity:[ \"directory\" , \"scope\",\"person-a\" ]"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "identity:[\"directory\",\"scope\"]"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "identity:[\"directory\",\"scope\",1]"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "identity:[\"directory\",\" \",\"x\"]"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "identity:{bad"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "identity:"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "entities": [
+                "user",
+                "user",
+                "person:b",
+                "person:a"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "routines": "calendar"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "routines": [
+                "drafting",
+                "calendar",
+                "drafting"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "routines": [
+                " "
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": null
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": []
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": "tool:x"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                "tool:x"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "x",
+                  "zeta": 1,
+                  "alpha": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "web",
+                  "ref": "x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": [
+                    "file"
+                  ],
+                  "ref": "x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "ref": "x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": " "
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "/tmp/x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "/tmp/x",
+                  "revision": "ABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABAB"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "/tmp/x",
+                  "revision": "abababababababababababababababababababababababababababababababa"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "/tmp/x",
+                  "revision": 7
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "/tmp/x",
+                  "revision": "abababababababababababababababababababababababababababababababab"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "x",
+                  "revision": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "x",
+                  "revision": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "mem_1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "mem_1",
+                  "revision": "0"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "mem_1",
+                  "revision": "01"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "mem_1",
+                  "revision": "²"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "mem_1",
+                  "revision": "١"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "mem_1",
+                  "revision": " 1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "mem_1",
+                  "revision": "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "x",
+                  "verified_at": "2026-01-02T03:04:05Z"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "x",
+                  "verified_at": "2026-01-02 03:04"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "x",
+                  "verified_at": "2026-01-02T03:04:05+05:30"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "x"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "x",
+                  "verified_at": "2026-01-02T03:04:05Z"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "x",
+                  "revision": "1"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "x",
+                  "revision": "2"
+                },
+                {
+                  "kind": "file",
+                  "ref": "/b",
+                  "revision": "abababababababababababababababababababababababababababababababab"
+                },
+                {
+                  "kind": "user_statement",
+                  "ref": "said",
+                  "revision": "1"
+                },
+                {
+                  "ref": "zz",
+                  "kind": "work_source"
+                },
+                {
+                  "kind": "session_checkpoint",
+                  "ref": "[]",
+                  "revision": "r"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": null
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": []
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": {
+                "environment_requirements": "desktop"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": {
+                "environment": [
+                  "desktop"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": {
+                "environment_requirements": null,
+                "environment": "x"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": {
+                "environment": {
+                  "host": "desktop"
+                },
+                "z": [
+                  1,
+                  {
+                    "b": 2,
+                    "a": 1
+                  }
+                ],
+                "a": null
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": {
+                "value": NaN
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "metadata": {
+                "value": Infinity
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "identity": {}
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "identity": []
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "identity": {
+                "provider": "directory",
+                "scope": "x"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "identity": {
+                "scope": "s",
+                "provider": "p",
+                "external_id": " "
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "identity": {
+                "scope": 1,
+                "provider": " ",
+                "external_id": "x"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "identity": {
+                "provider": "directory",
+                "scope": "s",
+                "external_id": "person-a"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "valid_from": null,
+              "valid_to": null,
+              "review_after": null
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "valid_from": "2026-01-02T03:04:05Z",
+              "valid_to": "2026-01-03T00:00:00-05:00",
+              "review_after": "2026-01-02T03:04:05.123+01:00"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "valid_from": "2026-01-02",
+              "valid_to": "2027-01-01T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "valid_from": "2026-01-02T03:04:05+00:00",
+              "valid_to": "2026-01-02T03:04:05+00:00"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "valid_from": "2026-01-02T03:04:05+00:00",
+              "valid_to": "2026-01-02T04:04:05+01:00"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "valid_from": "2026-01-03T00:00:00+00:00",
+              "valid_to": "2026-01-02T00:00:00+00:00"
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "review_after": 7
+            }
+          ]
+        },
+        {
+          "call": "_normalise_data",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ],
+              "sensitivity": "sensitive",
+              "allowed_uses": [
+                "drafting"
+              ],
+              "routines": [
+                "drafting"
+              ],
+              "entities": [
+                "user"
+              ]
+            }
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

@@ -1,0 +1,1682 @@
+{
+ "description": "dream-start and dream-finish validation in Python's order: exact keys, run keys, windows, stale hashes, empty intakes and request refs (the task plan's own refusal); claim list bounds (count and 8000 characters), unknown or non-snapshot IDs, foreign attempts, claim keys/texts/types (unhashable), citation counts, IDs of every JSON type, revisions (bool, float, wrong, string), quotes (case-sensitive substring), duplicate claim keys, citations across events with no common use; then a run with deduplicated citations, public/private sensitivities, entities and a decision candidate, and a finish against the wrong snapshot's claim",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "task_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "cli": [
+      "policy-preview",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capture": {
+       "enabled": true,
+       "domains": [
+        "user"
+       ],
+       "kinds": [
+        "episode",
+        "decision"
+       ],
+       "scopes": [
+        "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+       ],
+       "source_kinds": [
+        "session_checkpoint",
+        "memory_record"
+       ]
+      },
+      "allow_sensitive": false,
+      "usage_enabled": false,
+      "usage_retention_days": 30,
+      "retention_days": {},
+      "review_days": {}
+     },
+     "save": "pp32"
+    },
+    {
+     "cli": [
+      "policy-set"
+     ],
+     "files": {
+      "--input": {
+       "capture": {
+        "enabled": true,
+        "domains": [
+         "user"
+        ],
+        "kinds": [
+         "episode",
+         "decision"
+        ],
+        "scopes": [
+         "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+        ],
+        "source_kinds": [
+         "session_checkpoint",
+         "memory_record"
+        ]
+       },
+       "allow_sensitive": false,
+       "usage_enabled": false,
+       "usage_retention_days": 30,
+       "retention_days": {},
+       "review_days": {}
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${pp32.subject_id}",
+       "revision": 1,
+       "decision": "configure",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "event"
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-2",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-2",
+      "text": "Alder needs review.",
+      "origin": "margo-session",
+      "sensitivity": "public",
+      "allowed_uses": [
+       "drafting",
+       "reasoning"
+      ],
+      "entities": [
+       "project:alder"
+      ],
+      "work_refs": []
+     },
+     "save": "event2"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      }
+     }
+    },
+    {
+     "cli": [
+      "dream-start",
+      "",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "x",
+      "request_ref": "r"
+     }
+    },
+    {
+     "cli": [
+      "dream-start",
+      "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "x",
+      "request_ref": "r"
+     }
+    },
+    {
+     "cli": [
+      "dream-start",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2999-01-01",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "x",
+      "request_ref": "r"
+     }
+    },
+    {
+     "cli": [
+      "dream-start",
+      "k",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "x",
+      "request_ref": "r"
+     }
+    },
+    {
+     "cli": [
+      "dream-start",
+      "empty",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-01-01",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 0,
+       "after": null
+      },
+      "snapshot_hash": "x",
+      "request_ref": "r"
+     }
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-01-01",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 0,
+      "after": null
+     },
+     "save": "emptyplan"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "empty",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-01-01",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 0,
+       "after": null
+      },
+      "snapshot_hash": "${emptyplan.snapshot_hash}",
+      "request_ref": "r"
+     }
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "badref"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "bad-ref",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${badref.snapshot_hash}",
+      "request_ref": ""
+     }
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_daily"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "daily",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_daily.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "started"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "x"
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": "not-a-list"
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k2",
+        "type": "question",
+        "text": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k3",
+        "type": "question",
+        "text": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k4",
+        "type": "question",
+        "text": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k5",
+        "type": "question",
+        "text": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "mem_unknown",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${event.id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "task_attempt_other",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       "claim"
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ],
+        "extra": 1
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": " ",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "preference",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": [
+         "question"
+        ],
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": null,
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": []
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": "x"
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         "x"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "mem_other",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": [
+           "x"
+          ],
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": {
+           "a": 1
+          },
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": 5,
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": true,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1.0,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 2,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": "1",
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": ""
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event2.id}",
+          "revision": 1,
+          "quote": "Alder"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_both"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "both",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_both.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "both"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${both.snapshot_id}",
+      "attempt_id": "${both.claim.attempt_id}",
+      "token": "${both.claim.token}",
+      "claims": [
+       {
+        "key": "a",
+        "type": "decision",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       },
+       {
+        "key": "b",
+        "type": "hypothesis",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event2.id}",
+          "revision": 1,
+          "quote": "Alder"
+         }
+        ]
+       },
+       {
+        "key": "c",
+        "type": "alternative",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         },
+         {
+          "id": "${event2.id}",
+          "revision": 1,
+          "quote": "Alder"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "k",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": 1,
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  }
+ ]
+}

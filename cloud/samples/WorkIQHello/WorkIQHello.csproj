@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The smallest custom agent client for Work IQ: sign in, list its tools, read the calendar, search with citations.
+       It uses only the MCP C# SDK and Azure.Identity, not Margo's projects. See README.md. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>WorkIQHello</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- A sample reads top to bottom: inline arrays and options are clearer here than cached fields. -->
+    <NoWarn>$(NoWarn);CA1861;CA1869</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.Core" />
+    <PackageReference Include="Azure.Identity" />
+  </ItemGroup>
+
+</Project>

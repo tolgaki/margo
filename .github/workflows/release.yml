@@ -65,7 +65,7 @@ jobs:
           file_v=$(tr -d ' \t\n\r' < VERSION)
           if [ "$v" != "$file_v" ]; then
             echo "::error::tag/input version ($v) does not match VERSION ($file_v)."
-            echo "::error::Bump VERSION in the same commit you tag, then re-tag."
+            echo "::error::Bump VERSION (and the plugin manifests, see tests/test_plugin_manifest.py) in the same commit you tag, then re-tag."
             exit 1
           fi
           echo "version $v matches VERSION" 

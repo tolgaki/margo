@@ -217,7 +217,7 @@ until a supported host can reliably checkpoint, provide bounded content and hono
 
 ## Correct, forget or recover
 
-A changed policy/source or competing, paused, cancelled or expired task claim blocks persistence.
+A changed policy/source or competing, paused, canceled or expired task claim blocks persistence.
 Re-plan under a new key; never force an old synthesis through. Exact successful finish retries are
 idempotent. If a response/token is lost, inspect the task with `task_state.py show`, use `recover`
 after lease expiry and cancel remaining work before starting a fresh bounded attempt. Existing

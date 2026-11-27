@@ -1,0 +1,231 @@
+using System.Text.Json.Nodes;
+using Margo.Cloud.State.Core;
+using Xunit;
+
+namespace Margo.Cloud.State.Tests;
+
+/// <summary>
+/// <c>json.loads(value)</c> of a value read from SQLite that is a BLOB (<see cref="PyNode.Loads"/>): CPython decodes bytes
+/// with <c>s.decode(json.detect_encoding(s), "surrogatepass")</c>, so UTF-8 with or without a signature, UTF-16 and
+/// UTF-32 (with or without a BOM) all load, encoded surrogates pass through, and errors name the detected codec. Only a
+/// hand-edited database holds such a value. Expected values are CPython 3.13.16 measurements (<c>json.dumps</c> of the
+/// result, or the exception class and <c>str()</c>); the review of the state consolidation found the port decoding every
+/// BLOB as strict UTF-8 (proactive/blob_values.json judges it through <c>queue-list</c>).
+/// </summary>
+public sealed class JsonBytesTests
+{
+    public static TheoryData<string, string> Cases => new()
+    {
+        { "", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "31", "OK:1" },
+        { "00", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "0000", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "00ff", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "ff", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 0: invalid start byte" },
+        { "31ff", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 1: invalid start byte" },
+        { "c080", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xc0 in position 0: invalid start byte" },
+        { "e08080", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xe0 in position 0: invalid continuation byte" },
+        { "f4908080", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xf4 in position 0: invalid continuation byte" },
+        { "f09f98", "UnicodeDecodeError:'utf-8' codec can't decode bytes in position 0-2: unexpected end of data" },
+        { "ed", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xed in position 0: unexpected end of data" },
+        { "eda0", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xed in position 0: invalid continuation byte" },
+        { "eda041", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xed in position 0: invalid continuation byte" },
+        { "ed9fbf", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "eda08080", "UnicodeDecodeError:'utf-8' codec can't decode byte 0x80 in position 3: invalid start byte" },
+        { "22eda08022", "OK:\"\\ud800\"" },
+        { "22edb0807822", "OK:\"\\udc00x\"" },
+        { "5b22eda080222c20315d", "OK:[\"\\ud800\", 1]" },
+        { "efbbbf7b7d", "OK:{}" },
+        { "efbbbfefbbbf7b7d", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "efbbbf", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "efbbbfff", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 0: invalid start byte" },
+        { "efbbbf3132e282", "UnicodeDecodeError:'utf-8' codec can't decode bytes in position 2-3: unexpected end of data" },
+        { "efbbbf22eda08022", "OK:\"\\ud800\"" },
+        { "7b7defbbbf", "JSONDecodeError:Extra data: line 1 column 3 (char 2)" },
+        { "fffe7b007d00", "OK:{}" },
+        { "fffe7b007d", "UnicodeDecodeError:'utf-16-le' codec can't decode byte 0x7d in position 4: truncated data" },
+        { "feff007b007d", "OK:{}" },
+        { "feff007b00", "UnicodeDecodeError:'utf-16-be' codec can't decode byte 0x00 in position 4: truncated data" },
+        { "feff", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "fffe", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "feff00", "UnicodeDecodeError:'utf-16-be' codec can't decode byte 0x00 in position 2: truncated data" },
+        { "fffefffe3100", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "7b007d00", "OK:{}" },
+        { "7b007d", "JSONDecodeError:Expecting property name enclosed in double quotes: line 1 column 2 (char 1)" },
+        { "007b007d", "OK:{}" },
+        { "007b007d00", "UnicodeDecodeError:'utf-16-be' codec can't decode byte 0x00 in position 4: truncated data" },
+        { "220000d82200", "OK:\"\\ud800\"" },
+        { "220000d800d82200", "OK:\"\\ud800\\ud800\"" },
+        { "220000dc2200", "OK:\"\\udc00\"" },
+        { "5b0000d8", "JSONDecodeError:Expecting value: line 1 column 2 (char 1)" },
+        { "5b0000d841", "UnicodeDecodeError:'utf-16-le' codec can't decode byte 0x41 in position 4: truncated data" },
+        { "5b0000d800dc41", "UnicodeDecodeError:'utf-16-le' codec can't decode byte 0x41 in position 6: truncated data" },
+        { "22003dd800de2200", "OK:\"\\ud83d\\ude00\"" },
+        { "220000dc00002200", "JSONDecodeError:Invalid control character at: line 1 column 3 (char 2)" },
+        { "00d84100", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "fffe00d8", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "fffe00dc0000", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "fffe00007b0000007d000000", "OK:{}" },
+        { "fffe00007b0000007d0000", "UnicodeDecodeError:'utf-32-le' codec can't decode bytes in position 8-10: truncated data" },
+        { "0000feff0000007b00", "UnicodeDecodeError:'utf-32-be' codec can't decode byte 0x00 in position 8: truncated data" },
+        { "0000feff0000005b0000005d", "OK:[]" },
+        { "0000007b0000007d", "OK:{}" },
+        { "7b0000007d000000", "OK:{}" },
+        { "7b0000007d0000", "UnicodeDecodeError:'utf-32-le' codec can't decode bytes in position 4-6: truncated data" },
+        { "00000000000000", "UnicodeDecodeError:'utf-32-be' codec can't decode bytes in position 4-6: truncated data" },
+        { "fffe0000", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "000000220000d80000000022", "OK:\"\\ud800\"" },
+        { "220000000000000122000000", "UnicodeDecodeError:'utf-32-le' codec can't decode bytes in position 4-7: code point not in range(0x110000)" },
+        { "22000000ffffffff2200000000", "UnicodeDecodeError:'utf-32-le' codec can't decode bytes in position 4-7: code point not in range(0x110000)" },
+        { "2200000000f6010022000000", "OK:\"\\ud83d\\ude00\"" },
+        { "7b2261223a205b312c20322e352c2022c3a9225d7d", "OK:{\"a\": [1, 2.5, \"\\u00e9\"]}" },
+        { "22f09f988022", "OK:\"\\ud83d\\ude00\"" },
+        { "efbbbf31", "OK:1" },
+        { "a07d2211ff2c3a", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 0: invalid start byte" },
+        { "c3a9ff", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 2: invalid start byte" },
+        { "223a", "JSONDecodeError:Unterminated string starting at: line 1 column 1 (char 0)" },
+        { "5bff31fe31c3a92c", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 1: invalid start byte" },
+        { "2031ed6161", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xed in position 2: invalid continuation byte" },
+        { "5b", "JSONDecodeError:Expecting value: line 1 column 2 (char 1)" },
+        { "61efbbbf2c2c7d11edefbbbf7d", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xed in position 8: invalid continuation byte" },
+        { "efbbbf22112222efbbbf5ba0", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 8: invalid start byte" },
+        { "11efbbbf5da011ed3a", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 5: invalid start byte" },
+        { "5b1180", "UnicodeDecodeError:'utf-8' codec can't decode byte 0x80 in position 2: invalid start byte" },
+        { "5d7b00d8", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xd8 in position 3: unexpected end of data" },
+        { "d8f09f9880a07bffd8", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xd8 in position 0: invalid continuation byte" },
+        { "7b7b2c3a2c", "JSONDecodeError:Expecting property name enclosed in double quotes: line 1 column 2 (char 1)" },
+        { "a0ed20", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 0: invalid start byte" },
+        { "002ca0", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 2: invalid start byte" },
+        { "5d", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "f09f9880", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "61fe00115b", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xfe in position 1: invalid start byte" },
+        { "a0d83af09f9880115b7b", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 0: invalid start byte" },
+        { "edf09f9880fe20", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xed in position 0: invalid continuation byte" },
+        { "ffefbbbf", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 0: invalid start byte" },
+        { "2011117ded20", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xed in position 4: invalid continuation byte" },
+        { "0011117d7bc3a97b3a", "UnicodeDecodeError:'utf-16-be' codec can't decode byte 0x3a in position 8: truncated data" },
+        { "2211c3a95ddcf09f9880a00061", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xdc in position 5: invalid continuation byte" },
+        { "2c5bffed20", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 2: invalid start byte" },
+        { "6111", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "2cc3a93a22d861fe", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xd8 in position 5: invalid continuation byte" },
+        { "3100efbbbf3afe7bf09f98807b", "UnicodeDecodeError:'utf-16-le' codec can't decode byte 0x7b in position 12: truncated data" },
+        { "31ff2cefbbbfed5ded", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 1: invalid start byte" },
+        { "dcefbbbfdc2cd8ff00", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xdc in position 0: invalid continuation byte" },
+        { "315bfed8feed", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xfe in position 2: invalid start byte" },
+        { "2c5d0022dc617d61", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xdc in position 4: invalid continuation byte" },
+        { "7d7dfe11ff7b31", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xfe in position 2: invalid start byte" },
+        { "3a618000", "UnicodeDecodeError:'utf-8' codec can't decode byte 0x80 in position 2: invalid start byte" },
+        { "ed00fe6120", "UnicodeDecodeError:'utf-16-le' codec can't decode byte 0x20 in position 4: truncated data" },
+        { "a0f09f9880", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 0: invalid start byte" },
+        { "222c2c5ded", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xed in position 4: unexpected end of data" },
+        { "7d5ba0a0", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 2: invalid start byte" },
+        { "5da0", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 1: invalid start byte" },
+        { "1120", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "11ff5b5bc3a92031315b", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 1: invalid start byte" },
+        { "dc7dc3a9d8", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xdc in position 0: invalid continuation byte" },
+        { "20c3a9", "JSONDecodeError:Expecting value: line 1 column 2 (char 1)" },
+        { "f09f9880c3a980", "UnicodeDecodeError:'utf-8' codec can't decode byte 0x80 in position 6: invalid start byte" },
+        { "fe31dc8061efbbbfdc61", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte" },
+        { "f09f988061efbbbf7d5d2c", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "a02cefbbbf20113a", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 0: invalid start byte" },
+        { "5b7d7d7b8011ed61", "UnicodeDecodeError:'utf-8' codec can't decode byte 0x80 in position 4: invalid start byte" },
+        { "d8eded3a5b5defbbbf", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xd8 in position 0: invalid continuation byte" },
+        { "31dc00dc", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xdc in position 1: invalid continuation byte" },
+        { "0011615bff22", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "7b00a03100", "UnicodeDecodeError:'utf-16-le' codec can't decode byte 0x00 in position 4: truncated data" },
+        { "d8", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xd8 in position 0: unexpected end of data" },
+        { "002ca0313a3a313a", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "22315b11002c2c20", "JSONDecodeError:Invalid control character at: line 1 column 4 (char 3)" },
+        { "31efbbbfefbbbff09f9880", "JSONDecodeError:Extra data: line 1 column 2 (char 1)" },
+        { "11", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "a0a0a0dcdcc3a9", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 0: invalid start byte" },
+        { "7befbbbf2cd86111dc", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xd8 in position 5: invalid continuation byte" },
+        { "feefbbbff09f988022802cdc61", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte" },
+        { "f09f98807dc3a9dc3a00c3a9", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xdc in position 7: invalid continuation byte" },
+        { "80", "UnicodeDecodeError:'utf-8' codec can't decode byte 0x80 in position 0: invalid start byte" },
+        { "7b", "JSONDecodeError:Expecting property name enclosed in double quotes: line 1 column 2 (char 1)" },
+        { "3a7b5d", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "5dff3af09f9880f09f98805bed2c11", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 1: invalid start byte" },
+        { "a0dc7d5d80", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 0: invalid start byte" },
+        { "5d00dc11a0f09f98803a5b", "UnicodeDecodeError:'utf-16-le' codec can't decode byte 0x5b in position 10: truncated data" },
+        { "fe7d7d7dc3a9", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte" },
+        { "205bf09f9880ed3af09f988000", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xed in position 6: invalid continuation byte" },
+        { "3a", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "dc22fe", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xdc in position 0: invalid continuation byte" },
+        { "c3a93131a07ba03a", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 4: invalid start byte" },
+        { "2261ed617b", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xed in position 2: invalid continuation byte" },
+        { "f09f98802cfe0020feefbbbf", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xfe in position 5: invalid start byte" },
+        { "2c", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "c3a9dc117bf09f988020ed80", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xdc in position 2: invalid continuation byte" },
+        { "00f09f98803ac3a9f09f988080c3a9", "UnicodeDecodeError:'utf-16-be' codec can't decode byte 0xa9 in position 14: truncated data" },
+        { "fe3a5b", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte" },
+        { "f09f9880f09f98802cfea0202c7d", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xfe in position 9: invalid start byte" },
+        { "ffff31", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 0: invalid start byte" },
+        { "225defbbbfa020", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 5: invalid start byte" },
+        { "2c5d", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "3af09f9880fff09f988061", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 5: invalid start byte" },
+        { "2c80312c", "UnicodeDecodeError:'utf-8' codec can't decode byte 0x80 in position 1: invalid start byte" },
+        { "5dc3a95bdc7bc3a9223180", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xdc in position 4: invalid continuation byte" },
+        { "5d00fec3a9efbbbf80", "UnicodeDecodeError:'utf-16-le' codec can't decode byte 0x80 in position 8: truncated data" },
+        { "7beda0ffdcf09f9880", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xed in position 1: invalid continuation byte" },
+        { "5b5d2031dc11", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xdc in position 4: invalid continuation byte" },
+        { "61317bfe22edff", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xfe in position 3: invalid start byte" },
+        { "2c2c2280ffa0", "UnicodeDecodeError:'utf-8' codec can't decode byte 0x80 in position 3: invalid start byte" },
+        { "61efbbbfa0edf09f9880805b", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 4: invalid start byte" },
+        { "31c3a9002c2c", "JSONDecodeError:Extra data: line 1 column 2 (char 1)" },
+        { "f09f9880207b20", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "fe5d2000f09f9880ff", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte" },
+        { "c3a9", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "efbbbfefbbbf5d5b313a20ff", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 8: invalid start byte" },
+        { "efbbbf5defbbbfa05bc3a922", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 4: invalid start byte" },
+        { "0011002061ff", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "207b11d8", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xd8 in position 3: unexpected end of data" },
+        { "ff2222ff22fffec3a9", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 0: invalid start byte" },
+        { "2c7defbbbf20c3a9ed2c", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xed in position 8: invalid continuation byte" },
+        { "a000ffffd861", "JSONDecodeError:Expecting value: line 1 column 1 (char 0)" },
+        { "ffc3a9a0dc7dff", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 0: invalid start byte" },
+        { "efbbbf0031d8ededf09f9880d8", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xd8 in position 2: invalid continuation byte" },
+        { "7b3af09f9880", "JSONDecodeError:Expecting property name enclosed in double quotes: line 1 column 2 (char 1)" },
+        { "22ff", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 1: invalid start byte" },
+        { "dc22", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xdc in position 0: invalid continuation byte" },
+        { "22222c5d2c22a0", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 6: invalid start byte" },
+        { "fe", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte" },
+        { "31d8fe8061d880c3a980", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xd8 in position 1: invalid continuation byte" },
+        { "2222", "OK:\"\"" },
+        { "22ff11dc", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 1: invalid start byte" },
+        { "31d83131edefbbbfefbbbf5bff", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xd8 in position 1: invalid continuation byte" },
+        { "31ff7bed80f09f988031", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 1: invalid start byte" },
+        { "ffd8207b2022", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xff in position 0: invalid start byte" },
+        { "203100a0d8", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xa0 in position 3: invalid start byte" },
+        { "203aefbbbf11d85da0ff", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xd8 in position 6: invalid continuation byte" },
+        { "efbbbf2061", "JSONDecodeError:Expecting value: line 1 column 2 (char 1)" },
+        { "31d8", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xd8 in position 1: unexpected end of data" },
+        { "5dc3a9f09f9880dc", "UnicodeDecodeError:'utf-8' codec can't decode byte 0xdc in position 7: unexpected end of data" },
+    };
+
+    [Theory]
+    [MemberData(nameof(Cases))]
+    public void Loads_of_bytes_detects_the_encoding_and_passes_surrogates(string hex, string expected)
+    {
+        string actual;
+        try
+        {
+            actual = "OK:" + PyJson.Dumps(PyNode.Loads(Convert.FromHexString(hex)));
+        }
+        catch (PyException error)
+        {
+            actual = error.PythonType + ":" + error.Message;
+        }
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void Loads_of_other_values_keeps_python_type_errors()
+    {
+        Assert.Equal("the JSON object must be str, bytes or bytearray, not int", Assert.Throws<PyTypeError>(() => PyNode.Loads(5L)).Message);
+        Assert.Equal("Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)",
+                     Assert.Throws<PyJsonDecodeError>(() => PyNode.Loads("﻿{}")).Message);
+        Assert.IsType<JsonObject>(PyNode.Loads("{}"));
+    }
+}

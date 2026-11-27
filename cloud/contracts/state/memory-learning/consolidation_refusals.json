@@ -1,0 +1,1860 @@
+{
+  "description": "surface_consolidation refusals in Python's order: plan shape, account, revision, content digest, proposal bounds, targets (unknown, stale, malformed), source fingerprints, parameters and a fresh plan that differs; a delivered page then replays as a no-op.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "one",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "one",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:one"
+                }
+              ]
+            }
+          ],
+          "save": "one"
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "p1"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            null
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {}
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "other@example.com",
+              "items": [
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {}
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {}
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "revision": 2
+            }
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {}
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "revision": true
+            }
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {}
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {}
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "revision": 1.0
+            }
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {}
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "revision": 1,
+              "subject_id": "consolidation:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {}
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "many_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {}
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${many_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": "x",
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "string_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": "x",
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${string_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                "item"
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "item_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                "item"
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${item_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": "x"
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "targets_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": "x"
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${targets_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {}
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "too_many_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {},
+                    {}
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${too_many_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    {
+                      "id": "mem_unknown",
+                      "revision": 1
+                    }
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "unknown_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    {
+                      "id": "mem_unknown",
+                      "revision": 1
+                    }
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${unknown_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    {
+                      "revision": 1
+                    }
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "no_id_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    {
+                      "revision": 1
+                    }
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${no_id_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    [
+                      "${one.id}",
+                      1
+                    ]
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "list_target_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    [
+                      "${one.id}",
+                      1
+                    ]
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${list_target_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    {
+                      "id": "${one.id}"
+                    }
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "no_revision_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    {
+                      "id": "${one.id}"
+                    }
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${no_revision_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    {
+                      "id": "${one.id}",
+                      "revision": 2
+                    }
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "stale_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    {
+                      "id": "${one.id}",
+                      "revision": 2
+                    }
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${stale_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    {
+                      "id": "${one.id}",
+                      "revision": 1
+                    }
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "fingerprint_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [
+                {
+                  "targets": [
+                    {
+                      "id": "${one.id}",
+                      "revision": 1
+                    }
+                  ]
+                }
+              ],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${fingerprint_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "empty_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${empty_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [],
+              "parameters": {
+                "limit": 10
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "parameters_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [],
+              "parameters": {
+                "limit": 10
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${parameters_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [],
+              "parameters": "x",
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "parameters_text_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [],
+              "parameters": "x",
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${parameters_text_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [],
+              "parameters": {
+                "limit": 0,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "zero_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [],
+              "parameters": {
+                "limit": 0,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${zero_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${p1}"
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${p1}"
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only"
+            }
+          ],
+          "save": "after_delivery_digest"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": [],
+              "parameters": {
+                "limit": 10,
+                "environment": null,
+                "after": null,
+                "scan_limit": 100
+              },
+              "scanned": 0,
+              "next_after": null,
+              "deduplication_scope": "exact_content_within_bounded_page_only",
+              "subject_id": "consolidation:${after_delivery_digest}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "sql": "SELECT key, value FROM memory_meta WHERE key LIKE 'learning:%' ORDER BY key"
+        }
+      ]
+    }
+  ]
+}

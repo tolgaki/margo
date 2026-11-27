@@ -1,0 +1,2243 @@
+{
+  "description": "tasks_probe: replanning (tests: replan_preview_is_exact_and_preserves_completed_steps, attempted_window_cannot_be_relabelled_by_replan, removed_action_later_execution_does_not_change_completed_task): previews only for paused runs with settled effects, the same goal/routine/request/mode, immutable completed and attempted steps and source windows, limits covering spent work, a subject bound to the exact plan and revision; replan with human evidence (wrong decision, subject, revision, missing), replay refused, steps added, removed (cancelled history) and reset, resume after replan, a removed action whose later execution does not change the completed task, and a changed binding invalidating approvals.",
+  "steps": [
+    {
+      "script": "tasks_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "write": "original.json",
+          "json": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "create",
+            "replan",
+            "--input",
+            "${dir}/original.json"
+          ],
+          "save": "run"
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${run.id}",
+            "--input",
+            "${dir}/original.json"
+          ]
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "first",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "claim"
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "local_result",
+              "reference": "private:done",
+              "summary": "Prepared."
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "second",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "second"
+        },
+        {
+          "cli": [
+            "pause",
+            "${run.id}",
+            "--reason",
+            "Review remaining work"
+          ]
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${run.id}"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+20m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${second.attempt_id}",
+            "token": "${second.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "local_result",
+              "reference": "private:prepared",
+              "summary": "Prepared.",
+              "definitive_no_effect": true
+            }
+          }
+        },
+        {
+          "write": "changed.json",
+          "json": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+20m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${run.id}",
+            "--input",
+            "${dir}/changed.json"
+          ],
+          "save": "preview"
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${run.id}"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+20m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Rewrite history",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${run.id}"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+20m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Changed attempted step",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${run.id}"
+          ],
+          "input": {
+            "goal": "Another goal",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+20m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${run.id}"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "automation:x",
+            "mode": "unattended",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+20m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${run.id}"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 1000,
+              "deadline_at": "${now+20m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "replan_preview",
+          "on": "store",
+          "args": [
+            "${run.id}",
+            "${preview.plan}"
+          ]
+        },
+        {
+          "write": "evidence.json",
+          "json": {
+            "kind": "human_confirmation",
+            "actor": "dana@example.com",
+            "subject_id": "${preview.subject_id}",
+            "revision": 1,
+            "decision": "replan",
+            "statement": "Confirm this exact synthetic fixture.",
+            "evidence_ref": "conversation:synthetic-task-test",
+            "decided_at": "${now}"
+          }
+        },
+        {
+          "write": "wrong-decision.json",
+          "json": {
+            "kind": "human_confirmation",
+            "actor": "dana@example.com",
+            "subject_id": "${preview.subject_id}",
+            "revision": 1,
+            "decision": "approve",
+            "statement": "Confirm this exact synthetic fixture.",
+            "evidence_ref": "conversation:synthetic-task-test",
+            "decided_at": "${now}"
+          }
+        },
+        {
+          "write": "wrong-subject.json",
+          "json": {
+            "kind": "human_confirmation",
+            "actor": "dana@example.com",
+            "subject_id": "task-replan:other",
+            "revision": 1,
+            "decision": "replan",
+            "statement": "Confirm this exact synthetic fixture.",
+            "evidence_ref": "conversation:synthetic-task-test",
+            "decided_at": "${now}"
+          }
+        },
+        {
+          "write": "wrong-revision.json",
+          "json": {
+            "kind": "human_confirmation",
+            "actor": "dana@example.com",
+            "subject_id": "${preview.subject_id}",
+            "revision": 2,
+            "decision": "replan",
+            "statement": "Confirm this exact synthetic fixture.",
+            "evidence_ref": "conversation:synthetic-task-test",
+            "decided_at": "${now}"
+          }
+        },
+        {
+          "cli": [
+            "replan",
+            "${run.id}",
+            "--input",
+            "${dir}/changed.json",
+            "--evidence",
+            "${dir}/wrong-decision.json"
+          ]
+        },
+        {
+          "cli": [
+            "replan",
+            "${run.id}",
+            "--input",
+            "${dir}/changed.json",
+            "--evidence",
+            "${dir}/wrong-subject.json"
+          ]
+        },
+        {
+          "cli": [
+            "replan",
+            "${run.id}",
+            "--input",
+            "${dir}/changed.json",
+            "--evidence",
+            "${dir}/wrong-revision.json"
+          ]
+        },
+        {
+          "cli": [
+            "replan",
+            "${run.id}",
+            "--input",
+            "${dir}/changed.json",
+            "--evidence",
+            "-"
+          ],
+          "stdin": "{}"
+        },
+        {
+          "cli": [
+            "replan",
+            "${run.id}",
+            "--input",
+            "${dir}/changed.json",
+            "--evidence",
+            "${dir}/evidence.json"
+          ],
+          "save": "applied"
+        },
+        {
+          "cli": [
+            "replan",
+            "${run.id}",
+            "--input",
+            "${dir}/changed.json",
+            "--evidence",
+            "${dir}/evidence.json"
+          ]
+        },
+        {
+          "cli": [
+            "history",
+            "${run.id}",
+            "--limit",
+            "2"
+          ]
+        },
+        {
+          "write": "extended.json",
+          "json": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+20m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "third",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "second"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${run.id}",
+            "--input",
+            "${dir}/extended.json"
+          ],
+          "save": "ext"
+        },
+        {
+          "write": "ext-evidence.json",
+          "json": {
+            "kind": "human_confirmation",
+            "actor": "dana@example.com",
+            "subject_id": "${ext.subject_id}",
+            "revision": 1,
+            "decision": "replan",
+            "statement": "Confirm this exact synthetic fixture.",
+            "evidence_ref": "conversation:synthetic-task-test",
+            "decided_at": "${now}"
+          }
+        },
+        {
+          "cli": [
+            "replan",
+            "${run.id}",
+            "--input",
+            "${dir}/extended.json",
+            "--evidence",
+            "${dir}/ext-evidence.json"
+          ]
+        },
+        {
+          "write": "removed.json",
+          "json": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+20m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "third",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${run.id}",
+            "--input",
+            "${dir}/removed.json"
+          ],
+          "save": "rem"
+        },
+        {
+          "write": "rem-evidence.json",
+          "json": {
+            "kind": "human_confirmation",
+            "actor": "dana@example.com",
+            "subject_id": "${rem.subject_id}",
+            "revision": 1,
+            "decision": "replan",
+            "statement": "Confirm this exact synthetic fixture.",
+            "evidence_ref": "conversation:synthetic-task-test",
+            "decided_at": "${now}"
+          }
+        },
+        {
+          "cli": [
+            "replan",
+            "${run.id}",
+            "--input",
+            "${dir}/removed.json",
+            "--evidence",
+            "${dir}/rem-evidence.json"
+          ],
+          "save": "after"
+        },
+        {
+          "cli": [
+            "resume"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "revision": "${after.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${run.id}"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "inflight"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          },
+          "save": "inf"
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${inf.id}"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${inf.id}",
+            "step_key": "first",
+            "revision": 1,
+            "plan_hash": "${inf.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "ic"
+        },
+        {
+          "cli": [
+            "pause",
+            "${inf.id}",
+            "--reason",
+            "Inspect"
+          ]
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${inf.id}"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${ic.attempt_id}",
+            "token": "${ic.token}",
+            "outcome": "outcome_unknown",
+            "result": {
+              "kind": "local_result",
+              "reference": "private:prepared",
+              "summary": "Prepared."
+            }
+          }
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${inf.id}"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "first",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "second",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "first"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "create",
+            "window-change"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              },
+              {
+                "key": "prepare",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "mail"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          },
+          "save": "win"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${win.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${win.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "wc"
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${wc.attempt_id}",
+            "token": "${wc.token}",
+            "event_id": "fetch",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 5,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "call": "coverage_page",
+          "on": "proactive",
+          "args": [
+            "${wc.coverage_attempt_id}",
+            {
+              "page": 1,
+              "observations": [
+                {
+                  "id": "synthetic-message",
+                  "revision": "v1"
+                }
+              ],
+              "final": true,
+              "continuation": null
+            }
+          ]
+        },
+        {
+          "call": "coverage_finish",
+          "on": "proactive",
+          "args": [
+            "${wc.coverage_attempt_id}",
+            {
+              "status": "complete",
+              "checkpoint_at": "${now}"
+            }
+          ]
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${wc.attempt_id}",
+            "token": "${wc.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${wc.coverage_attempt_id}",
+              "coverage": "complete",
+              "summary": "A sourced read result."
+            }
+          }
+        },
+        {
+          "cli": [
+            "pause",
+            "${win.id}",
+            "--reason",
+            "Expand the interval"
+          ]
+        },
+        {
+          "cli": [
+            "replan-preview",
+            "${win.id}"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1d}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              },
+              {
+                "key": "prepare",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [
+                  "mail"
+                ],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            "synthetic-message",
+            "1",
+            {
+              "summary": "Synthetic ask."
+            },
+            "https://example.com/source"
+          ],
+          "save": "src"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message",
+                "to": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic draft, never sent."
+              },
+              "why": "Fixture only",
+              "source_refs": [
+                "${src}"
+              ],
+              "target_fingerprint": "target-v1",
+              "work_item_id": null
+            }
+          ],
+          "save": "act"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act.id}",
+            1,
+            "${act.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "Confirm this exact synthetic fixture.",
+              "evidence_ref": "conversation:synthetic-task-test",
+              "decided_at": "${now}",
+              "action_hash": "${act.action_hash}"
+            },
+            "${now+5m}"
+          ]
+        },
+        {
+          "write": "action-plan.json",
+          "json": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "reply",
+                "title": "Deliver the approved reply",
+                "kind": "action",
+                "capability": "mail.reply",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "action_id": "${act.id}",
+                "action_revision": 1,
+                "action_hash": "${act.action_hash}"
+              },
+              {
+                "key": "prepare",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "create",
+            "removed-action",
+            "--input",
+            "${dir}/action-plan.json"
+          ],
+          "save": "ra"
+        },
+        {
+          "cli": [
+            "pause",
+            "${ra.id}",
+            "--reason",
+            "Do preparation only"
+          ]
+        },
+        {
+          "call": "replan_preview",
+          "on": "store",
+          "args": [
+            "${ra.id}",
+            {
+              "goal": "Prepare a useful synthetic result",
+              "routine": "daily-brief",
+              "request_ref": "conversation:synthetic-task-test",
+              "mode": "foreground",
+              "environment": {
+                "account": "${account}",
+                "host": "synthetic-cli",
+                "capabilities": {
+                  "mail.read": "v1",
+                  "local.prepare": "v1",
+                  "mail.reply": "v1"
+                },
+                "observed_at": "${now}"
+              },
+              "window": {
+                "start": "${now-1h}",
+                "end": "${now}"
+              },
+              "limits": {
+                "max_steps": 10,
+                "max_attempts_per_step": 3,
+                "max_parallel": 3,
+                "tool_calls": 10,
+                "pages": 10,
+                "items": 100,
+                "model_calls": 2,
+                "output_chars": 10000,
+                "deadline_at": "${now+10m}",
+                "lease_seconds": 30
+              },
+              "steps": [
+                {
+                  "key": "prepare",
+                  "title": "Prepare private output",
+                  "kind": "local",
+                  "capability": "local.prepare",
+                  "depends_on": [],
+                  "allow_partial": false,
+                  "cost": {
+                    "tool_calls": 0,
+                    "pages": 0,
+                    "items": 0,
+                    "model_calls": 0,
+                    "output_chars": 1000
+                  }
+                }
+              ]
+            }
+          ],
+          "save": "rap"
+        },
+        {
+          "call": "replan",
+          "on": "store",
+          "args": [
+            "${ra.id}",
+            "${rap.plan}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${rap.subject_id}",
+              "revision": 1,
+              "decision": "replan",
+              "statement": "Confirm this exact synthetic fixture.",
+              "evidence_ref": "conversation:synthetic-task-test",
+              "decided_at": "${now}"
+            }
+          ],
+          "save": "raa"
+        },
+        {
+          "call": "show",
+          "on": "ledger",
+          "args": [
+            "${act.id}"
+          ]
+        },
+        {
+          "cli": [
+            "resume"
+          ],
+          "input": {
+            "run_id": "${ra.id}",
+            "revision": "${raa.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${raa.id}",
+            "step_key": "prepare",
+            "revision": "${raa.steps.1.revision}",
+            "plan_hash": "${raa.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "rac"
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${rac.attempt_id}",
+            "token": "${rac.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "local_result",
+              "reference": "private:prepared",
+              "summary": "Prepared."
+            }
+          }
+        },
+        {
+          "call": "edit_action",
+          "on": "ledger",
+          "args": [
+            "${act.id}",
+            1,
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message",
+                "to": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic draft, never sent."
+              },
+              "why": "Fixture only",
+              "source_refs": [
+                "${src}"
+              ],
+              "target_fingerprint": "target-v1",
+              "work_item_id": null
+            }
+          ],
+          "save": "act2"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act2.id}",
+            2,
+            "${act2.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act2.id}",
+              "revision": 2,
+              "decision": "approve",
+              "statement": "Confirm this exact synthetic fixture.",
+              "evidence_ref": "conversation:synthetic-task-test",
+              "decided_at": "${now}",
+              "action_hash": "${act2.action_hash}"
+            },
+            "${now+5m}"
+          ]
+        },
+        {
+          "call": "begin",
+          "on": "ledger",
+          "args": [
+            "${act2.id}",
+            2,
+            {
+              "checked_at": "${now}",
+              "target_fingerprint": "target-v1",
+              "source_refs": [
+                "${src}"
+              ]
+            }
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "${ra.id}"
+          ]
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "args": [
+            "mail",
+            "inbox",
+            "synthetic-message",
+            "1",
+            {
+              "summary": "Synthetic ask."
+            },
+            "https://example.com/source"
+          ],
+          "save": "src"
+        },
+        {
+          "call": "propose",
+          "on": "ledger",
+          "args": [
+            {
+              "kind": "mail.reply",
+              "target": {
+                "message_id": "synthetic-message",
+                "to": [
+                  "dana@example.com"
+                ]
+              },
+              "payload": {
+                "body": "Synthetic draft, never sent."
+              },
+              "why": "Fixture only",
+              "source_refs": [
+                "${src}"
+              ],
+              "target_fingerprint": "target-v1",
+              "work_item_id": null
+            }
+          ],
+          "save": "act"
+        },
+        {
+          "call": "approve",
+          "on": "ledger",
+          "args": [
+            "${act.id}",
+            1,
+            "${act.action_hash}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${act.id}",
+              "revision": 1,
+              "decision": "approve",
+              "statement": "Confirm this exact synthetic fixture.",
+              "evidence_ref": "conversation:synthetic-task-test",
+              "decided_at": "${now}",
+              "action_hash": "${act.action_hash}"
+            },
+            "${now+5m}"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "rebind"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "reply",
+                "title": "Deliver the approved reply",
+                "kind": "action",
+                "capability": "mail.reply",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "action_id": "${act.id}",
+                "action_revision": 1,
+                "action_hash": "${act.action_hash}"
+              }
+            ]
+          },
+          "save": "rb"
+        },
+        {
+          "cli": [
+            "pause",
+            "${rb.id}",
+            "--reason",
+            "New host"
+          ]
+        },
+        {
+          "call": "replan_preview",
+          "on": "store",
+          "args": [
+            "${rb.id}",
+            {
+              "goal": "Prepare a useful synthetic result",
+              "routine": "daily-brief",
+              "request_ref": "conversation:synthetic-task-test",
+              "mode": "foreground",
+              "environment": {
+                "account": "${account}",
+                "host": "another-host",
+                "capabilities": {
+                  "mail.read": "v1",
+                  "local.prepare": "v1",
+                  "mail.reply": "v1"
+                },
+                "observed_at": "${now}"
+              },
+              "window": {
+                "start": "${now-1h}",
+                "end": "${now}"
+              },
+              "limits": {
+                "max_steps": 10,
+                "max_attempts_per_step": 3,
+                "max_parallel": 3,
+                "tool_calls": 10,
+                "pages": 10,
+                "items": 100,
+                "model_calls": 2,
+                "output_chars": 10000,
+                "deadline_at": "${now+10m}",
+                "lease_seconds": 30
+              },
+              "steps": [
+                {
+                  "key": "reply",
+                  "title": "Deliver the approved reply",
+                  "kind": "action",
+                  "capability": "mail.reply",
+                  "depends_on": [],
+                  "allow_partial": false,
+                  "cost": {
+                    "tool_calls": 1,
+                    "pages": 0,
+                    "items": 0,
+                    "model_calls": 0,
+                    "output_chars": 0
+                  },
+                  "action_id": "${act.id}",
+                  "action_revision": 1,
+                  "action_hash": "${act.action_hash}"
+                }
+              ]
+            }
+          ],
+          "save": "rbp"
+        },
+        {
+          "call": "replan",
+          "on": "store",
+          "args": [
+            "${rb.id}",
+            "${rbp.plan}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${rbp.subject_id}",
+              "revision": 1,
+              "decision": "replan",
+              "statement": "Confirm this exact synthetic fixture.",
+              "evidence_ref": "conversation:synthetic-task-test",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "show",
+          "on": "ledger",
+          "args": [
+            "${act.id}"
+          ]
+        },
+        {
+          "cli": [
+            "history",
+            "${rb.id}",
+            "--limit",
+            "1"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

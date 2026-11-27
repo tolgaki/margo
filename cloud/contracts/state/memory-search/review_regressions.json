@@ -1,0 +1,393 @@
+{
+  "description": "Review regressions on values Python accepts dynamically: section() returns constraints for a mandatory entry before reading its kind (and still rejects an unhashable kind otherwise), memory_entry keeps the mandatory value it is given, vector_bytes/decoded_vector compare dimensions with Python equality (integral floats and bools match, other values fail as in CPython), and a meeting's unhashable recap_retry status raises TypeError as Python's set membership does.",
+  "account": "parity-owner@example.com",
+  "steps": [
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "mandatory": true
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "mandatory": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "mandatory": 0
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "mandatory": 1,
+              "kind": [
+                "unhashable"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "section",
+          "on": "module",
+          "args": [
+            {
+              "mandatory": false,
+              "kind": [
+                "unhashable"
+              ]
+            }
+          ]
+        },
+        {
+          "call": "memory_entry",
+          "on": "module",
+          "args": [
+            {
+              "id": "m",
+              "revision": 1,
+              "domain": "user",
+              "kind": "fact",
+              "title": "t",
+              "text": "x",
+              "authority": "inferred",
+              "scope": "s",
+              "source_refs": []
+            },
+            [
+              "r"
+            ],
+            0
+          ]
+        },
+        {
+          "call": "memory_entry",
+          "on": "module",
+          "args": [
+            {
+              "id": "m",
+              "revision": 1,
+              "domain": "user",
+              "kind": "fact",
+              "title": "t",
+              "text": "x",
+              "authority": "inferred",
+              "scope": "s",
+              "source_refs": []
+            },
+            [
+              "r"
+            ]
+          ],
+          "kwargs": {
+            "mandatory": "yes"
+          }
+        },
+        {
+          "call": "memory_entry",
+          "on": "module",
+          "args": [
+            {
+              "id": "m",
+              "revision": 1,
+              "domain": "user",
+              "kind": "fact",
+              "title": "t",
+              "text": "x",
+              "authority": "inferred",
+              "scope": "s",
+              "source_refs": []
+            },
+            [
+              "r"
+            ],
+            null
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              3,
+              4
+            ],
+            2.0
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              2.5
+            ],
+            true
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1,
+              1
+            ],
+            2.5
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1,
+              1
+            ],
+            "2"
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1
+            ],
+            null
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [],
+            0.0
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000803f",
+            1.0
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000803f",
+            true
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000803f",
+            1.5
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000803f",
+            "1"
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000803f",
+            [
+              1
+            ]
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000803f",
+            null
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000803f",
+            {
+              "a": 1
+            }
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "",
+            0
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000803f00",
+            1.25
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "00",
+            0.25
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "",
+            -0.0
+          ]
+        },
+        {
+          "call": "decoded_vector",
+          "on": "module",
+          "args": [
+            "0000803f",
+            4
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            [
+              1
+            ],
+            1.0000000000000002
+          ]
+        },
+        {
+          "call": "vector_bytes",
+          "on": "module",
+          "args": [
+            5,
+            1
+          ]
+        },
+        {
+          "sql": "CREATE TABLE work_records (id TEXT, account TEXT, kind TEXT, revision INTEGER, state TEXT, data TEXT, updated_at TEXT)"
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES ('meeting_r1', ?, 'meeting', 1, 'prepped', ?, '2001-01-01T00:00:00+00:00')",
+          "params": [
+            "${account}",
+            "{\"title\": \"Recap list\", \"recap_retry\": {\"status\": [\"blocked\"]}}"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES ('meeting_r2', ?, 'meeting', 1, 'prepped', ?, '2001-01-01T00:00:00+00:00')",
+          "params": [
+            "${account}",
+            "{\"title\": \"Recap dict\", \"recap_retry\": {\"status\": {\"blocked\": 1}}}"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES ('meeting_r3', ?, 'meeting', 1, 'prepped', ?, '2001-01-01T00:00:00+00:00')",
+          "params": [
+            "${account}",
+            "{\"title\": \"Recap number\", \"recap_retry\": {\"status\": 1}}"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES ('meeting_r4', ?, 'meeting', 1, 'cancelled', ?, '2001-01-01T00:00:00+00:00')",
+          "params": [
+            "${account}",
+            "{\"title\": \"Cancelled list\", \"recap_retry\": {\"status\": [\"blocked\"]}}"
+          ]
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "meeting_r1"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "meeting_r2"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "meeting_r3",
+              "meeting_r4"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "meeting_r1"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

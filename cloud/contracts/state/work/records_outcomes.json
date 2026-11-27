@@ -1,0 +1,2384 @@
+{
+  "description": "work_state.py record-id/record for outcomes: idempotent replay, conditional edits, at most three agreed outcomes per week, human evidence for agreement and later transitions, negative decisions, ISO Monday weeks (including ISO week dates), due dates, every effort shape, required unknowns, work_item_ids iteration, state validation and put(**data) binding errors (tests: outcomes_unknowns_explicit_approval_and_three_limit, negative_evidence_never_confirms_work_or_outcomes).",
+  "steps": [
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-1",
+        "revision": "v1",
+        "evidence": {
+          "quote": "Please review the fictional specification."
+        },
+        "web_link": "https://example.com/mail/1"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "claim-1",
+        "data": {
+          "title": "Review fictional specification",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record-id",
+        "outcome",
+        "first"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record-id",
+        "meeting",
+        "occurrence-1",
+        "--json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record-id",
+        "rule",
+        ""
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record-id",
+        "feedback",
+        "  "
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "first",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": null,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "first",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": null,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "first",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Changed",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": null,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "nothere",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "first",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": null,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "agreed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_cd24b6a943246142e553fab1aff603e9",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "goal-0",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "agreed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_3e9770c1474650e157aa809a6795778c",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "goal-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "agreed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_2b8363436e02459aad59a9202a55b977",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "goal-2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "agreed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_ec36d357a3eeaaece7f4cbf177f79e72",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "fourth",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "agreed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_cd88418d63752227787a4460043994ac",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "fourth",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-14",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "agreed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_cd88418d63752227787a4460043994ac",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "goal-0",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "active"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "goal-0",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "active",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_3e9770c1474650e157aa809a6795778c",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "goal-0",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "achieved",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_3e9770c1474650e157aa809a6795778c",
+          "revision": 2,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "goal-0",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "active",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_3e9770c1474650e157aa809a6795778c",
+          "revision": 3,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "negative",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "agreed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_423db5ae3f9aef39a8fad419398a474a",
+          "revision": 1,
+          "decision": "reject",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-08",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": 5,
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": null,
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "tomorrow",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": 20260911,
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v-iso-week",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-W37-1",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "20260911",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": true,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": 0,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": -1.5,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 0,
+            "max_minutes": 5
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 10,
+            "max_minutes": 5
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": true,
+            "max_minutes": 5
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 5,
+            "max_minutes": "10"
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 5,
+            "max_minutes": 5,
+            "unit": "m"
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min": 1
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": "60",
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": [
+            60
+          ],
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v-float",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": 30.5,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v-big",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": 1208925819614629174706176,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v-range",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 0.5,
+            "max_minutes": 1180591620717411303424
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "agreed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_3cd3e8ae3b706a1bb5e2cb0f51d64c40",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v-owner",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": null,
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "agreed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_ec4d888fcdadbc40d2f788798b7a00f2",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v-none",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-21",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": null,
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "agreed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_a7711f1cd32ccf9aa1bf50b62030b65e",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v-alloc",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-21",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": "40%",
+          "blocker": null,
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "agreed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_4a7526fda308aedf7f1ac455a5d98215",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "work_item_ids": [
+            "item_missing"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "work_item_ids": "ab"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "work_item_ids": 5
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "work_item_ids": {
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c": true,
+            "item_missing": true
+          }
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v-items",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v9",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "done"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": [
+          "agreed"
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": "text"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {}
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "revision": 1
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "kind": "rule"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "identity": "x"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "stat": "agreed"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "v",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": {
+            "min_minutes": 60,
+            "max_minutes": 120
+          },
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "evidance": {}
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "first",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": null,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "deferred"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "first",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": null,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "proposed"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "first",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": null,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "proposed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "outcome_cd24b6a943246142e553fab1aff603e9",
+          "revision": 2,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "first",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": null,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "cancelled"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "first",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": null,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "proposed"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "first",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": null,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "cancelled"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "outcome",
+        "first",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "week": "2026-09-07",
+          "title": "Fictional delivery",
+          "owner": "alex@example.com",
+          "definition_of_done": "Review accepted",
+          "due": "2026-09-11",
+          "effort": null,
+          "next_step": "Read the specification",
+          "allocation": null,
+          "blocker": "Awaiting specification",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        },
+        "state": "cancelled"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "outcome_cd24b6a943246142e553fab1aff603e9"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "history",
+        "outcome_cd24b6a943246142e553fab1aff603e9"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "approval"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "all"
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

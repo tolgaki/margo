@@ -14,13 +14,15 @@ to [the how-to guides](how-to/README.md). For every capability and its availabil
 
 ## 1. Set up a small, private starting point
 
-You need Copilot CLI, a connected Work IQ MCP server, a Microsoft 365 work account, and Python
-3.9+. Begin with the normal **copy installation**. Keep real preferences and account state
+You need GitHub Copilot CLI, a Microsoft 365 work account with a Microsoft 365 Copilot license, the
+Work IQ MCP server registered and signed in ([what you need](getting-started.md#what-you-need) and
+[Connect Work IQ](getting-started.md#2-connect-work-iq)), and Python 3.9+. Begin with the normal **copy installation**. Keep real preferences and account state
 outside the repository; a contributor's linked checkout is not the place for your mailbox data.
 
 Follow [Getting started](getting-started.md) to complete three distinct steps:
 
-1. Install the Margo agent and chief-of-staff skill, then select Margo with
+1. Install the Margo agent and chief-of-staff skill (with the installer, or
+   [as a plugin](getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex)), then select Margo with
    `copilot --agent margo` or the host's agent picker. Extra skills and review panels are optional.
 2. Confirm which account Work IQ is signed into with a bounded read.
 3. Configure that confirmed account as the owner of the private local ledger.
@@ -85,7 +87,7 @@ When you do want to send, approve the exact displayed recipient and content. A c
 recipient, attachment, text, or action revision requires a new decision. Before executing,
 Margo checks the current target and relevant evidence again.
 
-**Afterwards, look for the result, not just the intention.** A successful receipt records what
+**Afterward, look for the result, not just the intention.** A successful receipt records what
 happened. A failure should be explicit. If the send timed out and its effect is unknown, ask
 Margo to reconcile the outcome; do not ask it to repeat the send blindly.
 
@@ -173,7 +175,7 @@ For the launch review, an outcome might be "agree the rollout decision by Friday
 definition of done, owner, and effort estimate you confirm. Missing effort or calendar coverage
 makes feasibility unknown; an empty-looking calendar is not automatically available capacity.
 
-If this rhythm is useful, add **one scheduled anchor first**, usually the morning brief.
+If this rhythm is useful, add **one scheduled anchor first** (a run at a fixed time that makes a brief ready for you), usually the morning brief.
 Review its prompt, cadence, time zone, host availability, and output location before enabling
 it. Adding an installer or editing preferences does not itself create a schedule.
 
@@ -187,7 +189,7 @@ the scheduler exited successfully.
 
 ## 7. Add features when there is a reason
 
-The [full feature index](features.md#full-feature-index) lists all 68 catalog entries. These
+The [full feature index](features.md#full-feature-index) lists all 81 catalog entries. These
 are the next destinations once the daily loop is useful.
 
 | Your need | Features to explore | Extra setup or important boundary |

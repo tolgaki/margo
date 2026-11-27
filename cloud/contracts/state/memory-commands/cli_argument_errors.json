@@ -1,0 +1,319 @@
+{
+ "description": "memory_state.py argparse errors for every kind of option (choices, required, type=int, nargs, store_true, append) and long-option abbreviations; the abbreviated read commands fail on the missing store",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "record-id",
+    "team",
+    "k"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "record-id",
+    "user"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "put",
+    "k"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "put",
+    "k",
+    "--input",
+    "-",
+    "--revision",
+    "x"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "put",
+    "k",
+    "--input",
+    "-",
+    "--revision",
+    "1.5"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "revise",
+    "mem_x",
+    "--input",
+    "-"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "list",
+    "--domain",
+    "team"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "graph"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "graph",
+    "id",
+    "--usage",
+    "acting"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "graph",
+    "id",
+    "--depth",
+    "two"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "search",
+    "a",
+    "b"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "search",
+    "q",
+    "--mode",
+    "fuzzy"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "context",
+    "q",
+    "--work-id"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "index",
+    "--rebuild",
+    "yes"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "forget",
+    "id",
+    "--revision",
+    "1"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "link",
+    "a",
+    "b",
+    "--relation",
+    "likes",
+    "--revision",
+    "1"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "link",
+    "a",
+    "b",
+    "--revision",
+    "1"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "unlink",
+    "a",
+    "b",
+    "--relation",
+    "about",
+    "--revision",
+    "1"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "policy-set",
+    "--input",
+    "-"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "maintain",
+    "--limit"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "tombstones-restore",
+    "--input",
+    "-"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "export",
+    "id",
+    "--input",
+    "-",
+    "--evidence",
+    "-"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "preferences-import",
+    "path"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "validate-capability",
+    "id",
+    "--revision",
+    "1"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "activate-lesson",
+    "id",
+    "--evidence",
+    "-"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-start",
+    "--input",
+    "-"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-status",
+    "--host",
+    "h"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-plan"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "record-id",
+    "user",
+    "key-a"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-status",
+    "--ho",
+    "h",
+    "--work",
+    "w"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "search",
+    "q",
+    "--mo",
+    "lexical",
+    "--lim",
+    "3"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "context",
+    "--budget",
+    "10",
+    "--wo",
+    "x",
+    "q"
+   ],
+   "expect_exit": 2
+  }
+ ]
+}

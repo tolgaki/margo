@@ -117,10 +117,23 @@ write_manifest() {
 }
 
 # Pin metadata and payload to the same commit, even if the branch moves mid-update.
+# The one call to GitHub's API. Anonymous calls are limited to 60 an hour for each IP address, which a shared
+# address (a CI runner, an office network) can use up. When GH_TOKEN or GITHUB_TOKEN is already set, it is sent
+# with this call, and only this call, for the higher limit. It goes to curl on standard input, never on the
+# command line, where other users of the machine could see it. If GitHub refuses the token, the call is made
+# once more without it: this only reads a public commit ID.
 remote_revision() {
   command -v curl >/dev/null 2>&1 || return 1
-  revision=$(curl -fsSL --max-time 15 -H 'Accept: application/vnd.github.sha' \
-    "https://api.github.com/repos/$REPO_SLUG/commits/$BRANCH") || return 1
+  api="https://api.github.com/repos/$REPO_SLUG/commits/$BRANCH"
+  token=${GH_TOKEN:-${GITHUB_TOKEN:-}}
+  revision=
+  if [ -n "$token" ]; then
+    revision=$(printf 'Authorization: Bearer %s\n' "$token" \
+      | curl -fsSL --max-time 15 -H 'Accept: application/vnd.github.sha' -H @- "$api") || revision=
+  fi
+  if [ -z "$revision" ]; then
+    revision=$(curl -fsSL --max-time 15 -H 'Accept: application/vnd.github.sha' "$api") || return 1
+  fi
   [ "${#revision}" -eq 40 ] || return 1
   printf '%s' "$revision" | grep -Eq '^[0-9a-f]{40}$' || return 1
   printf '%s' "$revision"
@@ -684,6 +697,12 @@ cmd_install() {
     die "--link needs a real clone; it can't link to a temporary download"
   fi
 
+  if [ "$DRY_RUN" -eq 0 ]; then
+    # Margo's private state lives under this folder, and its state helpers refuse a root with any group- or
+    # world-writable folder above it. A umask of 002 (common on Linux desktops) would otherwise make this one such.
+    mkdir -p "$DEST" && chmod go-w "$DEST" 2>/dev/null || true
+  fi
+
   step "Agent"
   install_agent
 
@@ -702,6 +721,12 @@ cmd_install() {
     warn "no python3 ≥ 3.9 on PATH — the bundled scripts won't run"
   fi
 
+  if command -v copilot >/dev/null 2>&1; then
+    ok "copilot (GitHub Copilot CLI)"
+  else
+    warn "copilot not found on PATH — install GitHub Copilot CLI to run Margo (see docs/getting-started.md)"
+  fi
+
   if [ "$MODE" = "link" ]; then
     warn "linked install: preferences.md, state/ and automations/ now live in your clone"
     info "     ${DIM}uncomment the personal-data lines in .gitignore before filling them in${N}"
@@ -716,12 +741,18 @@ cmd_install() {
 
   printf '\n%sInstalled%s %s\n\n' "$G$B" "$N" "$(source_version)"
   info "Next:"
-  info "  1. ${B}\$EDITOR $DEST/skills/chief-of-staff/preferences.md${N}"
+  info "  1. Connect Work IQ in Copilot CLI (once): run ${B}copilot${N}, then"
+  info "     ${B}/plugin marketplace add microsoft/work-iq${N} and ${B}/plugin install workiq@work-iq${N};"
+  info "     ${DIM}restart, sign in with your work account, and check that ${B}/mcp${N}${DIM} lists workiq${N}"
+  info "  2. ${B}\$EDITOR $DEST/skills/chief-of-staff/preferences.md${N}"
   info "     ${DIM}fill in About me, VIPs, the priority ladder, and your drafting voice${N}"
-  info "  2. Start the agent: ${B}copilot --agent margo${N}"
+  info "  3. ${B}python3 \"$DEST/skills/chief-of-staff/scripts/margo_store.py\" init --account you@example.com${N}"
+  info "     ${DIM}your work address: creates Margo's private records${N}"
+  info "  4. Start the agent: ${B}copilot --agent margo${N}"
   info "     Then ask: ${B}Brief me.${N}"
-  info "  3. ${B}$DEST/tools/margo-scheduled.sh list${N}"
+  info "  5. ${B}$DEST/tools/margo-scheduled.sh list${N}"
   info "     ${DIM}the scheduled runs — start with the morning brief, add the rest later${N}"
+  info "  ${DIM}Using Claude Code instead? See docs/how-to/run-in-claude-code.md${N}"
   info "  Files only: private-state migration, saved app workflow sync, and extension/session reload"
   info "  are separate steps. Capture and schedules are not enabled by installation."
   info "  Existing memory v1 needs an explicit backed-up, paused-writer migration:"

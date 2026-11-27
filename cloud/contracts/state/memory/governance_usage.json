@@ -1,0 +1,797 @@
+{
+  "description": "Usage events are opt-in, minimal (IDs and revisions only), validated, replay-safe (a replay may not change routine, outcome or refs), pruned when a memory is forgotten and expired by bounded maintenance after the retention period.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "usage",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "row"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "other",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Other",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "other"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Candidate",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ],
+          "save": "cand"
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting"
+          ]
+        },
+        {
+          "call": "policy_preview",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": true,
+              "usage_retention_days": 1,
+              "retention_days": {},
+              "review_days": {}
+            }
+          ],
+          "save": "usage"
+        },
+        {
+          "call": "set_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": false,
+                "domains": [],
+                "kinds": [],
+                "scopes": [],
+                "source_kinds": []
+              },
+              "allow_sensitive": false,
+              "usage_enabled": true,
+              "usage_retention_days": 1,
+              "retention_days": {},
+              "review_days": {}
+            },
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${usage.subject_id}",
+              "revision": 1,
+              "decision": "configure",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [],
+            "drafting"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            "refs",
+            "drafting"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting",
+            "ignored"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting",
+            [
+              "used"
+            ]
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            " "
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting",
+            "used",
+            5
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting",
+            "used",
+            " "
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}"
+              }
+            ],
+            "drafting"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              [
+                "${row.id}",
+                1
+              ]
+            ],
+            "drafting"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 2
+              }
+            ],
+            "drafting"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": true
+              }
+            ],
+            "drafting"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1.0
+              }
+            ],
+            "drafting"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${cand.id}",
+                "revision": 1
+              }
+            ],
+            "drafting"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "mem_unknown",
+                "revision": 1
+              }
+            ],
+            "drafting"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": 5,
+                "revision": 1
+              }
+            ],
+            "drafting"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting",
+            "used",
+            "synthetic-usage"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting",
+            "used",
+            "synthetic-usage"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "calendar",
+            "used",
+            "synthetic-usage"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting",
+            "helpful",
+            "synthetic-usage"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${other.id}",
+                "revision": 1
+              },
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting",
+            "corrected",
+            "pair"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              },
+              {
+                "id": "${other.id}",
+                "revision": 1
+              }
+            ],
+            "drafting",
+            "corrected",
+            "pair"
+          ]
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting",
+            "discarded",
+            ""
+          ],
+          "save": "generated"
+        },
+        {
+          "call": "record_usage",
+          "on": "store",
+          "args": [
+            [
+              {
+                "id": "${row.id}",
+                "revision": 1
+              }
+            ],
+            "drafting"
+          ],
+          "kwargs": {
+            "event_id": 0
+          }
+        },
+        {
+          "call": "usage",
+          "on": "store",
+          "args": [
+            "${row.id}"
+          ]
+        },
+        {
+          "call": "usage",
+          "on": "store",
+          "args": [
+            "${other.id}",
+            1
+          ]
+        },
+        {
+          "call": "usage",
+          "on": "store",
+          "args": [
+            "${row.id}",
+            0
+          ]
+        },
+        {
+          "call": "usage",
+          "on": "store",
+          "args": [
+            "${row.id}",
+            101
+          ]
+        },
+        {
+          "call": "usage",
+          "on": "store",
+          "args": [
+            "${row.id}",
+            "1"
+          ]
+        },
+        {
+          "call": "usage",
+          "on": "store",
+          "args": [
+            "mem_unknown"
+          ]
+        },
+        {
+          "call": "usage",
+          "on": "store",
+          "args": [
+            5
+          ]
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${row.id}",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${row.id}",
+              "revision": 1,
+              "decision": "forget",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "usage",
+          "on": "store",
+          "args": [
+            "${other.id}"
+          ]
+        },
+        {
+          "sql": "SELECT id,refs,outcome FROM memory_usage ORDER BY id"
+        },
+        {
+          "sql": "UPDATE memory_usage SET created_at=?",
+          "params": [
+            "2001-02-03T04:05:06.000007+00:00"
+          ]
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            1
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM memory_usage"
+        },
+        {
+          "call": "maintain",
+          "on": "governance",
+          "args": [
+            1
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM memory_usage"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

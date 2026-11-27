@@ -1,0 +1,749 @@
+{
+  "description": "MemorySearch construction over every index schema state: missing (read-only inspection, writable creation), incomplete, incompatible columns, unsupported versions and keyword metadata, a missing FTS table repaired from the documents (and refused read-only), the bounded lexical backend when fts5=0, wrong FTS columns, unknown objects blocking a rebuild, views, LIKE wildcards in the schema probe, read-only maintenance refusals, health in each state, and a rebuild inside a caller's transaction.",
+  "steps": [
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "indexless",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "indexless",
+              "text": "Indexless lexical context",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "indexless",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:indexless}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "call": "health",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "sql": "SELECT type,name FROM sqlite_master WHERE name LIKE 'semantic%' ORDER BY name",
+          "params": []
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "read_only": true,
+          "args": [
+            "Indexless"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "read_only": true,
+          "args": [
+            "mem_unknown"
+          ]
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "read_only": true,
+          "args": [
+            "Indexless"
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "read_only": true,
+          "args": [
+            "Indexless"
+          ],
+          "kwargs": {
+            "mode": "semantic"
+          },
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "purge_unavailable",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "read_only": true,
+          "rebuild_schema": true
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "sql": "SELECT type,name FROM sqlite_master WHERE name LIKE 'semantic%' ORDER BY name",
+          "params": []
+        },
+        {
+          "sql": "SELECT key,value FROM semantic_meta ORDER BY key",
+          "params": []
+        },
+        {
+          "call": "health",
+          "on": "search"
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "call": "purge_unavailable",
+          "on": "search"
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_fts",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_vectors",
+          "params": []
+        },
+        {
+          "sql": "DROP VIEW IF EXISTS semantic_vectors",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_documents",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_meta",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_extra",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semanticXlike",
+          "params": []
+        },
+        {
+          "sql": "CREATE TABLE semantic_meta(key TEXT PRIMARY KEY,value TEXT NOT NULL)",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "rebuild_schema": true
+        },
+        {
+          "sql": "SELECT type,name FROM sqlite_master WHERE name LIKE 'semantic%' ORDER BY name",
+          "params": []
+        },
+        {
+          "sql": "SELECT key,value FROM semantic_meta ORDER BY key",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_fts",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_vectors",
+          "params": []
+        },
+        {
+          "sql": "DROP VIEW IF EXISTS semantic_vectors",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_documents",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_meta",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_extra",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semanticXlike",
+          "params": []
+        },
+        {
+          "sql": "CREATE TABLE semantic_meta(key TEXT PRIMARY KEY,value TEXT NOT NULL)",
+          "params": []
+        },
+        {
+          "sql": "CREATE TABLE semantic_vectors(memory_id TEXT PRIMARY KEY,revision INTEGER,model_fingerprint TEXT,text_hash TEXT,dimensions INTEGER,vector BLOB,indexed_at TEXT)",
+          "params": []
+        },
+        {
+          "sql": "CREATE TABLE semantic_documents(memory_id TEXT PRIMARY KEY,revision INTEGER,content TEXT,extra TEXT)",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "rebuild_schema": true
+        },
+        {
+          "sql": "SELECT type,name FROM sqlite_master WHERE name LIKE 'semantic%' ORDER BY name",
+          "params": []
+        },
+        {
+          "sql": "UPDATE semantic_meta SET value='2' WHERE key='version'",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "rebuild_schema": true
+        },
+        {
+          "sql": "SELECT key,value FROM semantic_meta ORDER BY key",
+          "params": []
+        },
+        {
+          "sql": "UPDATE semantic_meta SET value='yes' WHERE key='fts5'",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "sql": "DELETE FROM semantic_meta WHERE key='fts5'",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "rebuild_schema": true
+        },
+        {
+          "sql": "UPDATE semantic_meta SET value='0' WHERE key='fts5'",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "sql": "UPDATE semantic_meta SET value=1 WHERE key='fts5'",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "indexed",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "indexed",
+              "text": "Review preparation keeps decisions calm.",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "indexed",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:indexed}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "sql": "DROP TABLE semantic_fts",
+          "params": []
+        },
+        {
+          "sql": "SELECT type,name FROM sqlite_master WHERE name LIKE 'semantic%' ORDER BY name",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "read_only": true,
+          "args": [
+            "preparation"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "sql": "SELECT type,name FROM sqlite_master WHERE name LIKE 'semantic%' ORDER BY name",
+          "params": []
+        },
+        {
+          "sql": "SELECT memory_id,content FROM semantic_fts",
+          "params": []
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "preparation"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "sql": "DROP TABLE semantic_fts",
+          "params": []
+        },
+        {
+          "sql": "UPDATE semantic_meta SET value='0' WHERE key='fts5'",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "call": "health",
+          "on": "search"
+        },
+        {
+          "call": "search",
+          "on": "search",
+          "args": [
+            "preparation calm"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "call": "purge_unavailable",
+          "on": "search"
+        },
+        {
+          "sql": "CREATE VIRTUAL TABLE semantic_fts USING fts5(memory_id UNINDEXED,content)",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "rebuild_schema": true
+        },
+        {
+          "sql": "SELECT type,name FROM sqlite_master WHERE name LIKE 'semantic%' ORDER BY name",
+          "params": []
+        },
+        {
+          "sql": "SELECT key,value FROM semantic_meta ORDER BY key",
+          "params": []
+        },
+        {
+          "call": "health",
+          "on": "search"
+        },
+        {
+          "sql": "DROP TABLE semantic_fts",
+          "params": []
+        },
+        {
+          "sql": "CREATE VIRTUAL TABLE semantic_fts USING fts5(memory_id,body)",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "rebuild_schema": true
+        },
+        {
+          "sql": "SELECT memory_id,content FROM semantic_fts",
+          "params": []
+        },
+        {
+          "sql": "CREATE TABLE semantic_extra(x)",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "rebuild_schema": true
+        },
+        {
+          "sql": "UPDATE semantic_meta SET value='3' WHERE key='version'",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "rebuild_schema": true
+        },
+        {
+          "sql": "DROP TABLE semantic_extra",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "rebuild_schema": true
+        },
+        {
+          "sql": "DROP TABLE semantic_vectors",
+          "params": []
+        },
+        {
+          "sql": "CREATE VIEW semantic_vectors AS SELECT memory_id,revision,'m' AS model_fingerprint,'h' AS text_hash,1 AS dimensions,x'00' AS vector FROM semantic_documents",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "read_only": true
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "rebuild_schema": true
+        },
+        {
+          "sql": "SELECT type,name FROM sqlite_master WHERE name LIKE 'semantic%' ORDER BY name",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_fts",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_vectors",
+          "params": []
+        },
+        {
+          "sql": "DROP VIEW IF EXISTS semantic_vectors",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_documents",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_meta",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semantic_extra",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS semanticXlike",
+          "params": []
+        },
+        {
+          "sql": "CREATE TABLE semanticXlike(x)",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "call": "state",
+          "on": "search",
+          "rebuild_schema": true
+        },
+        {
+          "sql": "DROP TABLE semanticXlike",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "sql": "SELECT type,name FROM sqlite_master WHERE name LIKE 'semantic%' ORDER BY name",
+          "params": []
+        },
+        {
+          "sql": "SELECT key,value FROM semantic_meta ORDER BY key",
+          "params": []
+        },
+        {
+          "sql": "CREATE TABLE semantic_fts_extra(x)",
+          "params": []
+        },
+        {
+          "call": "state",
+          "on": "search"
+        },
+        {
+          "sql": "DROP TABLE semantic_fts_extra",
+          "params": []
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "call": "health",
+          "on": "search"
+        },
+        {
+          "open": "held"
+        },
+        {
+          "begin": "held"
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "use": "held",
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": 1
+          }
+        },
+        {
+          "rollback": "held"
+        },
+        {
+          "close": "held"
+        }
+      ]
+    }
+  ]
+}

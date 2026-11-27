@@ -69,3 +69,27 @@ tmp/
 # Private denylist for tools/check-clean.sh — your own name, initials,
 # employer, customers, codenames. Never published.
 tools/forbidden.local.txt
+
+# Agent 365 CLI configuration: tenant identifiers and possibly a client secret. Keep it outside
+# the repository; these lines catch a copy left here by mistake.
+a365.config.json
+a365.generated.config.json
+**/a365.config.json
+**/a365.generated.config.json
+
+# Margo Cloud: the azd environments (subscription, tenant and resource identifiers, the blueprint's client ID).
+cloud/.azure/
+
+# Margo Cloud build output
+cloud/**/bin/
+cloud/**/obj/
+cloud/artifacts/
+cloud/out/
+
+# Claude Code: personal settings stay local
+.claude/settings.local.json
+
+# Work IQ traces and host logs fed to the tools/ evaluators hold call arguments (recipients, bodies, queries).
+/calls.jsonl
+/events.jsonl
+/host.log

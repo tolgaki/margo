@@ -1,0 +1,1569 @@
+{
+  "description": "_stored, _sources (memory parents with availability, files, work sources, other kinds, seen sets, the shared 200-reference budget, the depth limit, malformed references, an unknown user in a file path), _current_sources over hand-made snapshots, _proposal's delivery checks against stored markers, and a read-only store that can plan but not record delivery.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "_stored",
+          "on": "consolidation",
+          "args": [
+            "learning:none"
+          ]
+        },
+        {
+          "sql": "INSERT INTO memory_meta VALUES ('learning:test', '{\"evidence\": [\"b\", \"a\"]}')"
+        },
+        {
+          "call": "_stored",
+          "on": "consolidation",
+          "args": [
+            "learning:test"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "root",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "root",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:root"
+                }
+              ]
+            }
+          ],
+          "save": "root"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "child",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "child",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "${root.id}",
+                  "revision": "1"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:x",
+                  "revision": "r1"
+                },
+                {
+                  "kind": "user_statement",
+                  "ref": "synthetic:y"
+                }
+              ]
+            }
+          ],
+          "save": "child"
+        },
+        {
+          "write": "evidence.txt",
+          "text": "file evidence",
+          "save": "file_sha"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "filed",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "filed",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "${dir}/evidence.txt",
+                  "revision": "${file_sha}"
+                }
+              ]
+            }
+          ],
+          "save": "filed"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "unreachable",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "unreachable",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "${dir}/missing.txt",
+                  "revision": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            }
+          ],
+          "save": "unreachable"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "homeless",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "homeless",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "~nosuchuser-synthetic/x",
+                  "revision": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            }
+          ],
+          "save": "homeless"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "worked",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "worked",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_synthetic",
+                  "revision": "1"
+                }
+              ]
+            }
+          ],
+          "save": "worked"
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            "${child}"
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            "${child}",
+            [
+              "${child.id}"
+            ]
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            "${child}",
+            null,
+            [
+              1
+            ]
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            "${child}",
+            null,
+            [
+              0
+            ]
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            "${child}",
+            null,
+            null,
+            9
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            "${child}",
+            null,
+            null,
+            10
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            "${filed}"
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            "${unreachable}"
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            "${homeless}"
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation"
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${homeless.id}",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${homeless.id}",
+              "revision": 1,
+              "decision": "forget",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            "${worked}"
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            {
+              "id": "x",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "r"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            {
+              "id": "x",
+              "source_refs": [
+                {
+                  "kind": "memory_record",
+                  "ref": "mem_missing"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            {
+              "id": "x",
+              "source_refs": [
+                {
+                  "kind": "memory_record"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            {
+              "id": "x",
+              "source_refs": [
+                {
+                  "ref": "r"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            {
+              "id": "x"
+            }
+          ]
+        },
+        {
+          "call": "_sources",
+          "on": "consolidation",
+          "args": [
+            {
+              "source_refs": []
+            }
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              "dependency_cycle_or_depth_limit"
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "tool_result"
+                },
+                null
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "file",
+                  "revision": "a"
+                },
+                "a"
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "file",
+                  "revision": "a"
+                },
+                "unavailable"
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "work_source"
+                },
+                true
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "work_source"
+                },
+                1
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "memory_record",
+                  "revision": "1"
+                },
+                [
+                  "x",
+                  1,
+                  "active",
+                  true,
+                  []
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "memory_record",
+                  "revision": "1"
+                },
+                [
+                  "x",
+                  2,
+                  "active",
+                  true,
+                  []
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "memory_record",
+                  "revision": "1"
+                },
+                [
+                  "x",
+                  1,
+                  "candidate",
+                  true,
+                  []
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "memory_record",
+                  "revision": "1"
+                },
+                [
+                  "x",
+                  1,
+                  "active",
+                  false,
+                  []
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "memory_record",
+                  "revision": "1"
+                },
+                [
+                  "x",
+                  1,
+                  "active",
+                  true,
+                  [
+                    "deep"
+                  ]
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "memory_record",
+                  "revision": "1"
+                },
+                [
+                  "unavailable"
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "kind": "memory_record",
+                  "revision": "1"
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                "x",
+                1
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_current_sources",
+          "on": "consolidation",
+          "args": [
+            [
+              [
+                {
+                  "revision": "1"
+                },
+                1
+              ]
+            ]
+          ]
+        },
+        {
+          "call": "_proposal",
+          "on": "consolidation",
+          "args": [
+            "review_candidate",
+            [
+              "${child}",
+              "${root}"
+            ],
+            null
+          ],
+          "save": "proposal"
+        },
+        {
+          "call": "_proposal",
+          "on": "consolidation",
+          "args": [
+            "review_trend",
+            [
+              "${root}"
+            ],
+            null
+          ]
+        },
+        {
+          "call": "_proposal",
+          "on": "consolidation",
+          "args": [
+            "review_candidate",
+            [
+              "${child}"
+            ],
+            {
+              "host": "h",
+              "account": "${account}"
+            }
+          ]
+        },
+        {
+          "sql": "INSERT INTO memory_meta VALUES ('learning:surfaced:' || ?, json_object('evidence', json_array(?, ?)))",
+          "params": [
+            "${proposal.id}",
+            "${proposal.evidence.0}",
+            "${proposal.evidence.1}"
+          ]
+        },
+        {
+          "call": "_proposal",
+          "on": "consolidation",
+          "args": [
+            "review_candidate",
+            [
+              "${child}",
+              "${root}"
+            ],
+            null
+          ]
+        },
+        {
+          "sql": "INSERT INTO memory_meta VALUES ('learning:target-surfaced:' || ?, '[]')",
+          "params": [
+            "${root.id}"
+          ]
+        },
+        {
+          "sql": "DELETE FROM memory_meta WHERE key LIKE 'learning:surfaced:%'"
+        },
+        {
+          "call": "_proposal",
+          "on": "consolidation",
+          "args": [
+            "review_candidate",
+            [
+              "${root}"
+            ],
+            null
+          ]
+        },
+        {
+          "sql": "UPDATE memory_meta SET value='{}' WHERE key LIKE 'learning:target-surfaced:%'"
+        },
+        {
+          "call": "_proposal",
+          "on": "consolidation",
+          "args": [
+            "review_candidate",
+            [
+              "${root}"
+            ],
+            null
+          ]
+        },
+        {
+          "sql": "UPDATE memory_meta SET value='{\"x\": 1}' WHERE key LIKE 'learning:target-surfaced:%'"
+        },
+        {
+          "call": "_proposal",
+          "on": "consolidation",
+          "args": [
+            "review_candidate",
+            [
+              "${root}"
+            ],
+            null
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation"
+        },
+        {
+          "sql": "DELETE FROM memory_meta WHERE key LIKE 'learning:target-surfaced:%'"
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "all"
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "read_only": true
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${all}"
+          ],
+          "read_only": true
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${all}"
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${all}"
+          ],
+          "read_only": true
+        }
+      ]
+    }
+  ]
+}

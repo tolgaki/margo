@@ -14,6 +14,9 @@ Unattended mode. This tier is cheap, fast and USUALLY SILENT — that is the poi
 - Never call `ask_user`, and never end with an offer. Nobody is reading; a run that asks a
   question is a hung run.
 - Never call `workiq-ask` in a sweep. Delta (`workiq-call_function`) and `workiq-fetch` only.
+  Follow `references/delta.md`: replay each source's stored delta link, follow every
+  `@odata.nextLink` within the page budget, store the new link on complete, and restart with a
+  bounded full sync after a 410.
 - Read `references/state-operations.md` and use each source's successful checkpoint, never
   `cursor-get sweep` as a shared data watermark. On first use, bound the requested window to
   the last hour and record the initial coverage limit.

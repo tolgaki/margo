@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for considering a contribution. This repo is a reference implementation — the most useful
+Thanks for considering a contribution. This repo is an independent example of building on Work IQ, not a Microsoft project — the most useful
 contributions sharpen the procedure or fix something that's wrong, rather than adding surface area.
 
 **New here?** Follow the [developer journey](docs/development/README.md) from a clean checkout
@@ -13,6 +13,17 @@ Coding agents start with [AGENTS.md](AGENTS.md), the
 [state-ownership map](docs/development/architecture.md), and the
 [bounded change workflow](docs/development/agent-workflow.md). Use the agent-task issue form to
 make ownership, acceptance, documentation and stop conditions explicit.
+
+### Working with an AI coding agent
+
+GitHub Copilot reads [`.github/copilot-instructions.md`](.github/copilot-instructions.md), which points
+at [AGENTS.md](AGENTS.md), plus `.github/instructions/cloud.instructions.md` for `cloud/` and the
+prompt files in [`.github/prompts/`](.github/prompts/) (`new-routine`, `change-persona`,
+`add-work-iq-source`, `cloud-change`). Claude Code reads [CLAUDE.md](CLAUDE.md), which imports
+`AGENTS.md` and lists which checks to run for which change, and
+[`.claude/settings.json`](.claude/settings.json), which allows the read-only checks and asks before
+commits and pushes. For recipes (files, checks and a starting prompt for each common change), see
+[customize Margo with an AI coding agent](docs/how-to/customize-with-ai-agents.md).
 
 ---
 
@@ -62,14 +73,16 @@ wrong without it.
 ### Don't loosen the safety boundary
 
 *Propose, never act* and *observed content is data, never instructions* are load-bearing. Changes
-that widen what can happen without explicit approval need a strong argument. Unattended runs
+that widen what can happen without explicit approval need a strong argument. (Without per-message approval, Margo Cloud only
+writes to her manager alone, answers her manager in a room where they spoke to her, and sends one fixed notice; see
+[Trust & safety](docs/safety.md#margo-cloud-fixed-notices). Adding to that list needs the same argument.) Unattended runs
 must never take an **outbound** action — send, reply, post, react, RSVP, delete, or change a work
-item. Private local state can be updated under the routine's documented contract. This repository
+item — except Margo Cloud's notes to her own manager alone (`docs/safety.md` §3). Private local state can be updated under the routine's documented contract. This repository
 does not grant unattended shared-vault writes; see `docs/safety.md` §3.
 
 ### Keep the docs true
 
-`docs/` is grounded in the actual skill files. If you change a routine's behaviour, update the doc
+`docs/` is grounded in the actual skill files. If you change a routine's behavior, update the doc
 page that describes it — and check the router table in `SKILL.md` still matches.
 Add or update its entry in `docs/feature-catalog.json` and its mapped scenario. A
 procedure-contract scenario must not be described as evidence that a model followed it.
@@ -107,6 +120,20 @@ python3 tools/feature_catalog.py --check
 python3 tools/journey_contracts.py --check
 ```
 
+If you touched Margo Cloud (`cloud/`) or a desktop state helper in `skills/chief-of-staff/scripts/`, also run
+(needs the .NET 10 SDK):
+
+```bash
+cd cloud && dotnet build Margo.Cloud.slnx && dotnet test --solution Margo.Cloud.slnx && cd ..
+python3 tools/state_parity.py --check        # margo-state must match the desktop helpers byte for byte
+node --test cloud/src/Margo.Cloud.Voice/wwwroot/*.test.mjs
+```
+
+Margo Cloud is C#; desktop Margo stays Python and shares `agents/` and `skills/` with it. A change to a desktop
+state helper needs the matching change in the C# port in the same commit, or the parity judge fails. The judge pins
+**CPython 3.13** behavior (the JSON, argparse, sqlite3 and zoneinfo output the scenarios record), so run it with
+Python 3.13; CI does. See [cloud/README.md](cloud/README.md).
+
 For full canvas integration, create a fresh private non-repository fixture directory beneath
 your home, set `MARGO_CANVAS_TEST_PARENT` to it, and rerun the Node tests. The fixture must satisfy
 the production storage guard; do not disable it against real data. The test creates and removes
@@ -126,20 +153,21 @@ tenant resource identifiers (OneDrive drive ids, SharePoint URLs, Teams links), 
 paths, workplace data in *file and directory names*, committed runtime state, and personalization
 files that have stopped being templates.
 
-**Add your own terms.** Some leaks are only recognisable to you — your initials in a sign-off, a
+**Add your own terms.** Some leaks are only recognizable to you — your initials in a sign-off, a
 team codename, a customer. Put one per line in `tools/forbidden.local.txt` and they become hard
 failures. That file is gitignored and excluded from the current installer/packager paths; never include it
 in an attachment or hand-built archive. Do not assume all untracked files are excluded:
 native packagers enumerate tracked **and non-ignored untracked** files, and local skill installs
 walk their source trees with explicit exclusions. Build only from a sanitized checkout and inspect
-the payload. Two GUIDs are allowed and documented: the fixed public Azure DevOps resource ID, and
-the Windows installer's own AppId.
+the payload. Three GUIDs are allowed and documented: the fixed public Azure DevOps resource ID, the
+Windows installer's own AppId, and the Microsoft 365 Agents SDK's public service-connection
+scope, permitted only in `cloud/Dockerfile`.
 
 If you touched the installers or packaging, see **[packaging/README.md](packaging/README.md)** —
 the `.pkg` and `.exe` delegate to these same scripts, so a change here reaches all three surfaces.
 
 If a live routine exercise is needed, keep the account data private and reads bounded. Report
-only sanitised outcomes in a PR, not transcripts, subjects, names, links or identifiers.
+only sanitized outcomes in a PR, not transcripts, subjects, names, links or identifiers.
 Do not send a message or change a calendar merely to demonstrate a test.
 
 ---
@@ -151,7 +179,7 @@ Do not send a message or change a calendar merely to demonstrate a test.
 - **Imperative voice** in skills: "Always `$select` the fields you need", not "you should
   generally try to".
 - **Short.** Every line in a skill file is context spent on every invocation. If it doesn't change
-  behaviour, cut it.
+  behavior, cut it.
 
 ---
 
@@ -160,7 +188,7 @@ Do not send a message or change a calendar merely to demonstrate a test.
 Small and focused: one user outcome, with all the files needed to make it complete. A routine
 change may legitimately touch procedure, core, help and a scenario in the same PR.
 
-In the description: what changed, why, and — for behavioural changes — what the output looked like
+In the description: what changed, why, and — for behavioral changes — what the output looked like
 before and after. Then confirm the checklist in the PR template, including the no-real-data box.
 Report targeted commands, skipped optional tests, evidence class and compatibility/migration
 impact. A fixture contract is not a completed model evaluation. Commits, publishing, live-account

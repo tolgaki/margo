@@ -19,7 +19,7 @@ publication, and remembering a request is not accepting an obligation.
 | Recover without reviving forgotten records | [Restore the deletion journal](#recover-safely-from-a-backup) |
 | Share reusable advice rather than private history | [Generic recipe export](#export-a-generic-lesson-not-a-personal-history) |
 
-Before CLI examples, complete [account and memory setup](semantic-memory.md#2-initialise-account-memory-and-review-a-seed).
+Before CLI examples, complete [account and memory setup](semantic-memory.md#2-initialize-account-memory-and-review-a-seed).
 Use that installed skill directory, the same explicitly selected account, and private JSON files.
 Inspecting memory never initializes it. A missing optional model can be handled by explicitly
 selecting lexical retrieval; it is not permission to download one during a routine.

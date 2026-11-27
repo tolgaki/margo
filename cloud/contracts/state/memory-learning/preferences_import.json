@@ -1,0 +1,377 @@
+{
+  "description": "import_preferences: only exact human import evidence for the current preview applies it; replays are checked against the receipt (source and target revisions) and never rebind; a changed source needs a fresh preview whose active targets are edited; forgotten targets are omitted, not recreated.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "write": "preferences.md",
+          "text": "## Scheduling defaults\nProtect synthetic focus blocks.\n\n## About me\nSynthetic analyst.\n"
+        },
+        {
+          "call": "preferences_plan",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md"
+          ],
+          "save": "preview"
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            null
+          ]
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            "approved"
+          ]
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {}
+          ]
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${preview.subject_id}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${preview.subject_id}",
+              "revision": 2,
+              "decision": "import",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${preview.subject_id}",
+              "revision": 1,
+              "decision": "import",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ],
+          "save": "imported"
+        },
+        {
+          "sql": "SELECT key, value FROM memory_meta WHERE key LIKE 'import-receipt:%'"
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            "user"
+          ]
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${preview.subject_id}",
+              "revision": 1,
+              "decision": "import",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${preview.subject_id}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "preferences_plan",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md"
+          ]
+        },
+        {
+          "write": "preferences.md",
+          "text": "## Scheduling defaults\nChanged synthetic preference.\n\n## About me\nSynthetic analyst.\n"
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${preview.subject_id}",
+              "revision": 1,
+              "decision": "import",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "preferences_plan",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md"
+          ],
+          "save": "second"
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${second.subject_id}",
+              "revision": 1,
+              "decision": "import",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ],
+          "save": "reimported"
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            "user"
+          ]
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${reimported.memory_ids.0}"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${reimported.memory_ids.1}"
+          ],
+          "save": "profile"
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${profile.id}",
+            {
+              "domain": "user",
+              "kind": "profile",
+              "title": "About me",
+              "text": "Edited by hand.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "entities": [
+                "user"
+              ],
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "synthetic:edit"
+                }
+              ]
+            },
+            "active",
+            "${profile.revision}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${profile.id}",
+              "revision": "${profile.revision}",
+              "decision": "edit",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ],
+          "save": "edited"
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${second.subject_id}",
+              "revision": 1,
+              "decision": "import",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${profile.id}",
+            "${edited.revision}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${profile.id}",
+              "revision": "${edited.revision}",
+              "decision": "forget",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "preferences_plan",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md"
+          ],
+          "save": "third"
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${third.subject_id}",
+              "revision": 1,
+              "decision": "import",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            "user"
+          ]
+        },
+        {
+          "remove": "preferences.md"
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${second.subject_id}",
+              "revision": 1,
+              "decision": "import",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${third.subject_id}",
+              "revision": 1,
+              "decision": "import",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "import_preferences",
+          "on": "learning",
+          "args": [
+            "${dir}/preferences.md",
+            {
+              "subject_id": "${third.subject_id}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

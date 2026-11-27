@@ -1,0 +1,601 @@
+{
+  "description": "argparse: prefix abbreviation and ambiguity, choices, type=int (Python int() rules), store_true/append, nargs ? * +, required options and positionals, --, --opt=value, help and usage wrapping (COLUMNS), error text and exit 2.",
+  "steps": [
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "--help"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--help"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "show",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "search",
+        "--help"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "ack",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "feedback",
+        "-h"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "link",
+        "--help"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "nope"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "-x"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "--acc",
+        "a@example.com",
+        "--state-d",
+        "/x",
+        "list",
+        "--j",
+        "--lim",
+        "5",
+        "--view=approval"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "--state",
+        "/x",
+        "list"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "--state-root=/y",
+        "list",
+        "--view",
+        "nope"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--limit",
+        "x"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--limit",
+        " 7 "
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--limit",
+        "1_000"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--limit",
+        "-3"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--limit=-4"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--limit",
+        "٣"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--limit"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--json=yes"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--json",
+        "extra"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "show"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "show",
+        "id1"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "show",
+        "id1",
+        "--revision",
+        "2"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "show",
+        "--revision",
+        "2",
+        "--",
+        "-weird-id"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "show",
+        "-weird"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "show",
+        "id",
+        "--revision",
+        "2",
+        "--revision",
+        "3"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "search"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "search",
+        "find me",
+        "--entity",
+        "a",
+        "--entity",
+        "b"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "search",
+        "--mode",
+        "semantic",
+        "q"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "search",
+        "a",
+        "b"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "search",
+        "--mode",
+        "sem"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "search",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "ack",
+        "--receipt",
+        "r1"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "ack",
+        "x",
+        "y",
+        "--receipt",
+        "r",
+        "--item-key",
+        "k1",
+        "--item-key=k2"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "ack"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "ack",
+        "--receipt",
+        "r",
+        "--batch"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "ack",
+        "x",
+        "--receipt",
+        "r",
+        "y"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "feedback"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "feedback",
+        "a.json",
+        "b.json",
+        "--replies",
+        "r1",
+        "r2",
+        "--format",
+        "json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "feedback",
+        "a.json",
+        "--replies"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "feedback",
+        "--since",
+        "2026-01-01",
+        "a.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "link",
+        "s",
+        "t",
+        "--relation",
+        "supports",
+        "--revision",
+        "1"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "link",
+        "s"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "link",
+        "s",
+        "t",
+        "--relation",
+        "bogus",
+        "--revision",
+        "1"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "link",
+        "s",
+        "t",
+        "--rel",
+        "contradicts",
+        "--rev",
+        "1",
+        "--evidence",
+        "e.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "--account",
+        "a",
+        "--account",
+        "b",
+        "list"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--",
+        "--json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "--",
+        "list"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "--help"
+      ],
+      "env": {
+        "COLUMNS": "40"
+      },
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "link",
+        "--help"
+      ],
+      "env": {
+        "COLUMNS": "40"
+      },
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "list",
+        "--view",
+        "x"
+      ],
+      "env": {
+        "COLUMNS": "200"
+      },
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "--help"
+      ],
+      "env": {
+        "COLUMNS": "200"
+      },
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "args",
+        "search",
+        "-h"
+      ],
+      "env": {
+        "COLUMNS": "12"
+      },
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "nonsense"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [],
+      "expect_exit": 2
+    }
+  ]
+}

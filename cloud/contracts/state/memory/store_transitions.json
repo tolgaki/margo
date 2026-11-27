@@ -1,0 +1,1216 @@
+{
+  "description": "Lifecycle transitions (every allowed and refused move), reviewed reactivation of suppressed/disputed/stale memories, records ever confirmed staying protected (edit/stale/dispute/supersede decisions), lessons and preferences needing confirmation, unprotected candidate edits, and the index jobs each revision queues.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "flow",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ],
+          "save": "flow"
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "superseded",
+            1
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1
+          ],
+          "save": "flow2"
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "rejected",
+            2
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "candidate",
+            2
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "suppressed",
+            2
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            3
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "stale",
+            3
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "stale",
+            3,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${flow.id}",
+              "revision": 3,
+              "decision": "stale",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            4
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            4,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${flow.id}",
+              "revision": 4,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "disputed",
+            5
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            6
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            6,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${flow.id}",
+              "revision": 6,
+              "decision": "dispute",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            6,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${flow.id}",
+              "revision": 6,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "superseded",
+            7
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${flow.id}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            8
+          ]
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${flow.id}"
+          ]
+        },
+        {
+          "call": "record_id",
+          "on": "store",
+          "args": [
+            "user",
+            "protected"
+          ],
+          "save": "pid"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "protected",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "user_confirmed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${pid}",
+              "revision": 1,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "protected",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "user_confirmed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "stale",
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "protected",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "user_confirmed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "stale",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${pid}",
+              "revision": 1,
+              "decision": "stale",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "protected",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            2
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "protected",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${pid}",
+              "revision": 2,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "protected",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "Edited.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            3
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "protected",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "Edited.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            3,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${pid}",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "protected",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "Edited.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            3,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${pid}",
+              "revision": 3,
+              "decision": "edit",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "protected",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "Edited.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "disputed",
+            4,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${pid}",
+              "revision": 4,
+              "decision": "dispute",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "protected",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "Edited.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "superseded",
+            5,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${pid}",
+              "revision": 5,
+              "decision": "supersede",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "record_id",
+          "on": "store",
+          "args": [
+            "user",
+            "lesson"
+          ],
+          "save": "lid"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "lesson",
+            {
+              "domain": "user",
+              "kind": "lesson",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "candidate"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "lesson",
+            {
+              "domain": "user",
+              "kind": "lesson",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "lesson",
+            {
+              "domain": "user",
+              "kind": "lesson",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${lid}",
+              "revision": 1,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "lesson",
+            {
+              "domain": "user",
+              "kind": "lesson",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "suppressed",
+            2
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "lesson",
+            {
+              "domain": "user",
+              "kind": "lesson",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "suppressed",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${lid}",
+              "revision": 2,
+              "decision": "suppress",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "lesson",
+            {
+              "domain": "user",
+              "kind": "lesson",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "stale",
+            3
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "lesson",
+            {
+              "domain": "user",
+              "kind": "lesson",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "stale",
+            3,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${lid}",
+              "revision": 3,
+              "decision": "stale",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "plain",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "plain"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "plain",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "suppressed",
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "plain",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "disputed",
+            2
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "plain",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "disputed",
+            2,
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${plain.id}",
+              "revision": 2,
+              "decision": "dispute",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "plain",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "Changed while disputed.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "disputed",
+            3
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-edit",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            }
+          ],
+          "save": "ce"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-edit",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "Edited candidate.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "candidate",
+            1
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-edit",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "Edited candidate.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "stale",
+            2
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-edit",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "Edited candidate.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "rejected",
+            3
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-edit",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "Edited candidate.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:synthetic-result"
+                }
+              ]
+            },
+            "candidate",
+            4
+          ]
+        },
+        {
+          "call": "list",
+          "on": "store"
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store"
+        },
+        {
+          "call": "health",
+          "on": "store"
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

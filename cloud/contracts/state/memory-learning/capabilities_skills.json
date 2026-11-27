@@ -1,0 +1,312 @@
+{
+  "description": "capabilities over installed skills: argument and directory errors, the glob (hidden and accented names, wrong case, symlinked directories and SKILL.md links skipped, dangling links, loose files, a SKILL.md directory), sorted observation, unchanged refreshes, content changes creating revisions, retirement of removed skills and reinstallation, unbound versus host-scoped records, forgotten records not recreated.",
+  "env": {
+    "HOME": "{root}/work"
+  },
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "capabilities",
+          "on": "learning"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "environment": {
+              "host": "h"
+            }
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills"
+          ]
+        },
+        {
+          "write": "not-a-dir",
+          "text": "x"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/not-a-dir"
+          ]
+        },
+        {
+          "mkdir": "skills"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills"
+          ]
+        },
+        {
+          "mkdir": "skills/example"
+        },
+        {
+          "write": "skills/example/SKILL.md",
+          "text": "# Example skill\n"
+        },
+        {
+          "mkdir": "skills/b-c"
+        },
+        {
+          "write": "skills/b-c/SKILL.md",
+          "text": "# Hyphenated skill\n"
+        },
+        {
+          "mkdir": "skills/b"
+        },
+        {
+          "write": "skills/b/SKILL.md",
+          "text": "# B skill\n"
+        },
+        {
+          "mkdir": "skills/.hidden"
+        },
+        {
+          "write": "skills/.hidden/SKILL.md",
+          "text": "# Hidden skill\n"
+        },
+        {
+          "mkdir": "skills/été"
+        },
+        {
+          "write": "skills/été/SKILL.md",
+          "text": "# Accented skill\n"
+        },
+        {
+          "mkdir": "skills/lower"
+        },
+        {
+          "write": "skills/lower/skill.md",
+          "text": "# Wrong case\n"
+        },
+        {
+          "mkdir": "skills/empty"
+        },
+        {
+          "mkdir": "real"
+        },
+        {
+          "write": "real/SKILL.md",
+          "text": "# Linked directory\n"
+        },
+        {
+          "symlink": "skills/linked",
+          "target": "${dir}/real"
+        },
+        {
+          "mkdir": "skills/filelink"
+        },
+        {
+          "symlink": "skills/filelink/SKILL.md",
+          "target": "${dir}/real/SKILL.md"
+        },
+        {
+          "mkdir": "skills/dangling"
+        },
+        {
+          "symlink": "skills/dangling/SKILL.md",
+          "target": "${dir}/nowhere"
+        },
+        {
+          "write": "skills/loose-file",
+          "text": "not a skill directory"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills"
+          ],
+          "save": "first"
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            "agent"
+          ]
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${first.memory_ids.0}"
+          ]
+        },
+        {
+          "write": "skills/example/SKILL.md",
+          "text": "# Example skill\nNew version"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills"
+          ]
+        },
+        {
+          "call": "history",
+          "on": "store",
+          "args": [
+            "${first.memory_ids.2}"
+          ]
+        },
+        {
+          "remove": "skills/b/SKILL.md"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills"
+          ],
+          "save": "retire"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${retire.retired_ids.0}"
+          ]
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills"
+          ]
+        },
+        {
+          "write": "skills/b/SKILL.md",
+          "text": "# B skill\n"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${retire.retired_ids.0}"
+          ]
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "~/../work/skills"
+          ]
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills",
+            {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            }
+          ],
+          "save": "scoped"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${scoped.memory_ids.0}"
+          ]
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills",
+            {
+              "host": "other-host",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            }
+          ]
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${scoped.memory_ids.0}",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${scoped.memory_ids.0}",
+              "revision": 1,
+              "decision": "forget",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills",
+            {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            }
+          ]
+        },
+        {
+          "mkdir": "skills/zz-dir-skill/SKILL.md"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "args": [
+            "${dir}/skills"
+          ]
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            "agent"
+          ]
+        }
+      ]
+    }
+  ]
+}

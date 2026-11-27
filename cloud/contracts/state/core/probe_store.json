@@ -1,0 +1,224 @@
+{
+  "description": "margo_store: hashed private state paths, connect (pragmas, identity rows, 0700/0600 modes), read-only connect before init, nested transaction savepoints, sqlite3 semantics, account resolution from MARGO_ACCOUNT and private config, read_json, unsafe roots.",
+  "steps": [
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "store",
+        "connect-read"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "store",
+        "state-path"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "store",
+        "connect"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "store",
+        "connect-read"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "store",
+        "transactions"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "store",
+        "transactions"
+      ],
+      "expect_exit": 1
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--account",
+        "other-tenant:user",
+        "--state-dir",
+        "{state_dir}",
+        "store",
+        "connect"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "store",
+        "connect"
+      ],
+      "env": {
+        "MARGO_ALLOW_UNSAFE_STATE_DIR": "0"
+      },
+      "expect_exit": 2
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--account",
+        "bad account",
+        "--state-dir",
+        "{state_dir}",
+        "store",
+        "connect"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--state-dir",
+        "{state_dir}",
+        "store",
+        "resolve-account"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "store",
+        "resolve-account"
+      ],
+      "env": {
+        "MARGO_ACCOUNT": "env-owner@example.com"
+      },
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "store",
+        "resolve-account"
+      ],
+      "env": {
+        "MARGO_ACCOUNT": ""
+      },
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "cfg-owner@example.com"
+      ],
+      "env": {
+        "MARGO_CONFIG": "{root}/cfg/config.json"
+      },
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "store",
+        "resolve-account"
+      ],
+      "env": {
+        "MARGO_CONFIG": "{root}/cfg/config.json"
+      },
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "--state-dir",
+        "{state_dir}",
+        "store",
+        "connect"
+      ],
+      "env": {
+        "MARGO_CONFIG": "{root}/cfg/config.json"
+      },
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "store",
+        "read-json",
+        "--path",
+        "{root}/cfg/config.json"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "store",
+        "read-json",
+        "--path",
+        "{root}/missing.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "store",
+        "read-json",
+        "--path",
+        "{root}/cfg"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "store",
+        "state-path",
+        "--account",
+        "x"
+      ],
+      "expect_exit": 2
+    }
+  ]
+}

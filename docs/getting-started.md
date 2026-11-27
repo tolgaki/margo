@@ -6,18 +6,22 @@ This page covers installation and connection. Continue through the
 only want to explore or contribute should use the [synthetic-only developer setup](development/README.md)
 instead of connecting their normal profile.
 
-Follow sections 1-4 in order. Optional integrations and schedules can wait until the first
+Check [what you need](#what-you-need), then follow sections 1-4 in order: install Margo, connect
+Work IQ, fill in your preferences, then configure the ledger and run your first brief. Optional integrations and schedules can wait until the first
 interactive run is useful. Existing users should review
 [setup and migration](how-to/setup-and-migration.md) before updating private state.
 
-## Prerequisites
+## What you need
 
-| | |
-|---|---|
-| **[GitHub Copilot CLI](https://github.com/github/copilot-cli)** | The host that loads agents and skills |
-| **Work IQ MCP server** | The Microsoft 365 surface. Hosted — no local package needed for tool calls |
-| **A Microsoft 365 work account** | With mail, calendar and Teams |
-| **Python 3.9+** | For the bundled scripts (state ledger, large-file bridge, community parsers) |
+| | | Notes |
+|---|---|---|
+| **GitHub Copilot plan** | Any plan that includes [GitHub Copilot CLI](https://github.com/github/copilot-cli) | Each brief and reply uses your plan's model requests |
+| **GitHub Copilot CLI** | The host that loads Margo's agent and skills. Install it with [GitHub's Copilot CLI instructions](https://docs.github.com/copilot/how-tos/use-copilot-agents/use-copilot-cli) | Needs a recent Node.js LTS; GitHub's install page gives the exact version. On a Copilot Business or Enterprise seat, an organization admin may need to enable Copilot CLI in the Copilot policies first |
+| **A Microsoft 365 work account** | With mail, calendar and Teams | Personal Microsoft accounts don't work |
+| **Microsoft 365 Copilot license and Work IQ** | Work IQ must be enabled in your tenant | Where your tenant meters Work IQ through Copilot Credits, your usage counts against its spending policy |
+| **Admin consent** | Your tenant may require an administrator to consent to the Work IQ application before your first sign-in | Work IQ writes (send, RSVP, move) also need your tenant's Work IQ policy to allow them; reads work without it |
+| **Python 3.9+** | For the bundled scripts (state ledger, diagnostics, parsers) | Standard library only |
+| **Platforms** | macOS, Linux and Windows (installers for macOS and Windows; `install.sh` on Linux) | The optional large-file bridge is macOS-only |
 
 Optional, for specific routines:
 
@@ -31,6 +35,12 @@ Optional, for specific routines:
 ## 1. Install
 
 ### The installers
+
+> **Which version you get.** The macOS and Windows installers are release 1.0.0. The terminal
+> and clone installs below take the current `main` branch and report the version in its
+> [`VERSION`](../VERSION) file (1.3.0 at the time of writing, not yet released as an installer).
+> Features added after 1.0.0 (see the [changelog](../CHANGELOG.md)) need the terminal or clone
+> install.
 
 | | |
 |---|---|
@@ -74,6 +84,112 @@ The PowerShell equivalents are `-Skills`, `-Dest`, `-DryRun`.
 > personal templates after backing them up; do not use it just to refresh code. File copying
 > and private-state migration are separate operations.
 
+### Or as a plugin (Copilot CLI, Claude Code or Codex)
+
+Margo is also a plugin: the repository is its own marketplace, next to Microsoft's Work IQ
+marketplace, with a manifest for each host (`.github/plugin/plugin.json` for GitHub Copilot CLI,
+`.claude-plugin/plugin.json` for Claude Code, `.codex-plugin/plugin.json` for OpenAI Codex).
+
+| | Included | Not included |
+| --- | --- | --- |
+| **The plugin** | The `chief-of-staff` skill (procedures, references, the Python state helpers, the preferences template) and the `decision-log` skill; the `margo` agent (persona) in Copilot CLI and Claude Code | Work IQ itself (install Microsoft's `workiq` plugin), the scheduled-run wrapper (`margo-scheduled.sh`) and automation prompts, the action desk, the installer's version manifest (`./install.sh update`), Margo Cloud |
+| **Codex** | The two skills | The persona: Codex's manifest declares skills only, as Microsoft's does |
+
+Use the installer instead when you want scheduled runs or the action desk. The plugin's folder
+holds a copy of the whole repository, but each host loads only what its manifest declares.
+
+In Copilot CLI (`copilot`):
+
+```text
+/plugin marketplace add microsoft/work-iq
+/plugin install workiq@work-iq
+/plugin marketplace add tolgaki/margo
+/plugin install margo@margo
+```
+
+Restart, then check `/mcp` (workiq), `/skills` (chief-of-staff, decision-log, workiq) and `/agent`
+(margo). In Claude Code the same `/plugin` commands work; see
+[run Margo in Claude Code](how-to/run-in-claude-code.md) for the differences.
+
+In Codex, install Microsoft's `workiq` plugin and this repository with Codex's own plugin loader:
+each has a `.codex-plugin/plugin.json` at its root (Microsoft's is in `plugins/workiq/`). Codex names
+Work IQ's tools its own way; the skills say to use the host's name for each tool. Not tested in
+Codex.
+
+A plugin update replaces the plugin's folder, so your personal files live outside it, in
+`~/.copilot/margo/` (or `$COPILOT_HOME/margo/`). Margo reads them there first. Create the folder
+private to you: her state helpers refuse a folder that anyone else can read.
+
+```bash
+mkdir -p ~/.copilot/margo
+chmod 700 ~/.copilot/margo
+curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/skills/chief-of-staff/preferences.md \
+  -o ~/.copilot/margo/preferences.md
+chmod 600 ~/.copilot/margo/preferences.md
+"${EDITOR:-nano}" ~/.copilot/margo/preferences.md
+```
+
+On Windows (PowerShell) the folder is under your profile and needs no permission change:
+
+```powershell
+New-Item -ItemType Directory -Force "$HOME\.copilot\margo" | Out-Null
+Invoke-WebRequest https://raw.githubusercontent.com/tolgaki/margo/main/skills/chief-of-staff/preferences.md `
+  -OutFile "$HOME\.copilot\margo\preferences.md"
+notepad "$HOME\.copilot\margo\preferences.md"
+```
+
+Then ask Margo to set up her records ("set up your records for you@example.com"): she runs
+`margo_store.py init` from her own skill folder, as in [step 4](#4-first-run). If it stops with
+`state/config path must be private (directory 0700, file 0600)`, run `chmod 700 ~/.copilot/margo`
+and ask again ([troubleshooting](#troubleshooting)).
+
+In a plugin install, every personal file Margo keeps as Markdown lives in this folder, never in the
+plugin's own folder:
+
+| File | In a plugin install | In an installer install |
+| --- | --- | --- |
+| Your preferences | `~/.copilot/margo/preferences.md` | `~/.copilot/skills/chief-of-staff/preferences.md` |
+| Readable commitments view | `~/.copilot/margo/commitments.md` | `~/.copilot/skills/chief-of-staff/commitments.md` |
+| Relationship roster | `~/.copilot/margo/relationships.md` | `~/.copilot/skills/chief-of-staff/state/relationships.md` |
+| 1:1 agendas | `~/.copilot/margo/one-on-ones/` | `~/.copilot/skills/chief-of-staff/state/one-on-ones/` |
+| Decision log configuration | `~/.copilot/margo/decision-log-config.md` | `~/.copilot/skills/decision-log/config.md` |
+
+A copy in `~/.copilot/margo/` is used first in either kind of install. The work ledger and memory
+are databases under `~/.copilot/margo/state/` in both.
+
+**If you already have files in the plugin's folder** (a relationship roster or 1:1 agendas under
+the plugin's `skills/chief-of-staff/state/`, or a `preferences.md`, `commitments.md` or decision
+log `config.md` you edited in place), move them out before the next plugin update, which would
+replace them. Ask Margo "where is your skill folder?"
+for the path, then, with `P` set to that `skills` folder:
+
+```bash
+P=/path/to/the/plugin/skills
+[ -f "$P/chief-of-staff/state/relationships.md" ] && mv "$P/chief-of-staff/state/relationships.md" ~/.copilot/margo/
+[ -d "$P/chief-of-staff/state/one-on-ones" ] && mv "$P/chief-of-staff/state/one-on-ones" ~/.copilot/margo/
+# Copies of the ones you edited in place; -n keeps a copy you already have in ~/.copilot/margo:
+cp -n "$P/chief-of-staff/preferences.md" "$P/chief-of-staff/commitments.md" ~/.copilot/margo/
+cp -n "$P/decision-log/config.md" ~/.copilot/margo/decision-log-config.md
+chmod -R go-rwx ~/.copilot/margo
+```
+
+**Update, check and remove a plugin install:**
+
+- **Update:** use your host's plugin manager (the `/plugin` menu, or reinstall with
+  `/plugin install margo@margo`) to take the latest version from the marketplace. Your files in
+  `~/.copilot/margo/` and Margo's records are not touched. `./install.sh update` does not apply to a
+  plugin install.
+- **Check:** `copilot plugin list` shows the installed version; compare it with the
+  [changelog](../CHANGELOG.md).
+- **Remove:** `copilot plugin uninstall margo` (in Claude Code, the `/plugin` menu). This removes the
+  agent and skills only; `~/.copilot/margo/` (your preferences and Margo's records) stays until you
+  delete it.
+- **Switching from an installer install:** copy your personal files to `~/.copilot/margo/` under the
+  names in the table above (your filled-in `preferences.md`, `commitments.md`, the decision log's
+  `config.md` as `decision-log-config.md`, and `state/relationships.md` and `state/one-on-ones/` if
+  you have them), then run `./install.sh uninstall`, so the same skills are not installed twice.
+  Margo's records already live in `~/.copilot/margo/` and stay.
+
 ### Copilot CLI's own skill installer
 
 `copilot skill add` takes a file, URL or directory, and is a fine way to add a
@@ -111,18 +227,24 @@ behind:
 ./install.sh update --reinstall # refresh even at the same revision, keeping personal files
 ```
 
-`update` re-installs **only the skills you already have** — it won't quietly add
-ones you never chose — and your personal files are preserved exactly as on any
-reinstall. It compares both `VERSION` and the recorded source revision, so a same-version
-commit is not mistaken for an up-to-date installation. Metadata and downloaded code are pinned
-to the same remote commit, even when the command runs from an older local clone or native
-package. `update --check` changes no installed files; `--dry-run` previews the pinned payload.
+What `update` does:
 
-Remote failures or invalid metadata stop without changing the installation; there is no
-success-shaped offline fallback. To install reviewed local changes deliberately, run normal
-`install` from that source. Updates refuse an older remote version. `--reinstall` preserves
-personal files; **do not use `--force` merely to refresh code** because it also replaces
-personal files and customized prompts after backing them up.
+- Re-installs **only the skills you already have**; it won't add ones you never chose.
+- Preserves your personal files, as any reinstall does.
+- Compares both `VERSION` and the recorded source revision, so a new commit at the same version
+  still counts as an update.
+- Downloads code from the same remote commit it checked, even when run from an older clone or the
+  native package.
+- Refuses an older remote version.
+
+What it does not do:
+
+- `update --check` changes nothing; `--dry-run` previews what would be installed.
+- If the download or its metadata fails, it stops and leaves the installation as it was. It never
+  falls back to an offline copy.
+- It does not install your local edits: run a normal `install` from that source for that.
+- `--reinstall` keeps personal files. **`--force` replaces personal files and customized prompts**
+  (after backing them up); don't use it to refresh code.
 
 For a `--link` install there is nothing to copy: `update` tells you to
 update the reviewed clone explicitly instead, which is where the files actually live.
@@ -130,6 +252,18 @@ It never changes your branch or working tree for you.
 
 The PowerShell equivalents are `.\install.ps1 update -Check` and
 `.\install.ps1 update`; safe same-revision refresh is `.\install.ps1 update -Reinstall`.
+
+**Installed with `curl … | bash`?** There is no clone to run `./install.sh` from. Pass the
+command through the same one-liner instead:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/install.sh | bash -s -- update --check
+curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/install.sh | bash -s -- update
+curl -fsSL https://raw.githubusercontent.com/tolgaki/margo/main/install.sh | bash -s -- status
+```
+
+Re-running the install command with the same options (for example `… | bash -s -- --all`) also
+works and keeps your personal files.
 
 File installation does **not** migrate private state, change capture policy, synchronize saved
 app workflow prompts, or reload running sessions/extensions. Back up and pause writers before an
@@ -149,30 +283,42 @@ On macOS the package leaves a copy at `/usr/local/share/margo`, so
 `/usr/local/share/margo/install.sh status` works even without a clone. On Windows,
 uninstall through **Settings → Apps** as usual.
 
-## 2. Check Work IQ is connected
+## 2. Connect Work IQ
 
-Start Copilot CLI with the agent selected (`copilot --agent margo`), or select Margo in the
-host's agent picker. Then confirm the tools are present and prefixed:
+Installing Margo does not install or sign in to Work IQ; the host does that. The
+[harness quickstart](../samples/harness/README.md) has the details and other hosts. To run Margo's
+skills in Claude Code instead of Copilot CLI (not officially supported), see
+[run in Claude Code](how-to/run-in-claude-code.md).
 
-```
-> list my tools
-```
+1. **Register the server.** Follow Microsoft's
+   [Connect GitHub Copilot CLI to the Work IQ MCP server](https://learn.microsoft.com/microsoft-365/copilot/extensibility/work-iq/mcp/quickstart/github-copilot-cli).
+   At the time of writing, in Copilot CLI:
 
-You're looking for the Work IQ `fetch`, `retrieve`, `ask`, and discovery tools. This repository
-uses names such as `workiq-fetch`, but the exact callable spelling comes from the host's registered
-server. Discover the tools in that host rather than guessing a name or argument schema.
-Installing Margo does not install or authenticate the Work IQ connection for you.
+   ```text
+   /plugin marketplace add microsoft/work-iq
+   /plugin install workiq@work-iq
+   ```
 
-A quick live check:
+   Then restart Copilot CLI. The plugin registers the `workiq` MCP server
+   (`https://workiq.svc.cloud.microsoft/mcp`) and adds Microsoft's `workiq` skill.
+2. **Sign in.** A browser opens for your Microsoft 365 work account. Use the account you want Margo
+   to work for.
+3. **Consent.** If the browser asks for admin approval, your tenant administrator must consent to
+   the Work IQ application first. Margo can't work around that.
+4. **Check the tools.** Run `/mcp`: `workiq` should be listed and connected. Then start Margo
+   (`copilot --agent margo`, or select Margo in the host's agent picker) and ask `list my tools`. You
+   are looking for the Work IQ `fetch`, `retrieve`, `ask` and discovery tools, named like
+   `workiq-fetch`; the exact spelling comes from the registered server.
+5. **Make a first call.**
 
-```
-> Margo, confirm which Work IQ account is signed in, then show my calendar today.
-```
+   ```
+   > Margo, confirm which Work IQ account is signed in, then show my calendar today.
+   ```
 
-Confirm that it is the account you intended to connect. A successful, bounded read establishes
-access to that calendar window; it does not prove mail, Teams, documents, or write permissions
-are available. An empty calendar can be a valid result. A denied or failed source is a separate
-limitation, not evidence of an empty day.
+   Confirm it is the account you intended. A bounded read proves access to that calendar window; it
+   does not prove mail, Teams, documents or write permissions. An empty calendar can be a valid
+   result. A denied or failed source is a limitation, not evidence of an empty day: see
+   [Work IQ errors](work-iq/errors.md).
 
 ## 3. Teach her who you are
 
@@ -181,6 +327,10 @@ This is the step that decides whether Margo is useful or generic. Open the templ
 ```bash
 $EDITOR ~/.copilot/skills/chief-of-staff/preferences.md
 ```
+
+Plugin install: the file is `~/.copilot/margo/preferences.md`, and in step 4 you ask Margo to set up
+her records instead of running the scripts
+([as a plugin](#or-as-a-plugin-copilot-cli-claude-code-or-codex)).
 
 Unfilled settings produce generic advice, not a personalized plan. Fill these four sections
 first; missing working hours or time zone should be resolved before relying on scheduling
@@ -204,6 +354,21 @@ fictional principal below with that account:
 python3 ~/.copilot/skills/chief-of-staff/scripts/margo_store.py init --account you@example.com
 python3 ~/.copilot/skills/chief-of-staff/scripts/margo_doctor.py
 ```
+
+**What you'll see:** `init` prints one JSON line ending in `"status":"configured"`. The doctor prints
+a JSON health report. Nothing in it signs in or reads Microsoft 365. On a fresh install:
+
+| Field | What it says | When it changes |
+| --- | --- | --- |
+| `status` (top level) | `"setup-needed"` before `init`; `"attention-needed"` after it | `"healthy"` only when everything below is complete, which a new install is not; that is expected |
+| `configuration.preferences.fields` | Each required field (name, role, time zone and hours, focus blocks, priorities) shows `"placeholder"`, and `status` is `"incomplete"` | Each turns to filled when you finish [step 3](#3-teach-her-who-you-are) |
+| `configuration.decision_log` | The same, for the decision-log `config.md`, if you installed that skill | When you fill that file in |
+| `state.status` | `"setup-needed"` before `init`; `"not-initialized"` after it | `"ok"` once Margo first uses the ledger, for example on your first brief |
+| `memory.status`, `tasks.status` | `"not-initialized"` | When you first use memory or a tracked task; both are fine to leave |
+| `limitations` | What the report cannot check | Never; read it once |
+
+If `init` prints `ERROR: state/config root has a group/world-writable ancestor` instead, see
+[troubleshooting](#troubleshooting).
 
 On Windows, use `python` and the scripts beneath
 `$HOME\.copilot\skills\chief-of-staff\scripts`. A custom installation needs the matching
@@ -304,7 +469,7 @@ python3 ~/.copilot/skills/chief-of-staff/scripts/proactive_state.py status
 ### Large files
 
 The separate large-file bridge is only needed beyond the Work IQ binary transport limit.
-Its refresh-token store currently requires **macOS Keychain**; it is not part of the
+Its refresh-token store requires **macOS Keychain**; it is not part of the
 cross-platform core. See [documents and files](how-to/documents-and-files.md) before enabling
 it. Downloads, copy/upload limitations, and sharing have different permission boundaries.
 
@@ -315,16 +480,18 @@ python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py --account you@exa
 python3 ~/.copilot/skills/chief-of-staff/scripts/m365_files.py --account you@example.com status
 ```
 
-It reuses the client ID from your Work IQ MCP OAuth config. If it can't find one, set
-`MARGO_M365_CLIENT_ID` to your own app registration. Set `MARGO_M365_TENANT` if your tenant
-rejects the default `organizations` authority.
+Before you rely on it:
 
-This is a separate sign-in, not reuse of Work IQ's authenticated token. Confirm the account
-matches the intended source using the returned `upn`, not just the Keychain label. `--account`
-is a global option before the subcommand; the environment fallback is `MARGO_M365_ACCOUNT`,
-not the ledger's `MARGO_ACCOUNT`. Status can refresh a token. OAuth discovery currently reads
-`~/.copilot/mcp-oauth-config` even with a custom installation root. Do not change registrations
-or scopes to bypass a policy denial.
+- It is a separate sign-in, not Work IQ's token. Check that `status` returns the `upn` you intended;
+  the Keychain label is not proof of identity.
+- It finds its client ID in your Work IQ MCP OAuth configuration (`~/.copilot/mcp-oauth-config`,
+  even with a custom `COPILOT_HOME`). If none is found, set `MARGO_M365_CLIENT_ID` to your own app
+  registration; set `MARGO_M365_TENANT` if your tenant rejects the default `organizations` authority.
+- `--account` goes before the subcommand; its environment fallback is `MARGO_M365_ACCOUNT`, not the
+  ledger's `MARGO_ACCOUNT`. `status` can refresh a token.
+- Don't change registrations or scopes to get around a policy denial.
+
+Details: [documents and files](how-to/documents-and-files.md).
 
 ---
 
@@ -332,19 +499,22 @@ or scopes to bypass a policy denial.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `tool does not exist` | Wrong callable name or missing server registration | Discover the host's Work IQ tools and schema; fix the connection if absent |
-| Margo answers generically, ignores your rules | `preferences.md` not found or unfilled | Check it's next to `SKILL.md` in the installed skill |
-| Brief has stale items | `$filter` without `$orderby` returns oldest-first | See [payload discipline](work-iq.md#payload-discipline) |
+| `tool does not exist` | Wrong callable name or missing server registration | Run `/mcp`; if `workiq` is missing, repeat [Connect Work IQ](#2-connect-work-iq) |
+| Browser shows "Need admin approval" at sign-in | Your tenant requires admin consent for Work IQ | Ask your tenant administrator to consent; see [identity and consent](work-iq/identity-and-consent.md) |
+| Margo answers generically, ignores your rules | `preferences.md` not found or unfilled | Check it's next to `SKILL.md` in the installed skill, or in `~/.copilot/margo/` for a plugin install |
+| Brief has stale items | `$filter` without `$orderby` returns oldest-first | See [payload discipline](work-iq/patterns.md#payload-discipline) |
 | `400 InefficientFilter` | No index backs that filter+sort pair | Drop the `$filter`, keep `$orderby`, narrow locally |
 | `Access denied for path: X` | Tenant has disabled that path family | Not retryable — report it |
 | Persona doesn't appear | Agent not loaded | Confirm `~/.copilot/agents/margo.agent.md` exists, then select it with `copilot --agent margo` or the host's agent picker; saying the name is not agent selection |
 | Scheduled runs repeat themselves | State ledger reset | Run `proactive_state.py status`; check for `WARNING` output |
 | Installer says "unidentified developer" | Build may be unsigned | Confirm the release source and follow your organization's software policy; use a reviewed source checkout if appropriate |
 | Windows SmartScreen warning | Build may be unsigned or unrecognized | Confirm the release source and follow your organization's software policy rather than treating the warning as a setup step |
-| Reinstall didn't pick up a change | Preserved personal file or customised prompt | Review and reconcile the diff. `--force` also replaces personal files; do not use it merely to update a prompt |
-| State commands say setup required | No explicit account configured | Initialise the confirmed owner with `margo_store.py init`; this is separate from OAuth |
+| Reinstall didn't pick up a change | Preserved personal file or customized prompt | Review and reconcile the diff. `--force` also replaces personal files; do not use it merely to update a prompt |
+| State commands say setup required | No explicit account configured | Initialize the confirmed owner with `margo_store.py init`; this is separate from OAuth |
+| `ERROR: state/config path must be private (directory 0700, file 0600)` from `margo_store.py init` or another state command | `~/.copilot/margo` (or a folder or file inside it) can be read by your group or everyone, usually because it was made with a plain `mkdir` | `chmod 700 ~/.copilot/margo`, then run the command again. If it still stops: `chmod -R go-rwx ~/.copilot/margo`. Not checked on Windows |
+| `ERROR: state/config root has a group/world-writable ancestor` from `margo_store.py init` | A folder above Margo's private state, often `~/.copilot` or your home folder, is writable by your group or everyone (common under `umask 002`). Margo refuses to keep private state there | `chmod go-w ~/.copilot ~` (and any other folder above it that `ls -ld` shows as group- or world-writable), then re-run `init`. Reinstalling with the current installer also fixes `~/.copilot`. Do not set `MARGO_ALLOW_UNSAFE_STATE_DIR`; it is for tests |
 | App prompts did not change after copying | Workflow store is separate from installed files | Ask to sync the reviewed automation files to existing workflows |
 | Canvas edits fail after a source changed | Revision or fingerprint is stale | Reload, revalidate sources, and prepare a new proposal; do not reuse old approval |
 
-For failures specific to Work IQ, load the `workiq` skill and read its
-`references/troubleshooting.md`.
+For failures specific to Work IQ, see [Work IQ errors and recovery](work-iq/errors.md). Microsoft's
+`workiq` skill, installed with the Work IQ plugin in step 2, carries Microsoft's own guidance.

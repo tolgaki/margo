@@ -62,7 +62,7 @@ All stored values, including payload/evidence/provenance/errors, render through
 `textContent` or form values. Content security policy disallows inline handlers,
 external connections, forms and object embeds.
 Source detail offers user-opened evidence links only for absolute HTTP(S) URLs,
-labelled with their actual hostname and optional stored title. Links use
+labeled with their actual hostname and optional stored title. Links use
 `target="_blank"` and `rel="noopener noreferrer"`; credentials, relative URLs and
 other schemes are rejected. The canvas never fetches those external URLs.
 
@@ -152,7 +152,7 @@ charges, finishes, pauses, cancels, resumes, replans, recovers or reconciles a t
 - The panel shows the current account, a paginated run list (`next_cursor`,
   "Load next page"), the exact plan/steps/budgets/history for a selected run,
   and distinguishes "no task runs yet" from "not initialized" or "unavailable".
-  Cancelled runs with unresolved effects, and expired read claims, are shown as
+  Canceled runs with unresolved effects, and expired read claims, are shown as
   prominent warnings that explicitly say cancellation never undoes an in-flight
   effect.
 - Optional buttons only **request** foreground review of one exact

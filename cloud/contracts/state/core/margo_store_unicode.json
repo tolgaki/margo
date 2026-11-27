@@ -1,0 +1,104 @@
+{
+  "description": "margo_store.py init beyond ASCII: directory names refused after str.casefold() (LONG S, the st ligature) and one that casefold keeps apart (dotted capital I), undecodable bytes in --account, --config and MARGO_CONFIG (CPython decodes them with surrogateescape, creates the file whose name holds the raw byte and then fails to encode the path or account), and the error line the hosted tool reports for each.",
+  "steps": [
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner@example.com",
+        "--config",
+        "{root}/\u017fhared/config.json"
+      ],
+      "env": {
+        "MARGO_ALLOW_UNSAFE_STATE_DIR": "0"
+      },
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner@example.com",
+        "--config",
+        "{root}/cloud\ufb06orage/x/config.json"
+      ],
+      "env": {
+        "MARGO_ALLOW_UNSAFE_STATE_DIR": "0"
+      },
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner@example.com",
+        "--config",
+        "{root}/ONEDR\u0130VE/config.json"
+      ],
+      "env": {
+        "MARGO_ALLOW_UNSAFE_STATE_DIR": "0"
+      },
+      "expect_exit": 2
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner\udcff@example.com",
+        "--config",
+        "{root}/raw-account/config.json"
+      ],
+      "expect_exit": 1
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner@example.com",
+        "--config",
+        "{root}/raw-name/\udcff.json"
+      ],
+      "expect_exit": 1
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner@example.com"
+      ],
+      "env": {
+        "MARGO_CONFIG": "{root}/raw-env-\udcfe/config.json"
+      },
+      "expect_exit": 1
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner@example.com",
+        "--config",
+        "{root}/\udcc3/\udced\udca0\udc80x.json"
+      ],
+      "expect_exit": 1
+    },
+    {
+      "script": "margo_store.py",
+      "args": [
+        "init",
+        "--account",
+        "owner@example.com",
+        "--config",
+        "{root}/extra/config.json",
+        "extra\udcff"
+      ],
+      "expect_exit": 2
+    }
+  ]
+}

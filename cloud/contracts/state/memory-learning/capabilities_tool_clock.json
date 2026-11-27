@@ -1,0 +1,471 @@
+{
+  "description": "The inventory clock: an older export (exposure, a complete empty snapshot, or a same-named tool in another scope) is refused once a newer one was accepted, an equal stamp is accepted, a damaged clock value fails as in Python, and a legacy file-origin record is both a clock and a retirement candidate.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "write": "tools.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/tools.json"
+          },
+          "save": "cap_observed"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${cap_observed.memory_ids.0}"
+          ],
+          "save": "cap"
+        },
+        {
+          "write": "tools.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-03T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": false,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/tools.json"
+          }
+        },
+        {
+          "write": "old.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/old.json"
+          }
+        },
+        {
+          "write": "old-empty.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": []
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/old-empty.json"
+          }
+        },
+        {
+          "write": "old-other-scope.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "unrelated",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ],
+            "scope": "other-scope"
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/old-other-scope.json"
+          }
+        },
+        {
+          "write": "old-same-name.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ],
+            "scope": "other-scope"
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/old-same-name.json"
+          }
+        },
+        {
+          "write": "same-stamp.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-03T00:00:00+00:00",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": false,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/same-stamp.json"
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${cap.id}"
+          ]
+        },
+        {
+          "sql": "UPDATE memory_meta SET value='{\"observed_at\":\"not a time\"}' WHERE key LIKE 'learning:inventory-clock:%'"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/same-stamp.json"
+          }
+        },
+        {
+          "sql": "UPDATE memory_meta SET value='[]' WHERE key LIKE 'learning:inventory-clock:%'"
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/same-stamp.json"
+          }
+        },
+        {
+          "sql": "DELETE FROM memory_meta WHERE key LIKE 'learning:inventory-clock:%'"
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            "${dir}/legacy.json"
+          ],
+          "save": "legacy"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "legacy-capability",
+            {
+              "domain": "agent",
+              "kind": "capability",
+              "title": "Tool capability: legacy-tool",
+              "text": "Legacy observation.",
+              "authority": "source_observed",
+              "scope": "capabilities:synthetic-cli",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:legacy"
+                }
+              ],
+              "metadata": {
+                "capability_kind": "tool",
+                "name": "legacy-tool",
+                "origin": "tools:${legacy}",
+                "base_environment": {
+                  "account": "${account}",
+                  "host": "synthetic-cli",
+                  "runtime": "python-synthetic"
+                },
+                "observed_at": "2026-08-10T00:00:00Z"
+              }
+            },
+            "active"
+          ],
+          "save": "legacy_record"
+        },
+        {
+          "write": "legacy.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-05T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "legacy-tool",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/legacy.json"
+          }
+        },
+        {
+          "write": "legacy.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-11T00:00:00Z",
+            "complete": true,
+            "tools": []
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/legacy.json"
+          },
+          "save": "legacy_retired"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${legacy_record.id}"
+          ]
+        },
+        {
+          "call": "list",
+          "on": "store",
+          "args": [
+            "agent"
+          ]
+        }
+      ]
+    }
+  ]
+}

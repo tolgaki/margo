@@ -326,6 +326,16 @@ class Ledger:
             self.event(source_id, "observed", {"revision": revision, "fingerprint": fingerprint})
         return {"source_id": source_id, "revision": revision, "fingerprint": fingerprint}
 
+    def find_source(self, family, scope, external_id):
+        """Return ``{"source_id", "revision"}`` for an exact external identity, or ``None``. Read-only."""
+        for key, value in (("family", family), ("scope", scope), ("external_id", external_id)):
+            text(value, key)
+        row = self.conn.execute(
+            "SELECT id,current_revision FROM work_sources WHERE account=? AND family=? AND scope=? AND external_id=?",
+            (self.account, family, scope, external_id),
+        ).fetchone()
+        return {"source_id": row["id"], "revision": row["current_revision"]} if row else None
+
     def source_refs(self, refs, require_current=True):
         if not isinstance(refs, list):
             raise StateError("source_refs must be a list")

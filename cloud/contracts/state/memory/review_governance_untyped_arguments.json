@@ -1,0 +1,1029 @@
+{
+  "description": "Review regression: authorize_capture(memory, normal) and retention_authorized(memory, record, expected_revision) accept any value as Python does: the policy is read first, then the value is indexed with Python's KeyError/TypeError (all three capture fields are read before any is checked), source references are iterated as Python iterates them, and a due date that is naive, unparsable or out of range fails as datetime does.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            null
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            null,
+            0
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            true
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            true,
+            0
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            5
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            5,
+            0
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            1.5
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            1.5,
+            0
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            "text"
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            "text",
+            0
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            [
+              "domain"
+            ]
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            [
+              "domain"
+            ],
+            0
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {},
+            0
+          ]
+        },
+        {
+          "call": "policy_preview",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": true,
+                "domains": [
+                  "user"
+                ],
+                "kinds": [
+                  "episode"
+                ],
+                "scopes": [
+                  "personal"
+                ],
+                "source_kinds": [
+                  "tool_result"
+                ]
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {
+                "episode": 1,
+                "project": 3650
+              },
+              "review_days": {}
+            }
+          ],
+          "save": "preview"
+        },
+        {
+          "call": "set_policy",
+          "on": "governance",
+          "args": [
+            {
+              "capture": {
+                "enabled": true,
+                "domains": [
+                  "user"
+                ],
+                "kinds": [
+                  "episode"
+                ],
+                "scopes": [
+                  "personal"
+                ],
+                "source_kinds": [
+                  "tool_result"
+                ]
+              },
+              "allow_sensitive": false,
+              "usage_enabled": false,
+              "usage_retention_days": 30,
+              "retention_days": {
+                "episode": 1,
+                "project": 3650
+              },
+              "review_days": {}
+            },
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this synthetic policy.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "${preview.subject_id}",
+              "revision": 1,
+              "decision": "configure",
+              "decided_at": "2000-01-01T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            null
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            null,
+            1
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            true
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            true,
+            1
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            5
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            5,
+            1
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            1.5
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            1.5,
+            1
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            "text"
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            "text",
+            1
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            [
+              "domain"
+            ]
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            [
+              "domain"
+            ],
+            1
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {},
+            1
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private"
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": "tool_result"
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": {
+                "tool_result": 1
+              }
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": 5
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": null
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "ref": "x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                [
+                  "kind"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": []
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": [
+                "user"
+              ],
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": [
+                "user"
+              ],
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            },
+            true
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": {
+                "a": 1
+              },
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": {
+                "a": 1
+              },
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            },
+            true
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "user_confirmed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "user_confirmed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            },
+            true
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "sensitive",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "sensitive",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            },
+            true
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "authorize_capture",
+          "on": "governance",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "T",
+              "text": "X",
+              "authority": "source_observed",
+              "scope": "personal",
+              "sensitivity": "private",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "tool:x"
+                }
+              ]
+            },
+            true
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "2000-01-01T00:00:00+00:00"
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "2000-01-01T00:00:00+00:00"
+            },
+            2
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode"
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode"
+            },
+            2
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "updated_at": "2000-01-01T00:00:00+00:00"
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "updated_at": "2000-01-01T00:00:00+00:00"
+            },
+            2
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": [
+                "episode"
+              ],
+              "updated_at": "2000-01-01T00:00:00+00:00"
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": [
+                "episode"
+              ],
+              "updated_at": "2000-01-01T00:00:00+00:00"
+            },
+            2
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": 5,
+              "updated_at": "2000-01-01T00:00:00+00:00"
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": 5,
+              "updated_at": "2000-01-01T00:00:00+00:00"
+            },
+            2
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "lesson",
+              "updated_at": 5
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "lesson",
+              "updated_at": 5
+            },
+            2
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": 5
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": 5
+            },
+            2
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "yesterday"
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "yesterday"
+            },
+            2
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "2999-01-01T00:00:00+00:00"
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "2999-01-01T00:00:00+00:00"
+            },
+            2
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "project",
+              "updated_at": "9999-01-01T00:00:00+00:00"
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "project",
+              "updated_at": "9999-01-01T00:00:00+00:00"
+            },
+            2
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "2000-01-01T00:00:00"
+            },
+            1
+          ]
+        },
+        {
+          "call": "retention_authorized",
+          "on": "governance",
+          "args": [
+            {
+              "kind": "episode",
+              "updated_at": "2000-01-01T00:00:00"
+            },
+            2
+          ]
+        }
+      ]
+    }
+  ]
+}

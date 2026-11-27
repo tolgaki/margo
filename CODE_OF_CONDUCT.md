@@ -4,18 +4,18 @@
 
 Be decent. Assume good faith. Argue with the idea, not the person.
 
-## Expected behaviour
+## Expected behavior
 
 - Be respectful of differing viewpoints, experience levels and working contexts.
 - Give and accept constructive feedback gracefully. A code review is about the code.
-- Take responsibility for mistakes, apologise, and move on.
-- Prioritise what's best for the project and the people using it.
+- Take responsibility for mistakes, apologize, and move on.
+- Prioritize what's best for the project and the people using it.
 
-## Unacceptable behaviour
+## Unacceptable behavior
 
 - Harassment, intimidation, or discriminatory language or imagery of any kind.
 - Personal or political attacks; sustained disruption of discussions.
-- Sexualised language or imagery, or unwelcome attention of any kind.
+- Sexualized language or imagery, or unwelcome attention of any kind.
 - Publishing others' private information without explicit permission — including, in this project
   specifically, **real names, email addresses or workplace data** pulled from a live account.
 - Any other conduct that would reasonably be considered inappropriate in a professional setting.
@@ -27,7 +27,7 @@ and whenever someone is representing the project in public.
 
 ## Enforcement
 
-Report unacceptable behaviour by opening a
+Report unacceptable behavior by opening a
 [private security advisory](https://github.com/tolgaki/margo/security/advisories/new), which is
 the private channel available on this repository. Reports are handled confidentially.
 

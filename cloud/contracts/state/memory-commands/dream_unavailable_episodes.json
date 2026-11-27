@@ -1,0 +1,1312 @@
+{
+ "description": "test_memory_dream.py::test_unavailable_episodes_are_not_revived_or_block_overlapping_reflection: a suppressed, forgotten, disputed, stale or review-due episode is neither revived nor re-output by a later overlapping run",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "task_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "cli": [
+      "policy-preview",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capture": {
+       "enabled": true,
+       "domains": [
+        "user"
+       ],
+       "kinds": [
+        "episode",
+        "decision"
+       ],
+       "scopes": [
+        "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+       ],
+       "source_kinds": [
+        "session_checkpoint",
+        "memory_record"
+       ]
+      },
+      "allow_sensitive": false,
+      "usage_enabled": false,
+      "usage_retention_days": 30,
+      "retention_days": {},
+      "review_days": {}
+     },
+     "save": "pp25"
+    },
+    {
+     "cli": [
+      "policy-set"
+     ],
+     "files": {
+      "--input": {
+       "capture": {
+        "enabled": true,
+        "domains": [
+         "user"
+        ],
+        "kinds": [
+         "episode",
+         "decision"
+        ],
+        "scopes": [
+         "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+        ],
+        "source_kinds": [
+         "session_checkpoint",
+         "memory_record"
+        ]
+       },
+       "allow_sensitive": false,
+       "usage_enabled": false,
+       "usage_retention_days": 30,
+       "retention_days": {},
+       "review_days": {}
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${pp25.subject_id}",
+       "revision": 1,
+       "decision": "configure",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-suppressed",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/suppressed",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "e_suppressed"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_first-suppressed"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "first-suppressed",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_first-suppressed.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "f_suppressed"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${f_suppressed.snapshot_id}",
+      "attempt_id": "${f_suppressed.claim.attempt_id}",
+      "token": "${f_suppressed.claim.token}",
+      "claims": []
+     },
+     "save": "p_suppressed"
+    },
+    {
+     "call": "show",
+     "on": "store",
+     "args": [
+      "${p_suppressed.output_ids.0}"
+     ],
+     "save": "ep_suppressed"
+    },
+    {
+     "cli": [
+      "revise",
+      "${ep_suppressed.id}",
+      "--revision",
+      "1",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "${ep_suppressed.domain}",
+       "kind": "${ep_suppressed.kind}",
+       "title": "${ep_suppressed.title}",
+       "text": "${ep_suppressed.text}",
+       "authority": "${ep_suppressed.authority}",
+       "scope": "${ep_suppressed.scope}",
+       "source_refs": "${ep_suppressed.source_refs}",
+       "metadata": "${ep_suppressed.metadata}",
+       "entities": "${ep_suppressed.entities}",
+       "sensitivity": "${ep_suppressed.sensitivity}",
+       "allowed_uses": "${ep_suppressed.allowed_uses}"
+      },
+      "status": "suppressed"
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "unrelated-suppressed",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/unrelated-suppressed",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "u_suppressed"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_second-suppressed"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "second-suppressed",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_second-suppressed.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "s_suppressed"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${s_suppressed.snapshot_id}",
+      "attempt_id": "${s_suppressed.claim.attempt_id}",
+      "token": "${s_suppressed.claim.token}",
+      "claims": [
+       {
+        "key": "open-timing",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${u_suppressed.id}",
+          "revision": "${u_suppressed.revision}",
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "show",
+      "${ep_suppressed.id}"
+     ]
+    },
+    {
+     "cli": [
+      "history",
+      "${ep_suppressed.id}"
+     ]
+    },
+    {
+     "cli": [
+      "dream-inspect",
+      "${f_suppressed.snapshot_id}"
+     ]
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-forgotten",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/forgotten",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "e_forgotten"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_first-forgotten"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "first-forgotten",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_first-forgotten.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "f_forgotten"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${f_forgotten.snapshot_id}",
+      "attempt_id": "${f_forgotten.claim.attempt_id}",
+      "token": "${f_forgotten.claim.token}",
+      "claims": []
+     },
+     "save": "p_forgotten"
+    },
+    {
+     "call": "show",
+     "on": "store",
+     "args": [
+      "${p_forgotten.output_ids.0}"
+     ],
+     "save": "ep_forgotten"
+    },
+    {
+     "cli": [
+      "forget",
+      "${ep_forgotten.id}",
+      "--revision",
+      "1"
+     ],
+     "files": {
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${ep_forgotten.id}",
+       "revision": 1,
+       "decision": "forget",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "unrelated-forgotten",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/unrelated-forgotten",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "u_forgotten"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_second-forgotten"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "second-forgotten",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_second-forgotten.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "s_forgotten"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${s_forgotten.snapshot_id}",
+      "attempt_id": "${s_forgotten.claim.attempt_id}",
+      "token": "${s_forgotten.claim.token}",
+      "claims": [
+       {
+        "key": "open-timing",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${u_forgotten.id}",
+          "revision": "${u_forgotten.revision}",
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "show",
+      "${ep_forgotten.id}"
+     ]
+    },
+    {
+     "cli": [
+      "history",
+      "${ep_forgotten.id}"
+     ]
+    },
+    {
+     "cli": [
+      "dream-inspect",
+      "${f_forgotten.snapshot_id}"
+     ]
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-disputed",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/disputed",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "e_disputed"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_first-disputed"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "first-disputed",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_first-disputed.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "f_disputed"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${f_disputed.snapshot_id}",
+      "attempt_id": "${f_disputed.claim.attempt_id}",
+      "token": "${f_disputed.claim.token}",
+      "claims": []
+     },
+     "save": "p_disputed"
+    },
+    {
+     "call": "show",
+     "on": "store",
+     "args": [
+      "${p_disputed.output_ids.0}"
+     ],
+     "save": "ep_disputed"
+    },
+    {
+     "cli": [
+      "revise",
+      "${ep_disputed.id}",
+      "--revision",
+      "1",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "${ep_disputed.domain}",
+       "kind": "${ep_disputed.kind}",
+       "title": "${ep_disputed.title}",
+       "text": "${ep_disputed.text}",
+       "authority": "${ep_disputed.authority}",
+       "scope": "${ep_disputed.scope}",
+       "source_refs": "${ep_disputed.source_refs}",
+       "metadata": "${ep_disputed.metadata}",
+       "entities": "${ep_disputed.entities}",
+       "sensitivity": "${ep_disputed.sensitivity}",
+       "allowed_uses": "${ep_disputed.allowed_uses}"
+      },
+      "status": "disputed"
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "unrelated-disputed",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/unrelated-disputed",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "u_disputed"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_second-disputed"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "second-disputed",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_second-disputed.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "s_disputed"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${s_disputed.snapshot_id}",
+      "attempt_id": "${s_disputed.claim.attempt_id}",
+      "token": "${s_disputed.claim.token}",
+      "claims": [
+       {
+        "key": "open-timing",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${u_disputed.id}",
+          "revision": "${u_disputed.revision}",
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "show",
+      "${ep_disputed.id}"
+     ]
+    },
+    {
+     "cli": [
+      "history",
+      "${ep_disputed.id}"
+     ]
+    },
+    {
+     "cli": [
+      "dream-inspect",
+      "${f_disputed.snapshot_id}"
+     ]
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-stale",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/stale",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "e_stale"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_first-stale"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "first-stale",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_first-stale.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "f_stale"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${f_stale.snapshot_id}",
+      "attempt_id": "${f_stale.claim.attempt_id}",
+      "token": "${f_stale.claim.token}",
+      "claims": []
+     },
+     "save": "p_stale"
+    },
+    {
+     "call": "show",
+     "on": "store",
+     "args": [
+      "${p_stale.output_ids.0}"
+     ],
+     "save": "ep_stale"
+    },
+    {
+     "cli": [
+      "revise",
+      "${ep_stale.id}",
+      "--revision",
+      "1",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "${ep_stale.domain}",
+       "kind": "${ep_stale.kind}",
+       "title": "${ep_stale.title}",
+       "text": "${ep_stale.text}",
+       "authority": "${ep_stale.authority}",
+       "scope": "${ep_stale.scope}",
+       "source_refs": "${ep_stale.source_refs}",
+       "metadata": "${ep_stale.metadata}",
+       "entities": "${ep_stale.entities}",
+       "sensitivity": "${ep_stale.sensitivity}",
+       "allowed_uses": "${ep_stale.allowed_uses}"
+      },
+      "status": "stale"
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "unrelated-stale",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/unrelated-stale",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "u_stale"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_second-stale"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "second-stale",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_second-stale.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "s_stale"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${s_stale.snapshot_id}",
+      "attempt_id": "${s_stale.claim.attempt_id}",
+      "token": "${s_stale.claim.token}",
+      "claims": [
+       {
+        "key": "open-timing",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${u_stale.id}",
+          "revision": "${u_stale.revision}",
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "show",
+      "${ep_stale.id}"
+     ]
+    },
+    {
+     "cli": [
+      "history",
+      "${ep_stale.id}"
+     ]
+    },
+    {
+     "cli": [
+      "dream-inspect",
+      "${f_stale.snapshot_id}"
+     ]
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-review_due",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/review_due",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "e_review_due"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_first-review_due"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "first-review_due",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_first-review_due.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "f_review_due"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${f_review_due.snapshot_id}",
+      "attempt_id": "${f_review_due.claim.attempt_id}",
+      "token": "${f_review_due.claim.token}",
+      "claims": []
+     },
+     "save": "p_review_due"
+    },
+    {
+     "call": "show",
+     "on": "store",
+     "args": [
+      "${p_review_due.output_ids.0}"
+     ],
+     "save": "ep_review_due"
+    },
+    {
+     "cli": [
+      "revise",
+      "${ep_review_due.id}",
+      "--revision",
+      "1",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "${ep_review_due.domain}",
+       "kind": "${ep_review_due.kind}",
+       "title": "${ep_review_due.title}",
+       "text": "${ep_review_due.text}",
+       "authority": "${ep_review_due.authority}",
+       "scope": "${ep_review_due.scope}",
+       "source_refs": "${ep_review_due.source_refs}",
+       "metadata": "${ep_review_due.metadata}",
+       "entities": "${ep_review_due.entities}",
+       "sensitivity": "${ep_review_due.sensitivity}",
+       "allowed_uses": "${ep_review_due.allowed_uses}",
+       "review_after": "2020-02-03T00:00:00+00:00"
+      },
+      "status": "active"
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "unrelated-review_due",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/unrelated-review_due",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "u_review_due"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_second-review_due"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "second-review_due",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_second-review_due.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "s_review_due"
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${s_review_due.snapshot_id}",
+      "attempt_id": "${s_review_due.claim.attempt_id}",
+      "token": "${s_review_due.claim.token}",
+      "claims": [
+       {
+        "key": "open-timing",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${u_review_due.id}",
+          "revision": "${u_review_due.revision}",
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "show",
+      "${ep_review_due.id}"
+     ]
+    },
+    {
+     "cli": [
+      "history",
+      "${ep_review_due.id}"
+     ]
+    },
+    {
+     "cli": [
+      "dream-inspect",
+      "${f_review_due.snapshot_id}"
+     ]
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  }
+ ]
+}

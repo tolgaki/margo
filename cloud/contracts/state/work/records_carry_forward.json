@@ -1,0 +1,948 @@
+{
+  "description": "work_state.py carry-forward: open topics and unresolved work references move from a reviewed occurrence to a later preparation occurrence of the same series, without duplicating work (no copy of resolved topics or closed items); every refusal (same/other series, earlier target, wrong states, conflicting topic revision, missing or wrong evidence, revision conflicts, carry_forward(**data) binding) and the carried_forward record state (test_meeting_carry_forward_reuses_work_and_only_open_topics).",
+  "steps": [
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-1",
+        "revision": "v1",
+        "evidence": {
+          "quote": "Please review the fictional specification."
+        },
+        "web_link": "https://example.com/mail/1"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "claim-1",
+        "data": {
+          "title": "Review fictional specification",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "claim-2",
+        "data": {
+          "title": "Closed work",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_c818e0096478b30ff2657afbf4aee6a6",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "rejected"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "cf-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-cf",
+          "occurrence_id": "cf-1",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+            "item_c818e0096478b30ff2657afbf4aee6a6"
+          ],
+          "topics": [
+            {
+              "id": "topic-1",
+              "title": "Review issue",
+              "owner": null,
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "No decision yet",
+              "state": "open"
+            },
+            {
+              "id": "topic-2",
+              "title": "Closed question",
+              "owner": null,
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "Already answered",
+              "state": "resolved"
+            }
+          ]
+        },
+        "state": "reviewed"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "cf-1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-cf",
+          "occurrence_id": "cf-1",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+            "item_c818e0096478b30ff2657afbf4aee6a6"
+          ],
+          "topics": [
+            {
+              "id": "topic-1",
+              "title": "Review issue",
+              "owner": null,
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "No decision yet",
+              "state": "open"
+            },
+            {
+              "id": "topic-2",
+              "title": "Closed question",
+              "owner": null,
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "Already answered",
+              "state": "resolved"
+            }
+          ]
+        },
+        "state": "reviewed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "cf-2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-cf",
+          "occurrence_id": "cf-2",
+          "scheduled_start": "2026-09-14T10:00:00-07:00",
+          "scheduled_end": "2026-09-14T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "cf-3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-other",
+          "occurrence_id": "cf-3",
+          "scheduled_start": "2026-09-14T10:00:00-07:00",
+          "scheduled_end": "2026-09-14T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "cf-4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-cf",
+          "occurrence_id": "cf-4",
+          "scheduled_start": "2026-08-31T10:00:00-07:00",
+          "scheduled_end": "2026-08-31T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "cf-5",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-cf",
+          "occurrence_id": "cf-5",
+          "scheduled_start": "2026-09-14T10:00:00-07:00",
+          "scheduled_end": "2026-09-14T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "topics": [
+            {
+              "id": "topic-1",
+              "title": "Edited elsewhere",
+              "owner": null,
+              "created_at": "2026-01-02T03:04:05Z",
+              "why": "No decision yet",
+              "state": "open"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "target_revision": 1,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_b81a90d7e56ffed599ba2e7dc261884f",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "target_revision": 1,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_b81a90d7e56ffed599ba2e7dc261884f",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_5b08d8b79d20ec45e9b86965e7b4b162",
+        "target_revision": 1,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_a127c055aa51de8025863da78803f5f3",
+        "target_revision": 1,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_3c83b4a9e2e785956fd92715ee597f78",
+        "target_revision": 1,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_b81a90d7e56ffed599ba2e7dc261884f",
+        "target_revision": 1
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_b81a90d7e56ffed599ba2e7dc261884f",
+        "target_revision": 1,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_b81a90d7e56ffed599ba2e7dc261884f",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_b81a90d7e56ffed599ba2e7dc261884f",
+        "target_revision": 2,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_b81a90d7e56ffed599ba2e7dc261884f",
+        "target_revision": true,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_missing",
+        "target_revision": 1,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+        "target_revision": 1,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_b81a90d7e56ffed599ba2e7dc261884f",
+        "target_revision": 1,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "target_id": "meeting_b81a90d7e56ffed599ba2e7dc261884f",
+        "target_revision": 1.0,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "carry-forward",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "target_id": "meeting_b81a90d7e56ffed599ba2e7dc261884f",
+        "target_revision": 1,
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "meeting_7f6c1e0dd46c1616e0de953b99ad9e8c"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "meeting_b81a90d7e56ffed599ba2e7dc261884f"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "history",
+        "meeting_b81a90d7e56ffed599ba2e7dc261884f"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "cf-6",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-cf",
+          "occurrence_id": "cf-6",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ]
+        },
+        "state": "carried_forward",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_a8be818636c1a1a376d3206e7f64b997",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "cf-6",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-cf",
+          "occurrence_id": "cf-6",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "next_occurrence_id": "meeting_5b08d8b79d20ec45e9b86965e7b4b162"
+        },
+        "state": "carried_forward",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_a8be818636c1a1a376d3206e7f64b997",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "cf-6",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-cf",
+          "occurrence_id": "cf-6",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "next_occurrence_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+        },
+        "state": "carried_forward",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_a8be818636c1a1a376d3206e7f64b997",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "cf-7",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "data": {
+          "series_id": "series-cf",
+          "occurrence_id": "cf-7",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "next_occurrence_id": "meeting_a127c055aa51de8025863da78803f5f3"
+        },
+        "state": "carried_forward",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_dfedb20a9884ad7164cb7ae7149d9b61",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "record",
+        "meeting",
+        "cf-8",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "data": {
+          "series_id": "series-cf",
+          "occurrence_id": "cf-8",
+          "scheduled_start": "2026-09-07T10:00:00-07:00",
+          "scheduled_end": "2026-09-07T11:00:00-07:00",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ],
+          "attendance": "unknown",
+          "work_item_ids": [
+            "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          ],
+          "next_occurrence_id": "meeting_e7cfdbf432c70917367e82019fc80697"
+        },
+        "state": "carried_forward",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "meeting_e7cfdbf432c70917367e82019fc80697",
+          "revision": 1,
+          "decision": "carry_forward",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "all"
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

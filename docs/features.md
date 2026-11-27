@@ -46,9 +46,17 @@ is currently blocked on an external condition) or `planned` (not yet built).
 <!-- BEGIN GENERATED: feature-catalog -->
 | Feature | User goal | Availability | Kind | Guide |
 | --- | --- | --- | --- | --- |
+| `cloud-approval-cards` | Have Margo Cloud send, schedule, post or share for you only after you tap Approve on a card that shows that exact action, which then runs once | Limited | runtime | [Approve an exact action on a card in Teams](autopilot-deployment.md#sending-on-your-behalf-approval-cards) |
+| `cloud-backchannel` | Have messages and mail other people send Margo Cloud queued for you as untrusted requests, never answered, with an optional fixed "passed this on" note | Limited | runtime | [Keep other people's requests from steering Margo](autopilot-deployment.md#who-margo-answers) |
+| `cloud-documents` | Ask Margo Cloud for a Word document, Excel workbook or PowerPoint presentation and get it created in her OneDrive and shared with you alone, with editing rights | Limited | runtime | [Get an Office document from Margo Cloud](autopilot-deployment.md#documents-she-creates-for-you) |
+| `cloud-group-answers` | @mention Margo Cloud in a group chat, meeting chat or channel and have her answer you there, with approval cards that only you can tap | Limited | runtime | [Ask Margo in a group chat or channel](autopilot-deployment.md#who-margo-answers) |
+| `cloud-manager-channel` | Get a note from Margo Cloud that reaches you alone: a Teams message in your one-to-one chat, an email to you with no copies, or a file shared with you | Limited | runtime | [Hear from Margo directly, with no card](autopilot-deployment.md#the-backchannel) |
+| `cloud-room-listening` | Have Margo Cloud read what is new in the group chats, meeting chats and channels she is a member of and send you a short note when something matters | Limited | runtime | [Let Margo listen in the rooms she belongs to](autopilot-deployment.md#the-backchannel) |
+| `cloud-voice` | Open Margo Cloud's voice page, sign in and talk to the same Margo, with the same skills, tools and guard as in Teams | Limited | runtime | [Talk to Margo by voice](autopilot-voice.md#what-you-get) |
 | `containers` | Run scheduled routines in a container instead of a local machine, with the same unattended contract | Optional | procedure | [Run Margo unattended somewhere other than a laptop](container.md#running-it) |
-| `automation-ambient` | Run a daily ambient scan for commitment ageing, relationship drift and stale PRs, queued for the next anchor, never interrupting | Implemented | procedure | [Get a quiet daily scan for slow-moving drift](how-to/automation-health.md#automation-ambient) |
-| `automation-commitments` | Run commitment ageing and render the week's ambient digest every Friday | Implemented | procedure | [Get a weekly commitments and ambient digest](how-to/automation-health.md#automation-commitments) |
+| `plugin-install` | Add desktop Margo's skills and persona to GitHub Copilot CLI, Claude Code or Codex from the repository's own marketplace | Optional | procedure | [Install Margo as a plugin](getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex) |
+| `automation-ambient` | Run a daily ambient scan for commitment aging, relationship drift and stale PRs, queued for the next anchor, never interrupting | Implemented | procedure | [Get a quiet daily scan for slow-moving drift](how-to/automation-health.md#automation-ambient) |
+| `automation-commitments` | Run commitment aging and render the week's ambient digest every Friday | Implemented | procedure | [Get a weekly commitments and ambient digest](how-to/automation-health.md#automation-commitments) |
 | `automation-eod` | Run the end-of-day/catch-up wrap-up on weekday evenings | Implemented | procedure | [Get an end-of-day wrap-up automatically](how-to/automation-health.md#automation-eod) |
 | `automation-hourly` | Run a lightweight, usually silent hourly sweep for anything that clears the interrupt test | Implemented | procedure | [Get cheap, silent hourly checks](how-to/automation-health.md#automation-hourly) |
 | `automation-morning` | Run the full daily brief automatically on weekday mornings | Implemented | procedure | [Get the morning brief without asking for it](how-to/automation-health.md#automation-morning) |
@@ -80,14 +88,18 @@ is currently blocked on an external condition) or `planned` (not yet built).
 | `file-download` | Download a file over the 4 MB MCP transport limit straight to local disk without flooding the conversation | Implemented | runtime | [Pull a large file from Microsoft 365 to disk](how-to/documents-and-files.md#file-download) |
 | `file-sharing` | Grant a specific person read access to a file, without sending an email notification unless you ask for one | Implemented | procedure | [Share a file without emailing the bytes](how-to/documents-and-files.md#file-sharing) |
 | `file-upload` | Upload a local file to a Microsoft 365 location once write scope is granted | Limited | runtime | [Upload a local file into Microsoft 365](how-to/documents-and-files.md#file-upload) |
+| `sharepoint` | See what is waiting for your approval in SharePoint, who has access to a file, and how to get an earlier version back | Optional | procedure | [Answer SharePoint approval, access and version questions](how-to/documents-and-files.md#sharepoint-approvals-access-and-versions) |
 | `drafting` | Produce a grounded reply, new message or Teams draft written in your voice, never the assistant's | Implemented | procedure | [Get a ready-to-send draft in your voice](how-to/drafting-and-follow-ups.md#drafting) |
 | `executive-followup` | Turn a meeting or thread into an executive-ready follow-up: listen-first, specific, credited by name | Implemented | procedure | [Land a high-stakes message with the right tone](how-to/drafting-and-follow-ups.md#executive-followup) |
 | `dream` | Reflect on selected Margo session evidence, review candidate interpretations and retrieve relevant sourced episodes next session | Limited | runtime | [Dream over opted-in session checkpoints](how-to/dream.md#reflect-on-one-daily-page) |
 | `artifact-delivery` | Link a prepared artifact to its real delivery receipt once it has actually been shared | Implemented | runtime | [Know a work product actually reached someone](how-to/feedback-and-work-products.md#artifact-delivery) |
+| `copilot-agents` | List the Copilot agents available to you and put a question to the one you name, with the answer reported as that agent's | Optional | procedure | [Ask one of your Copilot agents](how-to/feedback-and-work-products.md#7-ask-one-of-your-copilot-agents) |
 | `do-not-learn` | Mark an interaction as explicitly not to be learned from, without an operational receipt claiming otherwise | Implemented | runtime | [Say 'not a lesson' and mean it](how-to/feedback-and-work-products.md#do-not-learn) |
 | `feedback` | Record a specific correction tied to the exact item it applies to, without turning it into a standing rule | Implemented | runtime | [Correct Margo without a permanent rule you didn't ask for](how-to/feedback-and-work-products.md#feedback) |
+| `office-documents` | Ask for a document, workbook or deck and get the file created in your own OneDrive, with its link | Limited | procedure | [Get a real Word, Excel or PowerPoint file](how-to/feedback-and-work-products.md#5-get-a-real-word-excel-or-powerpoint-file) |
+| `page-publishing` | Publish approved content as a Copilot Page or on a SharePoint site, with the destination and audience shown first | Optional | procedure | [Publish reviewed work as a page](how-to/feedback-and-work-products.md#6-publish-to-copilot-pages-or-a-sharepoint-site) |
 | `rules` | Propose a scoped rule from supporting examples, then activate it only with explicit confirmation | Implemented | runtime | [Turn a repeated correction into a standing rule](how-to/feedback-and-work-products.md#rules) |
-| `work-products` | Produce a decision memo, comparison, status update, agenda or delegation brief tied to its sources | Implemented | runtime | [Get a useful first draft of the real deliverable](how-to/feedback-and-work-products.md#work-products) |
+| `work-products` | Produce a decision memo, comparison, status update, agenda or delegation brief tied to its sources, as a draft or a real Word, Excel or PowerPoint file | Implemented | runtime | [Get a useful first draft of the real deliverable](how-to/feedback-and-work-products.md#work-products) |
 | `ado-work-items` | Run the saved bug and backlog queries by ID and summarize priority, staleness and ownership | Optional | procedure | [Review your Azure DevOps backlog without hunting for the query](how-to/github-and-work-items.md#ado-work-items) |
 | `github-reviews` | See review requests, your own stale PRs and assigned issues across both GitHub accounts, aged and cited | Optional | procedure | [Never miss a stale review request](how-to/github-and-work-items.md#github-reviews) |
 | `inbox-triage` | Turn a noisy inbox into a short, ranked, decision-ready list with a recommended action per item | Implemented | procedure | [Clear your inbox with confidence](how-to/inbox-and-teams.md#inbox-triage) |
@@ -105,6 +117,7 @@ is currently blocked on an external condition) or `planned` (not yet built).
 | `outcomes` | Agree up to three weekly outcomes with an owner, definition of done, due date and effort estimate | Implemented | runtime | [Agree what success looks like this week](how-to/outcomes-and-meetings.md#outcomes) |
 | `week-ahead` | See the shape of next week: load, prep debt, focus time, conflicts and what's due, while there's still time to act | Implemented | procedure | [Prepare for what next week actually needs](how-to/outcomes-and-meetings.md#week-ahead) |
 | `one-on-ones` | Keep a rolling, editable agenda per person, accumulated through the week and rendered before the meeting | Implemented | procedure | [Never reconstruct a 1:1 agenda five minutes before it](how-to/relationships-and-one-on-ones.md#one-on-ones) |
+| `people-org` | Look up a person's manager, direct reports and the people you work with most, from the directory and your own communication | Implemented | procedure | [Know who someone is before you meet or write](how-to/relationships-and-one-on-ones.md#people-and-org) |
 | `relationships` | Surface drifting relationships against an intended cadence, ambient-only and capped at a handful a week | Implemented | procedure | [Notice who you've quietly stopped talking to](how-to/relationships-and-one-on-ones.md#relationships) |
 | `memory-retrieval` | Search and build a bounded context packet for a task from hybrid keyword and local semantic search | Optional | runtime | [Recall relevant context by meaning, not just keywords](how-to/semantic-memory.md#memory-retrieval) |
 | `account-storage` | Confirm the private, account-scoped storage location before any data is captured | Implemented | runtime | [Know which account and where data lives](how-to/setup-and-migration.md#account-storage) |
@@ -125,7 +138,7 @@ outbound Microsoft 365 APIs on the state/approval path. The separate
 [large-file bridge](how-to/documents-and-files.md) is an authenticated Graph client with its
 own platform and scope limitations; it is not a state helper or an approval bypass.
 
-| Feature | Implemented behaviour | Boundary |
+| Feature | Implemented behavior | Boundary |
 |---|---|---|
 | Account-scoped storage | Explicit owner configuration, private SQLite database per account, transactions and schema checks | Configuration is not authentication; verify Work IQ identity before ingestion |
 | Evidence and revisions | Stable source identity, immutable evidence revisions, links, sensitivity and freshness | Search links are not provider IDs; semantic merging is not automatic |
@@ -141,14 +154,14 @@ Use [Work ledger](../skills/chief-of-staff/references/work-ledger.md) and
 
 ## Reliable proactive operation
 
-| Feature | Implemented behaviour | Boundary |
+| Feature | Implemented behavior | Boundary |
 |---|---|---|
 | Source coverage | Attempts, complete/partial/blocked results, continuation and successful checkpoints | A successful mail read does not advance calendar or Teams |
 | Stable polling scope | Ordinary polling bounds remain per-attempt; fixed provider windows bind calendar delta scope | Changed capabilities/query versions invalidate incompatible tokens |
 | Coverage history | Failure episodes, retry information, recovery and explicit collection retirement | A retired collection remains historical evidence, not a current health obligation |
 | Leased delivery | One owner per queue batch; release/expiry enables redelivery | Another anchor cannot steal a live lease |
 | Output receipts | Prepared, available, published and explicitly reviewed outputs | Local availability is not proof of host delivery or human reading |
-| Standalone output | Persist a brief even when its input queue is empty | No fake queue items and no acknowledgement required |
+| Standalone output | Persist a brief even when its input queue is empty | No fake queue items and no acknowledgment required |
 | Doctor | Required preference fields, managed-file drift, coverage, delivery backlog and supplied host snapshots | It does not read the host database, authenticate, or silently repair configuration |
 | Six scheduled routines | Morning brief, EOD, week ahead, commitment digest, hourly sweep and ambient scan | Same prompt files; app workflows and CLI wrappers have different permission enforcement |
 
@@ -158,16 +171,16 @@ cannot run while its machine is asleep. See [automation health](how-to/automatio
 
 ## Connected productivity routines
 
-| Routine | Stored state and output | What still requires judgement |
+| Routine | Stored state and output | What still requires judgment |
 |---|---|---|
 | Weekly outcomes | Up to three agreed outcomes with completion criteria, effort, next step, allocation or blocker | The user chooses priorities and agrees commitments |
-| Capacity | Working/busy/protected interval unions, focus gaps and minimum overflow | Normalise provider data; incomplete coverage cannot establish feasibility |
+| Capacity | Working/busy/protected interval unions, focus gaps and minimum overflow | Normalize provider data; incomplete coverage cannot establish feasibility |
 | Meeting lifecycle | Series/occurrence identity, preparation, recap-pending retries, debrief review and carry-forward | A calendar event does not prove attendance; no recap does not mean no actions |
 | Explicit corrections | Exact subject revision, correction and supplied reason | A one-off edit is not automatically a permanent preference |
 | Scoped rules | Proposed/active/revoked rules with supporting feedback and conflict checks | Activation needs approval; learning cannot grant permissions |
 | Do-not-learn | Minimal operational opt-out marker without correction/reason text | It is not a general erasure facility for all prior records |
 | Work products | Versioned private Markdown memos, comparisons, updates, agendas and delegation briefs | The agent authors the content; local storage does not create a shared document |
-| Artefact delivery | Separate link to a successful execution receipt for the exact version | Content approval is not approval to publish or send |
+| Artifact delivery | Separate link to a successful execution receipt for the exact version | Content approval is not approval to publish or send |
 
 How to use these: [outcomes and meetings](how-to/outcomes-and-meetings.md) and
 [feedback and work products](how-to/feedback-and-work-products.md).
@@ -175,21 +188,21 @@ How to use these: [outcomes and meetings](how-to/outcomes-and-meetings.md) and
 ## Deployment and maintenance
 
 The installers copy managed files by default. Link mode is for contributors and can place
-personalisation inside a checkout; it does not move the account-scoped database into the repo.
+personalization inside a checkout; it does not move the account-scoped database into the repo.
 Version metadata, source revision when available, and managed-file hashes make drift visible.
-Customised prompts and renderer files are preserved rather than silently replaced.
+Customized prompts and renderer files are preserved rather than silently replaced.
 
 Legacy notification state imports without inventing proof of delivery or successful coverage.
 Reviewed commitments import separately. Original files remain available for recovery; never run
 old and new state writers concurrently. Uninstall retains the account's runtime directory.
 
 The native packages include the core and optional renderer source. Enable the canvas with
-`--action-desk` or `-ActionDesk`; copying it does not reload extensions or synchronise app
+`--action-desk` or `-ActionDesk`; copying it does not reload extensions or synchronize app
 workflows. See [setup and migration](how-to/setup-and-migration.md).
 
 ## Local semantic memory
 
-| Feature | Behaviour | Boundary |
+| Feature | Behavior | Boundary |
 |---|---|---|
 | User and agent domains | Explicit sourced facts/preferences, episodes, capabilities, lessons and trend candidates | Separate from authoritative obligations and action permissions |
 | Memory lifecycle | Conditional revisions, confirmation, dispute/staleness, source/time/routine/environment filtering | Candidate/inferred content is not recalled as established active knowledge |
@@ -202,7 +215,7 @@ workflows. See [setup and migration](how-to/setup-and-migration.md).
 | Rebuildable indexes | Revision/content/model fingerprints and transactional index jobs | Old vectors never override changed or forgotten authoritative records |
 | Local encoder | Pinned MiniLM ONNX artifacts, explicit download, CPU inference with a private optional runtime | No implicit download, remote code or cloud embedding fallback |
 | Capability evidence and lessons | Installed files, host-exported tool schemas, pinned local input exercises, existing execution receipts and reviewed environment-scoped recipes | Input-contract validation is not remote execution; neither level grants permissions or proves general competence |
-| Trend candidates | Reviewed thresholds, bounded windows, independent event groups, population and explicit coverage | Rates apply only to the observed population; no automatic behavioural activation or colleague performance scoring |
+| Trend candidates | Reviewed thresholds, bounded windows, independent event groups, population and explicit coverage | Rates apply only to the observed population; no automatic behavioral activation or colleague performance scoring |
 | Consolidation proposals | Bounded exact-duplicate/candidate/failure review pages with once-per-evidence delivery markers | Page-local dedupe is not a global semantic merge; availability is not human review |
 | Forgetting | Remove retrievable memory/history and derived local indexes; retain minimal tombstones | Does not delete source mail, work records, prior outputs or backup copies |
 | Suppression and retention | Do-not-use preserves history; reviewed per-kind retention erases due records in bounded batches | Suppression cannot be undone by passive recapture; no retention grant means no automatic erasure |
@@ -258,7 +271,7 @@ See the [Dream guide](how-to/dream.md).
 ## What this is not yet
 
 There is no model-weight training, automatic public lesson publication, cross-account knowledge
-sharing or multi-device memory synchronisation. Permission-aware recall is conservative; sensitive
+sharing or multi-device memory synchronization. Permission-aware recall is conservative; sensitive
 records are excluded rather than assuming cached access remains valid. The user still agrees
 capture scope, preferences and lessons. Margo does not infer a complete biography from a mailbox.
 

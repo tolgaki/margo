@@ -1,0 +1,440 @@
+{
+ "description": "trend-definition preview (read-only), approval, unsupported types, bounds and revision conflicts; trend staging, replay, conditional revision and refusals (future window, named people, population); preferences-preview/-import with evidence and replay, and the changed-preferences guard (tests/test_memory_review_regressions.py::test_changed_preferences_keep_guard_and_explain_recovery)",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "write": "definition.json",
+     "json": {
+      "min_independent_events": 3,
+      "window_days": 60,
+      "min_population": 3,
+      "min_coverage": 1.0,
+      "require_complete": true
+     }
+    },
+    {
+     "cli": [
+      "trend-definition",
+      "meeting_preparation",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "min_independent_events": 3,
+      "window_days": 60,
+      "min_population": 3,
+      "min_coverage": 1.0,
+      "require_complete": true
+     },
+     "save": "td"
+    },
+    {
+     "cli": [
+      "trend-definition",
+      "people_scoring",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "min_independent_events": 3,
+      "window_days": 60,
+      "min_population": 3,
+      "min_coverage": 1.0,
+      "require_complete": true
+     }
+    },
+    {
+     "cli": [
+      "trend-definition",
+      "meeting_preparation",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "min_independent_events": 3,
+      "window_days": 0,
+      "min_population": 2,
+      "min_coverage": 1.0,
+      "require_complete": true
+     }
+    },
+    {
+     "cli": [
+      "trend-definition",
+      "meeting_preparation",
+      "--input",
+      "-",
+      "--revision",
+      "3"
+     ],
+     "stdin_json": {
+      "min_independent_events": 3,
+      "window_days": 60,
+      "min_population": 3,
+      "min_coverage": 1.0,
+      "require_complete": true
+     }
+    },
+    {
+     "cli": [
+      "trend-definition",
+      "meeting_preparation",
+      "--input",
+      "${dir}/definition.json",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${td.subject_id}",
+      "revision": 1,
+      "decision": "confirm",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "trend-definition",
+      "meeting_preparation",
+      "--input",
+      "${dir}/definition.json",
+      "--revision",
+      "0",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${td.subject_id}",
+      "revision": 1,
+      "decision": "configure",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "trend-definition",
+      "meeting_preparation",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "min_independent_events": 3,
+      "window_days": 60,
+      "min_population": 3,
+      "min_coverage": 1.0,
+      "require_complete": true
+     }
+    },
+    {
+     "cli": [
+      "trend",
+      "review-prep",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "title": "Preparation before reviews",
+      "text": "Reviews with preparation went well.",
+      "scope": "personal",
+      "window_start": "2020-01-01T00:00:00+00:00",
+      "window_end": "2020-02-01T00:00:00+00:00",
+      "event_ids": [
+       "review-1",
+       "review-2",
+       "review-3"
+      ],
+      "population": 3,
+      "coverage": "complete",
+      "source_refs": [
+       {
+        "kind": "tool_result",
+        "ref": "synthetic:trend"
+       }
+      ]
+     },
+     "save": "trend"
+    },
+    {
+     "cli": [
+      "trend",
+      "review-prep",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "title": "Preparation before reviews",
+      "text": "Reviews with preparation went well.",
+      "scope": "personal",
+      "window_start": "2020-01-01T00:00:00+00:00",
+      "window_end": "2020-02-01T00:00:00+00:00",
+      "event_ids": [
+       "review-1",
+       "review-2",
+       "review-3"
+      ],
+      "population": 3,
+      "coverage": "complete",
+      "source_refs": [
+       {
+        "kind": "tool_result",
+        "ref": "synthetic:trend"
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "trend",
+      "review-prep",
+      "--input",
+      "-",
+      "--revision",
+      "1"
+     ],
+     "stdin_json": {
+      "title": "Preparation before reviews",
+      "text": "Still went well.",
+      "scope": "personal",
+      "window_start": "2020-01-01T00:00:00+00:00",
+      "window_end": "2020-02-01T00:00:00+00:00",
+      "event_ids": [
+       "review-1",
+       "review-2",
+       "review-3"
+      ],
+      "population": 3,
+      "coverage": "complete",
+      "source_refs": [
+       {
+        "kind": "tool_result",
+        "ref": "synthetic:trend"
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "trend",
+      "review-prep",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "title": "Preparation before reviews",
+      "text": "Reviews with preparation went well.",
+      "scope": "personal",
+      "window_start": "2020-01-01T00:00:00+00:00",
+      "window_end": "2999-01-01T00:00:00+00:00",
+      "event_ids": [
+       "review-1",
+       "review-2",
+       "review-3"
+      ],
+      "population": 3,
+      "coverage": "complete",
+      "source_refs": [
+       {
+        "kind": "tool_result",
+        "ref": "synthetic:trend"
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "trend",
+      "review-prep",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "title": "Preparation before reviews",
+      "text": "Reviews with preparation went well.",
+      "scope": "personal",
+      "window_start": "2020-01-01T00:00:00+00:00",
+      "window_end": "2020-02-01T00:00:00+00:00",
+      "event_ids": [
+       "review-1",
+       "review-2",
+       "review-3"
+      ],
+      "population": 3,
+      "coverage": "complete",
+      "source_refs": [
+       {
+        "kind": "tool_result",
+        "ref": "synthetic:trend"
+       }
+      ],
+      "entities": [
+       "person:alex"
+      ]
+     }
+    },
+    {
+     "cli": [
+      "trend",
+      "review-prep",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "title": "Preparation before reviews",
+      "text": "Reviews with preparation went well.",
+      "scope": "personal",
+      "window_start": "2020-01-01T00:00:00+00:00",
+      "window_end": "2020-02-01T00:00:00+00:00",
+      "event_ids": [
+       "review-1",
+       "review-2",
+       "review-3"
+      ],
+      "population": 1,
+      "coverage": "complete",
+      "source_refs": [
+       {
+        "kind": "tool_result",
+        "ref": "synthetic:trend"
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "trend",
+      "review-prep",
+      "--input",
+      "-"
+     ],
+     "stdin_json": []
+    },
+    {
+     "write": "prefs.md",
+     "text": "## About me\nI prefer preparation before reviews.\n\n## Working hours\nNo meetings before 09:00.\n"
+    },
+    {
+     "cli": [
+      "preferences-preview",
+      "${dir}/prefs.md"
+     ],
+     "save": "prefs"
+    },
+    {
+     "cli": [
+      "preferences-preview",
+      "${dir}/missing.md"
+     ]
+    },
+    {
+     "cli": [
+      "preferences-preview",
+      "${dir}"
+     ]
+    },
+    {
+     "cli": [
+      "preferences-import",
+      "${dir}/prefs.md",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${prefs.subject_id}",
+      "revision": 1,
+      "decision": "confirm",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "preferences-import",
+      "${dir}/prefs.md",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${prefs.subject_id}",
+      "revision": 1,
+      "decision": "import",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "preferences-import",
+      "${dir}/prefs.md",
+      "--evidence",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${prefs.subject_id}",
+      "revision": 1,
+      "decision": "import",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "write": "prefs.md",
+     "text": "## About me\nI prefer preparation before reviews.\nDo not schedule before 09:00.\n"
+    },
+    {
+     "cli": [
+      "context",
+      "review",
+      "--mode",
+      "lexical"
+     ]
+    },
+    {
+     "cli": [
+      "status"
+     ]
+    },
+    {
+     "cli": [
+      "preferences-preview",
+      "${dir}/prefs.md"
+     ]
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  }
+ ]
+}

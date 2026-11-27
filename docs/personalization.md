@@ -5,7 +5,7 @@ after your first brief to refine the settings that made its recommendations usef
 This is the personalization step in the [user journey](user-guide.md#1-set-up-a-small-private-starting-point).
 
 Margo can explain routines before setup, but durable state requires an explicitly configured
-account. Personalisation then makes the difference between a generic summary and advice grounded
+account. Personalization then makes the difference between a generic summary and advice grounded
 in the user's actual working hours, priorities and communication preferences.
 
 The private preferences and compatibility view sit next to `SKILL.md` in the installed skill:
@@ -14,6 +14,14 @@ The private preferences and compatibility view sit next to `SKILL.md` in the ins
 |---|---|---|
 | **`preferences.md`** | Who you are, who matters, how you work, how you write | You |
 | **`commitments.md`** | Confirmed-only readable view after migration | Exported by the ledger after approved work changes |
+
+`preferences.md` lives in the skill folder (`~/.copilot/skills/chief-of-staff/preferences.md`) for an
+installer install. For a [plugin install](getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex),
+keep your copy at `~/.copilot/margo/preferences.md`, outside the plugin, so updates never replace
+it; Margo reads that copy first when it exists. The folder must be private to you (`chmod 700
+~/.copilot/margo`). In a plugin install `commitments.md`, the relationship roster and 1:1 agendas
+live there too; the plugin section lists each file and what to move if you already have files
+inside the plugin's folder.
 
 Both ship as templates. Both will contain real names and addresses once filled in — see
 [what stays on your machine](safety.md#7-what-stays-on-your-machine).
@@ -26,7 +34,7 @@ not authentication and the Markdown view is not a second writable task database.
 
 ## The four sections that earn their keep
 
-`preferences.md` has ten sections. Four of them change Margo's behaviour immediately; the rest
+`preferences.md` has ten sections. Four of them change Margo's behavior immediately; the rest
 sharpen it over time.
 
 ### 1. About me

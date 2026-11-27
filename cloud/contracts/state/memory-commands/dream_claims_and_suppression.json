@@ -1,0 +1,596 @@
+{
+ "description": "test_memory_dream.py::test_changed_policy_source_suppression_and_claims_block_persistence: a second start with the same key while the claim is held, a finish with another token, a corrected source before finishing, a policy change during reflection, and a suppressed source",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "task_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "cli": [
+      "policy-preview",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capture": {
+       "enabled": true,
+       "domains": [
+        "user"
+       ],
+       "kinds": [
+        "episode",
+        "decision"
+       ],
+       "scopes": [
+        "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+       ],
+       "source_kinds": [
+        "session_checkpoint",
+        "memory_record"
+       ]
+      },
+      "allow_sensitive": false,
+      "usage_enabled": false,
+      "usage_retention_days": 30,
+      "retention_days": {},
+      "review_days": {}
+     },
+     "save": "pp5"
+    },
+    {
+     "cli": [
+      "policy-set"
+     ],
+     "files": {
+      "--input": {
+       "capture": {
+        "enabled": true,
+        "domains": [
+         "user"
+        ],
+        "kinds": [
+         "episode",
+         "decision"
+        ],
+        "scopes": [
+         "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+        ],
+        "source_kinds": [
+         "session_checkpoint",
+         "memory_record"
+        ]
+       },
+       "allow_sensitive": false,
+       "usage_enabled": false,
+       "usage_retention_days": 30,
+       "retention_days": {},
+       "review_days": {}
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${pp5.subject_id}",
+       "revision": 1,
+       "decision": "configure",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "event"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_daily"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "daily",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_daily.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "started"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "again"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "daily",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${again.snapshot_hash}",
+      "request_ref": "conversation:r"
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "not-the-token",
+      "claims": [
+       {
+        "key": "open-timing",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": "${event.revision}",
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-2",
+      "expected_revision": 1,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "A corrected observation.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${started.snapshot_id}",
+      "attempt_id": "${started.claim.attempt_id}",
+      "token": "${started.claim.token}",
+      "claims": [
+       {
+        "key": "open-timing",
+        "type": "question",
+        "text": "The timing remains unresolved.",
+        "citations": [
+         {
+          "id": "${event.id}",
+          "revision": "${event.revision}",
+          "quote": "Timing is open."
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_corrected"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "corrected",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_corrected.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "corrected"
+    },
+    {
+     "cli": [
+      "policy-preview",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capture": {
+       "enabled": false,
+       "domains": [
+        "user"
+       ],
+       "kinds": [
+        "episode",
+        "decision"
+       ],
+       "scopes": [
+        "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+       ],
+       "source_kinds": [
+        "session_checkpoint",
+        "memory_record"
+       ]
+      },
+      "allow_sensitive": false,
+      "usage_enabled": false,
+      "usage_retention_days": 30,
+      "retention_days": {},
+      "review_days": {}
+     },
+     "save": "pp6"
+    },
+    {
+     "cli": [
+      "policy-set"
+     ],
+     "files": {
+      "--input": {
+       "capture": {
+        "enabled": false,
+        "domains": [
+         "user"
+        ],
+        "kinds": [
+         "episode",
+         "decision"
+        ],
+        "scopes": [
+         "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+        ],
+        "source_kinds": [
+         "session_checkpoint",
+         "memory_record"
+        ]
+       },
+       "allow_sensitive": false,
+       "usage_enabled": false,
+       "usage_retention_days": 30,
+       "retention_days": {},
+       "review_days": {}
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${pp6.subject_id}",
+       "revision": 1,
+       "decision": "configure",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${corrected.snapshot_id}",
+      "attempt_id": "${corrected.claim.attempt_id}",
+      "token": "${corrected.claim.token}",
+      "claims": []
+     }
+    },
+    {
+     "cli": [
+      "policy-preview",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capture": {
+       "enabled": true,
+       "domains": [
+        "user"
+       ],
+       "kinds": [
+        "episode",
+        "decision"
+       ],
+       "scopes": [
+        "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+       ],
+       "source_kinds": [
+        "session_checkpoint",
+        "memory_record"
+       ]
+      },
+      "allow_sensitive": false,
+      "usage_enabled": false,
+      "usage_retention_days": 30,
+      "retention_days": {},
+      "review_days": {}
+     },
+     "save": "pp7"
+    },
+    {
+     "cli": [
+      "policy-set"
+     ],
+     "files": {
+      "--input": {
+       "capture": {
+        "enabled": true,
+        "domains": [
+         "user"
+        ],
+        "kinds": [
+         "episode",
+         "decision"
+        ],
+        "scopes": [
+         "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+        ],
+        "source_kinds": [
+         "session_checkpoint",
+         "memory_record"
+        ]
+       },
+       "allow_sensitive": false,
+       "usage_enabled": false,
+       "usage_retention_days": 30,
+       "retention_days": {},
+       "review_days": {}
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${pp7.subject_id}",
+       "revision": 1,
+       "decision": "configure",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "show",
+      "${event.id}"
+     ],
+     "save": "current"
+    },
+    {
+     "cli": [
+      "dream-plan",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "host": "fixture-host",
+      "workspace": "fixture-workspace",
+      "day": "2020-02-03",
+      "timezone": "UTC",
+      "cutoff": "00:00",
+      "lookback_days": 1,
+      "after": null
+     },
+     "save": "plan_suppressed"
+    },
+    {
+     "cli": [
+      "dream-start",
+      "suppressed",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "request": {
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "day": "2020-02-03",
+       "timezone": "UTC",
+       "cutoff": "00:00",
+       "lookback_days": 1,
+       "after": null
+      },
+      "snapshot_hash": "${plan_suppressed.snapshot_hash}",
+      "request_ref": "conversation:fixture-dream-request"
+     },
+     "save": "suppressed"
+    },
+    {
+     "cli": [
+      "revise",
+      "${event.id}",
+      "--revision",
+      "2",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "${current.domain}",
+       "kind": "${current.kind}",
+       "title": "${current.title}",
+       "text": "${current.text}",
+       "authority": "${current.authority}",
+       "scope": "${current.scope}",
+       "source_refs": "${current.source_refs}",
+       "metadata": "${current.metadata}",
+       "entities": "${current.entities}",
+       "sensitivity": "${current.sensitivity}",
+       "allowed_uses": "${current.allowed_uses}"
+      },
+      "status": "suppressed"
+     }
+    },
+    {
+     "cli": [
+      "dream-finish",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "snapshot_id": "${suppressed.snapshot_id}",
+      "attempt_id": "${suppressed.claim.attempt_id}",
+      "token": "${suppressed.claim.token}",
+      "claims": []
+     }
+    },
+    {
+     "cli": [
+      "dream-inspect",
+      "${suppressed.snapshot_id}"
+     ]
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  }
+ ]
+}

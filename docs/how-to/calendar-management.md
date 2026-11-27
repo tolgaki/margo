@@ -45,7 +45,11 @@ authoritative for the created event; the local receipt records the observed resu
 
 **If something goes wrong:** availability found earlier in a long conversation may be stale —
 Margo re-checks the current calendar before proposing, and again immediately before creating the
-event.
+event. Other people's free/busy is read with an action call that scheduled runs cannot make, so a
+scheduled brief says "availability not checked (needs an attended run)" instead of proposing
+slots; ask again in a conversation. Margo also checks the calendar write's current schema before
+building the event, so a field your tenant does not offer is dropped and named rather than
+guessed.
 
 **Availability:** implemented, procedure. Since 1.0.0.
 
@@ -64,7 +68,7 @@ who's affected before anything changes.
 explicitly this occurrence vs. the whole series), a proposed new time if rescheduling, and who is
 notified.
 
-**What needs your decision:** cancelling or rescheduling sends a message to attendees — treat it
+**What needs your decision:** canceling or rescheduling sends a message to attendees — treat it
 with the same care as any other send, always per-action. If you don't organize the meeting, Margo
 proposes the attendee-side action instead (respond, propose a new time, message the organizer) —
 it will not modify or delete an event you don't own.

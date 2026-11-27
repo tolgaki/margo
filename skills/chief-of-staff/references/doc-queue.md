@@ -21,6 +21,12 @@ obligations: source them, judge relevance, and recommend read, defer, or declare
    **A guessed path 400s and looks identical to "no documents" if you only read the empty result.**
    Say the path failed and treat the document state as unknown.
 
+   **Page within a budget.** Follow `@odata.nextLink` on each collection (shared-with-me, mail,
+   chats, messages) until it is complete or the budget runs out (default 5 pages per
+   collection). A collection that still has a `nextLink` is partial: say how far back it
+   reaches, and never report the queue as complete. When the discovery finds the `/sharepoint`
+   recent and shared-with-me reads, prefer them (`sharepoint.md`).
+
 2. **Find documents sent through mail and Teams.** Use `workiq-fetch` for literal reads and keep
    collection calls bounded.
 

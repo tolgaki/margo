@@ -1,0 +1,175 @@
+{
+ "description": "tests/test_memory_review_regressions.py CLI cases: read commands keep working while another connection holds a write transaction (and write nothing), lexical reads never create a missing semantic index, a dropped cache table fails lexical search but not list, and index --rebuild repairs it without a model",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "cli": [
+      "put",
+      "readable",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "active"
+     },
+     "save": "row"
+    },
+    {
+     "hold": true
+    },
+    {
+     "cli": [
+      "list"
+     ]
+    },
+    {
+     "cli": [
+      "policy"
+     ]
+    },
+    {
+     "cli": [
+      "inspect",
+      "${row.id}"
+     ]
+    },
+    {
+     "cli": [
+      "show",
+      "${row.id}"
+     ]
+    },
+    {
+     "hold": false
+    },
+    {
+     "cli": [
+      "list"
+     ]
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "sql": "SELECT count(*) FROM sqlite_master WHERE name LIKE 'semantic_%'"
+    },
+    {
+     "cli": [
+      "put",
+      "indexless",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Indexless context",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "active"
+     }
+    },
+    {
+     "cli": [
+      "search",
+      "Indexless",
+      "--mode",
+      "lexical"
+     ]
+    },
+    {
+     "sql": "DROP TABLE semantic_documents"
+    },
+    {
+     "cli": [
+      "list"
+     ]
+    },
+    {
+     "cli": [
+      "search",
+      "review",
+      "--mode",
+      "lexical"
+     ]
+    },
+    {
+     "cli": [
+      "status"
+     ]
+    },
+    {
+     "sql": "SELECT count(*) FROM memory_records"
+    },
+    {
+     "cli": [
+      "index",
+      "--rebuild"
+     ]
+    },
+    {
+     "cli": [
+      "search",
+      "Indexless",
+      "--mode",
+      "lexical"
+     ]
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  }
+ ]
+}

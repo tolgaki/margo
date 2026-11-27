@@ -57,12 +57,42 @@ def write_json(directory, name, data):
 class RealCatalogTests(unittest.TestCase):
     """The shipped catalog must validate cleanly against a synthetic, complete manifest."""
 
-    def test_real_catalog_has_exactly_68_features_matching_the_shared_contract(self):
+    def test_real_catalog_has_exactly_81_features_matching_the_shared_contract(self):
         catalog = load_real_catalog()
         ids = [f["id"] for f in catalog["features"]]
-        self.assertEqual(len(ids), 68)
+        self.assertEqual(len(ids), 81)
         self.assertEqual(set(ids), set(fc.EXPECTED_FEATURE_IDS))
         self.assertEqual(len(ids), len(set(ids)), "duplicate feature id present")
+
+    def test_margo_cloud_features_state_their_evidence_scope(self):
+        # A Margo Cloud entry is evidenced by C# tests this repository's Python gates do not run, so
+        # it must name them, say it is not verified in a tenant, and claim no Python or model evidence.
+        catalog = load_real_catalog()
+        scenarios = {row["id"]: row for row in json.loads(
+            fc.SCENARIO_MANIFEST.read_text(encoding="utf-8"))["scenarios"]}
+        cloud = [f for f in catalog["features"] if "margo-cloud" in f["surfaces"]]
+        self.assertEqual(
+            {f["id"] for f in cloud},
+            {"cloud-approval-cards", "cloud-manager-channel", "cloud-backchannel", "cloud-room-listening",
+             "cloud-group-answers", "cloud-documents", "cloud-voice"})
+        for feature in cloud:
+            with self.subTest(feature=feature["id"]):
+                tests = [s for s in feature["sources"]
+                         if s.startswith("cloud/tests/") and s.endswith("Tests.cs")]
+                self.assertTrue(tests, "no C# test file named")
+                for path in tests:
+                    text = (ROOT / path).read_text(encoding="utf-8")
+                    self.assertIn("class " + Path(path).stem, text)
+                    self.assertRegex(text, r"\[(Fact|Theory)")
+                evidence = feature["limitations"][0]
+                self.assertIn("built, not verified in a tenant", evidence)
+                for path in tests:
+                    self.assertIn(Path(path).stem, evidence)
+                self.assertEqual(feature["availability"], "limited")
+                scenario = scenarios[feature["id"]]
+                self.assertEqual(scenario["coverage_kind"], "procedure-contract")
+                self.assertEqual(scenario["evidence"]["selectors"], [])
+                self.assertIn("Built, not verified in a tenant.", scenario["expected"]["evidence_limitations"])
 
     def test_real_catalog_passes_full_validation_against_a_synthetic_manifest(self):
         catalog = load_real_catalog()

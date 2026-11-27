@@ -1,0 +1,492 @@
+{
+  "description": "The 50-gap diagnostic cap: fifty unresolved external decision references fill the gaps, the packet is truncated, and the contradiction found later still removes decision authority (conflicted_count 2).",
+  "account": "context-fixture@example.com",
+  "steps": [
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "first",
+            {
+              "domain": "user",
+              "kind": "decision",
+              "title": "first",
+              "text": "Synthetic first",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "first",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:first}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "second",
+            {
+              "domain": "user",
+              "kind": "decision",
+              "title": "second",
+              "text": "Synthetic second",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "second",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:second}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:first}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:second}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "contradicts",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "target_revision": "${_right.revision}"
+          }
+        }
+      ]
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "1",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        },
+        {
+          "call": "put",
+          "on": "products",
+          "args": [
+            "meeting",
+            "occurrence:fixture",
+            {
+              "series_id": "series:fixture",
+              "occurrence_id": "occurrence:fixture",
+              "scheduled_start": "2026-09-07T10:00:00Z",
+              "scheduled_end": "2026-09-07T11:00:00Z",
+              "source_refs": [
+                "${src}"
+              ],
+              "decision_refs": [
+                {
+                  "canonical_id": "external:missing-0",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-1",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-2",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-3",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-4",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-5",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-6",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-7",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-8",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-9",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-10",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-11",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-12",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-13",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-14",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-15",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-16",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-17",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-18",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-19",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-20",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-21",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-22",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-23",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-24",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-25",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-26",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-27",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-28",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-29",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-30",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-31",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-32",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-33",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-34",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-35",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-36",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-37",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-38",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-39",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-40",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-41",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-42",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-43",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-44",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-45",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-46",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-47",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-48",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "external:missing-49",
+                  "status": "unknown",
+                  "web_link": "https://example.com/missing"
+                },
+                {
+                  "canonical_id": "mem_0da97806ca8bf137a241ec0267402139f5d20f43",
+                  "status": "current",
+                  "web_link": "https://example.com/decision"
+                }
+              ]
+            }
+          ],
+          "save": "meeting"
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "sql": "SELECT id,current_revision FROM work_sources ORDER BY id",
+          "save": "srcrow"
+        },
+        {
+          "sql": "SELECT id,state,confirmed FROM work_items ORDER BY created_at,id",
+          "save": "items"
+        },
+        {
+          "sql": "SELECT id,kind,state FROM work_records ORDER BY kind,id",
+          "save": "records"
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "${records.rows.0.0}"
+            ],
+            "budget_chars": 50000,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "build",
+          "on": "context",
+          "args": [
+            []
+          ],
+          "kwargs": {
+            "work_ids": [
+              "${records.rows.0.0}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -35,7 +35,7 @@ An outcome approval is not permission to move meetings, delegate, or send messag
 
 **Preconditions:** normalize working time, meeting occurrences, known leave, buffers, and reserves
 into offset-bearing timestamps. Expand recurrence first. Resolve each day's confirmed time-zone
-offset, including DST changes. Calendar presence is not proof of attendance. Exclude cancelled,
+offset, including DST changes. Calendar presence is not proof of attendance. Exclude canceled,
 declined, or free events only when their source fields establish that status.
 
 Save this fictional one-day example as `capacity.json`:
@@ -257,11 +257,11 @@ work carry-forward MEETING_ID --revision REVISION --input carry.json
 
 **Expected:** one atomic update returns `source` and `target`. The source becomes
 `carried_forward`; the target becomes `agenda_accumulating`. Open topics retain their ID, owner,
-creation time, and reason. Existing work IDs are reused; resolved/rejected/cancelled work is not
+creation time, and reason. Existing work IDs are reused; resolved/rejected/canceled work is not
 newly carried, and no commitment is re-ingested.
 
 **Recovery:** mismatched series, stale revisions, or conflicting same-ID topics fail. Review the
-conflict rather than inventing a merged topic. Moving/cancelling one occurrence never applies a
+conflict rather than inventing a merged topic. Moving/canceling one occurrence never applies a
 series-wide calendar change.
 See [meeting lifecycle](../../skills/chief-of-staff/references/meeting-lifecycle.md).
 
@@ -298,25 +298,32 @@ request, and automatically via the
 Walk into a meeting ready — purpose, people, context, and talking points, including accumulated
 agenda topics — see [§4](#4-keep-one-record-per-actual-meeting-occurrence). Try it: *"Prep me for
 my 2pm with Ines."* What you'll see: a prep card citing sources, with a missing attachment named
-explicitly rather than silently dropped. What needs your decision: any offered follow-on
-(pre-read, agenda, message) is a separate draft. Change your mind: ask for a different meeting or
-a different depth any time. Your data: a substantive agenda is stored as a private, versioned work
-product (see [feedback and work products](feedback-and-work-products.md#work-products)). If
-something goes wrong: an empty calendar search means unknown, not "no meeting" — Margo tries a
-known event ID or a wider window before giving up. Implemented, procedure. Since 1.0.0.
+explicitly rather than silently dropped. The attendee list shows each key person's title, manager
+and relationship to you (manager, skip-level, direct report, peer, external) from the directory —
+see [people and org](relationships-and-one-on-ones.md#people-and-org). Labeled sources show their
+sensitivity label, and confidential content stays out of the card. What needs your decision: any
+offered follow-on (pre-read, agenda, message) is a separate draft. Change your mind: ask for a
+different meeting or a different depth any time. Your data: a substantive agenda is stored as a
+private, versioned work product (see [feedback and work
+products](feedback-and-work-products.md#work-products)). If something goes wrong: an empty calendar
+search means unknown, not "no meeting" — Margo tries a known event ID or a wider window before
+giving up. Implemented, procedure. Since 1.0.0.
 
 ### Meeting debrief
 
 Turn a recap or transcript into your actions, what you're waiting on, and unresolved gaps nobody
 owns — see [§5 Check recaps with a finite budget](#5-check-recaps-with-a-finite-budget). Try it:
-*"Debrief that meeting — what did I commit to?"* What you'll see: decisions, your actions, what
-you're waiting on, and an explicit "unresolved and nobody owns it" section — a debrief with zero
-actions for you is a legitimate, plainly stated result. What needs your decision: proposed
-work-ledger additions/resolutions and any drafted follow-up are separate approvals. Change your
-mind: ask for a different lookback window or to re-check for a delayed recap. Your data: proposed
-changes go into the same private work ledger as [commitments](commitments-and-action-desk.md#commitments).
-If something goes wrong: no recap available is a valid, explicitly stated result — never an
-invented set of decisions. Implemented, procedure. Since 1.0.0.
+*"Debrief that meeting — what did I commit to?"* or *"Get the transcript of that meeting."* Margo
+reads the meeting's transcript directly after it ends (when transcription was on and you can read
+it), then the Copilot recap, then searches for notes, and says which source she used. There are no
+live transcripts during a meeting on desktop. What you'll see: decisions, your actions, what you're
+waiting on, and an explicit "unresolved and nobody owns it" section — a debrief with zero actions
+for you is a legitimate, plainly stated result. What needs your decision: proposed work-ledger
+additions/resolutions and any drafted follow-up are separate approvals. Change your mind: ask for a
+different lookback window or to re-check for a delayed recap. Your data: proposed changes go into
+the same private work ledger as [commitments](commitments-and-action-desk.md#commitments). If
+something goes wrong: no recap available is a valid, explicitly stated result — never an invented
+set of decisions. Implemented, procedure. Since 1.0.0.
 
 ### Meeting lifecycle
 

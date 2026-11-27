@@ -1,0 +1,701 @@
+{
+  "description": "Replacement and scope rules of the constraint guard: a current confirmed superseding preference satisfies it without reciting the old text; a successor scoped to another routine or environment does not hide the original where it still applies; twelve unavailable constraints stay an explicit block under a 1000-character budget with omitted gaps counted.",
+  "account": "context-fixture@example.com",
+  "steps": [
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "old-restriction",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "old-restriction",
+              "text": "Old private prohibition.",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "old-restriction",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:old-restriction}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "current-restriction",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "current-restriction",
+              "text": "Current accepted rule.",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "current-restriction",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:current-restriction}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:current-restriction}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:old-restriction}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "supersedes",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {},
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:old-restriction}"
+          ]
+        },
+        {
+          "sql": "SELECT data FROM memory_records WHERE id=?",
+          "params": [
+            "${id:user:old-restriction}"
+          ],
+          "save": "_data"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:old-restriction}"
+          ],
+          "save": "_row"
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${id:user:old-restriction}",
+            "${json:_data.rows.0.0}",
+            "superseded",
+            "${_row.revision}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:old-restriction}",
+              "revision": "${_row.revision}",
+              "decision": "supersede",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "scoped@example.com",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "original-restriction",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "original-restriction",
+              "text": "Synthetic original-restriction",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "original-restriction",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:original-restriction}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "scoped-restriction",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "scoped-restriction",
+              "text": "Synthetic scoped-restriction",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "routines": [
+                "drafting"
+              ],
+              "metadata": {
+                "environment_requirements": {
+                  "host": "desktop"
+                }
+              }
+            },
+            "active"
+          ],
+          "save": "scoped-restriction",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:scoped-restriction}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:scoped-restriction}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:original-restriction}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "supersedes",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {},
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "routine": "calendar",
+            "environment": {
+              "host": "desktop"
+            },
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "routine": "drafting",
+            "environment": {
+              "host": "other"
+            },
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "routine": "drafting",
+            "environment": {
+              "host": "desktop"
+            },
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "routine": "drafting",
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "routine": "drafting",
+            "environment": {
+              "host": "desktop",
+              "nested": {
+                "a": 1
+              }
+            },
+            "mode": "lexical"
+          }
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "many@example.com",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "restriction-0",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "restriction-0",
+              "text": "Synthetic restriction-0",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "restriction-0"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "restriction-1",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "restriction-1",
+              "text": "Synthetic restriction-1",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "restriction-1"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "restriction-2",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "restriction-2",
+              "text": "Synthetic restriction-2",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "restriction-2"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "restriction-3",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "restriction-3",
+              "text": "Synthetic restriction-3",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "restriction-3"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "restriction-4",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "restriction-4",
+              "text": "Synthetic restriction-4",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "restriction-4"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "restriction-5",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "restriction-5",
+              "text": "Synthetic restriction-5",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "restriction-5"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "restriction-6",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "restriction-6",
+              "text": "Synthetic restriction-6",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "restriction-6"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "restriction-7",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "restriction-7",
+              "text": "Synthetic restriction-7",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "restriction-7"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "restriction-8",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "restriction-8",
+              "text": "Synthetic restriction-8",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "restriction-8"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "restriction-9",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "restriction-9",
+              "text": "Synthetic restriction-9",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "restriction-9"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "restriction-10",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "restriction-10",
+              "text": "Synthetic restriction-10",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "restriction-10"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "restriction-11",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "restriction-11",
+              "text": "Synthetic restriction-11",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "stale"
+          ],
+          "save": "restriction-11"
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "budget_chars": 1000,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "budget_chars": 50000,
+            "mode": "lexical"
+          }
+        }
+      ]
+    }
+  ]
+}

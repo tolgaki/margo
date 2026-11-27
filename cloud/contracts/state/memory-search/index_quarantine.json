@@ -1,0 +1,726 @@
+{
+  "description": "Representation-limit quarantine: the exact boundary indexes, one character more is blocked without consuming the page or starving short jobs, blocks are reported once, persist through rebuilds and recover after a new revision; rebuilds quarantine what they meet, drain deletes for sensitive records first and report the remaining rebuild work.",
+  "steps": [
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "exact",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "exact",
+              "text": "Synthetic exact",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "exact",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:exact}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "sql": "UPDATE memory_records SET data=replace(data,?,'\"text\":\"' || hex(zeroblob(?)) || ? || '\"') WHERE id=?",
+          "params": [
+            "\"text\":\"Synthetic exact\"",
+            8185,
+            "",
+            "${id:user:exact}"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "oversized",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "oversized",
+              "text": "Synthetic oversized",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "oversized",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:oversized}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "sql": "UPDATE memory_records SET data=replace(data,?,'\"text\":\"' || hex(zeroblob(?)) || ? || '\"') WHERE id=?",
+          "params": [
+            "\"text\":\"Synthetic oversized\"",
+            8183,
+            "0",
+            "${id:user:oversized}"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "short",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "short",
+              "text": "Current preparation",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "short",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:short}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "sql": "SELECT id,length(json_extract(data,'$.text')) FROM memory_records ORDER BY id",
+          "params": []
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ],
+            "log": true
+          },
+          "kwargs": {
+            "limit": 1
+          }
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store"
+        },
+        {
+          "call": "blocked_jobs",
+          "on": "store"
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "health",
+          "on": "search"
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "sql": "SELECT key,value FROM memory_meta WHERE key LIKE 'index-blocked:%' ORDER BY key",
+          "params": []
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:oversized}"
+          ],
+          "save": "_row"
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${id:user:oversized}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "oversized",
+              "text": "Current preparation",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active",
+            "${_row.revision}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:oversized}",
+              "revision": "${_row.revision}",
+              "decision": "edit",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "health",
+          "on": "search"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "late",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "late",
+              "text": "Synthetic late",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "late",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:late}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "sql": "UPDATE memory_records SET data=replace(data,?,'\"text\":\"' || hex(zeroblob(?)) || ? || '\"') WHERE id=?",
+          "params": [
+            "\"text\":\"Synthetic late\"",
+            8188,
+            "",
+            "${id:user:late}"
+          ]
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store"
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "call": "health",
+          "on": "search"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "sensitive",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "sensitive",
+              "text": "Private sensitive content",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "sensitivity": "sensitive"
+            },
+            "active"
+          ],
+          "save": "sensitive",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:sensitive}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:short}"
+          ],
+          "save": "_row"
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${id:user:short}",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "short",
+              "text": "Current preparation again",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active",
+            "${_row.revision}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:short}",
+              "revision": "${_row.revision}",
+              "decision": "edit",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [
+            1
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [
+            1
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [
+            1
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store"
+        },
+        {
+          "sql": "SELECT memory_id,revision,model_fingerprint,text_hash,dimensions,hex(vector) FROM semantic_vectors ORDER BY memory_id",
+          "params": []
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "second-owner@example.com",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "gone",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "gone",
+              "text": "Old context",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "gone",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:gone}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:gone}"
+          ],
+          "save": "_row"
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${id:user:gone}",
+            "${_row.revision}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:gone}",
+              "revision": "${_row.revision}",
+              "decision": "forget",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "pending_jobs",
+          "on": "store"
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "raise": "Delete-only rebuild must not encode"
+          },
+          "kwargs": {
+            "rebuild": true
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "args": [],
+          "encoder": {
+            "raise": "Delete-only rebuild must not encode"
+          }
+        },
+        {
+          "call": "health",
+          "on": "search"
+        }
+      ]
+    }
+  ]
+}

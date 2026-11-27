@@ -1,0 +1,784 @@
+{
+  "description": "configure_trend: a preview binds the exact definition and expected revision, only exact human evidence with the configure decision saves it, revisions are conditional, and the saved thresholds govern trend (independent events, partial coverage, window length); damaged stored definitions fail as in Python.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            }
+          ],
+          "save": "preview"
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            }
+          ],
+          "read_only": true
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "colleague_competence",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            }
+          ]
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            [
+              "tool_failures"
+            ],
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            }
+          ]
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 0,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            }
+          ]
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            },
+            1
+          ]
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            },
+            "0"
+          ]
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            }
+          ],
+          "kwargs": {
+            "evidence": {}
+          }
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            }
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "wrong",
+              "revision": 1,
+              "decision": "configure",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            }
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${preview.subject_id}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            }
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${preview.subject_id}",
+              "revision": 1,
+              "decision": "configure",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          },
+          "save": "saved"
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            },
+            0
+          ]
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            },
+            1
+          ],
+          "save": "second_preview"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "not-enough",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "tool_failures",
+              "window_start": "2026-08-01T00:00:00Z",
+              "window_end": "2026-09-01T00:00:00Z",
+              "population": 10,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "bounded-partial",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "tool_failures",
+              "window_start": "2026-08-01T00:00:00Z",
+              "window_end": "2026-09-01T00:00:00Z",
+              "population": 10,
+              "coverage": {
+                "status": "partial",
+                "observed_population": 10,
+                "expected_population": 12
+              },
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-3",
+                  "independence_key": "execution-3",
+                  "occurred_at": "2026-08-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-3"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "too-partial",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "tool_failures",
+              "window_start": "2026-08-01T00:00:00Z",
+              "window_end": "2026-09-01T00:00:00Z",
+              "population": 10,
+              "coverage": {
+                "status": "partial",
+                "observed_population": 10,
+                "expected_population": 20
+              },
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-3",
+                  "independence_key": "execution-3",
+                  "occurred_at": "2026-08-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-3"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "too-long",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "tool_failures",
+              "window_start": "2026-07-01T00:00:00Z",
+              "window_end": "2026-09-01T00:00:00Z",
+              "population": 10,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-3",
+                  "independence_key": "execution-3",
+                  "occurred_at": "2026-08-04T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-3"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "other-type",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "draft_edits",
+              "window_start": "2026-08-01T00:00:00Z",
+              "window_end": "2026-09-01T00:00:00Z",
+              "population": 10,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            },
+            1
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${second_preview.subject_id}",
+              "revision": 1,
+              "decision": "configure",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 4,
+              "window_days": 31,
+              "min_population": 5,
+              "min_coverage": 0.75,
+              "require_complete": false
+            },
+            1
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${second_preview.subject_id}",
+              "revision": 1,
+              "decision": "configure",
+              "statement": "I reviewed this exact synthetic proposal.",
+              "evidence_ref": "conversation:synthetic/review/1",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "sql": "SELECT key, value FROM memory_meta WHERE key LIKE 'learning:trend-definition:%'"
+        },
+        {
+          "sql": "UPDATE memory_meta SET value=json_set(value, '$.definition.window_days', 0) WHERE key LIKE 'learning:trend-definition:%'"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "damaged",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "tool_failures",
+              "window_start": "2026-08-01T00:00:00Z",
+              "window_end": "2026-09-01T00:00:00Z",
+              "population": 10,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "sql": "UPDATE memory_meta SET value='{}' WHERE key LIKE 'learning:trend-definition:%'"
+        },
+        {
+          "call": "trend",
+          "on": "learning",
+          "args": [
+            "damaged",
+            {
+              "title": "Repeated synthetic input failures",
+              "text": "Synthetic input-contract failures in the supplied events.",
+              "scope": "synthetic tool checks",
+              "trend_type": "tool_failures",
+              "window_start": "2026-08-01T00:00:00Z",
+              "window_end": "2026-09-01T00:00:00Z",
+              "population": 10,
+              "coverage": "complete",
+              "events": [
+                {
+                  "id": "event-0",
+                  "independence_key": "execution-0",
+                  "occurred_at": "2026-08-01T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-0"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-1",
+                  "independence_key": "execution-1",
+                  "occurred_at": "2026-08-02T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-1"
+                    }
+                  ]
+                },
+                {
+                  "id": "event-2",
+                  "independence_key": "execution-2",
+                  "occurred_at": "2026-08-03T00:00:00Z",
+                  "matched": true,
+                  "source_refs": [
+                    {
+                      "kind": "tool_result",
+                      "ref": "synthetic-result-2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "configure_trend",
+          "on": "learning",
+          "args": [
+            "tool_failures",
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            },
+            1
+          ]
+        }
+      ]
+    }
+  ]
+}

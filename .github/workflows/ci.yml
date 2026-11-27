@@ -20,7 +20,10 @@ jobs:
 
   scripts:
     name: Scripts
-    runs-on: ubuntu-latest
+    # Pinned: this job proves the Python 3.9 floor, and setup-python publishes no 3.9
+    # build for the image ubuntu-latest now resolves to. Move the pin only together
+    # with the documented minimum Python.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 
@@ -50,6 +53,9 @@ jobs:
           MARGO_CANVAS_TEST_PARENT="$HOME/.margo-canvas-ci" node --test .github/extensions/margo-action-desk/*.test.mjs
           rmdir "$HOME/.margo-canvas-ci"
 
+      - name: Margo Cloud voice page (audio, sign-in and protocol helpers)
+        run: node --test cloud/src/Margo.Cloud.Voice/wwwroot/*.test.mjs
+
       - name: Shell syntax
         run: |
           bash -n install.sh
@@ -58,6 +64,7 @@ jobs:
           bash -n tools/gen-automations-docs.sh
           bash -n packaging/macos/build-pkg.sh
           bash -n packaging/macos/scripts/postinstall
+          for script in cloud/scripts/*.sh; do sh -n "$script"; done
 
       - name: ShellCheck
         uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # 2.0.0
@@ -300,6 +307,39 @@ jobs:
           python -m unittest discover -s tests -p test_memory_encoder.py
           python -m unittest discover -s tests -p test_semantic_e2e.py
 
+  cloud:
+    name: Margo Cloud (C#)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with: { dotnet-version: '10.0.x' }
+      # The parity judge compares margo-state with the desktop Python helpers byte for byte; it pins CPython 3.13
+      # behaviour (json, argparse, sqlite3 and zoneinfo output), so it runs on 3.13 exactly as the reference does.
+      - uses: actions/setup-python@v6
+        with: { python-version: '3.13' }
+      - name: Build (warnings are errors)
+        working-directory: cloud
+        run: dotnet build Margo.Cloud.slnx -warnaserror
+      - name: Test
+        working-directory: cloud
+        run: dotnet test --solution Margo.Cloud.slnx --no-build
+      - name: State commands match the desktop Python helpers (parity judge)
+        run: python tools/state_parity.py --check
+      # Run from cloud/, like the build and the tests: cloud/global.json pins the SDK only for commands started
+      # under it. From the repository root this step used whatever SDK the runner image had newest, whose analyzers
+      # the code was never built against.
+      - name: Release publish carries no contract probes
+        working-directory: cloud
+        run: |
+          for app in Host Router Provisioner StateCli; do
+            dotnet publish "src/Margo.Cloud.$app/Margo.Cloud.$app.csproj" -c Release -o "$RUNNER_TEMP/publish/$app" -nologo -v q
+          done
+          if find "$RUNNER_TEMP/publish" -iname '*Probes*' | grep .; then echo 'contract probes in a Release publish' >&2; exit 1; fi
+          test -f "$RUNNER_TEMP/publish/Host/margo-state.dll"
+          test -f "$RUNNER_TEMP/publish/Provisioner/instance.json"
+
   docs:
     name: Documentation links
     runs-on: ubuntu-latest
@@ -322,6 +362,8 @@ jobs:
           for f in pathlib.Path('.').rglob('*.md'):
               if any(p in f.parts for p in ('.git', 'build', 'dist')):
                   continue
+              if f.parts[:2] == ('cloud', 'vendor'):
+                  continue  # third-party content copied as-is; its links point into its own repository
               for m in re.finditer(r'\]\(([^)]+)\)', f.read_text()):
                   raw = m.group(1).strip()
                   if raw.startswith(('http', 'mailto:')):
@@ -350,6 +392,11 @@ jobs:
   install:
     name: Install (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    # The installer's update check reads one commit ID from GitHub's API. Runners share IP addresses, and the
+    # anonymous limit for an address is sometimes spent before this job runs; the workflow's own token is not
+    # subject to it. The installer sends it to that one call only.
+    env:
+      GH_TOKEN: ${{ github.token }}
     strategy:
       fail-fast: false
       matrix:

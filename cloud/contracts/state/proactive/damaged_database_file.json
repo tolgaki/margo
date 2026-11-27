@@ -1,0 +1,8 @@
+{
+  "description": "A database file that is not SQLite is reported as unavailable storage (exit 2, even for status) and is never replaced or reset",
+  "steps": [
+    {"script": "proactive_state.py", "args": ["status"], "expect_exit": 0},
+    {"script": "proactive_probe.py", "args": ["write", "{state_dir}/c27aac894e2ad4dda20d9409221dab5ce4b409bb7d084e757e424b4ef0b7d4a0/margo.sqlite3"], "stdin": "not a database", "state_args": false, "expect_exit": 0},
+    {"script": "proactive_state.py", "args": ["status"], "expect_exit": 2}
+  ]
+}

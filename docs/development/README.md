@@ -1,6 +1,7 @@
 # Developer journey: from checkout to contribution
 
-Margo is a **reference implementation of a Work IQ assistant**, not a hosted service to start
+Margo is an **independent, open-source example of a Work IQ assistant** (not a Microsoft product or an official
+reference implementation), not a hosted service to start
 with `npm run dev`. A capable agent host supplies the model, tools and authenticated connections.
 This repository supplies the persona, procedures, portable local state APIs and optional UI.
 You can develop and test those pieces without a mailbox, Copilot subscription or live model.
@@ -28,6 +29,16 @@ Read the [user journey](../user-guide.md) next. Choose one concrete outcome from
 [feature inventory](../features.md), follow its guide and inspect the linked procedure. This
 establishes what the person should see before you decide which module to change.
 
+### Working with an AI coding agent
+
+GitHub Copilot reads [`.github/copilot-instructions.md`](../../.github/copilot-instructions.md),
+which points at [AGENTS.md](../../AGENTS.md), plus `.github/instructions/cloud.instructions.md` for
+`cloud/` and the prompt files in [`.github/prompts/`](../../.github/prompts/). Claude Code reads
+[CLAUDE.md](../../CLAUDE.md), which imports `AGENTS.md`, and
+[`.claude/settings.json`](../../.claude/settings.json). Either way the agent follows the same rules
+and checks as you. [Customize Margo with an AI coding agent](../how-to/customize-with-ai-agents.md)
+has a recipe, with files, checks and a starting prompt, for each common change.
+
 ### The mental model
 
 ```text
@@ -49,6 +60,7 @@ request by itself, or sandbox other host tools. A prepared draft is not a sent m
 | `skills/*/SKILL.md` | Trigger descriptions, shared rules and routine routing | Which procedure a request loads |
 | `skills/*/references/` | Focused procedures, input/output contracts and recovery | How the assistant performs a routine |
 | `skills/chief-of-staff/scripts/` | Python 3.9+ standard-library core and CLI adapters | Durable state, validation, calculations or recovery |
+| `cloud/` | Margo Cloud: the hosted runtime in C# (.NET 10) and its `margo-state` port of the scripts above ([cloud/README.md](../../cloud/README.md)) | Hosted behavior; a script change also needs its C# port and parity scenarios |
 | `.github/extensions/margo-action-desk/` | Optional thin action, memory and task-progress views | Presentation over existing CLI contracts |
 | `automations/`, `tools/margo-scheduled.*` | Schedule manifests and wrapper execution | Cadence, prompts and unattended restrictions |
 | `install.*`, `packaging/` | Copy/link installs, preservation, provenance and native wrappers | How changed files reach another machine |
@@ -147,7 +159,7 @@ useful example because it crosses every layer without granting the UI an executi
 | Optional canvas | `extension.mjs`, `task-backend.mjs`, `server.mjs`, `task-app.js` in the extension | `margo-task-progress` reads state; a browser review request does not execute cancellation |
 | Installed copy | `install.sh`, `install.ps1`; `tests/test_task_cli.py` | Task modules and references ship; existing memory and customized preferences survive |
 | User help and catalog | [Task guide](../how-to/task-progress-and-recovery.md); `docs/feature-catalog.json` | Discovery, prerequisites, CLI/canvas references and evidence class remain accurate |
-| Scenario | `tests/test_user_journeys.py`; `tests/fixtures/journeys/scenarios.json` | A cancelled task with an uncertain effect never becomes a no-effect success |
+| Scenario | `tests/test_user_journeys.py`; `tests/fixtures/journeys/scenarios.json` | A canceled task with an uncertain effect never becomes a no-effect success |
 
 Read commands must report missing initialization instead of creating an empty database. The
 task panel must show “not initialized” differently from “no runs yet.” The same principle
@@ -155,7 +167,7 @@ applies to absent memory, unavailable provider coverage and missing delivery rec
 
 ### A concrete contribution example
 
-Suppose your task is **make a cancelled run's unknown effect clearer**:
+Suppose your task is **make a canceled run's unknown effect clearer**:
 
 1. Capture the expected outcome: the user sees that future work stopped, the earlier effect
    remains unknown, and reconciliation is needed before another attempt. Non-goal: change

@@ -63,7 +63,10 @@ user will not remember that they asked someone for a cost model eleven days ago.
      to keep the review on track."
    - **Rung 3 — decide, don't nudge.** Two ignored asks is information. Offer the user a real
      choice: escalate to the person's manager, take it off the critical path, do it themselves,
-     or drop it. **Recommend one.** Never propose nudge 3.
+     or drop it. **Recommend one.** Never propose nudge 3. Name the actual manager from
+     `/users/{id}/manager` (`people.md`) so the escalation option is concrete; if the lookup
+     fails, say the manager is unknown. Escalating is still the user's choice and any message to
+     that manager is its own proposal.
 
 6. **Detect new commitments** the user made without recording them. Scan sent mail and recent
    meetings for first-person commitment language — "I'll send", "I'll get you", "let me pull

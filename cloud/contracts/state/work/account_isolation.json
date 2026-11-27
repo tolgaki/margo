@@ -1,0 +1,152 @@
+{
+  "description": "Accounts are isolated: another account cannot show this account's item or use its source refs, gets a different source_id for the same external identity and its own empty views; MARGO_ACCOUNT selects the account when --account is absent.",
+  "steps": [
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-1",
+        "revision": "v1",
+        "evidence": {
+          "quote": "Please review the fictional specification."
+        },
+        "web_link": "https://example.com/mail/1"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "claim-1",
+        "data": {
+          "title": "Review fictional specification",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "--account",
+        "other-owner@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "show",
+        "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+      ],
+      "expect_exit": 2,
+      "state_args": false
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "--account",
+        "other-owner@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-1",
+        "revision": "v1",
+        "evidence": {
+          "quote": "Different account"
+        },
+        "web_link": "https://example.com/1"
+      },
+      "state_args": false
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "--account",
+        "other-owner@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "list",
+        "--view",
+        "all"
+      ],
+      "expect_exit": 0,
+      "state_args": false
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "--account",
+        "other-owner@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "claim_key": "claim-1",
+        "data": {
+          "title": "Review fictional specification",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      },
+      "state_args": false
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "--state-dir",
+        "{state_dir}",
+        "list"
+      ],
+      "expect_exit": 0,
+      "state_args": false,
+      "env": {
+        "MARGO_ACCOUNT": "other-owner@example.com"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "all"
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

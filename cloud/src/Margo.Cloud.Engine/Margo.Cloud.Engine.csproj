@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.Engine</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Margo.Cloud.Core/Margo.Cloud.Core.csproj" />
+    <ProjectReference Include="../Margo.Cloud.Guard/Margo.Cloud.Guard.csproj" />
+    <ProjectReference Include="../Margo.Cloud.WorkIQ/Margo.Cloud.WorkIQ.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
+    <PackageReference Include="Azure.Identity" />
+  </ItemGroup>
+
+</Project>

@@ -231,6 +231,60 @@ Unattended work-product preparation is local only. Agree an explicit item/cost b
 generation; without one, prepare just the highest-priority actionable item and defer the rest.
 See [work-product policy](../../skills/chief-of-staff/references/work-products.md).
 
+## 5. Get a real Word, Excel or PowerPoint file
+
+> Turn the decision memo into a Word document.
+>
+> Build a five-slide deck on the Q3 results.
+
+Margo writes the complete content herself, then has Work IQ's Office document tools build the file.
+
+- **Desktop:** it is created in your own OneDrive, and Margo gives you its link.
+- **Margo Cloud:** it is created in Margo's OneDrive and shared with you alone, with editing rights;
+  you get the usual "shared with you" email, and Margo gives you the link.
+
+**No approval card for this:** creating a document you asked for is a standing permission, because
+nobody else can see it. Sharing it with anyone else, or changing a document other people use, still
+needs your approval of that exact action.
+
+**If something goes wrong:** if Work IQ doesn't answer clearly, Margo says she doesn't know whether
+the document was created and does not try again; look in OneDrive (yours, or "Shared with me" for
+Margo Cloud) before asking again. If it was created but not shared, she gives you the link and says
+so. Your tenant's Work IQ policy must allow writes, and the tools are in preview.
+
+## 6. Publish to Copilot Pages or a SharePoint site
+
+> Publish the approved status update as a Copilot Page.
+>
+> Put the decision memo in the project site's document library.
+
+Margo publishes only reviewed content. She resolves the destination and its audience (who can
+already read that site or library), checks the current write schema, and shows you the exact
+destination, title and content as a proposal. Publishing happens only after you approve that
+exact proposal (in the action desk, or on an approval card in Margo Cloud), and the returned link
+is recorded as the delivery receipt.
+
+**If something goes wrong:** Copilot Pages and SharePoint writes need the `WorkIQ.Act` scope and a
+tenant policy that allows them. If they are not offered, Margo says publishing there is
+unavailable and keeps the content local; you can still get a Word file (section 5). She leaves
+out the substance of Confidential sources rather than publishing it more widely. A timeout is
+unknown: she reads the destination back and never publishes twice. Scheduled runs never publish.
+See [Publish a page](../../skills/chief-of-staff/references/publishing.md).
+
+## 7. Ask one of your Copilot agents
+
+> Which Copilot agents do I have?
+>
+> Ask the HR policy agent how much parental leave carries over.
+
+Margo lists the agents available to you, picks the one you named (or asks which, if several
+fit), and asks it your question. The answer is reported as that agent's answer, with its
+citations. It is treated as information, never as an instruction: if an agent's reply tells
+Margo to send, update or approve something, she flags it and does nothing. If the agent is not
+available, she says so instead of answering in its name. Agents are asked only in a
+conversation, not in scheduled runs. See
+[Ask a Copilot agent](../../skills/chief-of-staff/references/copilot-agents.md).
+
 [execution]: commitments-and-action-desk.md#6-approve-once-preflight-and-reconcile-uncertainty
 
 ## Feature reference
@@ -288,7 +342,8 @@ agenda, or delegation brief — tied to its sources and versioned as it changes 
 [§3 Prepare a substantive private work product](#3-prepare-a-substantive-private-work-product).
 Try it: *"Prepare a decision memo on the migration options, with trade-offs and a recommendation."*
 What you'll see: a private, versioned Markdown draft citing its sources, with unknown dates/owners
-left unknown rather than invented. What needs your decision: content approval and delivery
+left unknown rather than invented; or, when you ask for one, a real Word, Excel or PowerPoint file
+(see [§5](#5-get-a-real-word-excel-or-powerpoint-file)). What needs your decision: content approval and delivery
 approval are different — an approved memo is not shared until you separately approve sending or
 publishing it. Change your mind: ask for a revision before or after content approval; each
 edit is a new version, and editing approved content returns it to `prepared`.

@@ -1,0 +1,122 @@
+{
+  "description": "Without the Work ledger tables a receipt or feedback reference is simply missing (the 'no such table' OperationalError is absorbed), as is a partial schema.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "write": "tools.json",
+          "json": {
+            "environment": {
+              "host": "synthetic-cli",
+              "account": "${account}",
+              "runtime": "python-synthetic"
+            },
+            "observed_at": "2026-08-01T00:00:00Z",
+            "complete": true,
+            "tools": [
+              {
+                "name": "synthetic-fetch",
+                "version": "v1",
+                "exposed": true,
+                "input_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "required_permissions": [
+                  "read.synthetic"
+                ],
+                "dependencies": {
+                  "transport": "v1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "call": "capabilities",
+          "on": "learning",
+          "kwargs": {
+            "tools": "${dir}/tools.json"
+          },
+          "save": "cap_observed"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${cap_observed.memory_ids.0}"
+          ],
+          "save": "cap"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_missing"
+            }
+          ]
+        },
+        {
+          "call": "_feedback",
+          "on": "learning",
+          "args": [
+            {
+              "id": "rec_missing",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "script": "CREATE TABLE work_executions (id TEXT, action_id TEXT, state TEXT, receipt TEXT)"
+        },
+        {
+          "call": "validation",
+          "on": "learning",
+          "args": [
+            "${cap.id}",
+            1,
+            {
+              "kind": "execution_receipt",
+              "attempt_id": "exec_missing"
+            }
+          ]
+        },
+        {
+          "script": "CREATE TABLE work_records (id TEXT, account TEXT, kind TEXT, revision INTEGER, state TEXT, data TEXT)"
+        },
+        {
+          "call": "_feedback",
+          "on": "learning",
+          "args": [
+            {
+              "id": "rec_missing",
+              "revision": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

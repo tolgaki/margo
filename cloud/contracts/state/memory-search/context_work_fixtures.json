@@ -1,0 +1,856 @@
+{
+  "description": "Every work-entry branch over hand-built ledger rows: item states and confirmation, outcome and meeting states, recap availability, unsupported record kinds, unknown owner/due/effort/definition fields, current, missing, changed, withheld (non-string or restricted labels) and dataless sources, work relationships in both directions with reversed edge names, tracked_in skipped, superseded items replaced by confirmed newer ones, outcome/meeting links, unresolved decision references, edge and node limits, memory work_refs that are not a list, item IDs taken from entities, the depth limit truncating work references, ConnectedContext._work, the 200-row discovery limit (work_discovery_limit) and dynamic errors from malformed meeting data.",
+  "account": "context-fixture@example.com",
+  "steps": [
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "1",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "sql": "INSERT INTO work_sources VALUES (?,?,?,?,?,?,?)",
+          "params": [
+            "src_a1",
+            "context-fixture@example.com",
+            "calendar",
+            "scope",
+            "src_a1",
+            "1",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES (?,?,?,?,?)",
+          "params": [
+            "src_a1",
+            "1",
+            "fp1",
+            "{\"web_link\": \"https://example.com/ok\", \"sensitivity\": \"Private\"}",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_sources VALUES (?,?,?,?,?,?,?)",
+          "params": [
+            "src_a2",
+            "context-fixture@example.com",
+            "calendar",
+            "scope",
+            "src_a2",
+            "2",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES (?,?,?,?,?)",
+          "params": [
+            "src_a2",
+            "1",
+            "fp2",
+            "{\"web_link\": \"https://example.com/gone\"}",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_sources VALUES (?,?,?,?,?,?,?)",
+          "params": [
+            "src_a3",
+            "context-fixture@example.com",
+            "calendar",
+            "scope",
+            "src_a3",
+            "1",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES (?,?,?,?,?)",
+          "params": [
+            "src_a3",
+            "1",
+            "fp3",
+            "{\"web_link\": \"https://example.com/odd\", \"sensitivity\": 5}",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_sources VALUES (?,?,?,?,?,?,?)",
+          "params": [
+            "src_a4",
+            "context-fixture@example.com",
+            "calendar",
+            "scope",
+            "src_a4",
+            "1",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES (?,?,?,?,?)",
+          "params": [
+            "src_a4",
+            "1",
+            "fp4",
+            "{\"sensitivity\": \"Confidential\"}",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_sources VALUES (?,?,?,?,?,?,?)",
+          "params": [
+            "src_a5",
+            "context-fixture@example.com",
+            "calendar",
+            "scope",
+            "src_a5",
+            "1",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES (?,?,?,?,?)",
+          "params": [
+            "src_a5",
+            "1",
+            "fp5",
+            "{\"sensitivity\": \"NONE\", \"web_link\": null}",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_sources VALUES (?,?,?,?,?,?,?)",
+          "params": [
+            "src_a6",
+            "context-fixture@example.com",
+            "calendar",
+            "scope",
+            "src_a6",
+            "1",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES (?,?,?,?,?)",
+          "params": [
+            "src_a6",
+            "1",
+            "fp6",
+            "{}",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "item_a01",
+            "context-fixture@example.com",
+            3,
+            "confirmed",
+            1,
+            "key-item_a01",
+            "hash",
+            "{\"title\": \"Item item_a01\", \"owner\": \"person:a\", \"due\": \"2026-02-01\", \"next_step\": \"Draft\", \"blocker\": null, \"effort\": 30, \"scheduled_start\": null, \"source_refs\": [{\"source_id\": \"src_a1\", \"revision\": \"1\", \"fingerprint\": \"fp1\"}, {\"source_id\": \"src_a5\", \"revision\": \"1\", \"fingerprint\": \"fp5\"}, {\"source_id\": \"src_a6\", \"revision\": \"1\", \"fingerprint\": \"fp6\"}], \"entities\": [\"project:fixture\"]}",
+            null,
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "item_a02",
+            "context-fixture@example.com",
+            3,
+            "waiting",
+            1,
+            "key-item_a02",
+            "hash",
+            "{\"title\": \"Item item_a02\", \"owner\": \"person:b\"}",
+            null,
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "item_a03",
+            "context-fixture@example.com",
+            3,
+            "deferred",
+            1,
+            "key-item_a03",
+            "hash",
+            "{\"title\": \"Item item_a03\"}",
+            null,
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "item_a04",
+            "context-fixture@example.com",
+            3,
+            "candidate",
+            0,
+            "key-item_a04",
+            "hash",
+            "{\"title\": \"Item item_a04\"}",
+            null,
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "item_a05",
+            "context-fixture@example.com",
+            3,
+            "resolved",
+            1,
+            "key-item_a05",
+            "hash",
+            "{\"title\": \"Item item_a05\"}",
+            null,
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "item_a06",
+            "context-fixture@example.com",
+            3,
+            "confirmed",
+            1,
+            "key-item_a06",
+            "hash",
+            "{\"title\": \"Item item_a06\", \"source_refs\": [{\"source_id\": \"src_a2\", \"revision\": \"2\", \"fingerprint\": \"x\"}]}",
+            null,
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "item_a07",
+            "context-fixture@example.com",
+            3,
+            "confirmed",
+            1,
+            "key-item_a07",
+            "hash",
+            "{\"title\": \"Item item_a07\", \"source_refs\": [{\"source_id\": \"src_a3\"}, {\"source_id\": \"src_a4\"}]}",
+            null,
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "item_a08",
+            "context-fixture@example.com",
+            3,
+            "confirmed",
+            1,
+            "key-item_a08",
+            "hash",
+            "{\"title\": \"Item item_a08\", \"source_refs\": [{\"source_id\": \"src_a1\", \"revision\": \"0\", \"fingerprint\": \"fp1\"}]}",
+            null,
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "item_a09",
+            "context-fixture@example.com",
+            3,
+            "active",
+            1,
+            "key-item_a09",
+            "hash",
+            "{\"title\": \"Item item_a09\", \"source_refs\": [{\"revision\": \"1\"}, {\"source_id\": \"src_missing\"}]}",
+            null,
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "item_a0a",
+            "context-fixture@example.com",
+            3,
+            "confirmed",
+            1,
+            "key-item_a0a",
+            "hash",
+            "{\"title\": \"Item item_a0a\", \"owner\": \"person:c\", \"due\": \"2026-03-01\"}",
+            null,
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "item_a0b",
+            "context-fixture@example.com",
+            3,
+            "candidate",
+            0,
+            "key-item_a0b",
+            "hash",
+            "{\"title\": \"Item item_a0b\"}",
+            null,
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "item_a0c",
+            "context-fixture@example.com",
+            3,
+            "confirmed",
+            1,
+            "key-item_a0c",
+            "hash",
+            "{\"title\": \"Item item_a0c\"}",
+            null,
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_relationships VALUES (?,?,?,?,?)",
+          "params": [
+            "item_a01",
+            "blocks",
+            "item_a02",
+            null,
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_relationships VALUES (?,?,?,?,?)",
+          "params": [
+            "item_a03",
+            "depends_on",
+            "item_a01",
+            null,
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_relationships VALUES (?,?,?,?,?)",
+          "params": [
+            "item_a01",
+            "tracked_in",
+            "jira:FIX-1",
+            null,
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_relationships VALUES (?,?,?,?,?)",
+          "params": [
+            "item_a0a",
+            "supersedes",
+            "item_a01",
+            null,
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_relationships VALUES (?,?,?,?,?)",
+          "params": [
+            "item_a0b",
+            "supersedes",
+            "item_a0c",
+            null,
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_relationships VALUES (?,?,?,?,?)",
+          "params": [
+            "item_a01",
+            "supersedes",
+            "item_a05",
+            null,
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES (?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "outcome_b01",
+            "context-fixture@example.com",
+            "outcome",
+            2,
+            "proposed",
+            "identity-outcome_b01",
+            "{\"title\": \"Record outcome_b01\"}",
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES (?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "outcome_b02",
+            "context-fixture@example.com",
+            "outcome",
+            2,
+            "active",
+            "identity-outcome_b02",
+            "{\"title\": \"Record outcome_b02\", \"work_item_ids\": [\"item_a01\", \"item_a02\"], \"effort\": null}",
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES (?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "meeting_c01",
+            "context-fixture@example.com",
+            "meeting",
+            2,
+            "cancelled",
+            "identity-meeting_c01",
+            "{\"title\": \"Record meeting_c01\"}",
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES (?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "meeting_c02",
+            "context-fixture@example.com",
+            "meeting",
+            2,
+            "recap_pending",
+            "identity-meeting_c02",
+            "{\"title\": \"Record meeting_c02\", \"recap_retry\": {\"status\": \"blocked\"}, \"outcome_id\": \"outcome_b02\", \"attendance\": \"present\", \"series_id\": \"series:x\", \"occurrence_id\": \"occ:x\", \"decision_refs\": [{\"canonical_id\": \"decision:none\", \"status\": \"current\", \"web_link\": \"https://example.com/d\"}]}",
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES (?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "meeting_c03",
+            "context-fixture@example.com",
+            "meeting",
+            2,
+            "reviewed",
+            "identity-meeting_c03",
+            "{\"title\": \"Record meeting_c03\", \"recap_retry\": {\"status\": \"exhausted\"}, \"source_refs\": [{\"source_id\": \"src_a1\", \"revision\": \"1\", \"fingerprint\": \"fp1\"}]}",
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES (?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "meeting_c04",
+            "context-fixture@example.com",
+            "meeting",
+            2,
+            "prepped",
+            "identity-meeting_c04",
+            "{\"title\": \"Record meeting_c04\", \"recap_retry\": {\"status\": \"available\"}}",
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES (?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "artifact_d01",
+            "context-fixture@example.com",
+            "artifact",
+            2,
+            "prepared",
+            "identity-artifact_d01",
+            "{\"title\": \"Record artifact_d01\"}",
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES (?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "rule_d02",
+            "context-fixture@example.com",
+            "rule",
+            2,
+            "active",
+            "identity-rule_d02",
+            "{\"title\": \"Record rule_d02\"}",
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "item_a01",
+              "item_a02",
+              "item_a03",
+              "item_a04",
+              "item_a05",
+              "item_a06",
+              "item_a07",
+              "item_a08",
+              "item_a09",
+              "item_a0a",
+              "item_a0b",
+              "item_a0c",
+              "outcome_b01",
+              "outcome_b02",
+              "meeting_c01",
+              "meeting_c02",
+              "meeting_c03",
+              "meeting_c04",
+              "artifact_d01",
+              "rule_d02",
+              "item_zzz"
+            ],
+            "max_nodes": 50,
+            "budget_chars": 50000,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "item_a01",
+              "item_a02",
+              "item_a03",
+              "item_a04",
+              "item_a05",
+              "item_a06",
+              "item_a07",
+              "item_a08",
+              "item_a09",
+              "item_a0a",
+              "item_a0b",
+              "item_a0c",
+              "outcome_b01",
+              "outcome_b02",
+              "meeting_c01",
+              "meeting_c02",
+              "meeting_c03",
+              "meeting_c04",
+              "artifact_d01",
+              "rule_d02",
+              "item_zzz"
+            ],
+            "max_nodes": 5,
+            "budget_chars": 50000,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "item_a01"
+            ],
+            "max_depth": 1,
+            "budget_chars": 50000,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "item_a01"
+            ],
+            "max_depth": 0,
+            "budget_chars": 50000,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "outcome_b02"
+            ],
+            "max_nodes": 2,
+            "budget_chars": 50000,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "_work",
+          "on": "context",
+          "args": [
+            "item_a01"
+          ]
+        },
+        {
+          "call": "_work",
+          "on": "context",
+          "args": [
+            "meeting_c02"
+          ]
+        },
+        {
+          "call": "_work",
+          "on": "context",
+          "args": [
+            "item_zzz"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "worker",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "worker",
+              "text": "Synthetic worker",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "metadata": {
+                "work_refs": "item_a01"
+              },
+              "entities": [
+                "item_a02",
+                "meeting_c04",
+                "project:fixture"
+              ]
+            },
+            "active"
+          ],
+          "save": "worker",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:worker}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "${id:user:worker}"
+            ],
+            "budget_chars": 50000,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "${id:user:worker}"
+            ],
+            "max_depth": 0,
+            "budget_chars": 50000,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "project:fixture"
+            ],
+            "budget_chars": 50000,
+            "mode": "lexical"
+          }
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES (?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "meeting_c05",
+            "context-fixture@example.com",
+            "meeting",
+            2,
+            "prepped",
+            "identity-meeting_c05",
+            "{\"title\": \"Record meeting_c05\", \"decision_refs\": [\"not-a-dict\"]}",
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "meeting_c05"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "sql": "INSERT INTO work_records VALUES (?,?,?,?,?,?,?,?,?)",
+          "params": [
+            "meeting_c06",
+            "context-fixture@example.com",
+            "meeting",
+            2,
+            "prepped",
+            "identity-meeting_c06",
+            "{\"title\": \"Record meeting_c06\", \"recap_retry\": null}",
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00"
+          ]
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "work_ids": [
+              "meeting_c06"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "sql": "WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i<205) INSERT INTO work_items SELECT printf('item_f%03x',i),?,1,'candidate',0,printf('bulk-%d',i),'h','{\"title\":\"Bulk\",\"entities\":[\"project:bulk\"]}',NULL,printf('2025-01-01T00:00:%02d+00:00',i % 60),printf('2025-01-01T00:00:%02d+00:00',i % 60) FROM n",
+          "params": [
+            "context-fixture@example.com"
+          ]
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "project:bulk"
+            ],
+            "budget_chars": 50000,
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "project:bulk"
+            ],
+            "max_nodes": 50,
+            "budget_chars": 50000,
+            "mode": "lexical"
+          }
+        }
+      ]
+    }
+  ]
+}

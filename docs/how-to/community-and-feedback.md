@@ -24,7 +24,9 @@ commitment nobody logged, then recurring themes and threads that ran hot.
 
 **Before you start:** the community name and GroupId recorded in `preferences.md` → *Community —
 Viva Engage*. If you do not own a community, skip this routine without deleting bundled
-procedures or changing the skill router.
+procedures or changing the skill router. Structured reads use Work IQ's Viva Engage paths, which
+need the `WorkIQ.Read` delegated scope; posting also needs `WorkIQ.Act` and a tenant Work IQ
+policy that allows Engage writes, which is off by default.
 
 **Try it:**
 
@@ -32,14 +34,18 @@ procedures or changing the skill router.
 
 > Top topics in my Engage community this week.
 
+> What's new in my Engage feed?
+
 **What you will see:** unanswered questions leading the read-out, then themes, hot threads, and
 what the community's collective mental model gets right or wrong about the product — each with
-the poster's name, the thread title, and a link.
+the poster's name, the thread title, and a link. The header says which route was used
+(structured Engage reads or the search-based fallback) and whether the window was fully read.
 
-**What needs your decision:** posting a reply is visible to the community's actual audience, so
-it always needs explicit approval of the account, destination, content and revision, in your
-voice. Do not assume every community is public or that a membership boundary permits wider
-distribution of its content.
+**What needs your decision:** posting a reply is visible to the community's actual audience, so it
+always needs explicit approval of the account, destination, content and revision, in your voice.
+Margo checks the write's current schema first and records the reply as a proposal in the [action
+desk](commitments-and-action-desk.md#action-desk) (an approval card in Margo Cloud). Do not assume
+every community is public or that a membership boundary permits wider distribution of its content.
 
 **Change your mind:** ask for a narrower time window or a specific theme any time.
 
@@ -49,12 +55,12 @@ flows can also retain coverage, progress, proposals and published outputs/receip
 source's sensitivity before quoting it into a forwardable summary. Clearing the running note
 does not erase those other records or the source posts.
 
-**If something goes wrong:** in the verified Work IQ binding, structured Engage paths were
-unavailable and grounded retrieval was the available route. Re-check advertised capabilities
-for the current host without bypassing a denial. A retrieval query returning nothing means
-"no threads found for that phrasing," not "the community is quiet." The verified results did
-not expose usable reply counts or upvotes; report "stayed active N days" as a proxy, never as
-a reply count or proof of reply-level threading.
+**If something goes wrong:** Margo discovers the Engage paths each time. If your account or
+tenant does not offer them, she says so and falls back to grounded search, labeled as
+search-based: a search returning nothing means "no threads found for that phrasing," not "the
+community is quiet," and search results carry no usable reply counts, so she reports "stayed
+active N days" instead. If posting is blocked by your organization's policy, she says so and
+leaves the draft for you to post yourself; she never posts it through Teams or mail instead.
 
 **Availability:** optional (needs a configured community), procedure. Runs on request, and
 recommended as a periodic manual sweep — not one of the six scheduled routines. Since 1.0.0.

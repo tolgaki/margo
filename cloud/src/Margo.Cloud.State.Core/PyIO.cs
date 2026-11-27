@@ -1,0 +1,678 @@
+using System.Globalization;
+using System.Text;
+
+namespace Margo.Cloud.State.Core;
+
+/// <summary>
+/// Python text I/O as the scripts use it: <c>print()</c> to UTF-8 stdout (lone surrogates raise
+/// <c>UnicodeEncodeError</c> before anything is written), <c>sys.stdin.read([n])</c> counting code points,
+/// and <c>Path.read_text(encoding="utf-8")</c> with strict decoding, universal newlines and errno messages.
+/// </summary>
+public static class PyIO
+{
+    /// <summary>Strict UTF-8 without a byte-order mark, as Python's <c>utf-8</c> codec.</summary>
+    public static UTF8Encoding StrictUtf8 { get; } = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
+    /// <summary>
+    /// Wraps a raw stdin stream the way Python's <c>sys.stdin</c> decodes it (UTF-8, strict, no BOM skipping). Read it
+    /// with <see cref="ReadText"/>, which reports undecodable input exactly as CPython does.
+    /// </summary>
+    public static TextReader StdinReader(Stream stream) => new PyStdin(stream ?? throw new ArgumentNullException(nameof(stream)));
+
+    /// <summary>Wraps a raw stdout/stderr stream as Python writes it (UTF-8, <c>\n</c> newlines).</summary>
+    public static TextWriter OutputWriter(Stream stream) =>
+        new StreamWriter(stream, new UTF8Encoding(false, false), bufferSize: 8192, leaveOpen: true) { NewLine = "\n", AutoFlush = false };
+
+    /// <summary>
+    /// Wraps the raw stderr stream as Python writes <c>sys.stderr</c>: UTF-8 with <c>\n</c> newlines and the
+    /// <c>backslashreplace</c> error handler, so a lone surrogate (an undecodable argument byte echoed by an
+    /// argparse error) is written as <c>\udcff</c>, not U+FFFD.
+    /// </summary>
+    public static TextWriter ErrorWriter(Stream stream) =>
+        new StreamWriter(stream, BackslashReplaceUtf8, bufferSize: 8192, leaveOpen: true) { NewLine = "\n", AutoFlush = false };
+
+    /// <summary>UTF-8 whose encoder writes lone surrogates as <c>\uXXXX</c> (Python's <c>backslashreplace</c>).</summary>
+    public static Encoding BackslashReplaceUtf8 { get; } = CreateBackslashReplaceUtf8();
+
+    private static Encoding CreateBackslashReplaceUtf8()
+    {
+        // No byte-order mark: a StreamWriter writes the preamble to a non-seekable stream such as a pipe.
+        var encoding = (Encoding)new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).Clone();
+        encoding.EncoderFallback = new BackslashReplaceFallback();
+        return encoding;
+    }
+
+    private sealed class BackslashReplaceFallback : EncoderFallback
+    {
+        public override int MaxCharCount => 12;
+
+        public override EncoderFallbackBuffer CreateFallbackBuffer() => new Buffer();
+
+        private sealed class Buffer : EncoderFallbackBuffer
+        {
+            private string _pending = "";
+            private int _index;
+
+            public override int Remaining => _pending.Length - _index;
+
+            public override bool Fallback(char charUnknown, int index)
+            {
+                _pending = "\\u" + ((int)charUnknown).ToString("x4", CultureInfo.InvariantCulture);
+                _index = 0;
+                return true;
+            }
+
+            public override bool Fallback(char charUnknownHigh, char charUnknownLow, int index)
+            {
+                _pending = "\\U" + char.ConvertToUtf32(charUnknownHigh, charUnknownLow).ToString("x8", CultureInfo.InvariantCulture);
+                _index = 0;
+                return true;
+            }
+
+            public override char GetNextChar() => _index < _pending.Length ? _pending[_index++] : '\0';
+
+            public override bool MovePrevious()
+            {
+                if (_index == 0)
+                {
+                    return false;
+                }
+
+                _index--;
+                return true;
+            }
+
+            public override void Reset()
+            {
+                _pending = "";
+                _index = 0;
+            }
+        }
+    }
+
+    /// <summary><c>print(text, file=writer)</c>.</summary>
+    public static void Print(TextWriter writer, string text)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+        EnsureEncodable(text);
+        writer.Write(text);
+        writer.Write('\n');
+    }
+
+    /// <summary><c>writer.write(text)</c> with Python's encode check.</summary>
+    public static void Write(TextWriter writer, string text)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+        EnsureEncodable(text);
+        writer.Write(text);
+    }
+
+    /// <summary><c>text.encode("utf-8")</c>.</summary>
+    public static byte[] EncodeUtf8(string text)
+    {
+        EnsureEncodable(text);
+        return StrictUtf8.GetBytes(text);
+    }
+
+    /// <summary>Raises <c>UnicodeEncodeError</c> for lone surrogates, which Python cannot encode to UTF-8.</summary>
+    public static void EnsureEncodable(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        var position = 0;
+        for (var i = 0; i < text.Length; i++, position++)
+        {
+            var c = text[i];
+            if (char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
+            {
+                i++;
+                continue;
+            }
+
+            if (!char.IsSurrogate(c))
+            {
+                continue;
+            }
+
+            var end = position;
+            var j = i + 1;
+            while (j < text.Length && char.IsSurrogate(text[j])
+                   && !(char.IsHighSurrogate(text[j]) && j + 1 < text.Length && char.IsLowSurrogate(text[j + 1])))
+            {
+                end++;
+                j++;
+            }
+
+            var where = end == position
+                ? "character " + PyRepr.Str(c.ToString()) + " in position " + position.ToString(CultureInfo.InvariantCulture)
+                : "characters in position " + position.ToString(CultureInfo.InvariantCulture) + "-" + end.ToString(CultureInfo.InvariantCulture);
+            throw new PyUnicodeError("UnicodeEncodeError", "'utf-8' codec can't encode " + where + ": surrogates not allowed");
+        }
+    }
+
+    /// <summary><c>bytes.decode("utf-8")</c> with CPython's error messages.</summary>
+    public static string DecodeUtf8(ReadOnlySpan<byte> data) => DecodeUtf8(data, final: true, out _);
+
+    /// <summary>
+    /// The UTF-8 incremental decoder's <c>decode(data, final)</c>: when <paramref name="final"/> is false, a valid but
+    /// incomplete sequence at the end is left undecoded (<paramref name="consumed"/> stops before it); errors name
+    /// positions in <paramref name="data"/>, as CPython's do.
+    /// </summary>
+    public static string DecodeUtf8(ReadOnlySpan<byte> data, bool final, out int consumed)
+    {
+        if (Utf8Error(data, 0, final, out consumed) is { } error)
+        {
+            throw DecodeError(data, error.Start, error.End, error.Reason, "utf-8");
+        }
+
+        return StrictUtf8.GetString(data[..consumed]);
+    }
+
+    /// <summary>
+    /// The first error CPython's strict UTF-8 decoder reports in <paramref name="data"/> from <paramref name="from"/>
+    /// (start and inclusive end positions, reason), or null. When <paramref name="final"/> is false, a valid but
+    /// incomplete sequence at the end is no error and <paramref name="consumed"/> stops before it.
+    /// </summary>
+    private static (int Start, int End, string Reason)? Utf8Error(ReadOnlySpan<byte> data, int from, bool final, out int consumed)
+    {
+        var position = from;
+        while (position < data.Length)
+        {
+            var b = data[position];
+            int need;
+            if (b < 0x80)
+            {
+                position++;
+                continue;
+            }
+
+            if (b is >= 0xC2 and <= 0xDF)
+            {
+                need = 1;
+            }
+            else if (b is >= 0xE0 and <= 0xEF)
+            {
+                need = 2;
+            }
+            else if (b is >= 0xF0 and <= 0xF4)
+            {
+                need = 3;
+            }
+            else
+            {
+                consumed = position;
+                return (position, position, "invalid start byte");
+            }
+
+            var valid = 0;
+            for (var k = 1; k <= need; k++)
+            {
+                if (position + k >= data.Length)
+                {
+                    consumed = position;
+                    return final ? (position, data.Length - 1, "unexpected end of data") : null;
+                }
+
+                var next = data[position + k];
+                var low = 0x80;
+                var high = 0xBF;
+                if (k == 1)
+                {
+                    (low, high) = b switch
+                    {
+                        0xE0 => (0xA0, 0xBF),
+                        0xED => (0x80, 0x9F),
+                        0xF0 => (0x90, 0xBF),
+                        0xF4 => (0x80, 0x8F),
+                        _ => (0x80, 0xBF),
+                    };
+                }
+
+                if (next < low || next > high)
+                {
+                    consumed = position;
+                    return (position, position + valid, "invalid continuation byte");
+                }
+
+                valid++;
+            }
+
+            position += need + 1;
+        }
+
+        consumed = data.Length;
+        return null;
+    }
+
+    /// <summary>
+    /// How <c>json.loads</c> turns bytes into text: <c>data.decode(json.detect_encoding(data), "surrogatepass")</c>.
+    /// <c>detect_encoding</c> picks <c>utf-32</c>/<c>utf-16</c> for their BOMs (which the codec strips), <c>utf-8-sig</c>
+    /// for the UTF-8 signature, otherwise UTF-16/UTF-32 LE/BE from where the first bytes are zero, else <c>utf-8</c>.
+    /// <c>surrogatepass</c> lets encoded surrogates through as lone surrogates. Errors are CPython's: the codec named as
+    /// <c>'utf-16-le'</c>, <c>'utf-32-be'</c>, ...; positions are absolute, except after a UTF-8 signature
+    /// (<c>utf_8_sig.decode</c> decodes the rest as a new input).
+    /// </summary>
+    public static string DecodeJsonBytes(ReadOnlySpan<byte> data)
+    {
+        if (data.StartsWith((ReadOnlySpan<byte>)[0x00, 0x00, 0xFE, 0xFF]) || data.StartsWith((ReadOnlySpan<byte>)[0xFF, 0xFE, 0x00, 0x00]))
+        {
+            return DecodeUtf32SurrogatePass(data, 4, bigEndian: data[0] == 0x00);
+        }
+
+        if (data.StartsWith((ReadOnlySpan<byte>)[0xFE, 0xFF]) || data.StartsWith((ReadOnlySpan<byte>)[0xFF, 0xFE]))
+        {
+            return DecodeUtf16SurrogatePass(data, 2, bigEndian: data[0] == 0xFE);
+        }
+
+        if (data.StartsWith((ReadOnlySpan<byte>)[0xEF, 0xBB, 0xBF]))
+        {
+            return DecodeUtf8SurrogatePass(data[3..]);
+        }
+
+        if (data.Length >= 4)
+        {
+            if (data[0] == 0)
+            {
+                return data[1] != 0 ? DecodeUtf16SurrogatePass(data, 0, bigEndian: true) : DecodeUtf32SurrogatePass(data, 0, bigEndian: true);
+            }
+
+            if (data[1] == 0)
+            {
+                return data[2] != 0 || data[3] != 0
+                    ? DecodeUtf16SurrogatePass(data, 0, bigEndian: false)
+                    : DecodeUtf32SurrogatePass(data, 0, bigEndian: false);
+            }
+        }
+        else if (data.Length == 2)
+        {
+            if (data[0] == 0)
+            {
+                return DecodeUtf16SurrogatePass(data, 0, bigEndian: true);
+            }
+
+            if (data[1] == 0)
+            {
+                return DecodeUtf16SurrogatePass(data, 0, bigEndian: false);
+            }
+        }
+
+        return DecodeUtf8SurrogatePass(data);
+    }
+
+    /// <summary>
+    /// <c>data.decode("utf-8", "surrogatepass")</c>: where the strict decoder fails on the three-byte encoding of a
+    /// surrogate (<c>ED A0..BF 80..BF</c>), the error handler returns that lone surrogate and decoding resumes after it;
+    /// any other error is raised unchanged.
+    /// </summary>
+    private static string DecodeUtf8SurrogatePass(ReadOnlySpan<byte> data)
+    {
+        var builder = new StringBuilder(data.Length);
+        var from = 0;
+        while (Utf8Error(data, from, final: true, out _) is { } error)
+        {
+            var p = error.Start;
+            if (p + 2 >= data.Length || data[p] != 0xED || data[p + 1] is < 0xA0 or > 0xBF || data[p + 2] is < 0x80 or > 0xBF)
+            {
+                throw DecodeError(data, error.Start, error.End, error.Reason, "utf-8");
+            }
+
+            builder.Append(StrictUtf8.GetString(data[from..p]));
+            builder.Append((char)(0xD000 | ((data[p + 1] & 0x3F) << 6) | (data[p + 2] & 0x3F)));
+            from = p + 3;
+        }
+
+        return builder.Append(StrictUtf8.GetString(data[from..])).ToString();
+    }
+
+    /// <summary>
+    /// <c>data[start:]</c> as UTF-16 with <c>surrogatepass</c>: every code unit is kept (a valid pair is the character, an
+    /// unpaired surrogate passes through alone); the only error is an odd byte at the end ("truncated data").
+    /// </summary>
+    private static string DecodeUtf16SurrogatePass(ReadOnlySpan<byte> data, int start, bool bigEndian)
+    {
+        var builder = new StringBuilder((data.Length - start) / 2);
+        var q = start;
+        for (; q + 1 < data.Length; q += 2)
+        {
+            builder.Append((char)(bigEndian ? (data[q] << 8) | data[q + 1] : (data[q + 1] << 8) | data[q]));
+        }
+
+        if (q < data.Length)
+        {
+            throw DecodeError(data, q, data.Length - 1, "truncated data", bigEndian ? "utf-16-be" : "utf-16-le");
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// <c>data[start:]</c> as UTF-32 with <c>surrogatepass</c>: surrogate code points pass through; a value above U+10FFFF
+    /// is "code point not in range(0x110000)", and 1-3 bytes left at the end are "truncated data".
+    /// </summary>
+    private static string DecodeUtf32SurrogatePass(ReadOnlySpan<byte> data, int start, bool bigEndian)
+    {
+        var codec = bigEndian ? "utf-32-be" : "utf-32-le";
+        var builder = new StringBuilder(data.Length - start);
+        var q = start;
+        for (; q + 3 < data.Length; q += 4)
+        {
+            var ch = bigEndian
+                ? ((uint)data[q] << 24) | ((uint)data[q + 1] << 16) | ((uint)data[q + 2] << 8) | data[q + 3]
+                : ((uint)data[q + 3] << 24) | ((uint)data[q + 2] << 16) | ((uint)data[q + 1] << 8) | data[q];
+            if (ch > 0x10FFFF)
+            {
+                throw DecodeError(data, q, q + 3, "code point not in range(0x110000)", codec);
+            }
+
+            if (ch >= 0x10000)
+            {
+                builder.Append(char.ConvertFromUtf32((int)ch));
+            }
+            else
+            {
+                builder.Append((char)ch);
+            }
+        }
+
+        if (q < data.Length)
+        {
+            throw DecodeError(data, q, data.Length - 1, "truncated data", codec);
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// <c>sys.stdin.read()</c> or <c>sys.stdin.read(n)</c>; <paramref name="maxCodePoints"/> counts code points. On the
+    /// <see cref="StdinReader"/> stream this is CPython's <c>TextIOWrapper</c>: <c>read()</c> decodes all remaining bytes
+    /// at once, so a <c>UnicodeDecodeError</c> names CPython's reason and absolute byte positions; <c>read(n)</c> decodes
+    /// chunks of <c>max(8192, n)</c> bytes as they arrive. Other readers hold text that is already decoded.
+    /// </summary>
+    public static string ReadText(TextReader reader, int? maxCodePoints = null)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        if (reader is PyStdin stdin)
+        {
+            return maxCodePoints is { } n ? stdin.Read(n) : stdin.ReadAll();
+        }
+
+        if (maxCodePoints is null)
+        {
+            return reader.ReadToEnd();
+        }
+
+        var builder = new StringBuilder();
+        var count = 0;
+        while (count < maxCodePoints.Value)
+        {
+            var next = reader.Read();
+            if (next < 0)
+            {
+                break;
+            }
+
+            builder.Append((char)next);
+            if (char.IsHighSurrogate((char)next) && reader.Peek() is var low && low >= 0 && char.IsLowSurrogate((char)low))
+            {
+                builder.Append((char)reader.Read());
+            }
+
+            count++;
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// <c>sys.stdin</c> under <c>PYTHONIOENCODING=utf-8</c>: a <c>TextIOWrapper</c> with a strict UTF-8 incremental decoder
+    /// over the raw stream. <c>read()</c> is <c>decoder.decode(buffer.read(), final=True)</c> after any decoded text
+    /// still held; <c>read(n)</c> repeats <c>read_chunk(max(8192, remaining))</c>, one raw read each, decoding with
+    /// <c>final</c> only at end of input. The <see cref="TextReader"/> members serve the same decoded text.
+    /// </summary>
+    private sealed class PyStdin(Stream stream) : TextReader
+    {
+        private const int ChunkSize = 8192;
+        private byte[] _pending = [];
+        private string _decoded = "";
+        private int _offset;
+
+        /// <summary><c>sys.stdin.read()</c>.</summary>
+        public string ReadAll()
+        {
+            using var rest = new MemoryStream();
+            rest.Write(_pending);
+            stream.CopyTo(rest);
+            _pending = [];
+            var text = TakeDecoded() + DecodeUtf8(rest.ToArray());
+            return text;
+        }
+
+        /// <summary><c>sys.stdin.read(n)</c>: up to <paramref name="count"/> code points.</summary>
+        public string Read(int count)
+        {
+            var result = new StringBuilder(TakeDecoded(count));
+            var remaining = count - PyRepr.Length(result.ToString());
+            while (remaining > 0)
+            {
+                var eof = ReadChunk(Math.Max(ChunkSize, remaining));
+                var piece = TakeDecoded(remaining);
+                result.Append(piece);
+                remaining -= PyRepr.Length(piece);
+                if (eof)
+                {
+                    break;
+                }
+            }
+
+            return result.ToString();
+        }
+
+        public override int Peek()
+        {
+            Fill();
+            return _offset < _decoded.Length ? _decoded[_offset] : -1;
+        }
+
+        public override int Read()
+        {
+            Fill();
+            return _offset < _decoded.Length ? _decoded[_offset++] : -1;
+        }
+
+        public override string ReadToEnd() => ReadAll();
+
+        private void Fill()
+        {
+            while (_offset >= _decoded.Length && !ReadChunk(ChunkSize))
+            {
+            }
+        }
+
+        /// <summary><c>textiowrapper_read_chunk</c>: one raw read, decoded; returns whether input has ended.</summary>
+        private bool ReadChunk(int size)
+        {
+            var buffer = new byte[size];
+            var read = stream.Read(buffer, 0, size);
+            var data = new byte[_pending.Length + read];
+            _pending.CopyTo(data, 0);
+            Array.Copy(buffer, 0, data, _pending.Length, read);
+            var eof = read == 0;
+            var text = DecodeUtf8(data, final: eof, out var consumed);
+            _pending = data[consumed..];
+            _decoded = _decoded[_offset..] + text;
+            _offset = 0;
+            return eof;
+        }
+
+        /// <summary>Removes and returns up to <paramref name="count"/> decoded code points (all of them by default).</summary>
+        private string TakeDecoded(int count = int.MaxValue)
+        {
+            var start = _offset;
+            var end = start;
+            for (var taken = 0; taken < count && end < _decoded.Length; taken++)
+            {
+                end += char.IsHighSurrogate(_decoded[end]) && end + 1 < _decoded.Length && char.IsLowSurrogate(_decoded[end + 1]) ? 2 : 1;
+            }
+
+            _offset = end;
+            return _decoded[start..end];
+        }
+    }
+
+    /// <summary>
+    /// <c>Path(path).read_text(encoding="utf-8")</c> (universal newlines), optionally like
+    /// <c>open(path, encoding="utf-8").read(n)</c>. Errors are <see cref="PyOSError"/> (<c>[Errno 2] ...</c>)
+    /// or <c>UnicodeDecodeError</c>.
+    /// </summary>
+    public static string ReadTextFile(string path, int? maxCodePoints = null)
+    {
+        var text = DecodeUtf8(ReadBytes(path));
+        text = text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+        if (maxCodePoints is { } max && PyRepr.Length(text) > max)
+        {
+            var builder = new StringBuilder();
+            var count = 0;
+            foreach (var codePoint in PyRepr.CodePoints(text))
+            {
+                if (count++ == max)
+                {
+                    break;
+                }
+
+                PyRepr.AppendCodePoint(builder, codePoint);
+            }
+
+            text = builder.ToString();
+        }
+
+        return text;
+    }
+
+    /// <summary><c>Path(path).read_bytes()</c> with Python's errno errors.</summary>
+    public static byte[] ReadBytes(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        if (!PosixNative.IsSupported)
+        {
+            return File.ReadAllBytes(path);
+        }
+
+        var fd = PosixNative.Open(path, PosixNative.ORdOnly);
+        try
+        {
+            if (PosixNative.Stat(path).IsDirectory)
+            {
+                throw PosixNative.Error(PyErrno.EISDIR, path);
+            }
+
+            // read(2) errors (EIO, ...) are OSError, as in Python; a FileStream would raise IOException.
+            return PosixNative.ReadAll(fd);
+        }
+        finally
+        {
+            PosixNative.Close(fd);
+        }
+    }
+
+    /// <summary>
+    /// <c>os.fsencode(path)</c> as the <c>os</c> functions apply it: UTF-8 with <c>surrogateescape</c>, so
+    /// U+DC80..U+DCFF become the undecodable bytes 0x80..0xFF they stand for. Any other lone surrogate raises
+    /// <c>UnicodeEncodeError</c>; a NUL raises <c>ValueError("embedded null byte")</c>. (.NET's own marshalling
+    /// would write U+FFFD, a different file name.)
+    /// </summary>
+    public static byte[] FsEncode(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        var output = new List<byte>(path.Length + 8);
+        Span<byte> scratch = stackalloc byte[4];
+        for (var i = 0; i < path.Length; i++)
+        {
+            var c = path[i];
+            if (char.IsHighSurrogate(c) && i + 1 < path.Length && char.IsLowSurrogate(path[i + 1]))
+            {
+                var length = new Rune(c, path[i + 1]).EncodeToUtf8(scratch);
+                output.AddRange(scratch[..length]);
+                i++;
+                continue;
+            }
+
+            if (!char.IsSurrogate(c))
+            {
+                var length = new Rune(c).EncodeToUtf8(scratch);
+                output.AddRange(scratch[..length]);
+                continue;
+            }
+
+            // A run of lone surrogates: escape the U+DC80..U+DCFF prefix; the first other one fails for the
+            // rest of the run, as CPython's encoder reports it.
+            var end = i;
+            while (end < path.Length && char.IsSurrogate(path[end])
+                   && !(char.IsHighSurrogate(path[end]) && end + 1 < path.Length && char.IsLowSurrogate(path[end + 1])))
+            {
+                end++;
+            }
+
+            var k = i;
+            while (k < end && path[k] is >= '\udc80' and <= '\udcff')
+            {
+                output.Add((byte)(path[k] & 0xFF));
+                k++;
+            }
+
+            if (k < end)
+            {
+                throw EncodeError(path, k, end);
+            }
+
+            i = end - 1;
+        }
+
+        if (output.Contains(0))
+        {
+            throw new PyValueError("embedded null byte");
+        }
+
+        return [.. output];
+    }
+
+    /// <summary><c>os.fsdecode(data)</c>: UTF-8 with <c>surrogateescape</c> (each undecodable byte b becomes U+DC00+b).</summary>
+    public static string FsDecode(ReadOnlySpan<byte> data)
+    {
+        var builder = new StringBuilder(data.Length);
+        var position = 0;
+        while (position < data.Length)
+        {
+            if (Rune.DecodeFromUtf8(data[position..], out var rune, out var consumed) == System.Buffers.OperationStatus.Done)
+            {
+                builder.Append(rune.ToString());
+                position += consumed;
+            }
+            else
+            {
+                builder.Append((char)(0xDC00 + data[position]));
+                position++;
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>The <c>UnicodeEncodeError</c> for the lone surrogates <paramref name="text"/>[start..end) (UTF-16 indexes).</summary>
+    private static PyUnicodeError EncodeError(string text, int start, int end)
+    {
+        var first = PyRepr.CodePointIndex(text, start);
+        var last = first + (end - start) - 1;
+        var where = last == first
+            ? "character " + PyRepr.Str(text[start].ToString()) + " in position " + first.ToString(CultureInfo.InvariantCulture)
+            : "characters in position " + first.ToString(CultureInfo.InvariantCulture) + "-" + last.ToString(CultureInfo.InvariantCulture);
+        return new PyUnicodeError("UnicodeEncodeError", "'utf-8' codec can't encode " + where + ": surrogates not allowed");
+    }
+
+    /// <summary>CPython's <c>UnicodeDecodeError</c> text for <paramref name="data"/>[start..end] (inclusive).</summary>
+    private static PyUnicodeError DecodeError(ReadOnlySpan<byte> data, int start, int end, string reason, string codec)
+    {
+        var where = start == end
+            ? string.Format(CultureInfo.InvariantCulture, "byte 0x{0:x2} in position {1}", data[start], start)
+            : string.Format(CultureInfo.InvariantCulture, "bytes in position {0}-{1}", start, end);
+        return new PyUnicodeError("UnicodeDecodeError", "'" + codec + "' codec can't decode " + where + ": " + reason);
+    }
+}

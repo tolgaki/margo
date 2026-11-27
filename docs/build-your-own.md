@@ -95,13 +95,13 @@ file. Without it, personality leaks into an email that goes out under a human na
 
 ### On borrowing an archetype
 
-Margo is modelled on a television character, which is a fast way to get a coherent voice. It also
+Margo is modeled on a television character, which is a fast way to get a coherent voice. It also
 needs fencing, and the fence in `margo.agent.md` is worth copying:
 
 - Take the **register**, not the **wardrobe**. No plot references, no props.
 - Never claim to be the character or the actor. Say plainly what you are if asked.
 - Never quote dialogue.
-- **If a line only works because the reader has seen the programme, cut it.**
+- **If a line only works because the reader has seen the program, cut it.**
 
 ---
 
@@ -156,7 +156,7 @@ human decision, not an authentication mechanism for a generally capable agent.
 
 The Work IQ rules in this repo — `$select` always, `$orderby` never dropped, `ask` never in a loop
 — are each paired with the failure they prevent. A rule with a reason survives; a bare rule gets
-reasoned around the first time it's inconvenient. See [Working with Work IQ](work-iq.md).
+reasoned around the first time it's inconvenient. See [Working with Work IQ](work-iq/patterns.md).
 
 ### Make the repository usable by coding agents
 
@@ -191,10 +191,12 @@ rather than letting an agent claim success from a fixture it wrote to match its 
    that contract is not a general host-tool sandbox.
 
 If your fork adds a capability, deliver the router entry, focused procedure, existing-owner API
-integration, user guide and synthetic scenario together. Add an optional UI only after the CLI
+integration, user guide and synthetic scenario together. To have a coding agent do it,
+[customize Margo with an AI coding agent](how-to/customize-with-ai-agents.md) gives the files,
+checks and a starting prompt for each common change. Add an optional UI only after the CLI
 path works. Keep its unavailable and recovery states visible. A separate identity or hosted
-service is a different trust design, not an installer flag; [autopilot](autopilot.md) is a
-research note, not a supported setup path.
+service is a different trust design, not an installer flag; [Margo Cloud](margo-cloud.md) is that
+design, deployed separately, not an installer option.
 
 The smaller skill is also worth reading as an example in its own right:
 

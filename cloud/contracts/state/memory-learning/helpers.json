@@ -1,0 +1,2134 @@
+{
+  "description": "Constants and the pure helpers of memory_learning.py: _digest (canonical JSON, Unicode, big ints, NaN), _text and _strings bounds in code points and Python whitespace, _time, _data, _refs (dedupe by digest, code-point sort), _conditional's three rules, _validation_scope, classify_error (every group, casefold, hyphens, falsy and non-string codes, confirmed defects) and every _definition threshold.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "const": "MAX_OBSERVATIONS"
+        },
+        {
+          "const": "MAX_FILE_BYTES"
+        },
+        {
+          "const": "TREND_TYPES"
+        },
+        {
+          "const": "DEFAULT_TREND"
+        },
+        {
+          "const": "__doc__"
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "b": 1,
+              "a": [
+                1.5,
+                "é",
+                null,
+                true
+              ]
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            "text"
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            1000000000000000000000000000000
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "x": {
+                "y": [
+                  1e+16,
+                  -0.0
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            "😀"
+          ]
+        },
+        {
+          "call": "_digest",
+          "on": "learning",
+          "args": [
+            {
+              "bad": NaN
+            }
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            "ok",
+            "title"
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            "  x  ",
+            "title"
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            "",
+            "title"
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            "   ",
+            "title"
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            "\u001c",
+            "title"
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            "　 ",
+            "title"
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            null,
+            "title"
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            5,
+            "title"
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            [
+              "a"
+            ],
+            "title"
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "scope"
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "scope"
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+            "scope"
+          ]
+        },
+        {
+          "call": "_text",
+          "on": "learning",
+          "args": [
+            "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+            "scope"
+          ]
+        },
+        {
+          "call": "_strings",
+          "on": "learning",
+          "args": [
+            [
+              "a",
+              "b"
+            ],
+            "items"
+          ]
+        },
+        {
+          "call": "_strings",
+          "on": "learning",
+          "args": [
+            [],
+            "items"
+          ]
+        },
+        {
+          "call": "_strings",
+          "on": "learning",
+          "args": [
+            [],
+            "items",
+            true
+          ]
+        },
+        {
+          "call": "_strings",
+          "on": "learning",
+          "args": [
+            "abc",
+            "items"
+          ]
+        },
+        {
+          "call": "_strings",
+          "on": "learning",
+          "args": [
+            null,
+            "items"
+          ]
+        },
+        {
+          "call": "_strings",
+          "on": "learning",
+          "args": [
+            [
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a"
+            ],
+            "items"
+          ]
+        },
+        {
+          "call": "_strings",
+          "on": "learning",
+          "args": [
+            [
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a"
+            ],
+            "items"
+          ]
+        },
+        {
+          "call": "_strings",
+          "on": "learning",
+          "args": [
+            [
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a"
+            ],
+            "items",
+            true
+          ]
+        },
+        {
+          "call": "_strings",
+          "on": "learning",
+          "args": [
+            [
+              "a",
+              ""
+            ],
+            "items"
+          ]
+        },
+        {
+          "call": "_strings",
+          "on": "learning",
+          "args": [
+            [
+              "a",
+              3
+            ],
+            "items"
+          ]
+        },
+        {
+          "call": "_strings",
+          "on": "learning",
+          "args": [
+            {
+              "a": 1
+            },
+            "items"
+          ]
+        },
+        {
+          "call": "_strings",
+          "on": "learning",
+          "args": [
+            [],
+            "items"
+          ],
+          "kwargs": {
+            "allow_empty": 1
+          }
+        },
+        {
+          "call": "_time",
+          "on": "learning",
+          "args": [
+            "2026-08-01T00:00:00Z"
+          ]
+        },
+        {
+          "call": "_time",
+          "on": "learning",
+          "args": [
+            "2026-08-01T10:00:00.5+02:00"
+          ]
+        },
+        {
+          "call": "_time",
+          "on": "learning",
+          "args": [
+            "2026-08-01T00:00:00"
+          ]
+        },
+        {
+          "call": "_time",
+          "on": "learning",
+          "args": [
+            "2026-13-01T00:00:00Z"
+          ]
+        },
+        {
+          "call": "_time",
+          "on": "learning",
+          "args": [
+            "2026-08-01T00:00:00+24:00"
+          ]
+        },
+        {
+          "call": "_time",
+          "on": "learning",
+          "args": [
+            5
+          ]
+        },
+        {
+          "call": "_time",
+          "on": "learning",
+          "args": [
+            null
+          ]
+        },
+        {
+          "call": "_time",
+          "on": "learning",
+          "args": [
+            [
+              "2026-08-01T00:00:00Z"
+            ]
+          ]
+        },
+        {
+          "call": "_data",
+          "on": "learning",
+          "args": [
+            {
+              "id": "mem_x",
+              "account": "a",
+              "revision": 2,
+              "status": "active",
+              "domain": "agent",
+              "kind": "episode",
+              "title": "T",
+              "created_at": "2026-08-01T00:00:00+00:00",
+              "updated_at": "2026-08-01T00:00:00+00:00",
+              "metadata": {
+                "id": "kept"
+              }
+            }
+          ]
+        },
+        {
+          "call": "_data",
+          "on": "learning",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "_refs",
+          "on": "learning",
+          "args": [
+            [
+              {
+                "kind": "tool_result",
+                "ref": "b"
+              },
+              {
+                "ref": "a",
+                "kind": "tool_result"
+              },
+              {
+                "kind": "tool_result",
+                "ref": "b"
+              },
+              "text",
+              3,
+              [
+                "x"
+              ],
+              {
+                "kind": "file",
+                "ref": "é"
+              },
+              {
+                "kind": "file",
+                "ref": "😀"
+              },
+              {
+                "kind": "file",
+                "ref": "￿"
+              }
+            ]
+          ]
+        },
+        {
+          "call": "_refs",
+          "on": "learning",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "_refs",
+          "on": "learning",
+          "args": [
+            [
+              {
+                "kind": "tool_result",
+                "ref": "a",
+                "revision": NaN
+              }
+            ]
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            null,
+            null
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            null,
+            1
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            null,
+            2
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            null,
+            0
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            null,
+            true
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            null,
+            1.0
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            null,
+            "1"
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            {
+              "revision": 3
+            },
+            3
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            {
+              "revision": 3
+            },
+            null
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            {
+              "revision": 3
+            },
+            2
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            {
+              "revision": 3
+            },
+            3.0
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            {},
+            1
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            {},
+            5
+          ]
+        },
+        {
+          "call": "_conditional",
+          "on": "learning",
+          "args": [
+            {
+              "revision": 100000000000000000000
+            },
+            100000000000000000000
+          ]
+        },
+        {
+          "call": "_validation_scope",
+          "on": "learning",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "_validation_scope",
+          "on": "learning",
+          "args": [
+            {
+              "base_environment": {
+                "host": "h",
+                "account": "a"
+              },
+              "content_hash": "abc"
+            }
+          ]
+        },
+        {
+          "call": "_validation_scope",
+          "on": "learning",
+          "args": [
+            {
+              "content_hash": 5
+            }
+          ]
+        },
+        {
+          "call": "_validation_scope",
+          "on": "learning",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "_validation_scope",
+          "on": "learning",
+          "args": [
+            "text"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "400"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "INVALID_ARGUMENT"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "invalid-query"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "Bad-Request"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "InefficientFilter"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "tool_not_found"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "binding-stale"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "schema_changed"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "unknown_tool_binding"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "access_denied"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "FORBIDDEN"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "policy_denied"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "403"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "not_implemented"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "capability-missing"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "unsupported_operation"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "invalid_json"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "invalid_input_shape"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "malformed_data"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "timeout"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "rate_limited"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "429"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "503"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "oauth_expired"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "401"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "unknown_failure"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "confirmed_defect"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            ""
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            null
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            0
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            400
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            403.0
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            false
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            true
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            [
+              "400"
+            ]
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            {
+              "a": 1
+            }
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "ẞTRAẞE"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "ﬆ"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "İ"
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "Timeout "
+          ]
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "confirmed_defect"
+          ],
+          "kwargs": {
+            "confirmed_defect": true
+          }
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "CONFIRMED-DEFECT"
+          ],
+          "kwargs": {
+            "confirmed_defect": true
+          }
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "confirmed_defect"
+          ],
+          "kwargs": {
+            "confirmed_defect": 1
+          }
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "confirmed_defect"
+          ],
+          "kwargs": {
+            "confirmed_defect": ""
+          }
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "timeout"
+          ],
+          "kwargs": {
+            "confirmed_defect": true
+          }
+        },
+        {
+          "call": "classify_error",
+          "on": "learning",
+          "args": [
+            "other"
+          ],
+          "kwargs": {
+            "confirmed_defect": true
+          }
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 0.5,
+              "require_complete": false
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            null
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            []
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {}
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true,
+              "extra": 1
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 2,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 200,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 201,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3.0,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": true,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": "3",
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": null,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 0,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 1,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 366,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 367,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90.0,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 2,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 1000000,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 1000001,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 1000000000000000000000000000000,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 0.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": -1,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0000001,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 2,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": true,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": "1",
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": null,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1e-300,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": 1
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": 0
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": null
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 3,
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": 1.0,
+              "require_complete": "true"
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 5,
+              "window_days": 90,
+              "min_population": 4,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": 5,
+              "window_days": 90,
+              "min_population": 5,
+              "min_coverage": 1.0,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_independent_events": "x",
+              "window_days": 90,
+              "min_population": 3,
+              "min_coverage": null,
+              "require_complete": true
+            }
+          ]
+        },
+        {
+          "call": "_definition",
+          "on": "learning",
+          "args": [
+            {
+              "min_coverage": NaN,
+              "min_independent_events": 3,
+              "window_days": 1,
+              "min_population": 3,
+              "require_complete": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

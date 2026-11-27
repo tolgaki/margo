@@ -1,0 +1,403 @@
+{
+  "description": "Work schema contracts: schema creation is atomic (a failing CREATE leaves no work_ table), missing history tables are never recreated, a complete legacy schema without markers is adopted once, then a missing work_meta is refused; unsupported/missing version markers, column and constraint drift, foreign work_ tables, global marker mismatches and missing identity rows are refused, and borrowed connections never repair anything (tests: work_schema_creation_is_atomic, missing_work_history_is_not_recreated_on_open, complete_legacy_schema_can_be_adopted_once).",
+  "steps": [
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "schema-incomplete@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "ingest"
+          ],
+          "input": {
+            "claim_key": "x",
+            "data": {
+              "title": "Review fictional specification",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [],
+              "confirmation_source": "conversation:fictional/1"
+            }
+          },
+          "save": "item"
+        },
+        {
+          "sql": "DROP TABLE work_events",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE work_item_revisions",
+          "params": []
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "${item.id}"
+          ]
+        },
+        {
+          "sql": "SELECT type, name FROM sqlite_master WHERE name LIKE 'work_%' ORDER BY name",
+          "params": []
+        },
+        {
+          "sql": "SELECT revision FROM work_items",
+          "params": []
+        }
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "schema-legacy@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "ingest"
+          ],
+          "input": {
+            "claim_key": "x",
+            "data": {
+              "title": "Review fictional specification",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [],
+              "confirmation_source": "conversation:fictional/1"
+            }
+          },
+          "save": "item"
+        },
+        {
+          "sql": "DELETE FROM margo_meta WHERE key='work_schema_version'",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE work_meta",
+          "params": []
+        },
+        {
+          "cli": [
+            "show",
+            "${item.id}"
+          ]
+        },
+        {
+          "sql": "SELECT key, value FROM margo_meta ORDER BY key",
+          "params": []
+        },
+        {
+          "sql": "SELECT key, value FROM work_meta",
+          "params": []
+        },
+        {
+          "sql": "DROP TABLE work_meta",
+          "params": []
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "sql": "INSERT INTO margo_meta VALUES ('unused', 'x')",
+          "params": []
+        }
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "schema-version@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "sql": "UPDATE work_meta SET value='2'",
+          "params": []
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "sql": "DELETE FROM work_meta",
+          "params": []
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "schema-contract@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "sql": "ALTER TABLE work_exports ADD COLUMN extra TEXT",
+          "params": []
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "schema-foreign-key@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "sql": "DROP TABLE work_imports",
+          "params": []
+        },
+        {
+          "sql": "CREATE TABLE work_imports (digest TEXT PRIMARY KEY, evidence TEXT NOT NULL, item_ids TEXT NOT NULL, created_at TEXT)",
+          "params": []
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "schema-marker@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "sql": "UPDATE margo_meta SET value='2' WHERE key='work_schema_version'",
+          "params": []
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "call": "list",
+          "on": "borrowed",
+          "args": []
+        }
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "schema-extra@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "sql": "CREATE TABLE work_extra (x TEXT)",
+          "params": []
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "call": "list",
+          "on": "borrowed",
+          "args": []
+        }
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "schema-missing-marker@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "sql": "DELETE FROM margo_meta WHERE key='work_schema_version'",
+          "params": []
+        },
+        {
+          "call": "list",
+          "on": "borrowed",
+          "args": []
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "call": "list",
+          "on": "borrowed",
+          "args": []
+        }
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "schema-atomic@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "call": "list",
+          "on": "borrowed",
+          "args": []
+        },
+        {
+          "sql": "CREATE INDEX work_meta ON margo_meta(value)",
+          "params": []
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM sqlite_master WHERE type='table' AND name LIKE 'work_%'",
+          "params": []
+        },
+        {
+          "sql": "DROP INDEX work_meta",
+          "params": []
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM sqlite_master WHERE type='table' AND name LIKE 'work_%'",
+          "params": []
+        }
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "schema-foreign-db@example.com",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "sql": "DELETE FROM margo_meta WHERE key='account'",
+          "params": []
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

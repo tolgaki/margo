@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "workiq": {
+      "type": "http",
+      "url": "https://workiq.svc.cloud.microsoft/mcp",
+      "tools": ["*"]
+    }
+  }
+}

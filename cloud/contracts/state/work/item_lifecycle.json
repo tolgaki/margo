@@ -1,0 +1,2519 @@
+{
+  "description": "work_state.py item-update/defer/relate: confirmation only with exact human evidence (every human() failure), revision conflicts, the item transition table, deferral, demotion refusal, dict.update patch semantics and errors, the defer command for candidates and confirmed items (evidence from a file or stdin), dependency/blocking/supersession cycles, tracked_in references, relate(**data) binding, rejected candidates not proposed again, and stale source refs (tests: confirmation_and_conditional_mutation, invalid_transitions_and_cycles, rejected_revision_is_not_proposed_again, deferred_candidate_must_be_confirmed_before_activation, negative_evidence_never_confirms_work).",
+  "steps": [
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-1",
+        "revision": "v1",
+        "evidence": {
+          "quote": "Please review the fictional specification."
+        },
+        "web_link": "https://example.com/mail/1"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "a",
+        "data": {
+          "title": "Fictional task a",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "b",
+        "data": {
+          "title": "Fictional task b",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "c",
+        "data": {
+          "title": "Fictional task c",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "d",
+        "data": {
+          "title": "Fictional task d",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "e",
+        "data": {
+          "title": "Fictional task e",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "f",
+        "data": {
+          "title": "Fictional task f",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 1,
+          "decision": "reject",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "observed_mail",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": "yes"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "mail:message-1",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "other-id",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 99,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": true,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 1.0,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2999-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "bad"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": null
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "host-interaction:fictional/7",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "resolved",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 1,
+          "decision": "resolve",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "resolved"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": {
+          "owner": "blair@example.com"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "patch": {
+          "owner": "blair@example.com"
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "legacy-review:fictional",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 2,
+          "decision": "edit",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "rejected",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 3,
+          "decision": "reject",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "deferred",
+        "patch": {
+          "deferred_until": "2999-01-01T00:00:00Z"
+        },
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 3,
+          "decision": "defer",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "candidate",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 4,
+          "decision": "edit",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "active",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 4,
+          "decision": "activate",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "5",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "waiting",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 5,
+          "decision": "wait",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "6",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "resolved",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 6,
+          "decision": "resolve",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "item_8bc1f42a5536623d442cb7e4cef62395"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "history",
+        "item_8bc1f42a5536623d442cb7e4cef62395"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "item_id": "x"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "revision": 3
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "pach": {}
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "evidenc": {}
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "done"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": [
+          "confirmed"
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": {
+          "confirmed": true
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": ""
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "active"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "waiting"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "resolved"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "deferred"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": 0,
+        "patch": 0
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": "x"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": "xy"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": 5
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": true
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": 1.5
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": [
+          5
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": [
+          null
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": [
+          [
+            "a",
+            "b",
+            "c"
+          ]
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": [
+          [
+            [
+              "k"
+            ],
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": [
+          [
+            {
+              "k": 1
+            },
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": [
+          [
+            1,
+            "x"
+          ]
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": [
+          [
+            2.5,
+            "y"
+          ],
+          [
+            1,
+            "x"
+          ]
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": [
+          [
+            true,
+            "y"
+          ],
+          [
+            1,
+            "x"
+          ]
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": [
+          [
+            null,
+            "x"
+          ]
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": {
+          "bogus": 1
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": [
+          "ow"
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": {
+          "title": ""
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": {
+          "source_refs": []
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "patch": [
+          {
+            "title": 1,
+            "owner": 2
+          }
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": [
+          [
+            "title",
+            "Renamed fictional task"
+          ],
+          "ow"
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "patch": [
+          [
+            "title",
+            "Renamed fictional task"
+          ],
+          [
+            "notes",
+            "Pair list patch"
+          ]
+        ]
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "5",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": {
+          "deferred_until": "not-a-time"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "5",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "patch": {
+          "deferred_until": "2020-01-01T00:00:00+00:00"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "6",
+        "--until",
+        "2999-01-01T00:00:00Z",
+        "--expected-hash",
+        "abc"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "6",
+        "--until",
+        "soon"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "6",
+        "--until",
+        "2020-01-01T00:00:00+00:00"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "decisions"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "waiting"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "7",
+        "--until",
+        "2999-01-01T00:00:00Z",
+        "--evidence",
+        ""
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_8359e1f64a7d174770f5eed002299c93",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8359e1f64a7d174770f5eed002299c93",
+          "revision": 1,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "item_8359e1f64a7d174770f5eed002299c93",
+        "--revision",
+        "2",
+        "--until",
+        "2999-01-01T00:00:00Z"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "item_8359e1f64a7d174770f5eed002299c93",
+        "--revision",
+        "2",
+        "--until",
+        "2999-01-01T00:00:00Z",
+        "--evidence",
+        "{root}/missing-evidence.json"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "item_8359e1f64a7d174770f5eed002299c93",
+        "--revision",
+        "2",
+        "--until",
+        "2999-01-01T00:00:00Z",
+        "--evidence",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": "[]"
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "item_8359e1f64a7d174770f5eed002299c93",
+        "--revision",
+        "2",
+        "--until",
+        "2999-01-01T00:00:00Z",
+        "--evidence",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "kind": "human_confirmation",
+        "actor": "alex@example.com",
+        "statement": "I reviewed this exact revision and approve the stated change.",
+        "evidence_ref": "conversation:fictional/session/turn/42",
+        "subject_id": "item_8359e1f64a7d174770f5eed002299c93",
+        "revision": 2,
+        "decision": "defer",
+        "decided_at": "2026-01-02T03:04:05Z"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "7",
+        "--until",
+        "2999-01-01T00:00:00Z",
+        "--evidence",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "human_confirmation",
+        "actor": "alex@example.com",
+        "statement": "I reviewed this exact revision and approve the stated change.",
+        "evidence_ref": "conversation:fictional/session/turn/42",
+        "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+        "revision": 7,
+        "decision": "defer",
+        "decided_at": "2026-01-02T03:04:05Z"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "src_a5c99fb8406e7b79f1280431b36e9fd1",
+        "--revision",
+        "1",
+        "--until",
+        "2999-01-01T00:00:00Z"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "defer",
+        "item_missing",
+        "--revision",
+        "1",
+        "--until",
+        "2999-01-01T00:00:00Z"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "dismiss",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "8"
+      ],
+      "expect_exit": 2
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "kind": "depends_on",
+        "target_id": "item_5b91d1bbd537278cac96b148547606c8"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_5b91d1bbd537278cac96b148547606c8",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "kind": "depends_on",
+        "target_id": "item_2f7ebd960eb5a38acd5e53dc4981eba3"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2f7ebd960eb5a38acd5e53dc4981eba3",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "depends_on",
+        "target_id": "item_2c6a174c941b9db0c6078675de2fa344"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "blocks",
+        "target_id": "item_2f7ebd960eb5a38acd5e53dc4981eba3"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2f7ebd960eb5a38acd5e53dc4981eba3",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "kind": "blocks",
+        "target_id": "item_5b91d1bbd537278cac96b148547606c8"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "kind": "tracked_in",
+        "target_id": "planner:fictional-task"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "kind": "tracked_in",
+        "target_id": "planner:fictional-task"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "tracked_in",
+        "target_id": "no-colon"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "tracked_in",
+        "target_id": 5
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "tracked_in",
+        "target_id": "item_2c6a174c941b9db0c6078675de2fa344"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "depends_on",
+        "target_id": "item_2c6a174c941b9db0c6078675de2fa344"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "kind": "supersedes",
+        "target_id": "item_5b91d1bbd537278cac96b148547606c8"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_5b91d1bbd537278cac96b148547606c8",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "supersedes",
+        "target_id": "item_2c6a174c941b9db0c6078675de2fa344"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "relates",
+        "target_id": "item_5b91d1bbd537278cac96b148547606c8"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": [
+          "blocks"
+        ],
+        "target_id": "item_5b91d1bbd537278cac96b148547606c8"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "blocks",
+        "target_id": "item_missing"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "blocks",
+        "target_id": "item_5b91d1bbd537278cac96b148547606c8",
+        "revision": 4
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "blocks",
+        "target_id": "item_5b91d1bbd537278cac96b148547606c8",
+        "source_id": "item_2c6a174c941b9db0c6078675de2fa344"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {}
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "blocks"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "blocks",
+        "target": "item_5b91d1bbd537278cac96b148547606c8"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "blocks",
+        "target_id": "item_5b91d1bbd537278cac96b148547606c8"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "depends_on",
+        "target_id": "item_8359e1f64a7d174770f5eed002299c93"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_2c6a174c941b9db0c6078675de2fa344",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "kind": "depends_on",
+        "target_id": "item_8359e1f64a7d174770f5eed002299c93",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_2c6a174c941b9db0c6078675de2fa344",
+          "revision": 4,
+          "decision": "relate",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "7",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "kind": "depends_on",
+        "target_id": "item_2c6a174c941b9db0c6078675de2fa344"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "relate",
+        "item_8bc1f42a5536623d442cb7e4cef62395",
+        "--revision",
+        "7",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "kind": "depends_on",
+        "target_id": "item_2c6a174c941b9db0c6078675de2fa344",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_8bc1f42a5536623d442cb7e4cef62395",
+          "revision": 7,
+          "decision": "relate",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "item_2c6a174c941b9db0c6078675de2fa344"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "item_5b91d1bbd537278cac96b148547606c8"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "history",
+        "item_2c6a174c941b9db0c6078675de2fa344"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "h",
+        "data": {
+          "title": "Fictional task h",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "deferred",
+        "patch": {
+          "deferred_until": "2999-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "active",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+          "revision": 2,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "confirmed",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+          "revision": 2,
+          "decision": "confirm",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+        "--revision",
+        "3",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "active",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+          "revision": 3,
+          "decision": "activate",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "cancelled"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+        "--revision",
+        "4",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "cancelled",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+          "revision": 4,
+          "decision": "cancel",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+        "--revision",
+        "5",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "candidate",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+          "revision": 5,
+          "decision": "edit",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+        "--revision",
+        "5",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "active",
+        "evidence": {
+          "kind": "human_confirmation",
+          "actor": "alex@example.com",
+          "statement": "I reviewed this exact revision and approve the stated change.",
+          "evidence_ref": "conversation:fictional/session/turn/42",
+          "subject_id": "item_e6dd4f1f3146ca136b388ce1fd6490f1",
+          "revision": 5,
+          "decision": "activate",
+          "decided_at": "2026-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "show",
+        "item_e6dd4f1f3146ca136b388ce1fd6490f1"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "g",
+        "data": {
+          "title": "Fictional task g",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_acc8c3d521935061232e0a9633925ed1",
+        "--revision",
+        "1",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "state": "rejected"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "g",
+        "data": {
+          "title": "Fictional task g",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "source",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "family": "mail",
+        "scope": "inbox",
+        "external_id": "message-1",
+        "revision": "v2",
+        "evidence": "Changed request",
+        "web_link": "https://example.com/mail/1"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "g",
+        "data": {
+          "title": "Fictional task g",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v2",
+              "fingerprint": "4b349afb63f2cd6dbf61777168be5696082d9af565882a331277906955cad400"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "ingest",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "claim_key": "g",
+        "data": {
+          "title": "Fictional task g",
+          "owner": null,
+          "due": null,
+          "direction": "owe",
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v1",
+              "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_acc8c3d521935061232e0a9633925ed1",
+        "--revision",
+        "2",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "state": "candidate"
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "8",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 2,
+      "stdin": {
+        "patch": {
+          "notes": "Edited after the source changed"
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "item-update",
+        "item_971ebc841dccfe02db80876db18fa11f",
+        "--revision",
+        "8",
+        "--input",
+        "-"
+      ],
+      "expect_exit": 0,
+      "stdin": {
+        "patch": {
+          "source_refs": [
+            {
+              "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+              "revision": "v2",
+              "fingerprint": "4b349afb63f2cd6dbf61777168be5696082d9af565882a331277906955cad400"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "decisions"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "problems"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "work_state.py",
+      "args": [
+        "list",
+        "--view",
+        "all"
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

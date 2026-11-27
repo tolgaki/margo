@@ -9,6 +9,7 @@ app workflow prompts.
 | Situation | Follow |
 | --- | --- |
 | First install, no personal state yet | [Getting started](../getting-started.md), then sections 1-2 and the health checks in section 6 |
+| Install or update as a plugin (Copilot CLI or Claude Code) | [As a plugin](../getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex): your personal files live in `~/.copilot/margo/`, and the plugin manager updates and removes it. Sections 2-6 still apply to your records |
 | Existing copy installation | Inspect status; pause writers; set the same environment; back up in section 3 **before** updating |
 | Legacy JSON queue or handwritten commitments | Back up, then use sections 4-5 only for the legacy data you actually have |
 | Existing memory schema v1 | Back up and explicitly migrate memory in section 6; copying new files is not migration |
@@ -22,7 +23,7 @@ and reported schema status rather than assuming a version from this guide's hist
 
 **Preconditions:** Python 3.9+, a local source checkout, and a private Copilot installation
 directory. For connected work, configure Work IQ separately using
-[the connection guide](../work-iq.md).
+[the connection guide](../getting-started.md#2-connect-work-iq).
 Pause affected schedules and other Margo writers before upgrading an existing installation.
 
 Installation paths are not version-suffixed: the agent stays `margo`, the skill stays
@@ -89,6 +90,18 @@ settings in the foreground, schedules, and optional canvas.
 Roots must not be in a repository, shared directory, or cloud-sync folder. State/config paths
 cannot be symlinked. On POSIX, directories must be private (0700), files private (0600), owned by
 the current user, with no group/world-writable ancestors. Do not disable these checks.
+
+If a state command stops with `ERROR: state/config path must be private (directory 0700, file 0600)`,
+the `margo` folder or a file in it is readable by your group or everyone, usually because it was
+created by hand with a plain `mkdir` (the plugin setup). Run `chmod 700 ~/.copilot/margo` and try
+again; `chmod -R go-rwx ~/.copilot/margo` fixes everything below it. These permission checks do
+not run on Windows.
+
+If `init` stops with `ERROR: state/config root has a group/world-writable ancestor`, a folder above
+the state, often `~/.copilot` or your home folder, is writable by your group or everyone (common
+under `umask 002`). Run `chmod go-w ~/.copilot ~` (and on any other folder above it that `ls -ld`
+shows as group- or world-writable), then re-run `init`. Reinstalling with the current installer also
+removes group/world write from `~/.copilot`. See [troubleshooting](../getting-started.md#troubleshooting).
 
 For a custom install, pass `--dest` to the installer and set the matching `COPILOT_HOME` for
 runtime processes. The installer does not select its destination from `COPILOT_HOME` alone.
@@ -290,7 +303,9 @@ without losing preferences or work — see [§1](#1-choose-copy-or-link),
 [§5 Review and import commitments](#5-review-and-import-commitments). Try it:
 `./install.sh update --check`, then `./install.sh update`, then the legacy import commands above.
 For a preserving same-revision refresh, use `update --reinstall` (`-Reinstall` in PowerShell),
-not `--force`. Updates fetch one pinned remote revision, including same-version changes, and
+not `--force`. Updates fetch one pinned remote revision, including same-version changes (the check reads one commit ID from
+GitHub's API; if `GH_TOKEN` or `GITHUB_TOKEN` is already set, it is sent with that one call, which avoids
+"cannot check the remote revision" on a shared network that has used up GitHub's anonymous limit), and
 refuse remote failure, invalid metadata or downgrade without changing installed files.
 What you'll see: version/revision comparison, then an atomic, replay-safe import with counts — never a
 partial import on malformed input. Nothing sends or changes external state; this only copies

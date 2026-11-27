@@ -1,0 +1,155 @@
+{
+  "description": "Imported configuration from a preferences file: while the file is unchanged the About-me profile is a mandatory constraint leading every packet; once the file changes the profile is unavailable and the packet blocks with the preferences recovery action, without reciting the stored text.",
+  "account": "context-fixture@example.com",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/files"
+      ],
+      "stdin": [
+        {
+          "write": "prefs.md",
+          "text": "# About me\nWorking hours are 9 to 5.\n"
+        },
+        {
+          "call": "_file_digest",
+          "on": "store",
+          "args": [
+            "${dir}/prefs.md"
+          ],
+          "save": "digest"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "save": "profile",
+          "args": [
+            "about-me",
+            {
+              "domain": "user",
+              "kind": "profile",
+              "title": "About me",
+              "text": "Working hours are 9 to 5.",
+              "authority": "user_confirmed",
+              "scope": "personal",
+              "metadata": {
+                "imported_configuration": true,
+                "source_heading": "About me"
+              },
+              "source_refs": [
+                {
+                  "kind": "file",
+                  "ref": "${dir}/prefs.md",
+                  "revision": "${digest}"
+                }
+              ]
+            },
+            "active",
+            1,
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "mem_fe0221ee16596f86caaa41ba0d62f12ce378fb0b",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "routine": "calendar",
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "constraint_guard",
+          "on": "context"
+        }
+      ]
+    },
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/files"
+      ],
+      "stdin": [
+        {
+          "write": "prefs.md",
+          "text": "# About me\nWorking hours changed.\n"
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "constraint_guard",
+          "on": "context"
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:about-me}"
+          ]
+        }
+      ]
+    }
+  ]
+}

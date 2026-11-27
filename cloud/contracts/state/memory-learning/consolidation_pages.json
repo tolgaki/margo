@@ -1,0 +1,460 @@
+{
+  "description": "Bounded pagination (limit 2, scan_limit 3) surfaces every candidate exactly once across pages and never changes a status; every argument refusal.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-0",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "candidate-0",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:candidate-0"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-1",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "candidate-1",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:candidate-1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-2",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "candidate-2",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:candidate-2"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-3",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "candidate-3",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:candidate-3"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-4",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "candidate-4",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:candidate-4"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-5",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "candidate-5",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:candidate-5"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-6",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "candidate-6",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:candidate-6"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-7",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "candidate-7",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:candidate-7"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "candidate-8",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "candidate-8",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:candidate-8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 2,
+            "scan_limit": 3
+          },
+          "save": "page0"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${page0}"
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 2,
+            "scan_limit": 3,
+            "after": "${page0.next_after}"
+          },
+          "save": "page1"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${page1}"
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 2,
+            "scan_limit": 3,
+            "after": "${page1.next_after}"
+          },
+          "save": "page2"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${page2}"
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 2,
+            "scan_limit": 3,
+            "after": "${page2.next_after}"
+          },
+          "save": "page3"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${page3}"
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 2,
+            "scan_limit": 3,
+            "after": "${page3.next_after}"
+          },
+          "save": "page4"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${page4}"
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 2,
+            "scan_limit": 3,
+            "after": "${page4.next_after}"
+          },
+          "save": "page5"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${page5}"
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation"
+        },
+        {
+          "call": "list",
+          "on": "store"
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 0
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 51
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 50
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": true
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": "2"
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": 2.0
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "limit": null
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "scan_limit": 0
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "scan_limit": 201
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "scan_limit": 200
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "scan_limit": true
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "scan_limit": null
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "after": 5
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "after": [
+              "x"
+            ]
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "after": ""
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "after": "mem_zzzz"
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "environment": "env"
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "environment": {}
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "environment": {
+              "account": "other@example.com"
+            }
+          }
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "kwargs": {
+            "environment": []
+          }
+        }
+      ]
+    }
+  ]
+}

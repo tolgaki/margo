@@ -1,0 +1,172 @@
+{
+  "description": "_preference_sections: balanced placeholders removed across lines, parenthesised example fields (with nesting and Python's \\s), unfilled field lines, code fences, empty or symbol-only sections, Python's splitlines separators, padded headings, and the three refusal messages.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "# Profile template\n## About me\n- **Name:** Dana\n- **Role:** {fill me in}\n- **Hours:** (e.g. 9 to 5)\n\n## Scheduling defaults\nKeep 90-minute focus blocks where possible.\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Standing rules for triage\n- **Always flag:** {e.g. a direct ask,\n  customer escalations}\n- **Delegate to:** (who handles what)\n- **Hours:** (e.g. mornings,\n  or evenings)\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "Preamble without a heading\n## A\nalpha\n## B\n\n## C\n!!!\n## D\n   \n## E\nlast"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## \nempty heading body\n##No space\n## Real\nkept"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Fence\n```\n- **Example:**\n{literal}\n```\n- **Outside:**\nprose\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Fence\n```text\n- **Inside:** (e.g. kept)\n```\n- **Dropped:** (e.g. gone)\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Bullets\n* **Star:** (e.g. x)\n- **Dash:**\t(nested (parens) here)\n-  **Spaced:**   (y)\nkeep me\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Unicode space\n- **Em:** (e.g. x)\n-\u001c**FS:** (example)\nleft\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Line separators\nfirst\u001csecond third\r\nfourth\rfifthsixth\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Not a field\n- **Bold** (not a field)\n- **Key: value** (also not)\ntext\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Colon field\n- **Key:**\n- **Other:**    \n- **Third:** (e.g.\n- **Fourth:** value\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Wrapped\n- **Wrap:** (line one\nline two (inner)\nline three) after\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Unicode\nété 😀 ١٢\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Symbols only\n--- *** !!!\n## Digits\n١\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Unbalanced } brace\nx"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Unclosed { brace\nx"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Unclosed field\n- **Field:** (never closed\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Nested {outer {inner} still} removed\nkept {gone\nacross} lines\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            ""
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "no sections at all"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "## Trailing heading\n"
+          ]
+        },
+        {
+          "call": "_preference_sections",
+          "on": "learning",
+          "args": [
+            "##   Padded heading   \n  padded body  \n"
+          ]
+        }
+      ]
+    }
+  ]
+}

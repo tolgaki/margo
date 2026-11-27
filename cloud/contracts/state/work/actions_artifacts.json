@@ -1,0 +1,820 @@
+{
+  "description": "work_ledger_probe: artifact delivery receipts (artifact-shared needs a succeeded execution of this exact artifact revision; sharing state follows the current revision), artifact edits invalidating linked unexecuted actions, staleness after a source revision, and feedback naming an older action revision only with human evidence (tests: artifact_private_versioning_approval_delivery_and_staleness, feedback_can_reference_old_revision_but_never_silent_learning).",
+  "steps": [
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "source"
+          ],
+          "input": {
+            "family": "mail",
+            "scope": "inbox",
+            "external_id": "message-1",
+            "revision": "v1",
+            "evidence": {
+              "quote": "Please review the fictional specification."
+            },
+            "web_link": "https://example.com/mail/1"
+          },
+          "save": "ref"
+        },
+        {
+          "cli": [
+            "ingest"
+          ],
+          "input": {
+            "claim_key": "claim-1",
+            "data": {
+              "title": "Review fictional specification",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                {
+                  "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                  "revision": "v1",
+                  "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                }
+              ]
+            }
+          },
+          "save": "item"
+        },
+        {
+          "cli": [
+            "record",
+            "artifact",
+            "memo-1"
+          ],
+          "input": {
+            "data": {
+              "artifact_kind": "decision_memo",
+              "title": "Fictional review decision",
+              "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+              "audience": "Alex",
+              "purpose": "Choose the next review step",
+              "sensitivity": "unknown",
+              "proposed_next_action": "Review privately",
+              "open_questions": [
+                "No due date stated"
+              ],
+              "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+              "source_refs": [
+                {
+                  "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                  "revision": "v1",
+                  "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "cli": [
+            "record",
+            "artifact",
+            "memo-1",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "data": {
+              "artifact_kind": "decision_memo",
+              "title": "Fictional review decision",
+              "markdown": "# Decision\n\nEvidence: [request](https://example.com/mail/1)\n\nRecommendation: review.",
+              "audience": "Alex",
+              "purpose": "Choose the next review step",
+              "sensitivity": "unknown",
+              "proposed_next_action": "Review privately",
+              "open_questions": [
+                "No due date stated"
+              ],
+              "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+              "source_refs": [
+                {
+                  "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                  "revision": "v1",
+                  "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                }
+              ]
+            },
+            "state": "approved",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "artifact_01462074501c13f31647c4c02dfcd727",
+              "revision": 1,
+              "decision": "confirm",
+              "decided_at": "2026-01-02T03:04:05Z"
+            }
+          }
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+            "artifact_id": "artifact_01462074501c13f31647c4c02dfcd727",
+            "artifact_revision": 1
+          }
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+            "artifact_id": "artifact_01462074501c13f31647c4c02dfcd727",
+            "artifact_revision": 2
+          },
+          "save": "deliver"
+        },
+        {
+          "cli": [
+            "approve",
+            "${deliver.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${deliver.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${deliver.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${deliver.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "artifact-shared",
+            "artifact_01462074501c13f31647c4c02dfcd727",
+            "--revision",
+            "2",
+            "--attempt-id",
+            "missing-attempt"
+          ]
+        },
+        {
+          "cli": [
+            "begin",
+            "${deliver.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          },
+          "save": "att"
+        },
+        {
+          "cli": [
+            "artifact-shared",
+            "artifact_01462074501c13f31647c4c02dfcd727",
+            "--revision",
+            "2",
+            "--attempt-id",
+            "${att.attempt_id}"
+          ]
+        },
+        {
+          "cli": [
+            "finish",
+            "${att.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "artifact-shared",
+            "artifact_01462074501c13f31647c4c02dfcd727",
+            "--revision",
+            "1",
+            "--attempt-id",
+            "${att.attempt_id}"
+          ]
+        },
+        {
+          "cli": [
+            "artifact-shared",
+            "${item.id}",
+            "--revision",
+            "1",
+            "--attempt-id",
+            "${att.attempt_id}"
+          ]
+        },
+        {
+          "cli": [
+            "artifact-shared",
+            "${deliver.id}",
+            "--revision",
+            "1",
+            "--attempt-id",
+            "${att.attempt_id}"
+          ]
+        },
+        {
+          "cli": [
+            "artifact-shared",
+            "artifact_01462074501c13f31647c4c02dfcd727",
+            "--revision",
+            "2",
+            "--attempt-id",
+            "${att.attempt_id}"
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "artifact_01462074501c13f31647c4c02dfcd727"
+          ]
+        },
+        {
+          "cli": [
+            "record",
+            "artifact",
+            "memo-1",
+            "--revision",
+            "2"
+          ],
+          "input": {
+            "data": {
+              "artifact_kind": "decision_memo",
+              "title": "Fictional review decision",
+              "markdown": "# Revised private decision",
+              "audience": "Alex",
+              "purpose": "Choose the next review step",
+              "sensitivity": "unknown",
+              "proposed_next_action": "Review privately",
+              "open_questions": [
+                "No due date stated"
+              ],
+              "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+              "source_refs": [
+                {
+                  "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                  "revision": "v1",
+                  "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                }
+              ]
+            },
+            "state": "approved",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "artifact_01462074501c13f31647c4c02dfcd727",
+              "revision": 2,
+              "decision": "confirm",
+              "decided_at": "2026-01-02T03:04:05Z"
+            }
+          }
+        },
+        {
+          "cli": [
+            "record",
+            "artifact",
+            "memo-1",
+            "--revision",
+            "2"
+          ],
+          "input": {
+            "data": {
+              "artifact_kind": "decision_memo",
+              "title": "Fictional review decision",
+              "markdown": "# Revised private decision",
+              "audience": "Alex",
+              "purpose": "Choose the next review step",
+              "sensitivity": "unknown",
+              "proposed_next_action": "Review privately",
+              "open_questions": [
+                "No due date stated"
+              ],
+              "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+              "source_refs": [
+                {
+                  "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                  "revision": "v1",
+                  "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                }
+              ]
+            },
+            "state": "prepared"
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "artifact_01462074501c13f31647c4c02dfcd727"
+          ]
+        },
+        {
+          "cli": [
+            "artifact-shared",
+            "artifact_01462074501c13f31647c4c02dfcd727",
+            "--revision",
+            "3",
+            "--attempt-id",
+            "${att.attempt_id}"
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+            "artifact_id": "artifact_01462074501c13f31647c4c02dfcd727",
+            "artifact_revision": 3
+          },
+          "save": "deliver2"
+        },
+        {
+          "cli": [
+            "record",
+            "artifact",
+            "memo-1",
+            "--revision",
+            "3"
+          ],
+          "input": {
+            "data": {
+              "artifact_kind": "decision_memo",
+              "title": "Fictional review decision",
+              "markdown": "# Revised private decision",
+              "audience": "Alex",
+              "purpose": "Choose the next review step",
+              "sensitivity": "unknown",
+              "proposed_next_action": "Review privately",
+              "open_questions": [
+                "No due date stated"
+              ],
+              "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+              "source_refs": [
+                {
+                  "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                  "revision": "v1",
+                  "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                }
+              ]
+            },
+            "state": "approved",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "artifact_01462074501c13f31647c4c02dfcd727",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "2026-01-02T03:04:05Z"
+            }
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${deliver2.id}"
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "${deliver.id}"
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+            "artifact_id": "artifact_01462074501c13f31647c4c02dfcd727",
+            "artifact_revision": 4
+          },
+          "save": "deliver3"
+        },
+        {
+          "cli": [
+            "approve",
+            "${deliver3.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${deliver3.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${deliver3.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${deliver3.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "record",
+            "artifact",
+            "memo-1",
+            "--revision",
+            "4"
+          ],
+          "input": {
+            "data": {
+              "artifact_kind": "decision_memo",
+              "title": "Fictional review decision",
+              "markdown": "# Revised private decision",
+              "audience": "Alex",
+              "purpose": "Choose the next review step",
+              "sensitivity": "unknown",
+              "proposed_next_action": "Review privately",
+              "open_questions": [
+                "No due date stated"
+              ],
+              "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+              "source_refs": [
+                {
+                  "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                  "revision": "v1",
+                  "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                }
+              ]
+            },
+            "state": "prepared"
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${deliver3.id}"
+          ]
+        },
+        {
+          "cli": [
+            "history",
+            "artifact_01462074501c13f31647c4c02dfcd727"
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "fbact"
+        },
+        {
+          "cli": [
+            "edit",
+            "${fbact.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Second revision",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          }
+        },
+        {
+          "cli": [
+            "record",
+            "feedback",
+            "historical-correction"
+          ],
+          "input": {
+            "data": {
+              "subject_id": "${fbact.id}",
+              "subject_revision": 1,
+              "correction": "Make this one invitation shorter."
+            }
+          }
+        },
+        {
+          "cli": [
+            "record",
+            "feedback",
+            "historical-correction"
+          ],
+          "input": {
+            "data": {
+              "subject_id": "${fbact.id}",
+              "subject_revision": 3,
+              "correction": "Make this one invitation shorter."
+            },
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "feedback_828881ff0f19f2c8fe6ec9c7962138ed",
+              "revision": 1,
+              "decision": "confirm",
+              "decided_at": "2026-01-02T03:04:05Z"
+            }
+          }
+        },
+        {
+          "cli": [
+            "record",
+            "feedback",
+            "historical-correction"
+          ],
+          "input": {
+            "data": {
+              "subject_id": "${fbact.id}",
+              "subject_revision": 1,
+              "correction": "Make this one invitation shorter."
+            },
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "feedback_828881ff0f19f2c8fe6ec9c7962138ed",
+              "revision": 1,
+              "decision": "confirm",
+              "decided_at": "2026-01-02T03:04:05Z"
+            }
+          }
+        },
+        {
+          "cli": [
+            "record",
+            "feedback",
+            "historical-correction"
+          ],
+          "input": {
+            "data": {
+              "subject_id": "${fbact.id}",
+              "subject_revision": 1,
+              "correction": "Make this one invitation shorter."
+            }
+          }
+        },
+        {
+          "cli": [
+            "list",
+            "--view",
+            "all"
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+            "artifact_id": "artifact_01462074501c13f31647c4c02dfcd727",
+            "artifact_revision": 5
+          },
+          "save": "deliver4"
+        },
+        {
+          "cli": [
+            "source"
+          ],
+          "input": {
+            "family": "mail",
+            "scope": "inbox",
+            "external_id": "message-1",
+            "revision": "v2",
+            "evidence": "Changed question",
+            "web_link": "https://example.com/mail/1"
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "artifact_01462074501c13f31647c4c02dfcd727"
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "${deliver4.id}"
+          ]
+        },
+        {
+          "cli": [
+            "record",
+            "artifact",
+            "memo-1",
+            "--revision",
+            "5"
+          ],
+          "input": {
+            "data": {
+              "artifact_kind": "decision_memo",
+              "title": "Fictional review decision",
+              "markdown": "# Revised private decision",
+              "audience": "Alex",
+              "purpose": "Choose the next review step",
+              "sensitivity": "unknown",
+              "proposed_next_action": "Review privately",
+              "open_questions": [
+                "No due date stated"
+              ],
+              "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+              "source_refs": [
+                {
+                  "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                  "revision": "v1",
+                  "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                }
+              ]
+            },
+            "state": "approved",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "artifact_01462074501c13f31647c4c02dfcd727",
+              "revision": 5,
+              "decision": "confirm",
+              "decided_at": "2026-01-02T03:04:05Z"
+            }
+          }
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

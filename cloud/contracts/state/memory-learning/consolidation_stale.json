@@ -1,0 +1,113 @@
+{
+  "description": "A delivered page whose record changed is refused on replay; a fresh page is surfaced; the candidate is never activated.",
+  "steps": [
+    {
+      "script": "memory_learning_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "one",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "one",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:one"
+                }
+              ]
+            }
+          ],
+          "save": "one"
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "p1"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${p1}"
+          ]
+        },
+        {
+          "call": "revise",
+          "on": "store",
+          "args": [
+            "${one.id}",
+            {
+              "domain": "agent",
+              "kind": "episode",
+              "authority": "source_observed",
+              "title": "Synthetic bounded review",
+              "text": "A material correction",
+              "scope": "synthetic",
+              "source_refs": [
+                {
+                  "kind": "tool_result",
+                  "ref": "synthetic:one"
+                }
+              ]
+            },
+            "candidate",
+            1
+          ]
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            "${p1}"
+          ]
+        },
+        {
+          "call": "consolidation_plan",
+          "on": "consolidation",
+          "save": "fresh"
+        },
+        {
+          "call": "surface_consolidation",
+          "on": "consolidation",
+          "args": [
+            {
+              "account": "${account}",
+              "items": "${fresh.items}",
+              "parameters": "${fresh.parameters}",
+              "scanned": "${fresh.scanned}",
+              "next_after": "${fresh.next_after}",
+              "deduplication_scope": "${fresh.deduplication_scope}",
+              "subject_id": "${fresh.subject_id}",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${one.id}"
+          ]
+        },
+        {
+          "sql": "SELECT key, value FROM memory_meta WHERE key LIKE 'learning:%' ORDER BY key"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.Orchestrator.Tests</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Expected values written inline in assertions read better than static fields. -->
+    <NoWarn>$(NoWarn);CA1861</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Margo.Cloud.Orchestrator/Margo.Cloud.Orchestrator.csproj" />
+    <!-- The real margo-state CLI, copied next to the tests: manager turns run it as a separate process. -->
+    <ProjectReference Include="../../src/Margo.Cloud.StateCli/Margo.Cloud.StateCli.csproj" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- These tests start many processes (margo-state, python3); one class at a time keeps the machine responsive for
+         the timing-sensitive tests of other assemblies that run alongside. -->
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Recorded from the Python orchestrator, office, replies and statesync modules before the cutover (frozen):
+         their fixed texts, their answers to DifferentialTests' generated cases, and a bundle the Python StateSync packed. -->
+    <None Include="Parity/orchestrator_constants.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Parity/orchestrator_answers.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Parity/python_state_bundle.zip" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

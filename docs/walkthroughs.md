@@ -59,7 +59,7 @@ uses a standalone publication, not a fabricated queue item.
 ### What comes back
 
 ```
-☀️ Daily Brief — Thursday, 28 August
+☀️ Daily Brief — Thursday, August 28
 
 🎯 Top priorities today
   1. Reply to Dana on the parity numbers — she's blocked, asked Tuesday → draft ready
@@ -159,7 +159,7 @@ Three distinct levels, and this is where most of the design lives:
 |---|---|---|
 | **Decide and act** | Finding slots, reading free/busy, computing the cascade, drafting the invite | None — just do it |
 | **One approval per plan** | Moving meetings **you organize**, including a multi-step cascade. One yes covers the whole named set | One explicit yes to *that* set of moves |
-| **Always per-action** | Proposing a new time to someone else, declining or moving a meeting **you don't own**, cancelling, messaging attendees | Every time, specifically |
+| **Always per-action** | Proposing a new time to someone else, declining or moving a meeting **you don't own**, canceling, messaging attendees | Every time, specifically |
 
 The middle row is **not** a standing grant to rearrange your calendar. One yes covers one
 specific, already-shown set of moves. The approval must bind the exact account, actions,
@@ -313,7 +313,7 @@ getting that wrong is a genuinely embarrassing mistake.
 Every walkthrough above follows the same four beats:
 
 1. **Bounded reads** — `fetch` with `$select` and `$top`, in parallel, so context goes on
-   judgement rather than payload.
+   judgment rather than payload.
 2. **A recommendation, not a menu** — lead with the call, attach the cost, cite the source.
 3. **Explicit decisions at the right boundaries** — confirming an obligation, approving content,
    and authorizing an external action are separate decisions, not one blanket yes.

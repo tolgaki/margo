@@ -1,0 +1,585 @@
+{
+  "description": "tasks_probe: the full local workflow across commands (test_read_setup_and_full_local_workflow_across_processes): record-id equals the created id, idempotent create from a file and from the normalised plan, a different plan for the same identity, pause/resume (revision, state, binding), claim refusals (paused, revision, plan hash, unknown step, bool revision, preflight on a local step), settlement (wrong token, failure without proof of no effect, receipt kind, unsupported fields), replayed and immutable settlement, history without tokens, list summaries, health, and a completed run refusing pause/resume while cancel/recover/sync return it unchanged.",
+  "steps": [
+    {
+      "script": "tasks_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "cli": [
+            "record-id",
+            "note"
+          ],
+          "save": "identity"
+        },
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "write": "plan.json",
+          "json": {
+            "goal": "Prepare a private synthetic note",
+            "routine": "work-products",
+            "request_ref": "conversation:synthetic-cli",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1m}",
+              "end": "${now}"
+            },
+            "limits": {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 4000,
+              "max_steps": 2,
+              "max_attempts_per_step": 2,
+              "max_parallel": 1,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 60
+            },
+            "steps": [
+              {
+                "key": "prepare",
+                "title": "Prepare note",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 2000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "create",
+            "note",
+            "--input",
+            "${dir}/plan.json"
+          ],
+          "save": "run"
+        },
+        {
+          "cli": [
+            "create",
+            "note",
+            "--input",
+            "${dir}/plan.json"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "note",
+            "--input",
+            "-"
+          ],
+          "stdin": "${run.plan}"
+        },
+        {
+          "cli": [
+            "create",
+            "note"
+          ],
+          "input": {
+            "goal": "A different request",
+            "routine": "work-products",
+            "request_ref": "conversation:synthetic-cli",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1m}",
+              "end": "${now}"
+            },
+            "limits": {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 4000,
+              "max_steps": 2,
+              "max_attempts_per_step": 2,
+              "max_parallel": 1,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 60
+            },
+            "steps": [
+              {
+                "key": "prepare",
+                "title": "Prepare note",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 2000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${identity.id}"
+          ]
+        },
+        {
+          "cli": [
+            "pause",
+            "${run.id}",
+            "--reason",
+            "Review scope"
+          ],
+          "save": "paused"
+        },
+        {
+          "cli": [
+            "pause",
+            "${run.id}",
+            "--reason",
+            "Again"
+          ]
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "prepare",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": "${run.plan.environment}"
+          }
+        },
+        {
+          "cli": [
+            "resume"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "revision": "${paused.revision}",
+            "binding": "${run.plan.environment}"
+          }
+        },
+        {
+          "cli": [
+            "resume"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "revision": 99,
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "pause",
+            "${run.id}",
+            "--reason",
+            "Review again"
+          ],
+          "save": "paused2"
+        },
+        {
+          "cli": [
+            "resume"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "revision": "${paused2.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "resume"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "revision": "${paused2.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${run.id}"
+          ]
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "prepare",
+            "revision": 3,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "prepare",
+            "revision": 1,
+            "plan_hash": "other",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "missing",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "prepare",
+            "revision": true,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "prepare",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "preflight": {}
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "prepare",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "claim"
+        },
+        {
+          "cli": [
+            "show",
+            "${run.id}"
+          ]
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "wrong",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "local_result",
+              "reference": "test-fixture:note",
+              "summary": "A private fixture note."
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "local_result",
+              "reference": "test-fixture:note",
+              "summary": "A private fixture note."
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "tool_result",
+              "reference": "x"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "local_result",
+              "reference": "x",
+              "extra": 1
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "local_result",
+              "reference": "test-fixture:note",
+              "summary": "A private fixture note."
+            }
+          },
+          "save": "done"
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "local_result",
+              "reference": "test-fixture:note",
+              "summary": "A private fixture note."
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "local_result",
+              "reference": "test-fixture:other",
+              "summary": "A private fixture note."
+            }
+          }
+        },
+        {
+          "cli": [
+            "history",
+            "${run.id}"
+          ]
+        },
+        {
+          "cli": [
+            "history",
+            "${run.id}",
+            "--limit",
+            "2"
+          ]
+        },
+        {
+          "cli": [
+            "history",
+            "${run.id}",
+            "--limit",
+            "501"
+          ]
+        },
+        {
+          "cli": [
+            "list"
+          ]
+        },
+        {
+          "cli": [
+            "health"
+          ]
+        },
+        {
+          "cli": [
+            "pause",
+            "${run.id}",
+            "--reason",
+            "Too late"
+          ]
+        },
+        {
+          "cli": [
+            "cancel",
+            "${run.id}",
+            "--reason",
+            "Too late"
+          ]
+        },
+        {
+          "cli": [
+            "resume"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "revision": "${done.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "recover",
+            "${run.id}"
+          ]
+        },
+        {
+          "cli": [
+            "sync",
+            "${run.id}"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

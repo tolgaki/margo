@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/microsoft/work-iq",
+  "path": "plugins/workiq/skills/workiq",
+  "plugin": "workiq",
+  "version": "3.0.0",
+  "ref": "main",
+  "commit": "206072a88695f14000fc72cddcd5f2f40871ba01",
+  "updated": "2026-11-26"
+}

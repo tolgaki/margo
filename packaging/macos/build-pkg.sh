@@ -68,8 +68,9 @@ ALL="$BUILD/tracked-files.txt"
 git -C "$REPO" ls-files --cached --others --exclude-standard > "$ALL"
 [ -s "$ALL" ] || die "git listed no files to package"
 
-# Tracked, minus repo infrastructure, minus all runtime state...
-grep -vE '^(\.github|packaging)/' "$ALL" \
+# Tracked, minus repo infrastructure, minus Margo Cloud (a separate, container-built
+# deployment the desktop installer never uses), minus all runtime state...
+grep -vE '^(\.github|packaging|cloud)/' "$ALL" \
   | grep -vE '^skills/[^/]+/state/' > "$LIST"
 # ...but keep the tracked state/.gitignore so the directory ships with its rule.
 grep -E '^skills/[^/]+/state/\.gitignore$' "$ALL" >> "$LIST" || true

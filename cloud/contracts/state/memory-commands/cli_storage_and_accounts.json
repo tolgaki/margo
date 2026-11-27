@@ -1,0 +1,432 @@
+{
+ "description": "tests/test_memory_review_regressions.py::test_read_commands_do_not_initialize_and_record_ids_are_pure and the CLI account plumbing: every read command (and trend-definition without evidence) refuses a missing store with code not_initialized and creates nothing; record-id needs no storage but an account (--account, MARGO_ACCOUNT, casefolded); init/migrate replays, status, policy, list filters, MARGO_STATE_DIR, a second account in the same state root",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "status"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "show",
+    "mem_x"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "inspect",
+    "mem_x"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "history",
+    "mem_x"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "forget-preview",
+    "mem_x"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "usage",
+    "mem_x"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "graph",
+    "mem_x"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "explain",
+    "mem_x"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "list"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "search",
+    "q"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "context",
+    "q"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "policy"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "tombstones"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "consolidate"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-inspect",
+    "mem_x"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-status",
+    "--host",
+    "h",
+    "--workspace",
+    "w"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "policy-preview",
+    "--input",
+    "-"
+   ],
+   "expect_exit": 2,
+   "stdin": {
+    "capture": {
+     "enabled": true,
+     "domains": [
+      "user"
+     ],
+     "kinds": [
+      "episode",
+      "decision"
+     ],
+     "scopes": [
+      "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+     ],
+     "source_kinds": [
+      "session_checkpoint",
+      "memory_record"
+     ]
+    },
+    "allow_sensitive": false,
+    "usage_enabled": false,
+    "usage_retention_days": 30,
+    "retention_days": {},
+    "review_days": {}
+   }
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "tombstones-preview",
+    "--input",
+    "-"
+   ],
+   "expect_exit": 2,
+   "stdin": {
+    "format": 1
+   }
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "export-preview",
+    "mem_x",
+    "--input",
+    "-"
+   ],
+   "expect_exit": 2,
+   "stdin": {}
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "preferences-preview",
+    "{root}/missing.md"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "trend-definition",
+    "meeting_preparation",
+    "--input",
+    "-"
+   ],
+   "expect_exit": 2,
+   "stdin": {}
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "trend-definition",
+    "meeting_preparation",
+    "--input",
+    "-",
+    "--evidence",
+    ""
+   ],
+   "expect_exit": 2,
+   "stdin": {}
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "record-id",
+    "user",
+    "future"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "record-id",
+    "agent",
+    "future"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "record-id",
+    "user",
+    "future"
+   ],
+   "expect_exit": 2,
+   "env": {
+    "MARGO_ACCOUNT": null
+   },
+   "state_args": false
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "record-id",
+    "user",
+    "future"
+   ],
+   "expect_exit": 0,
+   "env": {
+    "MARGO_ACCOUNT": "env-account@example.com"
+   },
+   "state_args": false
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "--account",
+    "Other@Example.com",
+    "record-id",
+    "user",
+    "ü"
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "--account",
+    "",
+    "record-id",
+    "user",
+    "k"
+   ],
+   "expect_exit": 2,
+   "state_args": false
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "migrate"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "status"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "policy"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "list"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "list",
+    "--domain",
+    "agent",
+    "--status",
+    "active"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "list",
+    "--status",
+    "unknown-status"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "show",
+    "mem_x"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "tombstones"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "consolidate"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "status"
+   ],
+   "expect_exit": 0,
+   "env": {
+    "MARGO_ACCOUNT": "{account}",
+    "MARGO_STATE_DIR": "{state_dir}"
+   },
+   "state_args": false
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "--state-dir",
+    "{root}/other",
+    "status"
+   ],
+   "expect_exit": 2,
+   "env": {
+    "MARGO_ACCOUNT": "{account}"
+   },
+   "state_args": false
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "--account",
+    "second@example.com",
+    "--state-dir",
+    "{state_dir}",
+    "list"
+   ],
+   "expect_exit": 2,
+   "state_args": false
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "--account",
+    "second@example.com",
+    "--state-dir",
+    "{state_dir}",
+    "init"
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "--account",
+    "second@example.com",
+    "--state-dir",
+    "{state_dir}",
+    "list"
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  }
+ ]
+}

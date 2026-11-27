@@ -1,0 +1,1303 @@
+{
+  "description": "Graph and context over exact identities and relationships: equal display names and different scopes never merge, identity keys are case-sensitive and delimiter-safe, expired relationships and routine-ineligible endpoints are withheld with gaps, a changed relationship source invalidates the edge, environment filters apply to neighbours, disputed and coverage evidence is preserved without authority, exact disputed entities are gaps, and shared-source discovery obeys the graph depth.",
+  "account": "context-fixture@example.com",
+  "steps": [
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "1",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "sql": "SELECT id,current_revision FROM work_sources ORDER BY id",
+          "save": "srcrow"
+        },
+        {
+          "sql": "SELECT id,state,confirmed FROM work_items ORDER BY created_at,id",
+          "save": "items"
+        },
+        {
+          "sql": "SELECT id,kind,state FROM work_records ORDER BY kind,id",
+          "save": "records"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "first",
+            {
+              "domain": "user",
+              "kind": "person",
+              "title": "Dana",
+              "text": "Synthetic first",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "identity": {
+                "provider": "directory",
+                "scope": "scope-a",
+                "external_id": "one"
+              }
+            },
+            "active"
+          ],
+          "save": "first",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:first}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "second",
+            {
+              "domain": "user",
+              "kind": "person",
+              "title": "Dana",
+              "text": "Synthetic second",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "identity": {
+                "provider": "directory",
+                "scope": "scope-b",
+                "external_id": "one"
+              }
+            },
+            "active"
+          ],
+          "save": "second",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:second}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "project",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "project",
+              "text": "Synthetic project",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "project",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:project}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:first}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:project}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "owns",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "identity:[\"directory\",\"scope-a\",\"one\"]"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:first}"
+          ]
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "identity:[\"directory\",\"scope-a\",\"one\"]"
+          ]
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "identity:[\"DIRECTORY\",\"scope-a\",\"one\"]"
+          ]
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "identity: [\"directory\", \"scope-a\", \"one\"]"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "delimited",
+            {
+              "domain": "user",
+              "kind": "person",
+              "title": "Dana",
+              "text": "Synthetic delimited",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "identity": {
+                "provider": "directory",
+                "scope": "scope:a",
+                "external_id": "person:\"one\""
+              }
+            },
+            "active"
+          ],
+          "save": "delimited",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:delimited}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "identity:[\"directory\",\"scope:a\",\"person:\\\"one\\\"\"]"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "person",
+            {
+              "domain": "user",
+              "kind": "person",
+              "title": "person",
+              "text": "Synthetic person",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "person",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:person}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "expired",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "expired",
+              "text": "Synthetic expired",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "expired",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:expired}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "scoped",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "scoped",
+              "text": "Synthetic scoped",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "routines": [
+                "drafting"
+              ]
+            },
+            "active"
+          ],
+          "save": "scoped",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:scoped}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:person}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:expired}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "owns",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {
+              "valid_to": "2021-01-01T00:00:00Z",
+              "valid_from": "2020-01-01T00:00:00Z",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:person}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:scoped}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "owns",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:person}"
+          ],
+          "kwargs": {
+            "routine": "calendar"
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:person}"
+          ],
+          "kwargs": {
+            "routine": "drafting"
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "evidence-person",
+            {
+              "domain": "user",
+              "kind": "person",
+              "title": "evidence-person",
+              "text": "Synthetic evidence-person",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "evidence-person",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:evidence-person}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "evidence-project",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "evidence-project",
+              "text": "Synthetic evidence-project",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "evidence-project",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:evidence-project}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:evidence-person}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:evidence-project}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "owns",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "${srcrow.rows.0.0}",
+                  "revision": "${srcrow.rows.0.1}"
+                }
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
+            },
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:evidence-person}"
+          ]
+        }
+      ]
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "1",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "2",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:evidence-person}"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "base",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "base",
+              "text": "Synthetic base",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "base",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:base}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "env-scoped",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "env-scoped",
+              "text": "Synthetic env-scoped",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "metadata": {
+                "environment_requirements": {
+                  "host": "desktop"
+                }
+              }
+            },
+            "active"
+          ],
+          "save": "env-scoped",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:env-scoped}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:base}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:env-scoped}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "related_to",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {},
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:base}"
+          ],
+          "kwargs": {
+            "environment": {
+              "host": "other"
+            }
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:base}"
+          ],
+          "kwargs": {
+            "environment": {
+              "host": "desktop"
+            }
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:base}"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "covered",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "covered",
+              "text": "Synthetic covered",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "metadata": {
+                "coverage": {
+                  "complete": false,
+                  "source": "mail"
+                },
+                "gaps": [
+                  {
+                    "code": "permission_denied"
+                  }
+                ]
+              }
+            },
+            "active"
+          ],
+          "save": "covered",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:covered}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "dispute",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "dispute",
+              "text": "Synthetic dispute",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "disputed"
+          ],
+          "save": "dispute"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:covered}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:dispute}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "related_to",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {},
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "${id:user:covered}"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "lonely",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "lonely",
+              "text": "Synthetic lonely",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "entities": [
+                "project:lonely"
+              ]
+            },
+            "disputed"
+          ],
+          "save": "lonely"
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "project:lonely"
+            ],
+            "mode": "lexical"
+          }
+        }
+      ]
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "1",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        },
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "3",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "sql": "SELECT id,current_revision FROM work_sources ORDER BY id",
+          "save": "srcrow"
+        },
+        {
+          "sql": "SELECT id,state,confirmed FROM work_items ORDER BY created_at,id",
+          "save": "items"
+        },
+        {
+          "sql": "SELECT id,kind,state FROM work_records ORDER BY kind,id",
+          "save": "records"
+        }
+      ]
+    },
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "source",
+          "on": "ledger",
+          "save": "src",
+          "args": [
+            "calendar",
+            "fixture-scope",
+            "event-fixture",
+            "1",
+            {
+              "summary": "Fictional source"
+            },
+            "https://example.com/event"
+          ],
+          "kwargs": {
+            "sensitivity": "private"
+          }
+        },
+        {
+          "call": "ingest",
+          "on": "ledger",
+          "args": [
+            {
+              "title": "Prepare fictional review",
+              "owner": null,
+              "due": null,
+              "direction": "own",
+              "source_refs": [
+                {
+                  "source_id": "${src.source_id}",
+                  "revision": "3",
+                  "fingerprint": "${src.fingerprint}"
+                }
+              ],
+              "confirmation_source": "conversation:fixture"
+            },
+            "shared-1"
+          ],
+          "save": "item"
+        },
+        {
+          "call": "update_item",
+          "on": "ledger",
+          "save": "item",
+          "args": [
+            "${item.id}",
+            "${item.revision}"
+          ],
+          "kwargs": {
+            "state": "confirmed",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${item.id}",
+              "revision": "${item.revision}",
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "sql": "SELECT id,current_revision FROM work_sources ORDER BY id",
+          "save": "srcrow"
+        },
+        {
+          "sql": "SELECT id,state,confirmed FROM work_items ORDER BY created_at,id",
+          "save": "items"
+        },
+        {
+          "sql": "SELECT id,kind,state FROM work_records ORDER BY kind,id",
+          "save": "records"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "sourced",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "sourced",
+              "text": "Synthetic sourced",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "${srcrow.rows.0.0}",
+                  "revision": "3"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "sourced",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:sourced}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:sourced}"
+          ],
+          "kwargs": {
+            "max_depth": 0
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:sourced}"
+          ],
+          "kwargs": {
+            "max_depth": 1
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "${id:user:sourced}"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "build",
+          "on": "context",
+          "args": [
+            [
+              "${id:user:sourced}"
+            ]
+          ],
+          "kwargs": {
+            "max_depth": 1
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,863 @@
+{
+ "description": "test_memory_dream.py::test_policy_scope_capabilities_and_source_revision_guards: checkpoints refused before opt-in, for every capability override (content access, account, adapter, authorisation, session_list type, extra and missing keys) and non-session origins; replay of the same host revision, a changed text under it, a new host revision without/with expected_revision, an older host revision replayed, and a capture bypass after opt-out",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "task_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "policy-preview",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capture": {
+       "enabled": true,
+       "domains": [
+        "user"
+       ],
+       "kinds": [
+        "episode",
+        "decision"
+       ],
+       "scopes": [
+        "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+       ],
+       "source_kinds": [
+        "session_checkpoint",
+        "memory_record"
+       ]
+      },
+      "allow_sensitive": false,
+      "usage_enabled": false,
+      "usage_retention_days": 30,
+      "retention_days": {},
+      "review_days": {}
+     },
+     "save": "pp2"
+    },
+    {
+     "cli": [
+      "policy-set"
+     ],
+     "files": {
+      "--input": {
+       "capture": {
+        "enabled": true,
+        "domains": [
+         "user"
+        ],
+        "kinds": [
+         "episode",
+         "decision"
+        ],
+        "scopes": [
+         "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+        ],
+        "source_kinds": [
+         "session_checkpoint",
+         "memory_record"
+        ]
+       },
+       "allow_sensitive": false,
+       "usage_enabled": false,
+       "usage_retention_days": 30,
+       "retention_days": {},
+       "review_days": {}
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${pp2.subject_id}",
+       "revision": 1,
+       "decision": "configure",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "session-list-only",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "rafa@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "invented-history-tool",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": false
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": 1
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": null,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": 0,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true,
+       "extra": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "dream",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "row"
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Changed under the same revision",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-2",
+      "expected_revision": null,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-2",
+      "expected_revision": 1,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Timing remains open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     },
+     "save": "changed"
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": 2,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Consider the Cedar option. Timing is open.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "dream-checkpoint",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capability": {
+       "account": "parity-owner@example.com",
+       "host": "fixture-host",
+       "workspace": "fixture-workspace",
+       "adapter": "margo-session-checkpoint-v1",
+       "content_access": "current-session",
+       "session_list": false,
+       "authorized": true
+      },
+      "session": "fixture-session",
+      "event": "event-1",
+      "revision": "host-rev-1",
+      "expected_revision": 2,
+      "timestamp": "2020-02-03T12:00:00+00:00",
+      "speaker": "user",
+      "locator": "conversation:fixture-session/event-1",
+      "text": "Back to the first revision.",
+      "origin": "margo-session",
+      "sensitivity": "private",
+      "allowed_uses": [
+       "reasoning"
+      ],
+      "entities": [
+       "project:cedar"
+      ],
+      "work_refs": []
+     }
+    },
+    {
+     "cli": [
+      "history",
+      "${row.id}"
+     ]
+    },
+    {
+     "cli": [
+      "policy-preview",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "capture": {
+       "enabled": false,
+       "domains": [
+        "user"
+       ],
+       "kinds": [
+        "episode",
+        "decision"
+       ],
+       "scopes": [
+        "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+       ],
+       "source_kinds": [
+        "session_checkpoint",
+        "memory_record"
+       ]
+      },
+      "allow_sensitive": false,
+      "usage_enabled": false,
+      "usage_retention_days": 30,
+      "retention_days": {},
+      "review_days": {}
+     },
+     "save": "pp3"
+    },
+    {
+     "cli": [
+      "policy-set"
+     ],
+     "files": {
+      "--input": {
+       "capture": {
+        "enabled": false,
+        "domains": [
+         "user"
+        ],
+        "kinds": [
+         "episode",
+         "decision"
+        ],
+        "scopes": [
+         "dream:5e04585233ef85e62a08332a61391a59b1820e0a19530b4a14bda9d93a74317d"
+        ],
+        "source_kinds": [
+         "session_checkpoint",
+         "memory_record"
+        ]
+       },
+       "allow_sensitive": false,
+       "usage_enabled": false,
+       "usage_retention_days": 30,
+       "retention_days": {},
+       "review_days": {}
+      },
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${pp3.subject_id}",
+       "revision": 1,
+       "decision": "configure",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "put",
+      "capture-bypass",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "${changed.domain}",
+       "kind": "${changed.kind}",
+       "title": "${changed.title}",
+       "text": "${changed.text}",
+       "authority": "${changed.authority}",
+       "scope": "${changed.scope}",
+       "source_refs": "${changed.source_refs}",
+       "metadata": "${changed.metadata}",
+       "entities": "${changed.entities}",
+       "sensitivity": "${changed.sensitivity}",
+       "allowed_uses": "${changed.allowed_uses}"
+      },
+      "status": "active"
+     }
+    },
+    {
+     "cli": [
+      "capture",
+      "capture-bypass",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "domain": "${changed.domain}",
+      "kind": "${changed.kind}",
+      "title": "${changed.title}",
+      "text": "${changed.text}",
+      "authority": "${changed.authority}",
+      "scope": "${changed.scope}",
+      "source_refs": "${changed.source_refs}",
+      "metadata": "${changed.metadata}",
+      "entities": "${changed.entities}",
+      "sensitivity": "${changed.sensitivity}",
+      "allowed_uses": "${changed.allowed_uses}"
+     }
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  }
+ ]
+}

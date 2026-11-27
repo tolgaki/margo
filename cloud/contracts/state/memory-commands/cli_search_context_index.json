@@ -1,0 +1,419 @@
+{
+ "description": "search/context through the CLI: positional query or --input {query} (not both, missing, non-string), every option (domain, routine, usage, repeated --entity, --environment file, modes, limits, budget, --work-id, depth, nodes) and their bounds; hybrid and semantic modes and index without the local embedding runtime; index --rebuild draining delete jobs without a model",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "cli": [
+      "put",
+      "explicit",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "active"
+     },
+     "save": "row"
+    },
+    {
+     "cli": [
+      "put",
+      "profile",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "profile",
+       "title": "Synthetic profile",
+       "text": "Prefers preparation time before reviews.",
+       "authority": "user_confirmed",
+       "scope": "personal",
+       "sensitivity": "private",
+       "allowed_uses": [
+        "reasoning"
+       ],
+       "entities": [
+        "project:cedar"
+       ],
+       "routines": [],
+       "source_refs": [
+        {
+         "kind": "user_statement",
+         "ref": "conversation:synthetic"
+        }
+       ]
+      },
+      "status": "active",
+      "evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "mem_0000000000000000000000000000000000000000",
+       "revision": 1,
+       "decision": "confirm",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "search",
+      "fictional observation",
+      "--mode",
+      "lexical"
+     ]
+    },
+    {
+     "cli": [
+      "search",
+      "--mode",
+      "lexical",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "query": "fictional"
+     }
+    },
+    {
+     "cli": [
+      "search",
+      "--mode",
+      "lexical",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "q": "fictional"
+     }
+    },
+    {
+     "cli": [
+      "search",
+      "--mode",
+      "lexical",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "query": 5
+     }
+    },
+    {
+     "cli": [
+      "search",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "query": "x"
+     }
+    },
+    {
+     "cli": [
+      "search",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--input",
+      "-"
+     ],
+     "stdin": "[]"
+    },
+    {
+     "cli": [
+      "search",
+      "--mode",
+      "lexical"
+     ]
+    },
+    {
+     "cli": [
+      "search",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--limit",
+      "0"
+     ]
+    },
+    {
+     "cli": [
+      "search",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--limit",
+      "51"
+     ]
+    },
+    {
+     "cli": [
+      "search",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--domain",
+      "agent"
+     ]
+    },
+    {
+     "cli": [
+      "search",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--routine",
+      "weekly-review",
+      "--usage",
+      "drafting"
+     ]
+    },
+    {
+     "cli": [
+      "search",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--entity",
+      "project:cedar",
+      "--entity",
+      "Cedar"
+     ]
+    },
+    {
+     "cli": [
+      "search",
+      "fictional",
+      "--mode",
+      "lexical"
+     ],
+     "files": {
+      "--environment": {
+       "host": "fixture"
+      }
+     }
+    },
+    {
+     "cli": [
+      "search",
+      "fictional",
+      "--mode",
+      "lexical"
+     ],
+     "files": {
+      "--environment": [
+       "x"
+      ]
+     }
+    },
+    {
+     "cli": [
+      "search",
+      "fictional"
+     ]
+    },
+    {
+     "cli": [
+      "search",
+      "fictional",
+      "--mode",
+      "semantic"
+     ]
+    },
+    {
+     "cli": [
+      "context",
+      "fictional observation",
+      "--mode",
+      "lexical"
+     ]
+    },
+    {
+     "cli": [
+      "context",
+      "--mode",
+      "lexical",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "query": "fictional observation"
+     }
+    },
+    {
+     "cli": [
+      "context",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--budget-chars",
+      "300"
+     ]
+    },
+    {
+     "cli": [
+      "context",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--budget-chars",
+      "0"
+     ]
+    },
+    {
+     "cli": [
+      "context",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--work-id",
+      "work_unknown",
+      "--depth",
+      "1",
+      "--nodes",
+      "3"
+     ]
+    },
+    {
+     "cli": [
+      "context",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--depth",
+      "4"
+     ]
+    },
+    {
+     "cli": [
+      "context",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--nodes",
+      "0"
+     ]
+    },
+    {
+     "cli": [
+      "context",
+      "fictional",
+      "--mode",
+      "lexical",
+      "--usage",
+      "drafting",
+      "--entity",
+      "project:cedar",
+      "--domain",
+      "user",
+      "--routine",
+      "r"
+     ],
+     "files": {
+      "--environment": {
+       "host": "fixture"
+      }
+     }
+    },
+    {
+     "cli": [
+      "context",
+      "fictional"
+     ]
+    },
+    {
+     "cli": [
+      "context",
+      "fictional",
+      "--mode",
+      "semantic"
+     ]
+    },
+    {
+     "cli": [
+      "context",
+      "--mode",
+      "lexical"
+     ]
+    },
+    {
+     "cli": [
+      "index"
+     ]
+    },
+    {
+     "cli": [
+      "index",
+      "--limit",
+      "0"
+     ]
+    },
+    {
+     "cli": [
+      "index",
+      "--limit",
+      "10001"
+     ]
+    },
+    {
+     "cli": [
+      "index",
+      "--rebuild"
+     ]
+    },
+    {
+     "cli": [
+      "index",
+      "--rebuild",
+      "--limit",
+      "1"
+     ]
+    },
+    {
+     "cli": [
+      "status"
+     ]
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  }
+ ]
+}

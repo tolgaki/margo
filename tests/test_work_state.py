@@ -105,6 +105,19 @@ class WorkLedgerTests(unittest.TestCase):
         finally:
             other.close()
 
+    def test_find_source_is_an_exact_account_scoped_lookup(self):
+        found = self.ledger.find_source("mail", "inbox", "message-1")
+        self.assertEqual(found, {"source_id": self.ref["source_id"], "revision": "v1"})
+        self.assertIsNone(self.ledger.find_source("mail", "inbox", "message-2"))
+        self.assertIsNone(self.ledger.find_source("mail", "sent", "message-1"))
+        with self.assertRaises(work.StateError):
+            self.ledger.find_source("mail", "inbox", "")
+        other = work.Ledger(account="other-fictional-account")
+        try:
+            self.assertIsNone(other.find_source("mail", "inbox", "message-1"))
+        finally:
+            other.close()
+
     def test_evidence_only_bootstrap_remains_candidate_with_partial_coverage(self):
         observed = {"identity_kind": "evidence_only", "canonical_id": None,
                     "excerpt": "A fictional review was requested.",

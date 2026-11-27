@@ -1,0 +1,962 @@
+{
+  "description": "tasks_probe: untrusted JSON types in the task_state.py **data envelopes: lists, dicts, None, floats, bools and big ints as run ids, step keys, revisions, plan hashes, bindings, preflights, attempt ids, event ids, costs, outcomes and results (SQLite binding errors, unhashable values, a numeric step key matching the TEXT column by affinity and journaled as given), error classes of other types replaced by the durable coverage error (so a settled replay matches), bool retry_after_seconds, non-string work ids, and local results whose summary length raises the observed output size.",
+  "steps": [
+    {
+      "script": "tasks_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "init"
+          ]
+        },
+        {
+          "cli": [
+            "create",
+            "types"
+          ],
+          "input": {
+            "goal": "Prepare a useful synthetic result",
+            "routine": "daily-brief",
+            "request_ref": "conversation:synthetic-task-test",
+            "mode": "foreground",
+            "environment": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "window": {
+              "start": "${now-1h}",
+              "end": "${now}"
+            },
+            "limits": {
+              "max_steps": 10,
+              "max_attempts_per_step": 3,
+              "max_parallel": 3,
+              "tool_calls": 10,
+              "pages": 10,
+              "items": 100,
+              "model_calls": 2,
+              "output_chars": 10000,
+              "deadline_at": "${now+10m}",
+              "lease_seconds": 30
+            },
+            "steps": [
+              {
+                "key": "1",
+                "title": "Prepare private output",
+                "kind": "local",
+                "capability": "local.prepare",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 0,
+                  "pages": 0,
+                  "items": 0,
+                  "model_calls": 0,
+                  "output_chars": 1000
+                }
+              },
+              {
+                "key": "mail",
+                "title": "Read synthetic mail",
+                "kind": "read",
+                "capability": "mail.read",
+                "depends_on": [],
+                "allow_partial": false,
+                "cost": {
+                  "tool_calls": 1,
+                  "pages": 1,
+                  "items": 5,
+                  "model_calls": 0,
+                  "output_chars": 0
+                },
+                "source": {
+                  "family": "mail",
+                  "scope": {
+                    "folder": "mail"
+                  },
+                  "kind": "enumeration",
+                  "query_version": "v1"
+                }
+              }
+            ]
+          },
+          "save": "run"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": [
+              "x"
+            ],
+            "step_key": "1",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": {
+              "id": "x"
+            },
+            "step_key": "1",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": null,
+            "step_key": "1",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": [
+              "1"
+            ],
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": 1.0,
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "1",
+            "revision": 1.0,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "1",
+            "revision": 1000000000000000000000000000000,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "1",
+            "revision": 1,
+            "plan_hash": [
+              "${run.plan_hash}"
+            ],
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "1",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": "binding"
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "1",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": null
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "1",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "local.prepare": "v1",
+                "mail.read": "v1",
+                "mail.reply": "v2"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "preflight": {
+              "checked_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            },
+            "preflight": null
+          },
+          "save": "claim"
+        },
+        {
+          "cli": [
+            "start"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": 1,
+            "revision": 1,
+            "plan_hash": "${run.plan_hash}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          },
+          "save": "local"
+        },
+        {
+          "sql": "SELECT step_key, typeof(step_key) FROM task_attempts"
+        },
+        {
+          "cli": [
+            "history",
+            "${run.id}",
+            "--limit",
+            "1"
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "${run.id}"
+          ]
+        },
+        {
+          "sql": "SELECT id FROM task_attempts WHERE step_key='1'"
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": 5,
+            "token": "t",
+            "event_id": "e",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": [
+              "a"
+            ],
+            "token": "t",
+            "event_id": "e",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "a",
+            "token": "t",
+            "event_id": [
+              "e"
+            ],
+            "cost": {
+              "tool_calls": 1,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "a",
+            "token": "t",
+            "event_id": "e",
+            "cost": [
+              1
+            ]
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "a",
+            "token": "t",
+            "event_id": "e",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 0,
+              "items": null,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "a",
+            "token": "t",
+            "outcome": null,
+            "result": {}
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "a",
+            "token": "t",
+            "outcome": "partial",
+            "result": {},
+            "actual": null
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "a",
+            "token": "t",
+            "outcome": "partial",
+            "result": {},
+            "actual": []
+          }
+        },
+        {
+          "cli": [
+            "resume"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "revision": "1",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "retry"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "mail",
+            "revision": null,
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "reconcile"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "outcome": [
+              "partial"
+            ],
+            "result": {}
+          }
+        },
+        {
+          "cli": [
+            "reconcile"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "mail",
+            "revision": 1,
+            "outcome": "partial",
+            "result": []
+          }
+        },
+        {
+          "cli": [
+            "charge"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "event_id": "fetch",
+            "cost": {
+              "tool_calls": 1,
+              "pages": 1,
+              "items": 5,
+              "model_calls": 0,
+              "output_chars": 0
+            }
+          }
+        },
+        {
+          "call": "coverage_finish",
+          "on": "proactive",
+          "args": [
+            "${claim.coverage_attempt_id}",
+            {
+              "status": "failed",
+              "error_class": "network"
+            }
+          ]
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${claim.coverage_attempt_id}",
+              "coverage": "failed",
+              "summary": "A sourced read result.",
+              "error_class": []
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${claim.coverage_attempt_id}",
+              "coverage": "failed",
+              "summary": "A sourced read result.",
+              "error_class": {}
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${claim.coverage_attempt_id}",
+              "coverage": "failed",
+              "summary": "A sourced read result.",
+              "error_class": [
+                "network"
+              ]
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${claim.coverage_attempt_id}",
+              "coverage": "failed",
+              "summary": "A sourced read result.",
+              "publication_id": [
+                "p"
+              ]
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${claim.coverage_attempt_id}",
+              "coverage": [
+                "failed"
+              ],
+              "summary": "A sourced read result."
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${claim.coverage_attempt_id}",
+              "coverage": "failed",
+              "summary": "A sourced read result.",
+              "retry_after_seconds": true
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${claim.coverage_attempt_id}",
+              "coverage": "failed",
+              "summary": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+              "work_ids": []
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": null,
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${claim.coverage_attempt_id}",
+              "coverage": "failed",
+              "summary": "A sourced read result."
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${claim.coverage_attempt_id}",
+              "coverage": "failed",
+              "summary": "A sourced read result.",
+              "definitive_no_effect": false,
+              "source_refs": [
+                {
+                  "source_id": "src_x",
+                  "revision": "1",
+                  "fingerprint": "f"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${claim.attempt_id}",
+            "token": "${claim.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "tool_result",
+              "reference": "synthetic:fetch",
+              "coverage_attempt_id": "${claim.coverage_attempt_id}",
+              "coverage": "failed",
+              "summary": "A sourced read result.",
+              "error_class": []
+            }
+          },
+          "save": "settled"
+        },
+        {
+          "clock": "${settled.steps.1.next_retry_at}",
+          "offset": "+1s"
+        },
+        {
+          "cli": [
+            "retry"
+          ],
+          "input": {
+            "run_id": "${run.id}",
+            "step_key": "mail",
+            "revision": "${settled.steps.1.revision}",
+            "binding": {
+              "account": "${account}",
+              "host": "synthetic-cli",
+              "capabilities": {
+                "mail.read": "v1",
+                "local.prepare": "v1",
+                "mail.reply": "v1"
+              },
+              "observed_at": "${now}"
+            }
+          }
+        },
+        {
+          "clock": null
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${local.attempt_id}",
+            "token": "${local.token}",
+            "outcome": "failed",
+            "result": {
+              "kind": "local_result",
+              "reference": "private:prepared",
+              "summary": "Prepared.",
+              "definitive_no_effect": 1
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${local.attempt_id}",
+            "token": "${local.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "local_result",
+              "reference": "private:prepared",
+              "summary": "Prepared.",
+              "work_ids": [
+                1
+              ]
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${local.attempt_id}",
+            "token": "${local.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "local_result",
+              "reference": "private:prepared",
+              "summary": "Prepared.",
+              "work_ids": [
+                [
+                  "item"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${local.attempt_id}",
+            "token": "${local.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "local_result",
+              "reference": "private:prepared",
+              "summary": [
+                "x"
+              ]
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish"
+          ],
+          "input": {
+            "attempt_id": "${local.attempt_id}",
+            "token": "${local.token}",
+            "outcome": "succeeded",
+            "result": {
+              "kind": "local_result",
+              "reference": "private:prepared",
+              "summary": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+            },
+            "actual": {
+              "tool_calls": 0,
+              "pages": 0,
+              "items": 0,
+              "model_calls": 0,
+              "output_chars": 1
+            }
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${run.id}"
+          ]
+        },
+        {
+          "call": "coverage_page",
+          "on": "proactive",
+          "args": [
+            "${claim.coverage_attempt_id}",
+            {
+              "page": 1,
+              "observations": [
+                {
+                  "id": "synthetic-message",
+                  "revision": "v1"
+                }
+              ],
+              "final": true,
+              "continuation": null
+            }
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

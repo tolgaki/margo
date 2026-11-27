@@ -1,6 +1,6 @@
 # State operations and health
 
-Use the installed scripts, normally under `~/.copilot/skills/chief-of-staff/scripts/`.
+Use the installed scripts in this skill's `scripts/` folder: normally `~/.copilot/skills/chief-of-staff/scripts/`, or inside the plugin's folder for a plugin install. `<this skill>` in a command means that skill folder.
 Never assume the current directory is the skill directory. On Windows use the configured
 Copilot home and Python executable rather than a Unix path.
 

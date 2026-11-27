@@ -1,0 +1,691 @@
+{
+  "description": "Recorded human decisions (work_ledger.human as memory_store._human uses it): kind, required texts, evidence reference prefixes, exact subject and integer revision, decision, decided_at parsing (Z, offsets, naive, invalid, overflow) and the one-minute future tolerance.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            null,
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            [],
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            "evidence",
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": 5,
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "email:x",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "host-interaction:x",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "legacy-review:x",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": " ",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "other",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": "3",
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": true,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3.0,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 4,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "reject",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": ""
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "2026-01-02T03:04:05"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "yesterday"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "2026-01-02T03:04:05Z"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "2026-01-02T03:04:05+05:30"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now+30s}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now+2m}"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "2999-02-03T04:05:06+00:00"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "0001-01-01T00:00:00+01:00"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "9999-12-31T23:59:59-01:00"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "2026-01-02T03:04:05ZZ"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "20260102T030405Z"
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": 12345
+            },
+            "subject",
+            3,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            null
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "anything",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3,
+            ""
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            true,
+            "confirm"
+          ]
+        },
+        {
+          "call": "_human",
+          "on": "store",
+          "args": [
+            {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact synthetic memory change.",
+              "evidence_ref": "conversation:synthetic/session/turn/1",
+              "subject_id": "subject",
+              "revision": 3,
+              "decision": "confirm",
+              "decided_at": "${now}"
+            },
+            "subject",
+            3.0,
+            "confirm"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

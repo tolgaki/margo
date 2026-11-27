@@ -1,0 +1,22 @@
+{
+  "description": "Account selection and setup (test_no_account_status_is_setup_needed_and_writes_fail): status without an account is setup-needed (exit 0, no state created), writes fail with exit 2, MARGO_ACCOUNT and a private config select the owner, invalid principals, and unsafe state roots fail closed even for status",
+  "steps": [
+    {"script": "proactive_state.py", "args": ["--state-dir", "{root}/unconfigured", "status"], "state_args": false, "expect_exit": 0},
+    {"script": "proactive_state.py", "args": ["--state-dir", "{root}/unconfigured", "queue-add", "--json", "{\"id\":\"no-account\"}"], "state_args": false, "expect_exit": 2},
+    {"script": "proactive_state.py", "args": ["--state-dir", "{root}/unconfigured", "queue-list"], "state_args": false, "expect_exit": 2},
+    {"script": "proactive_state.py", "args": ["status"], "env": {"MARGO_STATE_DIR": "{root}/env-state"}, "state_args": false, "expect_exit": 0},
+    {"script": "proactive_state.py", "args": ["--state-dir", "{root}/env", "status"], "env": {"MARGO_ACCOUNT": "env-owner@example.com"}, "state_args": false, "expect_exit": 0},
+    {"script": "proactive_state.py", "args": ["--state-dir", "{root}/env", "queue-add", "--json", "{\"id\":\"env-item\",\"revision\":\"v1\"}"], "env": {"MARGO_ACCOUNT": "env-owner@example.com"}, "state_args": false, "expect_exit": 0},
+    {"script": "proactive_state.py", "args": ["--state-dir", "{root}/env", "--account", "env-owner@example.com", "queue-list"], "state_args": false, "expect_exit": 0},
+    {"script": "proactive_state.py", "args": ["--state-dir", "{root}/env", "--account", "other-owner@example.com", "queue-list"], "state_args": false, "expect_exit": 0},
+    {"script": "proactive_state.py", "args": ["--state-dir", "{root}/env", "--account", "bad account", "status"], "state_args": false, "expect_exit": 2},
+    {"script": "proactive_state.py", "args": ["--state-dir", "{root}/env", "--account", "{placeholder}", "queue-list"], "state_args": false, "expect_exit": 2},
+    {"script": "proactive_state.py", "args": ["--state-dir", "{root}/env", "--account", "", "status"], "state_args": false, "expect_exit": 2},
+    {"script": "margo_store.py", "args": ["init", "--account", "config-owner@example.com", "--config", "{root}/cfg/config.json"], "expect_exit": 0},
+    {"script": "proactive_state.py", "args": ["--state-dir", "{root}/cfg-state", "status"], "env": {"MARGO_CONFIG": "{root}/cfg/config.json"}, "state_args": false, "expect_exit": 0},
+    {"script": "proactive_state.py", "args": ["--state-dir", "{root}/cfg-state", "queue-list", "--format", "json"], "env": {"MARGO_CONFIG": "{root}/cfg/config.json"}, "state_args": false, "expect_exit": 0},
+    {"script": "proactive_state.py", "args": ["status"], "env": {"MARGO_ALLOW_UNSAFE_STATE_DIR": "0"}, "expect_exit": 2},
+    {"script": "proactive_state.py", "args": ["queue-list"], "env": {"MARGO_ALLOW_UNSAFE_STATE_DIR": "0"}, "expect_exit": 2},
+    {"script": "proactive_state.py", "args": ["status"], "expect_exit": 0}
+  ]
+}

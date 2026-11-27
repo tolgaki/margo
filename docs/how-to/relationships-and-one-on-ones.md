@@ -43,6 +43,8 @@ linked obligations; those retain their own review and history.
 
 **Your data:** each person's agenda lives as a Markdown file under your private `state/`
 directory in the installed skill (`$COPILOT_HOME/skills/chief-of-staff/state/one-on-ones/{person-slug}.md`).
+In a [plugin install](../getting-started.md#or-as-a-plugin-copilot-cli-claude-code-or-codex) it is `$COPILOT_HOME/margo/one-on-ones/{person-slug}.md` instead,
+because a plugin update replaces the plugin's folder.
 These Markdown files are not the hashed SQLite account directories selected by `MARGO_STATE_DIR`.
 They are excluded from installer payloads; a link install can put them back in the checkout, so
 use a private copy installation for real work. Do not share one rolling directory across accounts.
@@ -77,12 +79,13 @@ hands off to [calendar scheduling](calendar-management.md#calendar-scheduling) o
 [drafting](drafting-and-follow-ups.md#drafting) as its own separate proposal.
 
 **Change your mind:** mute a person permanently (cadence `none`), correct a cadence, or dismiss a
-name for now — edit `state/relationships.md` directly, or ask Margo to do it. A dismissal mutes
+name for now — edit the roster file (below) directly, or ask Margo to do it. A dismissal mutes
 that person for 30 days in the documented procedure; known extended leave also suppresses drift.
 
 **Your data:** the roster and last-contact tracking live in
 `$COPILOT_HOME/skills/chief-of-staff/state/relationships.md`, a plain Markdown table in the same
-private installed-skill location as the agendas above. Session evidence and any queued findings
+private installed-skill location as the agendas above (`$COPILOT_HOME/margo/relationships.md` in a
+plugin install). Session evidence and any queued findings
 have their own retention; deleting a roster row is not erasure of those other records.
 
 **If something goes wrong:** "no contact on record" is exactly what it says — evidence may exist
@@ -95,8 +98,40 @@ design — ambient only, never interrupts, capped at a handful of names a week. 
 with daily [ambient scans](automation-health.md#automation-ambient) feeding a weekly digest.
 Since 1.0.0.
 
+## People and org
+
+**What this helps you do:** know who someone is before you meet, chase or write to them — their
+manager, their direct reports, and the people you work with most.
+
+**Before you start:** a configured Work IQ connection. The directory reads need nothing else.
+
+**Try it:**
+
+> Who does Dana report to?
+
+> Who's in the room for my 3pm, and how do they relate to me?
+
+**What you will see:** names, titles and reporting lines from the directory, and for meeting prep,
+each attendee's relationship to you. Frequent collaborators come from a relevance ranking of your
+own communication, presented as a suggestion, never as a score.
+
+**What needs your decision:** nothing; these are reads. When a chase reaches the escalation rung,
+Margo names the person's actual manager as one option; messaging that manager is a separate
+proposal.
+
+**Your data:** org details are used in the conversation and in private prep cards; they are not
+added to anything you send unless you ask.
+
+**If something goes wrong:** a guest or someone outside the directory has no manager here, and a
+failed lookup is shown as unknown. Directory data can be stale; Margo says which source she used
+when a current message disagrees. In Margo Cloud's delegation mode, relevance over your own
+communication is unavailable, and directory answers reflect Margo's own view.
+
+**Availability:** implemented, procedure, used by meeting prep, relationships and follow-through.
+
 ## Advanced reference
 
+The org reads are described in [People and org](../../skills/chief-of-staff/references/people.md).
 Both routines are described in
 [One-on-One Agendas](../../skills/chief-of-staff/references/one-on-ones.md) and
 [Relationships — cadence and drift](../../skills/chief-of-staff/references/relationships.md).

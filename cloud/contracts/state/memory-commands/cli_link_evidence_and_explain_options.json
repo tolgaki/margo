@@ -1,0 +1,373 @@
+{
+ "description": "memory_state.py link --evidence (loaded before --input, also both from stdin, empty, unreadable, for another subject) and explain's --budget-chars, --domain, --routine, --usage and empty --environment options, with argparse errors for each",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_commands_probe.py",
+   "args": [
+    "--account",
+    "{account}",
+    "--state-dir",
+    "{state_dir}",
+    "--dir",
+    "{root}/probe"
+   ],
+   "stdin": [
+    {
+     "cli": [
+      "put",
+      "first",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Synthetic CLI memory",
+       "text": "A private fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "active"
+     },
+     "save": "row"
+    },
+    {
+     "cli": [
+      "put",
+      "second",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "data": {
+       "domain": "user",
+       "kind": "episode",
+       "title": "Second synthetic memory",
+       "text": "Another fictional observation.",
+       "authority": "source_observed",
+       "scope": "personal",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:cli"
+        }
+       ]
+      },
+      "status": "active"
+     },
+     "save": "second"
+    },
+    {
+     "cli": [
+      "link",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "related_to",
+      "--revision",
+      "1",
+      "--target-revision",
+      "1",
+      "--evidence",
+      "-",
+      "--input",
+      "-"
+     ],
+     "stdin_json": {
+      "kind": "human_confirmation",
+      "actor": "alex@example.com",
+      "statement": "I reviewed this exact synthetic memory change.",
+      "evidence_ref": "conversation:synthetic/session/turn/1",
+      "subject_id": "${row.id}",
+      "revision": 1,
+      "decision": "link",
+      "decided_at": "2020-01-01T00:00:00+00:00"
+     }
+    },
+    {
+     "cli": [
+      "link",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "related_to",
+      "--revision",
+      "1",
+      "--target-revision",
+      "1",
+      "--input",
+      "${dir}/missing.json"
+     ],
+     "files": {
+      "--evidence": [
+       1
+      ]
+     }
+    },
+    {
+     "cli": [
+      "link",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "related_to",
+      "--revision",
+      "1",
+      "--target-revision",
+      "1"
+     ],
+     "files": {
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${row.id}",
+       "revision": 1,
+       "decision": "link",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      },
+      "--input": {
+       "unknown": 1
+      }
+     }
+    },
+    {
+     "cli": [
+      "link",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "related_to",
+      "--revision",
+      "1",
+      "--target-revision",
+      "1"
+     ],
+     "files": {
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "mem_other",
+       "revision": 1,
+       "decision": "link",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      }
+     }
+    },
+    {
+     "cli": [
+      "link",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "related_to",
+      "--revision",
+      "1",
+      "--target-revision",
+      "1"
+     ],
+     "files": {
+      "--evidence": {
+       "kind": "human_confirmation",
+       "actor": "alex@example.com",
+       "statement": "I reviewed this exact synthetic memory change.",
+       "evidence_ref": "conversation:synthetic/session/turn/1",
+       "subject_id": "${row.id}",
+       "revision": 1,
+       "decision": "link",
+       "decided_at": "2020-01-01T00:00:00+00:00"
+      },
+      "--input": {
+       "valid_from": "2020-01-01T00:00:00+00:00",
+       "source_refs": [
+        {
+         "kind": "tool_result",
+         "ref": "synthetic:link"
+        }
+       ]
+      }
+     },
+     "save": "linked"
+    },
+    {
+     "cli": [
+      "link",
+      "${row.id}",
+      "${second.id}",
+      "--relation",
+      "related_to",
+      "--revision",
+      "1",
+      "--evidence",
+      ""
+     ]
+    },
+    {
+     "cli": [
+      "show",
+      "${row.id}"
+     ]
+    },
+    {
+     "cli": [
+      "explain",
+      "${row.id}",
+      "--budget-chars",
+      "1000",
+      "--domain",
+      "user",
+      "--routine",
+      "fixture-routine",
+      "--usage",
+      "drafting"
+     ]
+    },
+    {
+     "cli": [
+      "explain",
+      "${row.id}",
+      "--budget-chars",
+      "0"
+     ]
+    },
+    {
+     "cli": [
+      "explain",
+      "${row.id}",
+      "--domain",
+      "agent",
+      "--usage",
+      "reasoning",
+      "--depth",
+      "0",
+      "--limit",
+      "1"
+     ]
+    },
+    {
+     "cli": [
+      "explain",
+      "${row.id}",
+      "--routine",
+      ""
+     ]
+    },
+    {
+     "cli": [
+      "explain",
+      "${row.id}",
+      "--usage",
+      "drafting",
+      "--budget-chars",
+      "12000"
+     ],
+     "files": {
+      "--environment": {
+       "account": "${account}"
+      }
+     }
+    },
+    {
+     "cli": [
+      "explain",
+      "${row.id}",
+      "--environment",
+      ""
+     ]
+    },
+    {
+     "cli": [
+      "graph",
+      "${row.id}",
+      "--environment",
+      "",
+      "--routine",
+      "x"
+     ]
+    }
+   ],
+   "expect_exit": 0,
+   "state_args": false
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "link",
+    "a",
+    "b",
+    "--relation",
+    "about",
+    "--revision",
+    "1",
+    "--evidence",
+    "{root}/nope.json",
+    "--input",
+    "{root}/nope2.json"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "explain",
+    "mem_unknown",
+    "--budget-chars",
+    "x"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "explain",
+    "mem_unknown",
+    "--domain",
+    "both"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "explain",
+    "mem_unknown",
+    "--usage",
+    "acting"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "explain",
+    "mem_unknown",
+    "--routine",
+    "r",
+    "--usage",
+    "drafting",
+    "--domain",
+    "user",
+    "--budget-chars",
+    "50001"
+   ],
+   "expect_exit": 2
+  }
+ ]
+}

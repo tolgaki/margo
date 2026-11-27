@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.State.Memory</RootNamespace>
+    <!-- LibraryImport (MemoryNative: statx with device, inode and nanosecond times) generates code that needs unsafe blocks. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
+    <!-- memory_store.py imports work_ledger.human. -->
+    <ProjectReference Include="../Margo.Cloud.State.Work/Margo.Cloud.State.Work.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.State.Tests" />
+    <!-- The contract probe twin (never shipped in Release) drives internal entry points, as the Python probe does. -->
+    <InternalsVisibleTo Include="Margo.Cloud.State.Probes" />
+  </ItemGroup>
+
+</Project>

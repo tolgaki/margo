@@ -1,0 +1,347 @@
+{
+  "description": "Work sources: an unrecorded revision is pinned to this account's current source revision when the ledger tables exist; eligibility needs the same current revision, a recorded revision row and a non-sensitive (casefolded) sensitivity; missing tables, other accounts and missing revision tables.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "before-ledger",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_mail_1"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "bl"
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "script": "CREATE TABLE work_sources (id TEXT PRIMARY KEY, account TEXT NOT NULL, current_revision INTEGER NOT NULL);"
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "script": "DROP TABLE work_sources;CREATE TABLE work_sources (id TEXT PRIMARY KEY, account TEXT NOT NULL, current_revision INTEGER NOT NULL);CREATE TABLE work_source_revisions (source_id TEXT NOT NULL, revision TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(source_id, revision));"
+        },
+        {
+          "sql": "INSERT INTO work_sources VALUES(?,?,?)",
+          "params": [
+            "src_mail_1",
+            "${account}",
+            1
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_sources VALUES(?,?,?)",
+          "params": [
+            "src_other",
+            "other@example.com",
+            4
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_sources VALUES(?,?,?)",
+          "params": [
+            "src_text",
+            "${account}",
+            "7"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES(?,?,?)",
+          "params": [
+            "src_mail_1",
+            "1",
+            "{\"quote\":\"Synthetic source evidence.\"}"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES(?,?,?)",
+          "params": [
+            "src_mail_1",
+            "2",
+            "{\"sensitivity\":\"Sensitive\"}"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES(?,?,?)",
+          "params": [
+            "src_mail_1",
+            "3",
+            "{\"sensitivity\":\"PUBLIC\"}"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES(?,?,?)",
+          "params": [
+            "src_mail_1",
+            "4",
+            "{\"sensitivity\":5}"
+          ]
+        },
+        {
+          "sql": "INSERT INTO work_source_revisions VALUES(?,?,?)",
+          "params": [
+            "src_text",
+            "7",
+            "{\"sensitivity\":\"none\"}"
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "source-backed",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_mail_1",
+                  "verified_at": "2026-01-02T03:04:05Z"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "sb"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "source-backed",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_mail_1",
+                  "verified_at": "2026-01-02T03:04:05Z"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "pinned",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_mail_1",
+                  "revision": "3"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "other-account",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_other"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "oa"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "text-revision",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_text"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "tr"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "missing-source",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_none"
+                }
+              ]
+            },
+            "active"
+          ]
+        },
+        {
+          "call": "_resolve_work_sources",
+          "on": "store",
+          "args": [
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "Synthetic review preparation",
+              "text": "A fictional review benefited from preparation time.",
+              "authority": "source_observed",
+              "scope": "personal",
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_mail_1"
+                },
+                {
+                  "kind": "tool_result",
+                  "ref": "a"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "sql": "UPDATE work_sources SET current_revision=2 WHERE id='src_mail_1'"
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "sql": "UPDATE work_sources SET current_revision=3 WHERE id='src_mail_1'"
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "sql": "UPDATE work_sources SET current_revision=4 WHERE id='src_mail_1'"
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "sql": "UPDATE work_sources SET current_revision=5 WHERE id='src_mail_1'"
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "health",
+          "on": "store"
+        },
+        {
+          "script": "DROP TABLE work_source_revisions;"
+        },
+        {
+          "call": "eligible",
+          "on": "store"
+        },
+        {
+          "call": "_work_sources_current",
+          "on": "store",
+          "args": [
+            {
+              "source_refs": [
+                {
+                  "kind": "work_source",
+                  "ref": "src_mail_1"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

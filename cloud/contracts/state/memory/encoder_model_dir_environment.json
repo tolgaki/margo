@@ -1,0 +1,127 @@
+{
+  "description": "MARGO_EMBEDDING_MODEL_DIR selects an explicit model directory (missing model, unsafe-directory opt-in honoured); an empty value falls back to the default directory.",
+  "steps": [
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "default_model_dir",
+          "on": "encoder"
+        },
+        {
+          "call": "_safe_model_path",
+          "on": "encoder"
+        },
+        {
+          "call": "status",
+          "on": "encoder"
+        },
+        {
+          "call": "status_local",
+          "on": "encoder"
+        },
+        {
+          "call": "_validate_model",
+          "on": "encoder",
+          "args": [
+            null
+          ]
+        }
+      ],
+      "expect_exit": 0,
+      "env": {
+        "MARGO_EMBEDDING_MODEL_DIR": "{root}/work/env-model"
+      }
+    },
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "default_model_dir",
+          "on": "encoder"
+        },
+        {
+          "call": "_safe_model_path",
+          "on": "encoder"
+        },
+        {
+          "call": "status",
+          "on": "encoder"
+        },
+        {
+          "call": "status_local",
+          "on": "encoder"
+        },
+        {
+          "call": "_validate_model",
+          "on": "encoder",
+          "args": [
+            null
+          ]
+        }
+      ],
+      "expect_exit": 0,
+      "env": {
+        "MARGO_EMBEDDING_MODEL_DIR": "",
+        "COPILOT_HOME": "{root}/home/margo"
+      }
+    },
+    {
+      "script": "memory_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/work"
+      ],
+      "stdin": [
+        {
+          "call": "default_model_dir",
+          "on": "encoder"
+        },
+        {
+          "call": "_safe_model_path",
+          "on": "encoder"
+        },
+        {
+          "call": "status",
+          "on": "encoder"
+        },
+        {
+          "call": "status_local",
+          "on": "encoder"
+        },
+        {
+          "call": "_validate_model",
+          "on": "encoder",
+          "args": [
+            null
+          ]
+        }
+      ],
+      "expect_exit": 0,
+      "env": {
+        "MARGO_EMBEDDING_MODEL_DIR": "{root}/work/env-model",
+        "MARGO_ALLOW_UNSAFE_STATE_DIR": "0"
+      }
+    }
+  ]
+}

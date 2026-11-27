@@ -27,7 +27,9 @@ meeting or document source makes the packet stale until reviewed.
 
 ## After
 
-Record the occurrence as recap pending and check for the actual recap/transcript through Work IQ.
+Record the occurrence as recap pending and check for the actual recap/transcript through Work IQ:
+the direct transcript read first, then the Copilot recap, then search (`meeting-debrief.md`
+step 2). A transcript list that is still empty right after the meeting is pending, not absent.
 Use the existing sweep/anchor cadence and the ledger's retry state, not a new unbounded poller.
 Suggested retry policy is the next eligible sweep, then the next anchor; after two working days
 without a record, surface the gap once and await new evidence. A policy denial is blocked, not

@@ -10,7 +10,9 @@ it never interrupts, and it surfaces at most a handful of names a week.
 ## The state file
 
 `state/relationships.md` — a markdown table the user can read and edit directly. Markdown, not
-JSON, because the user should be able to correct a cadence without a tool.
+JSON, because the user should be able to correct a cadence without a tool. Resolve its location
+with `SKILL.md` → *Where personal files live*: in a plugin install it is `relationships.md` in the
+personal folder, never a file inside the plugin, which an update would replace.
 
 ```markdown
 # Relationship cadence
@@ -27,7 +29,11 @@ JSON, because the user should be able to correct a cadence without a tool.
 - **Last 1:1**: an actual scheduled conversation. Tracked separately because a flurry of email
   is not a relationship.
 
-Seed it from `preferences.md` → People (VIPs, management chain, directs) with default cadences:
+Seed it from `preferences.md` → People (VIPs, management chain, directs) with default cadences.
+Fill the Relationship column from the org reads in `people.md` (`/me/manager`, its manager,
+`/me/directReports`) rather than asking the user to type the chain, and confirm the roster with
+them before measuring against it. `/me/people` can suggest frequent collaborators to add; it is
+a relevance ranking, not a relationship score:
 
 | Relationship | Default cadence |
 |---|---|
@@ -42,7 +48,8 @@ Defaults are a starting point, not a judgment. Offer them once, then let the use
 
 ## Procedure
 
-1. **Read** `state/relationships.md` and `../preferences.md`. If the state file doesn't exist,
+1. **Read** `state/relationships.md` and `../preferences.md` (each where `SKILL.md` → *Where
+   personal files live* puts it). If the state file doesn't exist,
    propose seeding it from People and stop — don't guess a roster and start measuring against it.
 
 2. **Refresh last-contact** for each tracked person. Batch these; don't loop one `workiq-ask` per

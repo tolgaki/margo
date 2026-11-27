@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.Guard.Tests</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Expected values written inline in assertions read better than static fields. -->
+    <NoWarn>$(NoWarn);CA1861</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Margo.Cloud.Guard/Margo.Cloud.Guard.csproj" />
+    <PackageReference Include="xunit.v3" />
+    <!-- The scripted MCP server, for the guard over the real MCP SDK client. -->
+    <Compile Include="../Margo.Cloud.WorkIQ.Tests/ScriptedMcpServer.cs" Link="ScriptedMcpServer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Decisions recorded from the Python guard.py before the cutover (frozen). -->
+    <None Include="Parity/guard_cases.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

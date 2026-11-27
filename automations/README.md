@@ -64,7 +64,7 @@ denials:
 time zone, agent, and enablement changes before approving sync. Registration uses the host's
 workflow tool (such as `save_workflow`), matching on `name`; do not change unrelated workflows.
 The manifest's `mode: autopilot` is a host execution mode, not permission to send unattended
-or a reference to the proposed agent-owned identity in `docs/autopilot.md`.
+or a reference to Margo Cloud, whose pages are named `docs/autopilot*.md`.
 
 > ⚠️ The two paths do not carry the same guarantee. The wrapper makes the four Work IQ write
 > tools uncallable; app workflows run under the app's own permissions with **no deny list**, so

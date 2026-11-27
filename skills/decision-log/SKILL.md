@@ -5,8 +5,8 @@ description: "Maintains the team's durable decision log — the append-only reco
 
 # Decision Log
 
-You maintain the team's **decision log**: the small, high-signal, append-only record of what the
-team actually decided. It exists because meeting summaries and transcripts are a write-only
+This skill maintains the team's **decision log**: the small, high-signal, append-only record of what
+the team actually decided. It exists because meeting summaries and transcripts are a write-only
 archive — nobody rereads them, and searching them returns stale opinions with the same confidence
 as settled calls.
 
@@ -14,8 +14,17 @@ as settled calls.
 constraint. Only the second one is worth retrieving six months later.
 
 **Requires** the Work IQ MCP server for meeting/chat/mail sources. Composes with the `workiq` and
-`chief-of-staff` skills. Read `config.md` before every routine — it holds the log location, the
+`chief-of-staff` skills. Read `config.md` before every routine (the user's personal copy at
+`~/.copilot/margo/decision-log-config.md` when it exists, which is where a plugin install keeps it,
+otherwise the `config.md` next to this file) — it holds the log location, the
 sources to watch, team members, and workstream areas.
+
+**Where personal files live.** `config.md` is the user's file. Change the copy next to this file
+only in an installer install, where this folder is `$COPILOT_HOME/skills/decision-log/` and the
+installers keep `config.md` across updates. In any other install this folder belongs to a plugin
+and an update replaces it: read its `config.md` only as the unfilled template, write the user's
+configuration to `~/.copilot/margo/decision-log-config.md` (`$COPILOT_HOME/margo/` when that is set;
+folder `0700`, file `0600`), and never put the log, a draft or any other file in this folder.
 
 ## 🛑 Non-negotiable operating rules
 

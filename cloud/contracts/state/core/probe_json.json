@@ -1,0 +1,2632 @@
+{
+  "description": "json.dumps (indent, separators, sort_keys by code point, ensure_ascii, allow_nan, float repr, big ints, depth and digit limits), json.loads error messages and positions, margo_store.parse_json.",
+  "steps": [
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "dumps"
+      ],
+      "stdin": [
+        {
+          "value": "1",
+          "options": {}
+        },
+        {
+          "value": "-0",
+          "options": {}
+        },
+        {
+          "value": "0",
+          "options": {}
+        },
+        {
+          "value": "1.0",
+          "options": {}
+        },
+        {
+          "value": "-0.0",
+          "options": {}
+        },
+        {
+          "value": "0.0",
+          "options": {}
+        },
+        {
+          "value": "1e-05",
+          "options": {}
+        },
+        {
+          "value": "1e16",
+          "options": {}
+        },
+        {
+          "value": "1e15",
+          "options": {}
+        },
+        {
+          "value": "1.5e300",
+          "options": {}
+        },
+        {
+          "value": "5e-324",
+          "options": {}
+        },
+        {
+          "value": "1.7976931348623157e308",
+          "options": {}
+        },
+        {
+          "value": "0.1",
+          "options": {}
+        },
+        {
+          "value": "0.30000000000000004",
+          "options": {}
+        },
+        {
+          "value": "100.0",
+          "options": {}
+        },
+        {
+          "value": "2.5e-7",
+          "options": {}
+        },
+        {
+          "value": "1e22",
+          "options": {}
+        },
+        {
+          "value": "1e21",
+          "options": {}
+        },
+        {
+          "value": "9007199254740993",
+          "options": {}
+        },
+        {
+          "value": "-1.5",
+          "options": {}
+        },
+        {
+          "value": "3.141592653589793",
+          "options": {}
+        },
+        {
+          "value": "1e-7",
+          "options": {}
+        },
+        {
+          "value": "0.0001",
+          "options": {}
+        },
+        {
+          "value": "0.001234",
+          "options": {}
+        },
+        {
+          "value": "12345678.9",
+          "options": {}
+        },
+        {
+          "value": "1E5",
+          "options": {}
+        },
+        {
+          "value": "1e+2",
+          "options": {}
+        },
+        {
+          "value": "123456789012345678901234567890",
+          "options": {}
+        },
+        {
+          "value": "-98765432109876543210",
+          "options": {}
+        },
+        {
+          "value": "true",
+          "options": {}
+        },
+        {
+          "value": "false",
+          "options": {}
+        },
+        {
+          "value": "null",
+          "options": {}
+        },
+        {
+          "value": "\"hello\"",
+          "options": {}
+        },
+        {
+          "value": "\"\\u00e9\\u20ac \\u4e2d\"",
+          "options": {}
+        },
+        {
+          "value": "\"\\ud83d\\ude00\"",
+          "options": {}
+        },
+        {
+          "value": "\"\\ud800 lone\"",
+          "options": {}
+        },
+        {
+          "value": "\"\\u0000\\u001f\\b\\f\\n\\r\\t\\u007f\\\"\\\\/\\u2028\"",
+          "options": {}
+        },
+        {
+          "value": "{\"b\": 1, \"a\": [1, 2, {\"c\": null}], \"\\u00e9\": true, \"\\ud83d\\ude00\": false, \"\\uffff\": 0, \"B\": 2}",
+          "options": {}
+        },
+        {
+          "value": "{\"a\": [], \"b\": {}, \"c\": [[]], \"d\": [1, [2, [3]]], \"e\": {\"f\": {\"g\": []}}}",
+          "options": {}
+        },
+        {
+          "value": "{\"a\": 1, \"b\": 2, \"a\": 3}",
+          "options": {}
+        },
+        {
+          "value": "[1.5, -2, \"x\", null, true, {\"k\": \"v\"}]",
+          "options": {}
+        },
+        {
+          "value": "[\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"]",
+          "options": {}
+        },
+        {
+          "value": "1",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "-0",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "0",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "1.0",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "-0.0",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "0.0",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "1e-05",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "1e16",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "1e15",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "1.5e300",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "5e-324",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "1.7976931348623157e308",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "0.1",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "0.30000000000000004",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "100.0",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "2.5e-7",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "1e22",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "1e21",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "9007199254740993",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "-1.5",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "3.141592653589793",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "1e-7",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "0.0001",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "0.001234",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "12345678.9",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "1E5",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "1e+2",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "123456789012345678901234567890",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "-98765432109876543210",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "true",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "false",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "null",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "\"hello\"",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "\"\\u00e9\\u20ac \\u4e2d\"",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "\"\\ud83d\\ude00\"",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "\"\\ud800 lone\"",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "\"\\u0000\\u001f\\b\\f\\n\\r\\t\\u007f\\\"\\\\/\\u2028\"",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "{\"b\": 1, \"a\": [1, 2, {\"c\": null}], \"\\u00e9\": true, \"\\ud83d\\ude00\": false, \"\\uffff\": 0, \"B\": 2}",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "{\"a\": [], \"b\": {}, \"c\": [[]], \"d\": [1, [2, [3]]], \"e\": {\"f\": {\"g\": []}}}",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "{\"a\": 1, \"b\": 2, \"a\": 3}",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "[1.5, -2, \"x\", null, true, {\"k\": \"v\"}]",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "[\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"]",
+          "options": {
+            "indent": 2
+          }
+        },
+        {
+          "value": "1",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "-0",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "0",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "1.0",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "-0.0",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "0.0",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "1e-05",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "1e16",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "1e15",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "1.5e300",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "5e-324",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "1.7976931348623157e308",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "0.1",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "0.30000000000000004",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "100.0",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "2.5e-7",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "1e22",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "1e21",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "9007199254740993",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "-1.5",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "3.141592653589793",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "1e-7",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "0.0001",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "0.001234",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "12345678.9",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "1E5",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "1e+2",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "123456789012345678901234567890",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "-98765432109876543210",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "true",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "false",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "null",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "\"hello\"",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "\"\\u00e9\\u20ac \\u4e2d\"",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "\"\\ud83d\\ude00\"",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "\"\\ud800 lone\"",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "\"\\u0000\\u001f\\b\\f\\n\\r\\t\\u007f\\\"\\\\/\\u2028\"",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "{\"b\": 1, \"a\": [1, 2, {\"c\": null}], \"\\u00e9\": true, \"\\ud83d\\ude00\": false, \"\\uffff\": 0, \"B\": 2}",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "{\"a\": [], \"b\": {}, \"c\": [[]], \"d\": [1, [2, [3]]], \"e\": {\"f\": {\"g\": []}}}",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "{\"a\": 1, \"b\": 2, \"a\": 3}",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "[1.5, -2, \"x\", null, true, {\"k\": \"v\"}]",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "[\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"]",
+          "options": {
+            "indent": 0
+          }
+        },
+        {
+          "value": "1",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "-0",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "0",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "1.0",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "-0.0",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "0.0",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "1e-05",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "1e16",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "1e15",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "1.5e300",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "5e-324",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "1.7976931348623157e308",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "0.1",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "0.30000000000000004",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "100.0",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "2.5e-7",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "1e22",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "1e21",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "9007199254740993",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "-1.5",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "3.141592653589793",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "1e-7",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "0.0001",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "0.001234",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "12345678.9",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "1E5",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "1e+2",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "123456789012345678901234567890",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "-98765432109876543210",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "true",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "false",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "null",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "\"hello\"",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "\"\\u00e9\\u20ac \\u4e2d\"",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "\"\\ud83d\\ude00\"",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "\"\\ud800 lone\"",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "\"\\u0000\\u001f\\b\\f\\n\\r\\t\\u007f\\\"\\\\/\\u2028\"",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "{\"b\": 1, \"a\": [1, 2, {\"c\": null}], \"\\u00e9\": true, \"\\ud83d\\ude00\": false, \"\\uffff\": 0, \"B\": 2}",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "{\"a\": [], \"b\": {}, \"c\": [[]], \"d\": [1, [2, [3]]], \"e\": {\"f\": {\"g\": []}}}",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "{\"a\": 1, \"b\": 2, \"a\": 3}",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "[1.5, -2, \"x\", null, true, {\"k\": \"v\"}]",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "[\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"]",
+          "options": {
+            "sort_keys": true
+          }
+        },
+        {
+          "value": "1",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "-0",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "0",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1.0",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "-0.0",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "0.0",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e-05",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e16",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e15",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1.5e300",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "5e-324",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1.7976931348623157e308",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "0.1",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "0.30000000000000004",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "100.0",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "2.5e-7",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e22",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e21",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "9007199254740993",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "-1.5",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "3.141592653589793",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e-7",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "0.0001",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "0.001234",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "12345678.9",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1E5",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e+2",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "123456789012345678901234567890",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "-98765432109876543210",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "true",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "false",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "null",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "\"hello\"",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "\"\\u00e9\\u20ac \\u4e2d\"",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "\"\\ud83d\\ude00\"",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "\"\\ud800 lone\"",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "\"\\u0000\\u001f\\b\\f\\n\\r\\t\\u007f\\\"\\\\/\\u2028\"",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "{\"b\": 1, \"a\": [1, 2, {\"c\": null}], \"\\u00e9\": true, \"\\ud83d\\ude00\": false, \"\\uffff\": 0, \"B\": 2}",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "{\"a\": [], \"b\": {}, \"c\": [[]], \"d\": [1, [2, [3]]], \"e\": {\"f\": {\"g\": []}}}",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "{\"a\": 1, \"b\": 2, \"a\": 3}",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "[1.5, -2, \"x\", null, true, {\"k\": \"v\"}]",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "[\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"]",
+          "options": {
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "-0",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "0",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1.0",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "-0.0",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "0.0",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1e-05",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1e16",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1e15",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1.5e300",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "5e-324",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1.7976931348623157e308",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "0.1",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "0.30000000000000004",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "100.0",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "2.5e-7",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1e22",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1e21",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "9007199254740993",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "-1.5",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "3.141592653589793",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1e-7",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "0.0001",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "0.001234",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "12345678.9",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1E5",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1e+2",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "123456789012345678901234567890",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "-98765432109876543210",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "true",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "false",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "null",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "\"hello\"",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "\"\\u00e9\\u20ac \\u4e2d\"",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "\"\\ud83d\\ude00\"",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "\"\\ud800 lone\"",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "\"\\u0000\\u001f\\b\\f\\n\\r\\t\\u007f\\\"\\\\/\\u2028\"",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "{\"b\": 1, \"a\": [1, 2, {\"c\": null}], \"\\u00e9\": true, \"\\ud83d\\ude00\": false, \"\\uffff\": 0, \"B\": 2}",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "{\"a\": [], \"b\": {}, \"c\": [[]], \"d\": [1, [2, [3]]], \"e\": {\"f\": {\"g\": []}}}",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "{\"a\": 1, \"b\": 2, \"a\": 3}",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "[1.5, -2, \"x\", null, true, {\"k\": \"v\"}]",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "[\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"]",
+          "options": {
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "ensure_ascii": false,
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "-0",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "0",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "1.0",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "-0.0",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "0.0",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "1e-05",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "1e16",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "1e15",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "1.5e300",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "5e-324",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "1.7976931348623157e308",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "0.1",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "0.30000000000000004",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "100.0",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "2.5e-7",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "1e22",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "1e21",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "9007199254740993",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "-1.5",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "3.141592653589793",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "1e-7",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "0.0001",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "0.001234",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "12345678.9",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "1E5",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "1e+2",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "123456789012345678901234567890",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "-98765432109876543210",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "true",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "false",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "null",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "\"hello\"",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "\"\\u00e9\\u20ac \\u4e2d\"",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "\"\\ud83d\\ude00\"",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "\"\\ud800 lone\"",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "\"\\u0000\\u001f\\b\\f\\n\\r\\t\\u007f\\\"\\\\/\\u2028\"",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "{\"b\": 1, \"a\": [1, 2, {\"c\": null}], \"\\u00e9\": true, \"\\ud83d\\ude00\": false, \"\\uffff\": 0, \"B\": 2}",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "{\"a\": [], \"b\": {}, \"c\": [[]], \"d\": [1, [2, [3]]], \"e\": {\"f\": {\"g\": []}}}",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "{\"a\": 1, \"b\": 2, \"a\": 3}",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "[1.5, -2, \"x\", null, true, {\"k\": \"v\"}]",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "[\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"]",
+          "options": {
+            "indent": 2,
+            "separators": [
+              ", ",
+              ": "
+            ]
+          }
+        },
+        {
+          "value": "1",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "-0",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "0",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1.0",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "-0.0",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "0.0",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e-05",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e16",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e15",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1.5e300",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "5e-324",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1.7976931348623157e308",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "0.1",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "0.30000000000000004",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "100.0",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "2.5e-7",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e22",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e21",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "9007199254740993",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "-1.5",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "3.141592653589793",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e-7",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "0.0001",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "0.001234",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "12345678.9",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1E5",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "1e+2",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "123456789012345678901234567890",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "-98765432109876543210",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "true",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "false",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "null",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "\"hello\"",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "\"\\u00e9\\u20ac \\u4e2d\"",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "\"\\ud83d\\ude00\"",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "\"\\ud800 lone\"",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "\"\\u0000\\u001f\\b\\f\\n\\r\\t\\u007f\\\"\\\\/\\u2028\"",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "{\"b\": 1, \"a\": [1, 2, {\"c\": null}], \"\\u00e9\": true, \"\\ud83d\\ude00\": false, \"\\uffff\": 0, \"B\": 2}",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "{\"a\": [], \"b\": {}, \"c\": [[]], \"d\": [1, [2, [3]]], \"e\": {\"f\": {\"g\": []}}}",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "{\"a\": 1, \"b\": 2, \"a\": 3}",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "[1.5, -2, \"x\", null, true, {\"k\": \"v\"}]",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "[\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"]",
+          "options": {
+            "indent": 4,
+            "sort_keys": true,
+            "ensure_ascii": false
+          }
+        },
+        {
+          "value": "NaN",
+          "options": {}
+        },
+        {
+          "value": "Infinity",
+          "options": {}
+        },
+        {
+          "value": "-Infinity",
+          "options": {}
+        },
+        {
+          "value": "[NaN, Infinity]",
+          "options": {}
+        },
+        {
+          "value": "1e400",
+          "options": {}
+        },
+        {
+          "value": "-1e400",
+          "options": {}
+        },
+        {
+          "value": "NaN",
+          "options": {
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "Infinity",
+          "options": {
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "-Infinity",
+          "options": {
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "[1, -Infinity]",
+          "options": {
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1e400",
+          "options": {
+            "allow_nan": false
+          }
+        },
+        {
+          "value": "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+          "options": {}
+        },
+        {
+          "value": "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+          "options": {}
+        },
+        {
+          "value": "-22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+          "options": {}
+        }
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "loads"
+      ],
+      "stdin": [
+        "",
+        " ",
+        "{",
+        "[",
+        "[1,]",
+        "{\"a\":1,}",
+        "{\"a\" 1}",
+        "{\"a\":1 \"b\":2}",
+        "[1 2]",
+        "{1:2}",
+        "\"abc",
+        "\"a\u0001\"",
+        "\"\\x\"",
+        "\"\\u12\"",
+        "\"\\u12zz\"",
+        "\"\\ud800\"",
+        "\"\\ud800\\u0041\"",
+        "\"\\ud83d\\ude00\"",
+        "\"\\ud83d\\ude0g\"",
+        "01",
+        "1.",
+        "-",
+        ".5",
+        "tru",
+        "nul",
+        "fals",
+        "NaN",
+        "-Infinity",
+        "Infinity",
+        "1e400",
+        "﻿{}",
+        "{\"a\":1}x",
+        "{\"a\":1} ",
+        "[1,2",
+        "{\"a\":",
+        "{\"a\"",
+        "1E5",
+        "1e",
+        "1e+",
+        "1.5e-3",
+        "-0",
+        "-0.0",
+        "[]]",
+        " \n {\"x\": [1, {\"y\"\n:\n2}]",
+        "[1,,2]",
+        "{,}",
+        "{\"a\":1,,\"b\":2}",
+        "[,1]",
+        "\"é€\"",
+        "{\"a\":1,\"a\":2,\"b\":3,\"a\":4}",
+        "tru e",
+        "Infinityx",
+        "-Infinity1",
+        "-NaN",
+        "\t[\r\n1\t]\n",
+        "\"😀 \\u00e9\" x",
+        "\"😀\" x",
+        "[\"😀\", 1 2]",
+        "{\"😀\" 1}",
+        "[[[[1]]]]",
+        "99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999",
+        "[\"a\\/b\", \"\\b\\f\\n\\r\\t\"]",
+        "{\"\":\"\"}"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "parse-json"
+      ],
+      "stdin": [
+        "{\"id\":\"one\",\"id\":\"two\"}",
+        "{\"number\":NaN}",
+        "{",
+        "[1e400]",
+        "{\"a\":{\"b\":1,\"b\":2}}",
+        "{\"x\":[1,2,3],\"y\":{\"z\":1.0}}",
+        "\"\\ud800\"",
+        "{\"a\":{\"b\":1,\"b\":2},\"c\":NaN}",
+        "{\"c\":Infinity,\"a\":{\"b\":1,\"b\":2}}",
+        "[-Infinity]",
+        "{\"é\":\"😀\",\"a\":1}",
+        "  7  ",
+        "{\"k\": \"vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\"}",
+        "﻿{}",
+        "{\"a\":1}x"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "script": "state_core_probe.py",
+      "args": [
+        "depth",
+        "array:9997",
+        "array:9998",
+        "array:9999",
+        "object:9995",
+        "object:9996",
+        "object:9997",
+        "object:9998",
+        "object:9999",
+        "mixed:9997",
+        "mixed:9998",
+        "mixed:9999",
+        "array:1",
+        "object:1"
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

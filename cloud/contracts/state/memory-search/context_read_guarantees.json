@@ -1,0 +1,460 @@
+{
+  "description": "Read helpers never write: graph, explain and context leave a caller's open transaction in place, record no usage and change no records; forgetting invalidates the graph for fresh instances; a context re-reads authority after the embedding request, so a memory forgotten meanwhile is never returned.",
+  "account": "context-fixture@example.com",
+  "steps": [
+    {
+      "script": "memory_search_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}"
+      ],
+      "stdin": [
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "project",
+            {
+              "domain": "user",
+              "kind": "project",
+              "title": "project",
+              "text": "Synthetic project",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "project",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:project}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "open": "held"
+        },
+        {
+          "begin": "held"
+        },
+        {
+          "call": "explain",
+          "on": "search",
+          "use": "held",
+          "args": [
+            "${id:user:project}"
+          ]
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "use": "held",
+          "args": [
+            "project"
+          ],
+          "kwargs": {
+            "mode": "lexical"
+          }
+        },
+        {
+          "rollback": "held"
+        },
+        {
+          "rollback": "held"
+        },
+        {
+          "close": "held"
+        },
+        {
+          "sql": "SELECT count(*) FROM memory_usage"
+        },
+        {
+          "sql": "SELECT id,revision,status FROM memory_records ORDER BY id"
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "person",
+            {
+              "domain": "user",
+              "kind": "person",
+              "title": "person",
+              "text": "Synthetic person",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ],
+              "entities": [
+                "person:one"
+              ]
+            },
+            "active"
+          ],
+          "save": "person",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:person}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:person}"
+          ],
+          "save": "_left"
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:project}"
+          ],
+          "save": "_right"
+        },
+        {
+          "call": "link",
+          "on": "store",
+          "args": [
+            "${_left.id}",
+            "${_right.id}",
+            "owns",
+            "${_left.revision}"
+          ],
+          "kwargs": {
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${_left.id}",
+              "revision": "${_left.revision}",
+              "decision": "relate",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            },
+            "data": {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "target_revision": "${_right.revision}"
+          }
+        },
+        {
+          "call": "graph",
+          "on": "search",
+          "args": [
+            "${id:user:person}"
+          ]
+        },
+        {
+          "call": "show",
+          "on": "store",
+          "args": [
+            "${id:user:person}"
+          ],
+          "save": "_row"
+        },
+        {
+          "call": "forget",
+          "on": "store",
+          "args": [
+            "${id:user:person}",
+            "${_row.revision}",
+            {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:person}",
+              "revision": "${_row.revision}",
+              "decision": "forget",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          ]
+        },
+        {
+          "call": "explain",
+          "on": "search",
+          "args": [
+            "${id:user:person}"
+          ]
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "unmatched-query"
+          ],
+          "kwargs": {
+            "entities": [
+              "person:one"
+            ],
+            "mode": "lexical"
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "record",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "record",
+              "text": "review preparation",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "record",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:record}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "index",
+          "on": "search",
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ],
+            "before": [
+              {
+                "call": "show",
+                "on": "store",
+                "args": [
+                  "${id:user:record}"
+                ],
+                "save": "_row"
+              },
+              {
+                "call": "forget",
+                "on": "store",
+                "args": [
+                  "${id:user:record}",
+                  "${_row.revision}",
+                  {
+                    "kind": "human_confirmation",
+                    "actor": "dana@example.com",
+                    "subject_id": "${id:user:record}",
+                    "revision": "${_row.revision}",
+                    "decision": "forget",
+                    "statement": "Confirm this synthetic fixture.",
+                    "evidence_ref": "conversation:fixture",
+                    "decided_at": "${now}"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "budgeted",
+            {
+              "domain": "user",
+              "kind": "episode",
+              "title": "budgeted",
+              "text": "\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"\\\n\"",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "budgeted",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:budgeted}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "budgeted"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "budget_chars": 2200
+          }
+        },
+        {
+          "call": "put",
+          "on": "store",
+          "args": [
+            "constraint",
+            {
+              "domain": "user",
+              "kind": "preference",
+              "title": "constraint",
+              "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "authority": "user_confirmed",
+              "scope": "fixture",
+              "source_refs": [
+                {
+                  "kind": "user_statement",
+                  "ref": "conversation:fixture"
+                }
+              ]
+            },
+            "active"
+          ],
+          "save": "constraint",
+          "kwargs": {
+            "revision": 1,
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "dana@example.com",
+              "subject_id": "${id:user:constraint}",
+              "revision": 1,
+              "decision": "confirm",
+              "statement": "Confirm this synthetic fixture.",
+              "evidence_ref": "conversation:fixture",
+              "decided_at": "${now}"
+            }
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "other"
+          ],
+          "kwargs": {
+            "mode": "lexical",
+            "budget_chars": 1000
+          }
+        },
+        {
+          "call": "context",
+          "on": "search",
+          "args": [
+            "review"
+          ],
+          "kwargs": {
+            "mode": "semantic"
+          },
+          "encoder": {
+            "fingerprint": "unit-test-vectors-not-production",
+            "groups": [
+              [
+                "review",
+                "preparation"
+              ],
+              [],
+              []
+            ],
+            "default": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

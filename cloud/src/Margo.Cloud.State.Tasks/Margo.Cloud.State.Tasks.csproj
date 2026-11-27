@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Margo.Cloud.State.Tasks</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Margo.Cloud.State.Core/Margo.Cloud.State.Core.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Work/Margo.Cloud.State.Work.csproj" />
+    <ProjectReference Include="../Margo.Cloud.State.Proactive/Margo.Cloud.State.Proactive.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Margo.Cloud.State.Tests" />
+    <!-- The contract probe twin (never shipped in Release) drives internal entry points, as the Python probe does. -->
+    <InternalsVisibleTo Include="Margo.Cloud.State.Probes" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,445 @@
+{
+ "description": "memory_state.py: help of the root parser and all 47 subcommands (also under COLUMNS=60/50/200), no command, unknown commands and options",
+ "steps": [
+  {
+   "script": "memory_state.py",
+   "args": [
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "--help"
+   ],
+   "expect_exit": 0,
+   "env": {
+    "COLUMNS": "60"
+   }
+  },
+  {
+   "script": "memory_state.py",
+   "args": [],
+   "expect_exit": 2,
+   "state_args": false
+  },
+  {
+   "script": "memory_state.py",
+   "args": [],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "unknown-command"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "--version"
+   ],
+   "expect_exit": 2
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "init",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "migrate",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "status",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "record-id",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "put",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "capture",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "revise",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "show",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "list",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "inspect",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "history",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "forget-preview",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "usage",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "graph",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "explain",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "search",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "context",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "index",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "forget",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "link",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "unlink",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "policy",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "policy-preview",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "policy-set",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "maintain",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "record-usage",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "tombstones",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "tombstones-preview",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "tombstones-restore",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "export-preview",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "export",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "preferences-preview",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "preferences-import",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "capabilities",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "validate-capability",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "propose-lesson",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "activate-lesson",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "trend-definition",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "trend",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "consolidate",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "record-consolidation",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-checkpoint",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-plan",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-finish",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-start",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-inspect",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-status",
+    "-h"
+   ],
+   "expect_exit": 0
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "dream-checkpoint",
+    "--help"
+   ],
+   "expect_exit": 0,
+   "env": {
+    "COLUMNS": "50"
+   }
+  },
+  {
+   "script": "memory_state.py",
+   "args": [
+    "context",
+    "-h"
+   ],
+   "expect_exit": 0,
+   "env": {
+    "COLUMNS": "200"
+   }
+  }
+ ]
+}

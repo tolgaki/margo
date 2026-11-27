@@ -37,6 +37,25 @@ evidence class again: they test a local encoder, not this conversational behavio
    Keep transcripts and imported result bundles out of ordinary repository commits; share
    deliberately sanitized summaries, not private host logs or account artifacts.
 
+## Work IQ traces
+
+Hosts record Work IQ calls by Work IQ's own names (`fetch`, `do_action`; `workiq-fetch` in the desktop harness) with a
+resource path. `tools/workiq_trace_vocabulary.py` maps each call onto this evaluator's vocabulary (`/me/sendMail` →
+`mail.send`, `create_entity /me/events` → `calendar.create`, `retrieve` with the `Email` capability → `mail.search`),
+in order. A call it can't map (an `ask`, a Pages write) keeps a `null` name and is reported on stderr, never dropped:
+decide it by hand.
+
+```bash
+python3 tools/workiq_trace_vocabulary.py < calls.jsonl > events.jsonl
+```
+
+The output keeps each call's arguments (recipients, bodies, queries), so treat both files like the trace itself: keep
+them outside the checkout, or under these exact names, which `.gitignore` covers.
+
+For Margo Cloud in a test tenant, `tools/workiq_receipt_stats.py < host.log` summarizes the guard's receipts (calls per
+tool, outcomes, status codes, path templates). Receipts never hold identifiers or content. Latency is in the
+`Margo.Cloud.WorkIQ` traces and metrics. No results from a real tenant are committed here.
+
 ## Run
 
 ```bash

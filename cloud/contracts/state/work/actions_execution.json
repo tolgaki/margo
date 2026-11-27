@@ -1,0 +1,1907 @@
+{
+  "description": "work_ledger_probe: the foreground execution journal. begin's transactional preflight (changed target or sources invalidate the approval, freshness within five minutes, exact preflight keys, one attempt per revision), finish and reconcile (finish(**data) binding, receipt validation, failed needs proof of no effect, outcome_unknown is reconciled and never retried, partial effects only move forward, settled attempts never replay), expired and interrupted executions fail closed, unresolved dependencies, and source revisions making approvals stale while completed actions keep history (tests: source_revision_marks_approval_stale_and_old_replay_does_not_revert, freshness_checks, uncertain_write_never_retries_and_receipt_reconciliation, interrupted_execution_and_expired_approval_fail_closed, failed_requires_no_effect_and_completed_sources_are_history, partial_and_failed_outcomes_do_not_automatically_retry, real_shared_store_cli_roundtrip).",
+  "steps": [
+    {
+      "script": "work_ledger_probe.py",
+      "args": [
+        "--account",
+        "{account}",
+        "--state-dir",
+        "{state_dir}",
+        "--dir",
+        "{root}/probe"
+      ],
+      "stdin": [
+        {
+          "cli": [
+            "source"
+          ],
+          "input": {
+            "family": "mail",
+            "scope": "inbox",
+            "external_id": "message-1",
+            "revision": "v1",
+            "evidence": {
+              "quote": "Please review the fictional specification."
+            },
+            "web_link": "https://example.com/mail/1"
+          },
+          "save": "ref"
+        },
+        {
+          "cli": [
+            "ingest"
+          ],
+          "input": {
+            "claim_key": "claim-1",
+            "data": {
+              "title": "Review fictional specification",
+              "owner": null,
+              "due": null,
+              "direction": "owe",
+              "source_refs": [
+                {
+                  "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                  "revision": "v1",
+                  "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+                }
+              ]
+            }
+          },
+          "save": "item"
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "a1"
+        },
+        {
+          "cli": [
+            "approve",
+            "${a1.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${a1.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${a1.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${a1.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a1.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "changed",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${a1.id}"
+          ]
+        },
+        {
+          "cli": [
+            "history",
+            "${a1.id}"
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "a2"
+        },
+        {
+          "cli": [
+            "approve",
+            "${a2.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${a2.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${a2.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${a2.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a2.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now-6m}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a2.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now+5m}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a2.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "yesterday",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a2.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a2.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "extra": 1
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a2.id}",
+            "--revision",
+            "2"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${item.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "act_missing",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${a2.id}"
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "a3"
+        },
+        {
+          "cli": [
+            "approve",
+            "${a3.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${a3.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${a3.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${a3.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a3.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": []
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${a3.id}"
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "a3b"
+        },
+        {
+          "cli": [
+            "approve",
+            "${a3b.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${a3b.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${a3b.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${a3b.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a3b.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a2.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          },
+          "save": "att2"
+        },
+        {
+          "cli": [
+            "begin",
+            "${a2.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${a2.id}"
+          ]
+        },
+        {
+          "cli": [
+            "list",
+            "--view",
+            "problems"
+          ]
+        },
+        {
+          "cli": [
+            "finish",
+            "${att2.attempt_id}"
+          ],
+          "input": {
+            "state": "outcome_unknown"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a2.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "edit",
+            "${a2.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          }
+        },
+        {
+          "cli": [
+            "dismiss",
+            "${a2.id}",
+            "--revision",
+            "1"
+          ]
+        },
+        {
+          "cli": [
+            "defer",
+            "${a2.id}",
+            "--revision",
+            "1",
+            "--until",
+            "${now+1d}"
+          ]
+        },
+        {
+          "cli": [
+            "reconcile",
+            "${att2.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded"
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att2.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "reconcile",
+            "${att2.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "reconcile",
+            "${att2.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "reconcile",
+            "${att2.attempt_id}"
+          ],
+          "input": {
+            "state": "failed",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "failed",
+              "recorded_at": "${now}",
+              "definitive_no_effect": true
+            }
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${a2.id}"
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "a4"
+        },
+        {
+          "cli": [
+            "approve",
+            "${a4.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${a4.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${a4.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${a4.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a4.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          },
+          "save": "att4"
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "done",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": [
+              "succeeded"
+            ],
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {}
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "stat": "succeeded"
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            },
+            "reconcile": true
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            },
+            "attempt_id": "x"
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "exec_missing"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded"
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": "receipt"
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "guess",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": 5,
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "partial",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "2999-01-01T00:00:00Z"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "bad"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "failed",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "failed",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "failed",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "failed",
+              "recorded_at": "${now}",
+              "definitive_no_effect": 1
+            }
+          }
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "partial",
+            "receipt": {
+              "kind": "provider_receipt",
+              "reference": "tool:fictional-result-1",
+              "outcome": "partial",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "edit",
+            "${a4.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          }
+        },
+        {
+          "cli": [
+            "reconcile",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "failed",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "failed",
+              "recorded_at": "${now}",
+              "definitive_no_effect": true
+            }
+          }
+        },
+        {
+          "cli": [
+            "reconcile",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "outcome_unknown"
+          }
+        },
+        {
+          "cli": [
+            "reconcile",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "outcome_unknown",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "outcome_unknown",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "reconcile",
+            "${att4.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "reconciliation_read",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${a4.id}"
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "a4b"
+        },
+        {
+          "cli": [
+            "approve",
+            "${a4b.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${a4b.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${a4b.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${a4b.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a4b.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          },
+          "save": "att4b"
+        },
+        {
+          "cli": [
+            "finish",
+            "${att4b.attempt_id}"
+          ],
+          "input": {
+            "state": "outcome_unknown",
+            "receipt": "anything"
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${a4b.id}"
+          ]
+        },
+        {
+          "cli": [
+            "reconcile",
+            "${att4b.attempt_id}"
+          ],
+          "input": {
+            "state": "partial",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "partial",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "reconcile",
+            "${att4b.attempt_id}"
+          ],
+          "input": {
+            "state": "outcome_unknown",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "outcome_unknown",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "a5"
+        },
+        {
+          "cli": [
+            "approve",
+            "${a5.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${a5.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${a5.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${a5.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a5.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          },
+          "save": "att5"
+        },
+        {
+          "cli": [
+            "finish",
+            "${att5.attempt_id}"
+          ],
+          "input": {
+            "state": "failed",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "failed",
+              "recorded_at": "${now}",
+              "definitive_no_effect": true
+            }
+          }
+        },
+        {
+          "cli": [
+            "edit",
+            "${a5.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a5.id}",
+            "--revision",
+            "2"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "a6"
+        },
+        {
+          "cli": [
+            "approve",
+            "${a6.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${a6.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${a6.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${a6.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "sql": "UPDATE work_approvals SET expires_at=? WHERE action_id=?",
+          "params": [
+            "${now-1m}",
+            "${a6.id}"
+          ]
+        },
+        {
+          "cli": [
+            "begin",
+            "${a6.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${a6.id}"
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "a7"
+        },
+        {
+          "cli": [
+            "approve",
+            "${a7.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${a7.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${a7.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${a7.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a7.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          },
+          "save": "att7"
+        },
+        {
+          "cli": [
+            "show",
+            "${a7.id}"
+          ]
+        },
+        {
+          "cli": [
+            "begin",
+            "${a7.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "reconcile",
+            "${att7.attempt_id}"
+          ],
+          "input": {
+            "state": "failed",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "failed",
+              "recorded_at": "${now}",
+              "definitive_no_effect": true
+            }
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${a7.id}"
+          ]
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c",
+            "dependencies": [
+              "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+            ]
+          },
+          "save": "a8"
+        },
+        {
+          "cli": [
+            "approve",
+            "${a8.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${a8.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${a8.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${a8.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "a9"
+        },
+        {
+          "cli": [
+            "approve",
+            "${a9.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${a9.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${a9.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${a9.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "begin",
+            "${a9.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          },
+          "save": "att9"
+        },
+        {
+          "cli": [
+            "finish",
+            "${att9.attempt_id}"
+          ],
+          "input": {
+            "state": "succeeded",
+            "receipt": {
+              "kind": "tool_result",
+              "reference": "tool:fictional-result-1",
+              "outcome": "succeeded",
+              "recorded_at": "${now}"
+            }
+          }
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "a10"
+        },
+        {
+          "cli": [
+            "approve",
+            "${a10.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "action_hash": "${a10.action_hash}",
+            "evidence": {
+              "kind": "human_confirmation",
+              "actor": "alex@example.com",
+              "statement": "I reviewed this exact revision and approve the stated change.",
+              "evidence_ref": "conversation:fictional/session/turn/42",
+              "subject_id": "${a10.id}",
+              "revision": 1,
+              "decision": "approve",
+              "decided_at": "${now}",
+              "action_hash": "${a10.action_hash}"
+            },
+            "expires_at": "${now+60m}"
+          }
+        },
+        {
+          "cli": [
+            "propose"
+          ],
+          "input": {
+            "kind": "mail.reply",
+            "target": {
+              "message_id": "message-1",
+              "recipients": [
+                "blair@example.com"
+              ]
+            },
+            "payload": {
+              "body": "The fictional review is complete."
+            },
+            "why": "Explicit follow-up request",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ],
+            "target_fingerprint": "target-v1",
+            "work_item_id": "item_0ec1b1c9bc108389b5d6b5cd8829da3c"
+          },
+          "save": "a11"
+        },
+        {
+          "cli": [
+            "defer",
+            "${a11.id}",
+            "--revision",
+            "1",
+            "--until",
+            "${now+1d}"
+          ]
+        },
+        {
+          "cli": [
+            "source"
+          ],
+          "input": {
+            "family": "mail",
+            "scope": "inbox",
+            "external_id": "message-1",
+            "revision": "v2",
+            "evidence": "No reply is needed now",
+            "web_link": "https://example.com/mail/1"
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${a10.id}"
+          ]
+        },
+        {
+          "cli": [
+            "begin",
+            "${a10.id}",
+            "--revision",
+            "1"
+          ],
+          "input": {
+            "checked_at": "${now}",
+            "target_fingerprint": "target-v1",
+            "source_refs": [
+              {
+                "source_id": "src_a5c99fb8406e7b79f1280431b36e9fd1",
+                "revision": "v1",
+                "fingerprint": "102c9a07ac97d628d7e99167367db1eb0a3260bfd00e9575ca5833430a192af4"
+              }
+            ]
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "${a9.id}"
+          ]
+        },
+        {
+          "cli": [
+            "show",
+            "${a11.id}"
+          ]
+        },
+        {
+          "cli": [
+            "source"
+          ],
+          "input": {
+            "family": "mail",
+            "scope": "inbox",
+            "external_id": "message-1",
+            "revision": "v1",
+            "evidence": {
+              "quote": "Please review the fictional specification."
+            },
+            "web_link": "https://example.com/mail/1"
+          }
+        },
+        {
+          "cli": [
+            "show",
+            "src_a5c99fb8406e7b79f1280431b36e9fd1"
+          ]
+        },
+        {
+          "cli": [
+            "source"
+          ],
+          "input": {
+            "family": "mail",
+            "scope": "inbox",
+            "external_id": "message-1",
+            "revision": "v2",
+            "evidence": "Another changed body",
+            "web_link": "https://example.com/mail/1"
+          }
+        },
+        {
+          "cli": [
+            "list",
+            "--view",
+            "problems"
+          ]
+        },
+        {
+          "cli": [
+            "list",
+            "--view",
+            "decisions"
+          ]
+        },
+        {
+          "cli": [
+            "list",
+            "--view",
+            "waiting"
+          ]
+        },
+        {
+          "cli": [
+            "list",
+            "--view",
+            "all"
+          ]
+        }
+      ],
+      "expect_exit": 0
+    }
+  ]
+}

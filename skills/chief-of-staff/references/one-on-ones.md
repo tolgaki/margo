@@ -35,8 +35,11 @@ adds relevant history; it never establishes attendance or confirms a candidate o
 
 2. **Use one persistent agenda file per person.** Store it under
    `state/one-on-ones/{person-slug}.md`. Markdown rather than JSON so the user can read and edit
-   an agenda directly. The whole `state/` subtree is gitignored, excluded from both installers'
-   payloads, and archived rather than deleted on uninstall.
+   an agenda directly. Resolve the location with `SKILL.md` → *Where personal files live*: in a
+   plugin install it is `one-on-ones/{person-slug}.md` in the personal folder, never a file inside
+   the plugin, which an update would replace. In an installer install the whole `state/` subtree is
+   gitignored, excluded from both installers' payloads, and archived rather than deleted on
+   uninstall.
 
    ```markdown
    # 1:1 — {Person Name}
@@ -86,7 +89,8 @@ adds relevant history; it never establishes attendance or confirms a candidate o
    **Accumulation is the whole point.** If the agenda is rebuilt only during meeting prep, this file
    has failed.
 
-4. **Prepare the agenda before the meeting.** Read `state/one-on-ones/{person-slug}.md`, then pull
+4. **Prepare the agenda before the meeting.** Read `state/one-on-ones/{person-slug}.md` (where
+   *Where personal files live* puts it), then pull
    what changed with that person since the last meeting using `workiq-retrieve`:
 
    ```text
