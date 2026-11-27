@@ -2,9 +2,10 @@
 # Shared helpers for the Margo Cloud deployment scripts. POSIX sh; needs az, azd, python3.
 set -eu
 
-HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-CLOUD=$(CDPATH= cd -- "$HERE/.." && pwd)
-REPO=$(CDPATH= cd -- "$CLOUD/.." && pwd)
+HERE=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+CLOUD=$(CDPATH='' cd -- "$HERE/.." && pwd)
+# shellcheck disable=SC2034  # used by the scripts that source this file
+REPO=$(CDPATH='' cd -- "$CLOUD/.." && pwd)
 
 say() { printf '%s\n' "==> $*"; }
 die() { printf '%s\n' "ERROR: $*" >&2; exit 1; }
@@ -71,4 +72,5 @@ print("" if value is None else value)
 GRAPH_BETA="https://graph.microsoft.com/beta"
 # Agent identity blueprints are agentIdentityBlueprint applications, which 'az ad app' (the plain
 # applications endpoint) does not find; address them through the Graph type cast instead.
+# shellcheck disable=SC2034  # used by the scripts that source this file
 BLUEPRINTS="$GRAPH_BETA/applications/graph.agentIdentityBlueprint"
