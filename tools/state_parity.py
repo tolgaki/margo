@@ -244,11 +244,21 @@ def snapshot(root):
 
 # ----------------------------------------------------------------------------- running
 
+# Two scenarios carry input nested about a thousand levels deep, on purpose (the helpers' own depth limits are what
+# they test). Before Python 3.12 the JSON decoder counts those levels against the interpreter's recursion limit, so
+# reading the scenario file itself fails there unless the limit is raised for the read.
+SCENARIO_RECURSION_LIMIT = 5000
+
+
 def load_scenario(path):
+    previous = sys.getrecursionlimit()
     try:
+        sys.setrecursionlimit(max(previous, SCENARIO_RECURSION_LIMIT))
         data = json.loads(Path(path).read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, RecursionError) as exc:
         raise ScenarioError("cannot read scenario: %s" % exc) from exc
+    finally:
+        sys.setrecursionlimit(previous)
     if not isinstance(data, dict) or set(data) - SCENARIO_KEYS:
         raise ScenarioError("unknown scenario keys: %s" % sorted(set(data) - SCENARIO_KEYS))
     if not isinstance(data.get("description"), str) or not data["description"].strip():
